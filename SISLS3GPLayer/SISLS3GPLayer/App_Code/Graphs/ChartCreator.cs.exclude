@@ -1,0 +1,35 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+using org.jfree.chart;
+
+namespace Ujihara.Demo
+{
+    public abstract class ChartCreator
+    {
+        public abstract JFreeChart CreateChart();
+
+        public string Name
+        {
+            get
+            {
+                string name = this.GetType().Name;
+                char[] chars = (name + " ").ToCharArray();
+                StringBuilder sb = new StringBuilder();
+                bool prevIsUpperOrDigit = true;
+                for (int i = 0; i < chars.Length; i++)
+                {
+                    char c = chars[i];
+                    bool isUpperOrDigit = char.IsUpper(c) || char.IsDigit(c);
+                    if ((!prevIsUpperOrDigit && isUpperOrDigit)
+                        || (isUpperOrDigit && char.IsLower(chars[i + 1])))
+                        sb.Append(' ');
+                    sb.Append(c);
+                    prevIsUpperOrDigit = isUpperOrDigit;
+                }
+                return sb.ToString().TrimEnd();
+            }
+        }
+    }
+}

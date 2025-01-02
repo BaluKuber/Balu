@@ -1,0 +1,1970 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Reports
+/// Screen Name         :   Demand Vs Collection
+/// Created By          :   Saranya I
+/// Created Date        :   
+/// Purpose             :   To show the comparison between Demand Vs Collection for a given period.
+/// Last Updated By		:  
+/// Last Updated Date   :   
+/// Reason              :  
+/// <Program Summary>
+#endregion
+
+#region Namespaces
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using Microsoft.Office.Interop.Excel;
+using Microsoft.Office.Core;
+using System.Collections.Generic;
+//using Dundas.Dashboard;
+//using Dundas.Dashboard.Integration;
+using S3GBusEntity;
+using ReportAccountsMgtServicesReference;
+using S3GBusEntity.Reports;
+using System.Globalization;
+using ReportOrgColMgtServicesReference;
+#endregion
+
+
+public partial class Reports_S3GRptDemandCollection : ApplyThemeForProject
+{
+
+    #region Variable Declaration
+    UserInfo ObjUserInfo;
+    S3GSession ObjS3GSession = new S3GSession();
+    int intCompanyId;
+    int intUserId;
+    string RegionId;
+    bool Is_Active;
+    int AssetTypeId;
+    int intProgramId = 175;
+    public string strDateFormat;
+    int intMaxMonth;
+    Dictionary<string, string> Procparam = new Dictionary<string, string>();
+    Dictionary<int, string> dictDemandmonth = new Dictionary<int, string>();
+    string strPageName = "Demand Collection";
+    //DataTable dtTable = new DataTable();
+    // For Summary Grid
+    decimal TotOpnDemand;
+    decimal TotOpnCollection;
+    decimal TotOpnPercentage;
+    decimal TotClsDemand;
+    decimal TotClsCollection;
+    decimal TotClsPercentage;
+    decimal TotMonDemand;
+    decimal TotMonCollection;
+    decimal TotMonPercentage;
+    decimal decOpeningDemand;
+    decimal decOpeningCol;
+    string strLocation = string.Empty;
+    int j = 0;
+
+    ReportAccountsMgtServicesClient objSerClient;
+    ReportOrgColMgtServicesClient ObjOrgColClient;
+    #endregion
+
+    #region Page Load
+
+    /// <summary>
+    /// This event is handled for load the page
+    /// </summary>
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            //this.ServerUri = new Uri("http://s3g-isaran:7000/");
+
+            FunPriLoadPage();
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Due to Data Problem, Unable to Load Demand Collection Page.";
+            CVDemandCollection.IsValid = false;
+        }
+    }
+    #endregion
+
+    # region Page Methods
+    /// <summary>
+    /// This Method is called when page is Loding
+    /// </summary>
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            #region Application Standard Date Format
+            S3GSession ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;                  // to get the standard date format of the Application
+            CalendarExtender1.Format = strDateFormat;                       // assigning the first textbox with the End date
+            /* Changed Date Control start - 30-Nov-2012 */
+            //txtReportDate.Attributes.Add("readonly", "readonly");
+            txtReportDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtReportDate.ClientID + "','" + strDateFormat + "',true,  false);");
+            /* Changed Date Control end - 30-Nov-2012 */
+
+            #endregion
+
+
+            ObjUserInfo = new UserInfo();
+            Session["Company"] = ObjUserInfo.ProCompanyNameRW;
+            intCompanyId = ObjUserInfo.ProCompanyIdRW;
+            intUserId = ObjUserInfo.ProUserIdRW;
+           Session["Date"] = DateTime.Now.ToString(strDateFormat) + " " + DateTime.Now.ToString().Split(' ')[1].ToString() + " " + DateTime.Now.ToString().Split(' ')[2].ToString();
+
+            //Session["Currency"] = ObjS3GSession.ProCurrencyNameRW;
+
+            if (!IsPostBack)
+            {
+                ddlLOB.Focus();
+                ClearSession();
+                FunPriLoadLob();
+                FunPriLoadRegion();
+                FunPriLoadLocation();
+                //FunPriLoadBranch(intCompanyId, intUserId, RegionId, Is_Active);
+                FunPubLoadDenomination();
+                LoadFinancialYears(ddlFinacialYearBase);
+                ddlFinacialYearBase.SelectedValue = FunPriLoadCurrentFinancialYear();
+                ViewState["BaseMonths"] = FunPriFillArrayDemandMonth(ddlFinacialYearBase);
+                LoadCompareFinancialYears(ddlFinancialYearCompare);
+                ddlFinancialYearCompare.SelectedValue = ddlFinacialYearBase.SelectedValue;
+                ViewState["CompaareMonths"] = FunPriFillArrayDemandMonth(ddlFinancialYearCompare);
+                ddlFromYearMonthBase.FillFinancialMonth(ddlFinacialYearBase.SelectedItem.Text);
+                ddlToYearMonthBase.FillFinancialMonth(ddlFinacialYearBase.SelectedItem.Text);
+                ddlFromYearMonthCompare.FillFinancialMonth(ddlFinancialYearCompare.SelectedItem.Text);
+                ddlToYearMonthCompare.FillFinancialMonth(ddlFinancialYearCompare.SelectedItem.Text);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load Demand Collection page");
+        }
+    }
+    /// <summary>
+    /// To load LOB
+    /// </summary>
+    /// <param name="intCompany_id"></param>
+    /// <param name="intUser_id"></param>
+    private void FunPriLoadLob()
+    {
+        objSerClient = new ReportAccountsMgtServicesClient();
+        try
+        {
+            byte[] byteLobs = objSerClient.FunPubLOB(intCompanyId, intUserId, intProgramId);
+            List<ClsPubDropDownList> lobs = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlLOB.DataSource = lobs;
+            ddlLOB.DataTextField = "Description";
+            ddlLOB.DataValueField = "ID";
+            ddlLOB.DataBind();
+            if (ddlLOB.Items.Count == 2)
+                ddlLOB.SelectedIndex = 1;
+            else
+                ddlLOB.SelectedIndex = 0;
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+    /// <summary>
+    /// To Load Region
+    /// </summary>
+    /// <param name="intCompany_id"></param>
+    /// <param name="Is_active"></param>
+    private void FunPriLoadRegion()
+    {
+        objSerClient = new ReportAccountsMgtServicesClient();
+        try
+        {
+            int intlob_Id = 0;
+            if (ddlLOB.SelectedIndex > 0)
+                intlob_Id = Convert.ToInt32(ddlLOB.SelectedValue);
+            byte[] byteLobs = objSerClient.FunPubBranch(intCompanyId, intUserId, intProgramId, intlob_Id);
+            List<ClsPubDropDownList> Region = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlRegion.DataSource = Region;
+            ddlRegion.DataTextField = "Description";
+            ddlRegion.DataValueField = "ID";
+            ddlRegion.DataBind();
+            ddlRegion.Items[0].Text = "--ALL--";
+            //ddlRegion.Items[0].Text = "ALL";
+            //if (ddlRegion.Items.Count == 2)
+            //{
+            //    ddlRegion.SelectedIndex = 1;
+            //}
+            //else
+            //    ddlRegion.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+
+    private string FunPriLoadCurrentFinancialYear()
+    {
+        int intCurrentYear = DateTime.Now.Year;
+        int intCurrentMonth = DateTime.Now.Month;
+        int intFinancialYearStartMonth = Convert.ToInt32(ConfigurationManager.AppSettings["StartMonth"]);
+        if (intCurrentMonth >= intFinancialYearStartMonth)
+        {
+            return Convert.ToString(intCurrentYear) + "-" + Convert.ToString(intCurrentYear + 1);
+        }
+        else
+        {
+            return Convert.ToString(intCurrentYear - 1) + "-" + Convert.ToString(intCurrentYear);
+        }
+    }
+
+    private void FunPriLoadLocation()
+    {
+        objSerClient = new ReportAccountsMgtServicesClient();
+        try
+        {
+            int intlob_Id = 0;
+            if (ddlLOB.SelectedIndex > 0)
+                intlob_Id = Convert.ToInt32(ddlLOB.SelectedValue);
+            byte[] byteLobs = objSerClient.FunPubBranch(intCompanyId, intUserId, intProgramId, intlob_Id);
+            List<ClsPubDropDownList> Region = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlBranch.DataSource = Region;
+            ddlBranch.DataTextField = "Description";
+            ddlBranch.DataValueField = "ID";
+            ddlBranch.DataBind();
+            ddlBranch.Items[0].Text = "--ALL--";
+            //ddlRegion.Items[0].Text = "ALL";
+            //if (ddlRegion.Items.Count == 2)
+            //{
+            //    ddlRegion.SelectedIndex = 1;
+            //}
+            //else
+            //    ddlRegion.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    private void FunPriLoadBranch()
+    {
+        objSerClient = new ReportAccountsMgtServicesClient();
+        try
+        {
+            int intlob_Id = 0;
+            if (ddlLOB.SelectedIndex > 0)
+                intlob_Id = Convert.ToInt32(ddlLOB.SelectedValue);
+            int Location1 = 0;
+            if (ddlRegion.SelectedIndex != 0)
+                Location1 = Convert.ToInt32(ddlRegion.SelectedValue);
+            byte[] byteLobs = objSerClient.FunPubGetLocation2(intProgramId, intUserId, intCompanyId, intlob_Id, Location1);
+            List<ClsPubDropDownList> Branch = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+
+            ddlBranch.DataSource = Branch;
+            ddlBranch.DataTextField = "Description";
+            ddlBranch.DataValueField = "ID";
+            ddlBranch.DataBind();
+            //if (ddlBranch.Items.Count == 2)
+            //{
+            //    if (ddlRegion.SelectedIndex != 0)
+            //    {
+            //        ddlBranch.SelectedIndex = 1;
+            //        //Utility.ClearDropDownList(ddlBranch);
+            //    }
+            //    else
+            //        ddlBranch.SelectedIndex = 0;
+            //}
+            //else
+            //{
+                ddlBranch.Items[0].Text = "--ALL--";
+                ddlBranch.SelectedIndex = 0;
+            //}
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+    /// <summary>
+    /// To Load Denomination
+    /// </summary>
+    public void FunPubLoadDenomination()
+    {
+        objSerClient = new ReportAccountsMgtServicesClient();
+        try
+        {
+            byte[] byteLobs = objSerClient.GetDenominations();
+            List<ClsPubDropDownList> Denomination = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlDenomination.DataSource = Denomination;
+            ddlDenomination.DataTextField = "Description";
+            ddlDenomination.DataValueField = "ID";
+            ddlDenomination.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+    /// <summary>
+    /// To Deseriliaze the service Object
+    /// </summary>
+    /// <param name="byteObj"></param>
+    /// <returns></returns>
+    private object DeSeriliaze(byte[] byteObj)
+    {
+        return ClsPubSerialize.DeSerialize(byteObj, SerializationMode.Binary, null);
+    }
+    /// <summary>
+    /// To falidate From Report Date
+    /// </summary>
+    private void FunPriValidateFromEndDate()
+    {
+        try
+        {
+            #region Validate Report Date
+            int Compareyear = int.Parse((ddlToYearMonthBase.SelectedItem.Value).Substring(0, 4));
+            int Comparemonth = int.Parse((ddlToYearMonthBase.SelectedItem.Value).Substring(4, 2));
+
+            if (Utility.StringToDate(txtReportDate.Text).Year < Compareyear)
+            {
+                Utility.FunShowAlertMsg(this, "Report Date should be greater than the last date of To month and Year");
+                txtReportDate.Text = "";
+                // added by saranya due to Bug Id 5169
+                FunPriValidateGrid();
+
+                //FunPriClearFinYears();
+                //end here
+                return;
+            }
+            else
+            {
+                if (Utility.StringToDate(txtReportDate.Text).Year == Compareyear)
+                {
+
+                    if (Utility.StringToDate(txtReportDate.Text).Month < Comparemonth)
+                    {
+                        Utility.FunShowAlertMsg(this, "Report Date should be greater than the last date of To month and Year");
+                        txtReportDate.Text = "";
+                        // added by saranya due to Bug Id 5169
+                        FunPriValidateGrid();
+                        //FunPriClearFinYears();
+                        //end here
+                        return;
+                    }
+
+                }
+
+            }
+            #endregion
+
+            #region Validate Gap Days
+            //if (Convert.ToInt32(ddlFromYearMonthCompare.SelectedIndex) > 0 && Convert.ToInt32(ddlToYearMonthCompare) > 0)
+            //{
+            //    int Baseyear = int.Parse((ddlToYearMonthCompare.SelectedItem.Value).Substring(0, 4));
+            //    int Basemonth = int.Parse((ddlToYearMonthCompare.SelectedItem.Value).Substring(4, 2));
+            //    int BaseFromYear = int.Parse((ddlFromYearMonthBase.SelectedItem.Value).Substring(0, 4));
+            //    int BaseFromMonth = int.Parse((ddlFromYearMonthBase.SelectedItem.Value).Substring(4, 2));
+            //    int CompareFromYear = int.Parse((ddlFromYearMonthCompare.SelectedItem.Value).Substring(0, 4));
+            //    int CompareFromMonth = int.Parse((ddlFromYearMonthCompare.SelectedItem.Value).Substring(4, 2));
+            //    if (FunPriGapDays(BaseFromYear, BaseFromMonth, Baseyear, Comparemonth) != FunPriGapDays(CompareFromYear, CompareFromMonth, Compareyear, Basemonth))
+            //    {
+            //        Utility.FunShowAlertMsg(this, "Gap Month Between From Year Month and To Year month should be equal");
+            //        ddlFromYearMonthBase.ClearSelection();
+            //        ddlFromYearMonthCompare.ClearSelection();
+            //        ddlToYearMonthCompare.ClearSelection();
+            //        ddlToYearMonthBase.ClearSelection();
+            //        return;
+            //    }
+            //}
+            #endregion
+
+
+            //FunPriLoadGauge();
+
+
+            FunPriLoadDemandCollectionDetails();    // bind grid
+
+            if (ddlRegion.SelectedIndex > 0 && ddlBranch.SelectedIndex > 0)
+            {
+
+                FunPriLoadDemandCollectionDetails();
+            }
+
+            ClsPubHeaderDetails objHeader = new ClsPubHeaderDetails();
+            objHeader.Lob = (ddlLOB.SelectedItem.Text.Split('-'))[1].ToString();
+            Session["LOB"] = (ddlLOB.SelectedItem.Text.Split('-'))[1].ToString();
+            if (Convert.ToInt32(ddlRegion.SelectedValue) > 0)
+            {
+                objHeader.Region = ddlRegion.SelectedItem.Text;
+                //objHeader.Region = ddlRegion.SelectedItem.Text;
+            }
+            else
+            {
+                objHeader.Region = "All";
+                //((Label)grvSummary.FooterRow.FindControl("lblRegion")).Text;
+            }
+            if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+            {
+                objHeader.Branch = ddlBranch.SelectedItem.Text;
+                //objHeader.Branch = ddlBranch.SelectedItem.Text;
+            }
+            else
+            {
+                objHeader.Branch = "All";
+                //((Label)grvSummary.FooterRow.FindControl("lblBranch")).Text;
+            }
+            objHeader.FromYearMonth = ddlFromYearMonthBase.SelectedItem.Text;
+            objHeader.ToYearMonth = ddlToYearMonthBase.SelectedItem.Text;
+            Session["Header"] = objHeader;
+            if (ddlDenomination.SelectedValue == "1")
+            {
+                Session["Denomination"] = "[All Amounts are in" + " " + ObjS3GSession.ProCurrencyNameRW + "]";
+            }
+            else
+            {
+                Session["Denomination"] = "[All Amounts are" + " " + ObjS3GSession.ProCurrencyNameRW + " " + "in" + " " + ddlDenomination.SelectedItem.Text + "]";
+            }
+            lblAmounts.Visible = true;
+            if (ddlDenomination.SelectedValue == "1")
+            {
+                lblAmounts.Text = "[All Amounts are in" + " " + ObjS3GSession.ProCurrencyNameRW + "]";
+            }
+            else
+            {
+                lblAmounts.Text = "[All Amounts are" + " " + ObjS3GSession.ProCurrencyNameRW + " " + "in" + " " + ddlDenomination.SelectedItem.Text + "]";
+            }
+
+
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    //private void FunPriLoadGauge()
+    //{
+        
+    //    silverlightControlHost.Style.Add("display", "block");
+    //    IntegrationHelper.ServerUri = this.ServerUri;
+    //    string viewerUsername = "admin";
+    //    string viewerPassword = "123456";
+    //    Guid dashboardContentId = new Guid("46d539e7-88b4-4e8c-a49d-ae985b012047");
+    //    string viewerFeatures = "IsLogoVisible=false;IsToolbarVisible=false;IsNavigationVisible=false";
+    //    bool deleteOtherSessions = false;
+    //    bool useMethod1 = true;
+    //    if (useMethod1)
+    //    {
+    //        Guid loginToken = IntegrationHelper.GetLocalLoginToken(viewerUsername, viewerPassword);
+    //        this.InitParams = string.Format("ddAppLoaderModule=1,Dd_ContentType=Dashboard,ServerUri={0},dwLoginToken={1},Dd_ContentId={2},dwDeleteOtherSessions={3},Dd_ViewerFeatures={4}",
+    //                                        this.ServerUri,
+    //                                        loginToken,
+    //                                        dashboardContentId,
+    //                                        deleteOtherSessions ? 1 : 0,
+    //                                        viewerFeatures);
+    //    }
+    //    else
+    //    {
+
+
+    //        Dundas.Dashboard.Integration.LoginStatus loginStatus = IntegrationHelper.LoginLocal(viewerUsername, viewerPassword, deleteOtherSessions);
+    //        if (loginStatus.LoginFailureReason != LoginFailureReason.None)
+    //        {
+    //            throw new ArgumentException("Could not create session: " + loginStatus.LoginFailureReason.ToString(), "dwSessionId");
+    //        }
+    //        Guid sessionId = loginStatus.SessionId;
+    //        this.InitParams = string.Format("ddAppLoaderModule=1,Dd_ContentType=Dashboard,ServerUri={0},dwSessionId={1},Dd_ContentId={2},Dd_ViewerFeatures={3}",
+    //                                        this.ServerUri,
+    //                                        sessionId,
+    //                                        dashboardContentId,
+    //                                        viewerFeatures);
+    //    }
+
+
+    //}
+
+    //public Uri ServerUri { get; set; }
+
+    //public Uri DashboardViewerUri
+    //{
+    //    get { return new Uri(string.Format("{0}ClientBin/Dundas.Dashboard.AppLoader.xap", ServerUri.ToString())); }
+    //}
+    public string InitParams { get; set; }
+    /// <summary>
+    /// To Load Financial Years
+    /// </summary>
+    /// <param name="ddlSourceControl"></param>
+    public static void LoadFinancialYears(DropDownList ddlSourceControl)
+    {
+        try
+        {
+            int intCurrentYear = DateTime.Now.Year;
+            //System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+
+            //ddlSourceControl.Items.Insert(0, liSelect);
+            if (DateTime.Now.Month > 3)//Convert.ToInt32(ConfigurationManager.AppSettings["StartMonth"]))
+            {
+                System.Web.UI.WebControls.ListItem liPSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear - 2) + "-" + (intCurrentYear - 1)), ((intCurrentYear - 2) + "-" + (intCurrentYear - 1)));
+                ddlSourceControl.Items.Insert(0, liPSelect);
+                System.Web.UI.WebControls.ListItem liCSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear - 1) + "-" + (intCurrentYear)), ((intCurrentYear - 1) + "-" + (intCurrentYear)));
+                ddlSourceControl.Items.Insert(1, liCSelect);
+                System.Web.UI.WebControls.ListItem liNSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear) + "-" + (intCurrentYear + 1)), ((intCurrentYear) + "-" + (intCurrentYear + 1)));
+                ddlSourceControl.Items.Insert(2, liNSelect);
+            }
+            else
+            {
+                System.Web.UI.WebControls.ListItem liPSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear - 2) + "-" + (intCurrentYear - 1)), ((intCurrentYear - 2) + "-" + (intCurrentYear - 1)));
+                ddlSourceControl.Items.Insert(0, liPSelect);
+                System.Web.UI.WebControls.ListItem liCSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear - 1) + "-" + (intCurrentYear)), ((intCurrentYear - 1) + "-" + (intCurrentYear)));
+                ddlSourceControl.Items.Insert(1, liCSelect);
+                System.Web.UI.WebControls.ListItem liNSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear) + "-" + (intCurrentYear + 1)), ((intCurrentYear) + "-" + (intCurrentYear + 1)));
+                ddlSourceControl.Items.Insert(2, liNSelect);
+            }
+
+        }
+        catch (Exception exp)
+        {
+            throw exp;
+        }
+
+    }
+
+    public static void LoadCompareFinancialYears(DropDownList ddlSourceControl)
+    {
+        try
+        {
+            int intCurrentYear = DateTime.Now.Year;
+            //System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+
+            //ddlSourceControl.Items.Insert(0, liSelect);
+            if (DateTime.Now.Month > Convert.ToInt32(ConfigurationManager.AppSettings["StartMonth"]))
+            {
+                System.Web.UI.WebControls.ListItem liPSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear - 3) + "-" + (intCurrentYear - 2)), ((intCurrentYear - 3) + "-" + (intCurrentYear - 2)));
+                ddlSourceControl.Items.Insert(0, liPSelect);
+                System.Web.UI.WebControls.ListItem liCSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear - 2) + "-" + (intCurrentYear-1)), ((intCurrentYear - 2) + "-" + (intCurrentYear-1)));
+                ddlSourceControl.Items.Insert(1, liCSelect);
+                System.Web.UI.WebControls.ListItem liNSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear-1) + "-" + (intCurrentYear)), ((intCurrentYear-1) + "-" + (intCurrentYear)));
+                ddlSourceControl.Items.Insert(2, liNSelect);
+            }
+            else
+            {
+                System.Web.UI.WebControls.ListItem liPSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear - 3) + "-" + (intCurrentYear - 2)), ((intCurrentYear - 3) + "-" + (intCurrentYear - 2)));
+                ddlSourceControl.Items.Insert(0, liPSelect);
+                System.Web.UI.WebControls.ListItem liCSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear - 2) + "-" + (intCurrentYear-1)), ((intCurrentYear - 2) + "-" + (intCurrentYear-1)));
+                ddlSourceControl.Items.Insert(1, liCSelect);
+                System.Web.UI.WebControls.ListItem liNSelect = new System.Web.UI.WebControls.ListItem(((intCurrentYear-1) + "-" + (intCurrentYear )), ((intCurrentYear-1) + "-" + (intCurrentYear)));
+                ddlSourceControl.Items.Insert(2, liNSelect);
+            }
+
+        }
+        catch (Exception exp)
+        {
+            throw exp;
+        }
+
+    }
+    /// <summary>
+    /// To find the Gap Months 
+    /// </summary>
+    /// <param name="FromYear"></param>
+    /// <param name="Frommonth"></param>
+    /// <param name="ToYear"></param>
+    /// <param name="ToMonth"></param>
+    /// <returns></returns>
+    private int FunPriGapDays(int FromYear, int Frommonth, int ToYear, int ToMonth)
+    {
+        try
+        {
+            DateTime dtFrom = new DateTime(FromYear, Frommonth, 1);
+            DateTime dtTo = new DateTime(ToYear, ToMonth, 1);
+
+            int totalMonths = ((dtTo.Year - dtFrom.Year) * 12) + dtTo.Month - dtFrom.Month;
+            return totalMonths++;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To validate the future date 
+    /// </summary>
+    /// <param name="YearMonth"></param>
+    private void FunPriValidateFutureDate(DropDownList ddl)
+    {
+        try
+        {
+            #region To find Current Year and Month
+            //string Today = Convert.ToString(DateTime.Now);
+            string YearMonth = ddl.SelectedItem.Text;
+            int Currentmonth = DateTime.Now.Month;
+            int Currentyear = DateTime.Now.Year;
+
+            #endregion
+            int year = int.Parse(YearMonth.Substring(0, 4));
+            int Month = int.Parse(YearMonth.Substring(4, 2));
+            if (year > Currentyear)
+            {
+                ddl.ClearSelection();
+                Utility.FunShowAlertMsg(this, "Year should not be Greater than the Current Year");
+                return;
+            }
+            else if (year == Currentyear)
+            {
+                if (Month > Currentmonth)
+                {
+                    ddl.ClearSelection();
+                    Utility.FunShowAlertMsg(this, "Month should not be Greater than the Current Month");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Clear the fields
+    /// </summary>
+    private void FunPriClearSelection()
+    {
+        try
+        {
+            //ddlLOB.ClearSelection();
+            if (ddlLOB.Items.Count == 2)
+                ddlLOB.SelectedIndex = 1;
+            else
+                ddlLOB.SelectedIndex = 0;
+            ddlLOB.Focus();
+            ddlRegion.ClearSelection();
+            //if (ddlRegion.Items.Count == 2)
+            //    ddlRegion.SelectedIndex = 1;
+            //else
+            //    ddlRegion.SelectedIndex = 0;
+
+            FunPriLoadLocation();
+            ddlBranch.Enabled = false;
+
+            FunPriClearFields();
+
+
+            FunPriValidateGrid();
+            lblError.Text = "";
+            lblAmounts.Text = "";
+            //btnOk.Visible = false;
+            btnPrint.Visible = false;
+            //btnChart.Visible = false;
+            btnExcel.Visible = false;
+           
+            //silverlightControlHost.Style.Add("display", "none");
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    private void FunPriClearFields()
+    {
+        txtReportDate.Text = "";
+        ddlDenomination.ClearSelection();
+        //FunPriClearFinYears();
+    }
+
+    private void FunPriClearFinYears()
+    {
+        ddlFinacialYearBase.SelectedValue = FunPriLoadCurrentFinancialYear();
+       // ddlFinancialYearCompare.SelectedValue = ddlFinacialYearBase.SelectedValue;
+        ddlFromYearMonthBase.ClearSelection();
+        ddlFromYearMonthCompare.ClearSelection();
+        ddlToYearMonthBase.ClearSelection();
+        ddlToYearMonthCompare.ClearSelection();
+        ddlFromYearMonthBase.FillFinancialMonth(ddlFinacialYearBase.SelectedItem.Text);
+        ddlToYearMonthBase.FillFinancialMonth(ddlFinacialYearBase.SelectedItem.Text);
+        ddlFromYearMonthCompare.FillFinancialMonth(ddlFinancialYearCompare.SelectedItem.Text);
+        ddlToYearMonthCompare.FillFinancialMonth(ddlFinancialYearCompare.SelectedItem.Text);
+    }
+    /// <summary>
+    /// To Bind the Demand Collection Details in grid
+    /// </summary>
+    private void FunPriLoadDemandCollectionDetails()
+    {
+        ObjOrgColClient = new ReportOrgColMgtServicesClient();
+        try
+        {
+            btnPrint.Visible = true;
+            //btnChart.Visible = true;
+            //btnChart.Enabled = true;
+            btnExcel.Visible = true;
+            btnPrint.Enabled = true;
+            btnExcel.Enabled = true;
+            lblError.Text = "";
+            pnlDemandCollection.Visible = true;
+            divDemand.Style.Add("display", "block");
+            //ObjOrgColClient = new ReportOrgColMgtServicesClient();
+            ClsPubDemandParameterDetails DemandParameter = new ClsPubDemandParameterDetails();
+            DemandParameter.CompanyId = intCompanyId;
+            DemandParameter.UserId = intUserId;
+
+            DemandParameter.LobId = ddlLOB.SelectedValue;
+            DemandParameter.ProgramId = intProgramId;
+            if (ddlRegion.SelectedIndex > 0)
+            {
+                DemandParameter.LocationId1 = Convert.ToInt32(ddlRegion.SelectedValue);
+            }
+            else
+            {
+                DemandParameter.LocationId1 = 0;
+            }
+            if (ddlBranch.SelectedIndex > 0)
+            {
+                DemandParameter.LocationId2 = Convert.ToInt32(ddlBranch.SelectedValue);
+            }
+            else
+            {
+                DemandParameter.LocationId2 = 0;
+
+            }
+            // Funancial Year Start Month Start Date
+
+            //string FinYearStarYearMonthStartDate="";
+
+            //FinYearStarYearMonthStartDate =ClsPubConfigReader.FunPubReadConfig("StartMonth");
+            string FinYearStarYearMonthStartDate = ddlFromYearMonthBase.Items[1].Text;
+            int FinYearStartyear = int.Parse(FinYearStarYearMonthStartDate.Substring(0, 4));
+            int FinYearStartMonth = int.Parse(FinYearStarYearMonthStartDate.Substring(4, 2));
+            DateTime FinYear_StartMonth_StartDate = Convert.ToDateTime(FinYearStartMonth + "/" + "1" + "/" + FinYearStartyear);
+            DemandParameter.FinYearStartMonthStartDate = FinYear_StartMonth_StartDate;
+
+            // From month Start Date
+            int BaseFrommonth = int.Parse((ddlFromYearMonthBase.SelectedItem.Value).Substring(4, 2));
+            int BaseFromYear = int.Parse((ddlFromYearMonthBase.SelectedItem.Value).Substring(0, 4));
+            DateTime FromMonth_StartDate = Convert.ToDateTime(BaseFrommonth + "/" + "1" + "/" + BaseFromYear);
+            DemandParameter.FromMonthStartDate = FromMonth_StartDate;
+
+            //From Month Previous Month End Date
+            int PreviousMonth;
+            if (BaseFrommonth == 1)
+            {
+                PreviousMonth = 12;
+            }
+            else
+            {
+                PreviousMonth = BaseFrommonth - 1;
+            }
+            string PreFromMonthEndDate = System.DateTime.DaysInMonth(BaseFromYear, PreviousMonth).ToString();
+            DateTime FromMonth_PreMonth_EndDate = Convert.ToDateTime(PreviousMonth + "/" + PreFromMonthEndDate + "/" + BaseFromYear);
+            DemandParameter.FromMonthPreMonthEndDate = FromMonth_StartDate.AddMonths(-1);
+
+            //To Month End Date
+            int BaseTomonth = int.Parse((ddlToYearMonthBase.SelectedItem.Value).Substring(4, 2));
+            int BaseToYear = int.Parse((ddlToYearMonthBase.SelectedItem.Value).Substring(0, 4));
+            string ToMonthEndDate = System.DateTime.DaysInMonth(BaseToYear, BaseTomonth).ToString();
+            DateTime ToMonth_EndDate = Convert.ToDateTime(BaseTomonth + "/" + ToMonthEndDate + "/" + BaseToYear);
+            DemandParameter.ToMonthEndDate = ToMonth_EndDate;
+
+            //Compare Funancial Year Start Month Start Date
+            if (ddlFromYearMonthCompare.SelectedIndex > 0)
+            {
+                string CompareFinYearStarYearMonthStartDate = ddlFromYearMonthCompare.Items[1].Text;
+                int CompareFinYearStartyear = int.Parse(CompareFinYearStarYearMonthStartDate.Substring(0, 4));
+                int CompareFinYearStartMonth = int.Parse(CompareFinYearStarYearMonthStartDate.Substring(4, 2));
+                DateTime Compare_FinYear_StartMonth_StartDate = Convert.ToDateTime(CompareFinYearStartMonth + "/" + "1" + "/" + CompareFinYearStartyear);
+                DemandParameter.CompareFinYearStartMonthStartDate = Compare_FinYear_StartMonth_StartDate;
+            }
+
+
+            //Compare From month Start Date
+            if (ddlFromYearMonthCompare.SelectedIndex > 0)
+            {
+                int CompareFrommonth = int.Parse((ddlFromYearMonthCompare.SelectedItem.Value).Substring(4, 2));
+                int CompareFromYear = int.Parse((ddlFromYearMonthCompare.SelectedItem.Value).Substring(0, 4));
+                DateTime Compare_FromMonth_StartDate = Convert.ToDateTime(CompareFrommonth + "/" + "1" + "/" + CompareFromYear);
+                DemandParameter.CompareFromMonthStartDate = Compare_FromMonth_StartDate;
+
+
+
+            }
+            // else
+            // {
+            //DemandParameter.CompareFromMonthStartDate = "";
+            // }
+
+            //Compare From Month Previous Month End Date
+            if (ddlFromYearMonthCompare.SelectedIndex > 0)
+            {
+                int ComparePreviousMonth;
+                int ComparePreFrommonth = int.Parse((ddlFromYearMonthCompare.SelectedItem.Value).Substring(4, 2));
+                int ComparePreFromYear = int.Parse((ddlFromYearMonthCompare.SelectedItem.Value).Substring(0, 4));
+
+                if (ComparePreFrommonth == 1)
+                {
+                    ComparePreviousMonth = 12;
+                }
+                else
+                {
+                    ComparePreviousMonth = ComparePreFrommonth - 1;
+                }
+                string ComparePreFromMonthEndDate = System.DateTime.DaysInMonth(ComparePreFromYear, ComparePreviousMonth).ToString();
+                DateTime Compare_FromMonth_PreMonth_EndDate = Convert.ToDateTime(ComparePreviousMonth + "/" + ComparePreFromMonthEndDate + "/" + ComparePreFromYear);
+                DemandParameter.CompareFromMonthPreMonthEndDate = Compare_FromMonth_PreMonth_EndDate;
+            }
+            //else
+            //{
+            //    DemandParameter.CompareFromMonthPreMonthEndDate = "";
+            //}
+            //Compare To Month End Date
+            if (ddlToYearMonthCompare.SelectedIndex > 0)
+            {
+                int CompareTomonth = int.Parse((ddlToYearMonthCompare.SelectedItem.Value).Substring(4, 2));
+                int CompareToYear = int.Parse((ddlToYearMonthCompare.SelectedItem.Value).Substring(0, 4));
+                string CompareToMonthEndDate = System.DateTime.DaysInMonth(CompareToYear, CompareTomonth).ToString();
+                DateTime Compare_ToMonth_EndDate = Convert.ToDateTime(CompareTomonth + "/" + CompareToMonthEndDate + "/" + CompareToYear);
+                DemandParameter.CompareToMonthEndDate = Compare_ToMonth_EndDate;
+            }
+            //else
+            //{
+            //    DemandParameter.CompareToMonthEndDate = "";
+            //}
+
+            DemandParameter.Denomination = Convert.ToDecimal(ddlDenomination.SelectedValue);
+            byte[] byteDemandDetail = ClsPubSerialize.Serialize(DemandParameter, SerializationMode.Binary);
+
+            byte[] byteLobs = ObjOrgColClient.FunPubGetDemandCollection(byteDemandDetail);
+            List<ClsPubDemandCollection> DemandCollectionDetails = (List<ClsPubDemandCollection>)DeSeriliaze(byteLobs);
+            TotOpnDemand = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.OpeningDemand);
+            TotOpnCollection = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.OpeningCollection);
+            //TotOpnPercentage = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.OpeningPercentage);
+            TotMonDemand = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.MonthlyDemand);
+            TotMonCollection = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.MonthlyCollection);
+            TotMonPercentage = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.MonthlyPercentage);
+            TotClsDemand = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.ClosingDemand);
+            TotClsCollection = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.ClosingCollection);
+            TotClsPercentage = DemandCollectionDetails.Sum(ClsPubDemandCollection => ClsPubDemandCollection.ClosingPercentage);
+            Session["DemandCollection"] = DemandCollectionDetails;
+            grvDemand.DataSource = DemandCollectionDetails;
+            grvDemand.DataBind();
+            if (ddlRegion.SelectedIndex > 0)
+            {
+                grvDemand.Columns[1].Visible = false;
+            }
+            else
+            {
+                grvDemand.Columns[1].Visible = true;
+            }
+
+            if (grvDemand.Rows.Count != 0)
+            {
+                grvDemand.HeaderRow.Style.Add("position", "relative");
+                grvDemand.HeaderRow.Style.Add("z-index", "auto");
+                grvDemand.HeaderRow.Style.Add("top", "auto");
+
+            }
+            if (grvDemand.Rows.Count == 0)
+            {
+                Session["DemandCollection"] = null;
+                btnPrint.Enabled = false;
+                //btnChart.Enabled = false;
+                btnExcel.Enabled = false;
+                lblError.Text = "No Records Found";
+                grvDemand.DataBind();
+            }
+            else
+            {
+                FunPriDisplayTotal();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            ObjOrgColClient.Close();
+        }
+    }
+    /// <summary>
+    /// To find the Total
+    /// </summary>
+    private void FunPriDisplayTotal()
+    {
+        ((System.Web.UI.WebControls.Label)grvDemand.FooterRow.FindControl("lbltotOpeningDemand")).Text = TotOpnDemand.ToString(Funsetsuffix());
+        ((System.Web.UI.WebControls.Label)grvDemand.FooterRow.FindControl("lbltotOpeningCollection")).Text = TotOpnCollection.ToString(Funsetsuffix());
+        //((Label)grvDemand.FooterRow.FindControl("lbltotOpeningPercentage")).Text = TotOpnPercentage.ToString(Funsetsuffix());
+        ((System.Web.UI.WebControls.Label)grvDemand.FooterRow.FindControl("lbltotMonthlyDemand")).Text = TotMonDemand.ToString(Funsetsuffix());
+        ((System.Web.UI.WebControls.Label)grvDemand.FooterRow.FindControl("lbltotMonthlyCollection")).Text = TotMonCollection.ToString(Funsetsuffix());
+        //((Label)grvDemand.FooterRow.FindControl("lbltotMonthlyPercentage")).Text = TotMonPercentage.ToString(Funsetsuffix());
+        ((System.Web.UI.WebControls.Label)grvDemand.FooterRow.FindControl("lbltotClosingDemand")).Text = TotClsDemand.ToString(Funsetsuffix());
+        ((System.Web.UI.WebControls.Label)grvDemand.FooterRow.FindControl("lbltotClosingCollection")).Text = TotClsCollection.ToString(Funsetsuffix());
+        //((Label)grvDemand.FooterRow.FindControl("lbltotClosingPercentage")).Text = TotClsPercentage.ToString(Funsetsuffix());
+
+    }
+    /// <summary>
+    /// To set the suffix from GPS
+    /// </summary>
+    /// <returns></returns>
+    private string Funsetsuffix()
+    {
+
+        int suffix = 1;
+        S3GSession ObjS3GSession = new S3GSession();
+        suffix = ObjS3GSession.ProGpsSuffixRW;
+        string strformat = "0.";
+        for (int i = 1; i <= suffix; i++)
+        {
+            strformat += "0";
+        }
+        return strformat;
+    }
+    /// <summary>
+    /// To Clear the Session
+    /// </summary>
+    private void ClearSession()
+    {
+        Session["Header"] = null;
+        Session["Denomination"] = null;
+        //Session["Currency"] = null;
+        Session["DemandCollection"] = null;
+        Session["Company"] = null;
+        Session["Details"] = null;
+
+    }
+
+    private Dictionary<int, string> FunPriFillArrayDemandMonth(DropDownList ddlFinacialYear)
+    {
+        dictDemandmonth = new Dictionary<int, string>();
+        int intActualMonth = Convert.ToInt32(ClsPubConfigReader.FunPubReadConfig("StartMonth"));
+        string[] Years = ddlFinacialYear.SelectedItem.Text.Split('-');
+        string strActualYear = Years[0].ToString();
+        for (int intMonthCnt = 1; intMonthCnt <= 12; intMonthCnt++)
+        {
+            if (intActualMonth >= 13)
+            {
+                intActualMonth = 1;
+                strActualYear = Years[1].ToString();
+            }
+            System.Web.UI.WebControls.ListItem liPSelect = new System.Web.UI.WebControls.ListItem(strActualYear + intActualMonth.ToString("00"), strActualYear + intActualMonth.ToString("00"));
+            //DemandArrayList[intMonthCnt - 1] = liPSelect.Text;
+            dictDemandmonth.Add(intMonthCnt, liPSelect.Text);
+            intActualMonth = intActualMonth + 1;
+        }
+        return dictDemandmonth;
+    }
+
+    private string FunPriGetDemandMonths(DropDownList ddlFrom, DropDownList ddlTo, Dictionary<int, string> dictDemandmonths)
+    {
+        string strDemandmnth = "";
+        //dictDemandmonths = (Dictionary<int, string>)ViewState["DemandMonth"];
+        strDemandmnth = "<Root>";
+        foreach (KeyValuePair<int, string> kvp in dictDemandmonths)
+        {
+
+            if (Convert.ToInt64(kvp.Value) >= Convert.ToInt64(ddlFrom.SelectedItem.Text) && Convert.ToInt64(kvp.Value) <= Convert.ToInt64(ddlTo.SelectedItem.Text))
+            {
+                strDemandmnth += "<Details  Demand_Month= '" + kvp.Value + "' />";
+            }
+
+        }
+        strDemandmnth += "</Root>";
+
+        return strDemandmnth;
+    }
+
+
+    private void FunPriValidateGrid()
+    {
+        lblAmounts.Visible = false;
+        pnlDemandCollection.Visible = false;
+        grvDemand.DataSource = null;
+        grvDemand.DataBind();
+        btnPrint.Visible = false;
+        //btnChart.Visible = false;
+        btnExcel.Visible = false;
+    }
+
+    private void FunPriExportToExcel()
+    {
+        try
+        {
+            //DataTable dtExcel = new DataTable();
+            DataSet dsExcel = new DataSet();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            dsExcel = Utility.GetDataset("S3G_RPT_DemandCollectionPivot", Procparam);
+            CreateWorkbook(dsExcel, @"d:\DSToExcel\test.xls");
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    public void CreateWorkbook(DataSet ds, String path)
+    {
+        int rowindex = 1;
+        int columnindex = 0;
+        Microsoft.Office.Interop.Excel.Application wapp;
+        Microsoft.Office.Interop.Excel.Worksheet wsheet;
+        Microsoft.Office.Interop.Excel.Workbook wbook;
+        wapp = new Microsoft.Office.Interop.Excel.Application();
+        wapp.Visible = false;
+        wbook = wapp.Workbooks.Add(true);
+        wsheet = (Worksheet)wbook.ActiveSheet;
+        try
+        {
+            /*
+            // For LOGO
+            string Path = "D:\\Logo.png";
+            Microsoft.Office.Interop.Excel.Range Logo = null;
+            Logo = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[2, 1], wsheet.Cells[2, 2]);
+            Logo.Merge(Type.Missing);
+           // wsheet.Cells[2, 1] = "Logo";
+            wsheet.Shapes.AddPicture(Path, Microsoft.Office.Core.MsoTriState.msoFalse,Microsoft.Office.Core.MsoTriState.msoCTrue, 10, 10, 100, 100);
+            */
+
+            
+            //Logo.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+            //Logo.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignLeft;
+            //
+
+            // For Company Name
+            int Companywidth = ds.Tables[0].Columns.Count - 2;
+            Microsoft.Office.Interop.Excel.Range Company = null;
+            Company = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[2, 3], wsheet.Cells[2, Companywidth]);
+            Company.Merge(Type.Missing);
+            wsheet.Cells[2, 3] = ObjUserInfo.ProCompanyNameRW;
+            Company.Font.Bold = true;
+            Company.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+            Company.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
+
+            //
+
+            // For Date and Time
+            int DateStartwidth = ds.Tables[0].Columns.Count - 1;
+            Microsoft.Office.Interop.Excel.Range Date = null;
+            Date = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[2, DateStartwidth], wsheet.Cells[2, DateStartwidth + 1]);
+            Date.Merge(Type.Missing);
+            wsheet.Cells[2, DateStartwidth] = DateTime.Now.ToString(strDateFormat) + " " + DateTime.Now.ToString().Split(' ')[1].ToString() + " " + DateTime.Now.ToString().Split(' ')[2].ToString() ;
+            
+            Date.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+            Date.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignRight;
+
+            //
+
+
+            // For Title
+            
+            Microsoft.Office.Interop.Excel.Range Title = null;
+            Title = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[3, 3], wsheet.Cells[3, Companywidth]);
+            Title.Merge(Type.Missing);
+            wsheet.Cells[3, 3] = "Demand Vs Collection for the period" + " " + ddlFromYearMonthBase.SelectedItem.Text + " " + "to" + " " + ddlToYearMonthBase.SelectedItem.Text;
+            //Title.Font.Bold = true;
+            Title.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+            Title.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
+
+            //
+
+            // For Lob
+
+            //Microsoft.Office.Interop.Excel.Range Lob = null;
+            //Lob = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[3, 3], wsheet.Cells[3, Companywidth]);
+            //Lob.Merge(Type.Missing);
+            wsheet.Cells[5, 1] = "Line of Business:";
+            wsheet.Cells[5, 2] = (ddlLOB.SelectedItem.Text.Split('-'))[1].ToString();
+            //Title.Font.Bold = true;
+            //Lob.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+            //Lob.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
+
+            //
+
+            // For Denomination
+            int DenominationStartwidth = ds.Tables[0].Columns.Count - 4;
+            Microsoft.Office.Interop.Excel.Range Denomination = null;
+            Denomination = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[6, DenominationStartwidth], wsheet.Cells[6, DenominationStartwidth + 4]);
+            Denomination.Merge(Type.Missing);
+            if (ddlDenomination.SelectedValue == "1")
+            {
+                wsheet.Cells[6, DenominationStartwidth] = "[All Amounts are in" + " " + ObjS3GSession.ProCurrencyNameRW + "]";
+            }
+            else
+            {
+                wsheet.Cells[6, DenominationStartwidth] = "[All Amounts are" + " " + ObjS3GSession.ProCurrencyNameRW + " " + "in" + " " + ddlDenomination.SelectedItem.Text + "]";
+            }
+            
+           
+            Denomination.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+            Denomination.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignRight;
+
+            //
+
+            for (int i = 0; i < 2; i++)
+            {
+                wsheet.Cells[7, i + 1] = ds.Tables[0].Columns[i].ColumnName;
+                Microsoft.Office.Interop.Excel.Range excelCells = null;
+                excelCells = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[7, 1], wsheet.Cells[7, (1 + 2)]);
+                excelCells.Font.Bold = true;
+                object obj = null;
+                excelCells.BorderAround(Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous, Microsoft.Office.Interop.Excel.XlBorderWeight.xlThin, Microsoft.Office.Interop.Excel.XlColorIndex.xlColorIndexAutomatic, obj);
+
+            }
+
+            for (int i = 5; i < ds.Tables[0].Columns.Count - 2; i = i + 3)
+            {
+                if (!ds.Tables[0].Columns[i].ColumnName.Contains("CLOSING"))
+                {
+                    string str = ds.Tables[0].Columns[i].ColumnName;
+                    string month = str.Substring(4, 2);
+                    string monthName = GetMonthName(int.Parse(month));
+                    monthName = monthName + " " + str.Substring(0, 4);
+                    wsheet.Cells[7, i + 1] = monthName;
+                }
+                else
+                {
+                    string strC = ds.Tables[0].Columns[i].ColumnName;
+                    wsheet.Cells[7, i + 1] = strC.Substring(0, strC.Length - 1);
+                }
+            }
+
+            //2nd Row
+
+            for (int i = 2; i < ds.Tables[0].Columns.Count - 1; i = i + 3)
+            {
+                wsheet.Cells[8, i + 0] = "Demand";
+                wsheet.Cells[8, i + 1] = "Collection";
+                wsheet.Cells[8, i + 2] = "Collection %";
+                Microsoft.Office.Interop.Excel.Range excelCells = null;
+                excelCells = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[8, i], wsheet.Cells[8, i + ds.Tables[0].Columns.Count - 2]);
+
+                excelCells.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+                excelCells.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
+
+            }
+            //
+
+            int currencellwidth = 2;
+            for (int intmonthcount = 1; intmonthcount <= (ds.Tables[0].Columns.Count - 2) / 3; intmonthcount++)
+            {
+                Microsoft.Office.Interop.Excel.Range excelCells = null;
+                excelCells = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[7, currencellwidth], wsheet.Cells[7, (currencellwidth + 2)]);
+                excelCells.Merge(Type.Missing);
+                excelCells.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+                excelCells.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
+                excelCells.Font.Bold = true;
+                object obj = null;
+                excelCells.BorderAround(Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous, Microsoft.Office.Interop.Excel.XlBorderWeight.xlThin, Microsoft.Office.Interop.Excel.XlColorIndex.xlColorIndexAutomatic, obj);
+                currencellwidth = currencellwidth + 3;
+            }
+            int currenwidth = ds.Tables[0].Columns.Count - 2;
+            Microsoft.Office.Interop.Excel.Range excelCell = null;
+            excelCell = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[7, currenwidth], wsheet.Cells[7, (currenwidth + 2)]);
+            excelCell.Merge(Type.Missing);
+            wsheet.Cells[7, currenwidth + 0] = "CLOSING";
+            excelCell.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+            excelCell.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
+            excelCell.Font.Bold = true;
+            object objClosing = null;
+            excelCell.BorderAround(Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous, Microsoft.Office.Interop.Excel.XlBorderWeight.xlThin, Microsoft.Office.Interop.Excel.XlColorIndex.xlColorIndexAutomatic, objClosing);
+
+          
+            foreach (DataRow row in ds.Tables[0].Rows)
+            {
+                rowindex++;
+                columnindex = 0;
+                foreach (DataColumn col in ds.Tables[0].Columns)
+                {
+                    columnindex++;
+                    wsheet.Cells[rowindex + 7, columnindex] = row[col.ColumnName];
+
+                }
+            }
+           //int Column = 1;
+           //for (int introwcount = 1; introwcount <= ds.Tables[0].Rows.Count - 1; introwcount++)
+           //{
+           //    Microsoft.Office.Interop.Excel.Range excelCells = null;
+           //    excelCells = (Microsoft.Office.Interop.Excel.Range)wsheet.get_Range(wsheet.Cells[3, Column], wsheet.Cells[3, Column]);
+               
+           //    excelCells.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+           //    excelCells.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignLeft;
+           //}
+
+            //wsheet.Cells.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
+            //wsheet.Cells.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
+            wapp.Visible = true;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        wapp.UserControl = true;
+        //wapp.Save(path);
+    }
+
+    public string GetMonthName(int month)
+    {
+        string monthName = string.Empty;
+        switch (month)
+        {
+            case 1:
+                monthName = "Jan";
+                break;
+            case 2:
+                monthName = "Feb";
+                break;
+            case 3:
+                monthName = "Mar";
+                break;
+            case 4:
+                monthName = "April";
+                break;
+            case 5:
+                monthName = "May";
+                break;
+            case 6:
+                monthName = "June";
+                break;
+            case 7:
+                monthName = "July";
+                break;
+            case 8:
+                monthName = "Aug";
+                break;
+            case 9:
+                monthName = "Sep";
+                break;
+            case 10:
+                monthName = "Oct";
+                break;
+            case 11:
+                monthName = "Nov";
+                break;
+            case 12:
+                monthName = "Dec";
+                break;
+        }
+
+        return monthName;
+
+    }
+    #endregion
+
+    #region Page Events
+
+    #region DropdownList Events
+    /// <summary>
+    /// To fill the Financial Months Based on FinacialYear Base
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlFinacialYearBase_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            if (ddlFinacialYearBase.SelectedIndex > -1)
+            {
+
+                ddlFromYearMonthBase.FillFinancialMonth(ddlFinacialYearBase.SelectedItem.Text);
+                ddlToYearMonthBase.FillFinancialMonth(ddlFinacialYearBase.SelectedItem.Text);
+                ViewState["BaseMonths"] = FunPriFillArrayDemandMonth(ddlFinacialYearBase);
+                //return;
+            }
+            if (pnlDemandCollection.Visible == true)
+            {
+                FunPriValidateGrid();
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Load Financial Months.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To fill the Financial Months Based on FinacialYear Compare.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlFinancialYearCompare_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            if (ddlFinancialYearCompare.SelectedIndex > -1)
+            {
+
+                ddlFromYearMonthCompare.FillFinancialMonth(ddlFinancialYearCompare.SelectedItem.Text);
+                ddlToYearMonthCompare.FillFinancialMonth(ddlFinancialYearCompare.SelectedItem.Text);
+                ViewState["CompaareMonths"] = FunPriFillArrayDemandMonth(ddlFinancialYearCompare);
+                //return;
+            }
+            if (pnlDemandCollection.Visible == true)
+            {
+                FunPriValidateGrid();
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Load Financial Months.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Validate the Base To Year Month. 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlToYearMonthBase_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            if (ddlLOB.SelectedIndex <= 0)
+            {
+                Utility.FunShowAlertMsg(this, "Select a Line of Business");
+                ddlToYearMonthBase.ClearSelection();
+                return;
+            }
+            if (ddlFromYearMonthBase.SelectedIndex > ddlToYearMonthBase.SelectedIndex)
+            {
+                Utility.FunShowAlertMsg(this, "To Year Month should be greater than or Equal to From Year and month ");
+                ddlToYearMonthBase.ClearSelection();
+                return;
+            }
+            if (ddlToYearMonthBase.SelectedIndex > 0 && ddlFromYearMonthBase.SelectedIndex > 0)
+            {
+
+                FunPriValidateFutureDate(ddlToYearMonthBase);
+
+
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(this, "Select From Year and month ");
+                ddlToYearMonthBase.ClearSelection();
+                return;
+            }
+            //FunPriValidateDetailedGrid();
+            if (pnlDemandCollection.Visible == true)
+            {
+                FunPriValidateGrid();
+            }
+
+            if (ddlToYearMonthBase.SelectedIndex > 0 && ddlFromYearMonthBase.SelectedIndex > 0)
+            {
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_Id", intCompanyId.ToString());
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                Procparam.Add("@XMLParamtDemandMonthLists", FunPriGetDemandMonths(ddlFromYearMonthBase, ddlToYearMonthBase, (Dictionary<int, string>)ViewState["BaseMonths"]));
+                DataSet ds = new DataSet();
+                ds = Utility.GetDataset("S3G_RPT_GetDemandMonthDetails", Procparam);
+                if (ds.Tables[0].Rows.Count > 0)
+                {
+                    string StrErrorMsg = "Demand not run for the selected months ";
+                    if (ds.Tables[1].Rows.Count > 0)
+                    {
+                        StrErrorMsg += "(";
+                        foreach (DataRow dr in ds.Tables[1].Rows)
+                        {
+                            StrErrorMsg += dr["Demand_Month"].ToString() + ",";
+                        }
+                        StrErrorMsg = StrErrorMsg.Substring(0, StrErrorMsg.Length - 1);
+                        StrErrorMsg += ")";
+                        Utility.FunShowAlertMsg(this, StrErrorMsg);
+                        ddlFromYearMonthBase.ClearSelection();
+                        ddlToYearMonthBase.ClearSelection();
+                        return;
+
+                    }
+
+                }
+
+
+
+
+            }
+
+
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Validate Base To Year Month.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Validate the Compare To Year Month. 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlToYearMonthCompare_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            if (ddlLOB.SelectedIndex <= 0)
+            {
+                Utility.FunShowAlertMsg(this, "Select a Line of Business");
+                ddlToYearMonthCompare.ClearSelection();
+                return;
+            }
+            if (ddlFromYearMonthCompare.SelectedIndex > ddlToYearMonthCompare.SelectedIndex)
+            {
+                Utility.FunShowAlertMsg(this, "To Year Month should be greater than or Equal to From Year and month ");
+                ddlToYearMonthCompare.ClearSelection();
+                return;
+            }
+            if (ddlToYearMonthCompare.SelectedIndex > 0)
+            {
+                FunPriValidateFutureDate(ddlToYearMonthCompare);
+
+                if (ddlFromYearMonthCompare.SelectedIndex == 0)
+                {
+                    Utility.FunShowAlertMsg(this, "Select From Year and month ");
+                    ddlToYearMonthCompare.ClearSelection();
+                    return;
+                }
+            }
+            if (ddlToYearMonthBase.SelectedIndex > 0)
+            {
+                int BaseTomonth = int.Parse((ddlToYearMonthBase.SelectedItem.Value).Substring(4, 2));
+                int CompareToMonth = int.Parse((ddlToYearMonthCompare.SelectedItem.Value).Substring(4, 2));
+                if (CompareToMonth > BaseTomonth || CompareToMonth < BaseTomonth)
+                {
+                    Utility.FunShowAlertMsg(this, "Compare To Month should be equal to Base To month ");
+                    ddlToYearMonthCompare.ClearSelection();
+                    return;
+                }
+            }
+            //FunPriValidateDetailedGrid();
+            if (pnlDemandCollection.Visible == true)
+            {
+                FunPriValidateGrid();
+            }
+
+
+            if (ddlToYearMonthCompare.SelectedIndex > 0 && ddlFromYearMonthCompare.SelectedIndex > 0)
+            {
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_Id", intCompanyId.ToString());
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                Procparam.Add("@XMLParamtDemandMonthLists", FunPriGetDemandMonths(ddlFromYearMonthCompare, ddlToYearMonthCompare, (Dictionary<int, string>)ViewState["CompaareMonths"]));
+                DataSet ds = new DataSet();
+                ds = Utility.GetDataset("S3G_RPT_GetDemandMonthDetails", Procparam);
+
+                if (ds.Tables[0].Rows.Count > 0)
+                {
+                    string StrErrorMsg = "Demand not runned for the selected months ";
+                    if (ds.Tables[1].Rows.Count > 0)
+                    {
+                        StrErrorMsg += "(";
+                        foreach (DataRow dr in ds.Tables[1].Rows)
+                        {
+                            StrErrorMsg += dr["Demand_Month"].ToString() + ",";
+                        }
+                        StrErrorMsg = StrErrorMsg.Substring(0, StrErrorMsg.Length - 1);
+                        StrErrorMsg += ")";
+                        Utility.FunShowAlertMsg(this, StrErrorMsg);
+                        ddlToYearMonthCompare.ClearSelection();
+                        return;
+
+                    }
+
+                }
+
+
+
+
+            }
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Validate Compare To Year Month.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Validate Base From Year Month 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlFromYearMonthBase_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            if (ddlLOB.SelectedIndex <= 0)
+            {
+                Utility.FunShowAlertMsg(this, "Select a Line of Business");
+                ddlFromYearMonthBase.ClearSelection();
+                return;
+            }
+            if (ddlToYearMonthBase.SelectedIndex > 0)
+            {
+                if (ddlFromYearMonthBase.SelectedIndex > ddlToYearMonthBase.SelectedIndex)
+                {
+                    Utility.FunShowAlertMsg(this, "From Year Month should not be greater than the To Year and month ");
+                    ddlFromYearMonthBase.ClearSelection();
+
+
+                    return;
+                }
+            }
+            if (ddlFromYearMonthBase.SelectedIndex > 0)
+            {
+                FunPriValidateFutureDate(ddlFromYearMonthBase);
+
+            }
+            //FunPriValidateDetailedGrid();
+            if (pnlDemandCollection.Visible == true)
+            {
+                if (ddlToYearMonthBase.SelectedIndex > 0)
+                {
+                    ddlToYearMonthBase.ClearSelection();
+                }
+                FunPriValidateGrid();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Validate Base From Year Month.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Validate Base From Year Month 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlFromYearMonthCompare_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            if (ddlLOB.SelectedIndex <= 0)
+            {
+                Utility.FunShowAlertMsg(this, "Select a Line of Business");
+                ddlFromYearMonthCompare.ClearSelection();
+                return;
+            }
+            if (ddlToYearMonthCompare.SelectedIndex > 0)
+            {
+                if (ddlFromYearMonthCompare.SelectedIndex > ddlToYearMonthCompare.SelectedIndex)
+                {
+                    Utility.FunShowAlertMsg(this, "From Year Month should not be greater than the To Year and month ");
+                    ddlFromYearMonthCompare.ClearSelection();
+                    return;
+                }
+            }
+            if (ddlFromYearMonthCompare.SelectedIndex > 0)
+            {
+                FunPriValidateFutureDate(ddlFromYearMonthCompare);
+            }
+            if (ddlFromYearMonthBase.SelectedIndex > 0)
+            {
+                int Basemonth = int.Parse((ddlFromYearMonthBase.SelectedItem.Value).Substring(4, 2));
+                int CompareMonth = int.Parse((ddlFromYearMonthCompare.SelectedItem.Value).Substring(4, 2));
+                if (CompareMonth > Basemonth || CompareMonth < Basemonth)
+                {
+                    Utility.FunShowAlertMsg(this, "Compare From Month should be equal to Base From month ");
+                    ddlFromYearMonthCompare.ClearSelection();
+                    return;
+                }
+            }
+            //FunPriValidateDetailedGrid();
+            if (pnlDemandCollection.Visible == true)
+            {
+                if (ddlToYearMonthCompare.SelectedIndex > 0)
+                {
+                    ddlToYearMonthCompare.ClearSelection();
+                }
+                FunPriValidateGrid();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Validate Compare From Year Month.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Validate the Grid
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            FunPriLoadLocation();
+            ddlBranch.Enabled = false;
+            FunPriLoadRegion();
+            FunPriClearFields();
+            if (pnlDemandCollection.Visible == true)
+            {
+                FunPriValidateGrid();
+            }
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Validate Grid.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Load Branch
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlRegion_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            ddlBranch.Enabled = true;
+            if (ddlRegion.SelectedIndex > 0)
+            {
+                FunPriLoadBranch();
+            }
+            else
+            {
+                ddlBranch.Enabled = false;
+                FunPriLoadLocation();
+            }
+            //if (ddlRegion.SelectedIndex > 0)
+            //{
+            //    rfvddlBranch.Enabled = false;
+            //    lblBranch.CssClass = "styleDisplayLabel";
+            //}
+            //else
+            //{
+            //    rfvddlBranch.Enabled = true;
+            //    lblBranch.CssClass = "styleReqFieldLabel";
+
+            //}
+            FunPriClearFields();
+
+            if (pnlDemandCollection.Visible == true)
+            {
+                FunPriValidateGrid();
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Load Branch.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+
+    }
+    /// <summary>
+    /// To Validate the Grid
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //silverlightControlHost.Style.Add("display", "none");
+            FunPriClearFinYears();
+            if (pnlDemandCollection.Visible == true)
+            {
+                FunPriValidateGrid();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Validate Grid.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Validate the Grid
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlDenomination_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            if (pnlDemandCollection.Visible == true)
+            {
+                FunPriValidateGrid();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Validate Grid.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+
+    #endregion
+
+    #region Button (Ok / Clear / Print / Link)
+    /// <summary>
+    /// To Bind the Grid and Validate the Fields
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnOk_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            ClearSession();
+            FunPriValidateFromEndDate();
+
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Load Demand Collection Details Grid.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    /// <summary>
+    /// To Clear the Fields
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearSelection();
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Clear.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+
+    }
+    /// <summary>
+    /// To Redirect the Report Page
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            //Session["Report"] = "Report";
+            //FunPriLoadGauge();
+            string strScipt = "window.open('../Reports/S3GRptDemandCollectionReport.aspx', 'Demand','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+            ScriptManager.RegisterStartupScript(this, this.GetType(), "Demand", strScipt, true);
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Open Report Page.";
+            CVDemandCollection.IsValid = false;
+        }
+    }
+
+    //protected void btnChart_Click(object sender, EventArgs e)
+    //{
+    //    try
+    //    {
+    //        //Session["Report"] = "Chart";
+    //        string strScipt = "window.open('../Reports/S3GRptDemandCollectionChart.aspx', 'Demand','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+    //        ScriptManager.RegisterStartupScript(this, this.GetType(), "Demand", strScipt, true);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        CVDemandCollection.ErrorMessage = "Unable to Open Report Page.";
+    //        CVDemandCollection.IsValid = false;
+    //    }
+    //}
+
+    protected void btnExcel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            //FunPriLoadGauge();
+            FunPriExportToExcel();
+        }
+        catch (Exception ex)
+        {
+            CVDemandCollection.ErrorMessage = "Unable to Open Report Page.";
+            CVDemandCollection.IsValid = false;
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region Grid Events
+
+    protected void grvDemand_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        //if (e.Row.RowType == DataControlRowType.DataRow)
+        //{
+
+        //    int i = e.Row.RowIndex;
+        //    System.Web.UI.WebControls.Label lblClosingDemand = e.Row.FindControl("lblClosingDemand") as System.Web.UI.WebControls.Label;
+        //    System.Web.UI.WebControls.Label lblClosingCollection = e.Row.FindControl("lblClosingCollection") as System.Web.UI.WebControls.Label;
+
+          
+        //    System.Web.UI.WebControls.Label lblOpeningDemand = e.Row.FindControl("lblOpeningDemand") as System.Web.UI.WebControls.Label;
+        //    System.Web.UI.WebControls.Label lblOpeningCollection = e.Row.FindControl("lblOpeningCollection") as System.Web.UI.WebControls.Label;
+
+        //    System.Web.UI.WebControls.Label lblLocation = e.Row.FindControl("lblRegion") as System.Web.UI.WebControls.Label;
+
+          
+        //    if (i == 0)
+        //    {
+        //        decOpeningDemand = Convert.ToDecimal(lblClosingDemand.Text);
+        //        decOpeningCol = Convert.ToDecimal(lblClosingCollection.Text);
+        //        strLocation = lblLocation.Text;
+        //        //lblOpeningDemand.Text = decOpeningDemand.ToString(Funsetsuffix());
+        //        //lblOpeningCollection.Text = decOpeningCol.ToString(Funsetsuffix());
+        //    }
+
+        //    else
+        //    {
+        //        if (strLocation == lblLocation.Text)
+        //        {
+        //            lblOpeningDemand.Text = decOpeningDemand.ToString(Funsetsuffix());
+        //            lblOpeningCollection.Text = decOpeningCol.ToString(Funsetsuffix());
+        //            decOpeningDemand = Convert.ToDecimal(lblClosingDemand.Text);
+        //            decOpeningCol = Convert.ToDecimal(lblClosingCollection.Text);
+        //        }
+        //        else
+        //        {
+        //            decOpeningDemand = Convert.ToDecimal(lblClosingDemand.Text);
+        //            decOpeningCol = Convert.ToDecimal(lblClosingCollection.Text);
+        //            strLocation = lblLocation.Text;
+        //        }
+
+               
+        //    }
+            
+        //}
+
+
+
+
+        if (e.Row.RowType == DataControlRowType.Footer)
+        {
+            //FunPriDisplayTotal();
+            System.Web.UI.WebControls.Label lbltotOpeningDemand = e.Row.FindControl("lbltotOpeningDemand") as System.Web.UI.WebControls.Label;
+            System.Web.UI.WebControls.Label lbltotOpeningCollection = e.Row.FindControl("lbltotOpeningCollection") as System.Web.UI.WebControls.Label;
+            System.Web.UI.WebControls.Label lbltotOpeningPercentage = e.Row.FindControl("lbltotOpeningPercentage") as System.Web.UI.WebControls.Label;
+
+            System.Web.UI.WebControls.Label lbltotMonthlyDemand = e.Row.FindControl("lbltotMonthlyDemand") as System.Web.UI.WebControls.Label;
+            System.Web.UI.WebControls.Label lbltotMonthlyCollection = e.Row.FindControl("lbltotMonthlyCollection") as System.Web.UI.WebControls.Label;
+            System.Web.UI.WebControls.Label lbltotMonthlyPercentage = e.Row.FindControl("lbltotMonthlyPercentage") as System.Web.UI.WebControls.Label;
+
+            System.Web.UI.WebControls.Label lbltotClosingDemand = e.Row.FindControl("lbltotClosingDemand") as System.Web.UI.WebControls.Label;
+            System.Web.UI.WebControls.Label lbltotClosingCollection = e.Row.FindControl("lbltotClosingCollection") as System.Web.UI.WebControls.Label;
+            System.Web.UI.WebControls.Label lbltotClosingPercentage = e.Row.FindControl("lbltotClosingPercentage") as System.Web.UI.WebControls.Label;
+
+
+            lbltotOpeningDemand.Text = TotOpnDemand.ToString(Funsetsuffix());
+            lbltotOpeningCollection.Text = TotOpnCollection.ToString(Funsetsuffix());
+
+            if (TotOpnDemand == 0)
+                lbltotOpeningPercentage.Text = 0.ToString(Funsetsuffix());
+            else
+                lbltotOpeningPercentage.Text = ((TotOpnCollection / TotOpnDemand) * 100).ToString(Funsetsuffix());
+
+            lbltotMonthlyDemand.Text = TotMonDemand.ToString(Funsetsuffix());
+            lbltotMonthlyCollection.Text = TotMonCollection.ToString(Funsetsuffix());
+
+            if (TotMonDemand == 0)
+                lbltotMonthlyPercentage.Text = 0.ToString(Funsetsuffix());
+            else
+                lbltotMonthlyPercentage.Text = ((TotMonCollection / TotMonDemand) * 100).ToString(Funsetsuffix());
+
+            lbltotClosingDemand.Text = TotClsDemand.ToString(Funsetsuffix());
+            lbltotClosingCollection.Text = TotClsCollection.ToString(Funsetsuffix());
+
+            if (TotClsDemand == 0)
+                lbltotClosingPercentage.Text = 0.ToString(Funsetsuffix());
+            else
+                lbltotClosingPercentage.Text = ((TotClsCollection / TotClsDemand) * 100).ToString(Funsetsuffix());
+
+        }
+    }
+
+    #endregion
+    #endregion
+
+
+}

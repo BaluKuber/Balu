@@ -1,0 +1,220 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnChallanRuleCreation.aspx.cs" Inherits="Collection_S3GClnChallanRuleCreation"
+    Title="ChallanRuleCreation" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:Panel ID="pnlChallanRuleCreation" runat="server" CssClass="stylePanel" GroupingText="Challan Rule Creation"
+                            Width="98%">
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <%-- LOB --%>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleDisplayLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign">
+                                        <asp:DropDownList ID="ddlLOB" runat="server" AutoPostBack="True"
+                                            OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged" onmouseover="ddl_itemchanged(this);">
+                                        </asp:DropDownList>
+                                        <%--<asp:RequiredFieldValidator ID="RFVLOB" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlLOB" InitialValue="0" ValidationGroup="VGChallan" ErrorMessage="Select the Line of Business"
+                                            Display="None">
+                                        </asp:RequiredFieldValidator>--%>
+                                    </td>
+                                    <%--Branch--%>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label runat="server" Text="Location" ID="lblBranch" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign">
+                                        <uc:Suggest ID="ddlBranch" ToolTip="Location" runat="server" AutoPostBack="True"
+                                        OnItem_Selected="ddlBranch_SelectedIndexChanged" ServiceMethod="GetBranchList"
+                                        IsMandatory="true" ValidationGroup="VGChallan" ErrorMessage="Select a Location"
+                                        WatermarkText="--Select--" />
+                                        
+                                       <%-- <asp:RequiredFieldValidator ID="RFVBranch" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlBranch" InitialValue="0" ValidationGroup="VGChallan" ErrorMessage="Select Location"
+                                            Display="None">
+                                        </asp:RequiredFieldValidator>--%>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4">
+                                        &nbsp;
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <%-- Deposit Bank Codes--%>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label runat="server" Text="Deposit Bank Codes" ID="lblDepositBankCodes" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign">
+                                        <asp:DropDownList ID="ddlDepositBankCodes" runat="server"
+                                            AutoPostBack="True" OnSelectedIndexChanged="ddlDepositBankCodes_SelectedIndexChanged" onmouseover="ddl_itemchanged(this);">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="RFVDepositBankCodes" CssClass="styleMandatoryLabel"
+                                            runat="server" ControlToValidate="ddlDepositBankCodes" InitialValue="0" ValidationGroup="VGChallan"
+                                            ErrorMessage="Select the Deposit Bank Codes" Display="None">
+                                        </asp:RequiredFieldValidator>
+                                    </td>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label runat="server" ID="lblAcNo" CssClass="styleDisplayLabel" Text="Account No">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign">
+                                        <asp:Label runat="server" ID="lblAcctno" CssClass="styleDisplayLabel">
+                                        </asp:Label>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4">
+                                        &nbsp;
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label ID="lblActive" runat="server" CssClass="styleDisplayLabel" Text="Active"> </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign">
+                                        <asp:CheckBox ID="chkActive" runat="server" Checked="true" TabIndex="3" AutoPostBack="True"
+                                            OnCheckedChanged="chkActive_CheckedChanged" />
+                                    </td>
+                                    
+                                    <td colspan="2">
+                                        <asp:Button ID="btnGo" runat="server" CssClass="styleSubmitShortButton" OnClick="btnGo_Click"
+                                            Text="Go" ValidationGroup="VGChallan" />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4">
+                                        &nbsp;
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-top: 5px" colspan="4" align="center">
+                                        <div style="overflow-x: hidden; overflow-y: auto; height: 100%;" align="center">
+                                            <asp:GridView ID="GRVDraweeBankName" runat="server" AutoGenerateColumns="False" Width="50%"
+                                                Height="100%" OnRowCommand="GRVDraweeBankName_RowCommand" ShowFooter="true" OnRowDeleting="GRVDraweeBankName_RowDeleting"
+                                                OnRowEditing="GRVDraweeBankName_RowEditing" OnRowCancelingEdit="GRVDraweeBankName_RowCancelingEdit"
+                                                OnRowUpdating="GRVDraweeBankName_RowUpdating" ToolTip="Drawee Bank Name(s)">
+                                                <Columns>
+                                                    <asp:TemplateField HeaderText="Sl.No." HeaderStyle-Width="10%">
+                                                    <ItemStyle HorizontalAlign="Center" />
+                                                        <ItemTemplate>
+                                                            <asp:Label runat="server" ID="lblSNO" Text='<%#Container.DataItemIndex+1%>' Width="30%"></asp:Label>
+                                                        </ItemTemplate>
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderStyle-Width="70%" HeaderText="Drawee Bank">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblDraweeBankName" runat="server" Width="100%" Text='<%# Bind("DraweeBank")%>'
+                                                                CssClass="styleTextUpperCase"></asp:Label>
+                                                            <asp:TextBox ID="txtDraweeBankNameEdit" runat="server" Width="100%" CssClass="styleTextUpperCase"
+                                                                MaxLength="80" Visible="false"></asp:TextBox>
+                                                            <cc1:FilteredTextBoxExtender ID="FTEDraweeBankName" runat="server" TargetControlID="txtDraweeBankNameEdit"
+                                                                FilterType="Custom, UppercaseLetters, LowercaseLetters,Numbers" ValidChars=" "
+                                                                Enabled="true">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Left" />
+                                                        <FooterTemplate>
+                                                            <asp:TextBox ID="txtDraweeBankNameF" runat="server" Width="99%" CssClass="styleTextUpperCase"
+                                                                MaxLength="80"></asp:TextBox>
+                                                            <cc1:FilteredTextBoxExtender ID="FTEDraweeBankName" runat="server" TargetControlID="txtDraweeBankNameF"
+                                                                FilterType="Custom, UppercaseLetters, LowercaseLetters,Numbers " ValidChars=" "
+                                                                Enabled="true">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </FooterTemplate>
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="" HeaderStyle-Width="25%">
+                                                        <ItemTemplate>
+                                                            &nbsp;
+                                                            <asp:LinkButton ID="lnkEdit" runat="server" Text="Edit" CommandName="Edit" CausesValidation="false"></asp:LinkButton>
+                                                            &nbsp;
+                                                            <asp:LinkButton ID="btnRemoveDraweeBank" Text="Delete" CommandName="Delete" runat="server"
+                                                                CausesValidation="false" OnClientClick="return confirm('Do you want to delete the drawee bank name?');" />
+                                                        </ItemTemplate>
+                                                        <EditItemTemplate>
+                                                            &nbsp;
+                                                            <asp:LinkButton ID="lnkUpdate" runat="server" Text="Update" CommandName="Update"
+                                                                CausesValidation="false"></asp:LinkButton>
+                                                            &nbsp;
+                                                            <asp:LinkButton ID="lnkCancel" runat="server" Text="Cancel" CommandName="Cancel"
+                                                                CausesValidation="false"></asp:LinkButton>
+                                                        </EditItemTemplate>
+                                                        <FooterTemplate>
+                                                            <asp:LinkButton ID="btnAdd" runat="server" Text="Add" CommandName="AddNew" CausesValidation="false"></asp:LinkButton>
+                                                        </FooterTemplate>
+                                                    </asp:TemplateField>
+                                                    <%--  <asp:TemplateField ItemStyle-Width="15%" HeaderText="">
+                                                    <ItemTemplate>
+                                                         <asp:LinkButton ID="btnRemoveDraweeBank" Text="Delete" CommandName="Delete" runat="server"
+                                                            CausesValidation="false" OnClientClick="return confirm('Do you want to delete the drawee bank name?');"  />
+                                                    </ItemTemplate>
+                                                    <ItemStyle HorizontalAlign="Center" />
+                                                  
+                                                </asp:TemplateField>--%>
+                                                </Columns>
+                                            </asp:GridView>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr class="styleButtonArea" align="center" style="padding-left: 4px">
+                    <td>
+                        <asp:Button runat="server" ID="btnSave" OnClientClick="return fnCheckPageValidators('VGChallan');"
+                            CssClass="styleSubmitButton" Text="Save" OnClick="btnSave_Click" ToolTip="Save"
+                            ValidationGroup="VGChallan" />
+                        &nbsp;<asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton"
+                            Text="Clear" OnClientClick="return fnConfirmClear();" OnClick="btnClear_Click"
+                            ToolTip="Clear" />
+                        &nbsp;<asp:Button runat="server" ID="btnCancel" Text="Cancel" ValidationGroup="PRDDC"
+                            CausesValidation="false" CssClass="styleSubmitButton" OnClick="btnCancel_Click"
+                            ToolTip="Cancel" />
+                    </td>
+                </tr>
+                <tr class="styleButtonArea">
+                    <td>
+                        <asp:ValidationSummary runat="server" ID="vsFactoringInvoiceLoadinf" HeaderText="Correct the following validation(s):"
+                            Height="177px" CssClass="styleMandatoryLabel" Width="500px" ShowMessageBox="false"
+                            ShowSummary="true" ValidationGroup="VGChallan" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:CustomValidator ID="CVChallanRule" runat="server" CssClass="styleMandatoryLabel"
+                            Enabled="true" Width="98%" />
+                    </td>
+                </tr>
+                <tr class="styleButtonArea">
+                    <td>
+                        <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                        <input type="hidden" runat="server" value="0" id="hdnBank" />
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

@@ -1,0 +1,472 @@
+﻿using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using ReportAccountsMgtServicesReference;
+using System.Collections.Generic;
+using S3GBusEntity.Reports;
+using S3GBusEntity;
+using System.Globalization;
+
+public partial class Reports_S3GRptStatementOfAccounts : ApplyThemeForProject
+{
+    Dictionary<string, string> Procparam;
+    UserInfo ObjUserInfo = new UserInfo();
+    S3GSession ObjS3GSession = new S3GSession();
+    public string strDateFormat;
+    int CompanyId;
+    int UserId;
+    bool Is_Active;
+    string Customer_ID;
+    string LOB_ID;
+    string Branch_ID;
+    string strPageName = "Statement Of Accounts";
+    ReportAccountsMgtServicesClient objSerClient;
+    DateTime StartDate;
+    DateTime EndDate;
+    public bool chk;
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        #region Application Standard Date Format
+        S3GSession ObjS3GSession = new S3GSession();
+        strDateFormat = ObjS3GSession.ProDateFormatRW;                  // to get the standard date format of the Application
+        CalendarExtender1.Format = strDateFormat;                       // assigning the first textbox with the End date
+        CalendarExtender2.Format = strDateFormat;                       // assigning the first textbox with the start date
+        txtStartDateSearch.Attributes.Add("readonly", "readonly");
+        txtEndDateSearch.Attributes.Add("readonly", "readonly");
+        #endregion
+
+        FunPriLoadPage();
+        
+
+    }
+    #region Load Page
+    public void FunPriLoadPage()
+    {
+        try
+        {
+            //this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            //strDateFormat = ObjS3GSession.ProDateFormatRW;
+            ObjUserInfo = new UserInfo();
+            CompanyId = ObjUserInfo.ProCompanyIdRW;
+            UserId = ObjUserInfo.ProUserIdRW;
+            if (!IsPostBack)
+            {
+
+                FunPriLoadLob(CompanyId, UserId);
+                FunPriLoadBranch(CompanyId, UserId, Is_Active);
+
+                ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID.ToString();
+                TextBox txt = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+                txt.Attributes.Add("onfocus", "fnLoadCustomer()");
+                pnlsummary.Visible = false;
+                PnlMemorandum.Visible = false;
+          
+                //pnlAssetDetails.Visible = false;
+                //pnlTransactionDetails.Visible = false;
+
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to load Page");
+        }
+    }
+    #endregion
+    #region Load LOB
+
+    private void FunPriLoadLob(int CompanyId, int UserId)
+    {
+        try
+        {
+            objSerClient = new ReportAccountsMgtServicesClient();
+            byte[] byteLobs = objSerClient.FunPubSOAGetLOB(CompanyId, UserId);
+            List<ClsPubDropDownList> LOB = (List<ClsPubDropDownList>)DeSerialize(byteLobs);
+            ddlLOB.DataSource = LOB;
+            ddlLOB.DataTextField = "Description";
+            ddlLOB.DataValueField = "ID";
+            ddlLOB.DataBind();
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to load LOB");
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    #endregion
+    #region  Load Branch
+    private void FunPriLoadBranch(int CompanyId, int UserId, bool Is_Active)
+    {
+        try
+        {
+            objSerClient = new ReportAccountsMgtServicesClient();
+            byte[] byteLobs = objSerClient.FunPubGetBranch(CompanyId, UserId, Is_Active);
+            List<ClsPubDropDownList> Branch = (List<ClsPubDropDownList>)DeSerialize(byteLobs);
+            ddlbranch.DataSource = Branch;
+            ddlbranch.DataTextField = "Description";
+            ddlbranch.DataValueField = "ID";
+            ddlbranch.DataBind();
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to load Branch");
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+    #endregion
+    #region load product
+    private void FunPriLoadProduct(int CompanyId, string Customer_ID)
+    {
+        try
+        {
+            objSerClient = new ReportAccountsMgtServicesClient();
+            byte[] byteLobs = objSerClient.FunPubGetProduct(CompanyId, hdnCustID.Value);
+            List<ClsPubDropDownList> Prod = (List<ClsPubDropDownList>)DeSerialize(byteLobs);
+            ddlproduct.DataSource = Prod;
+            ddlproduct.DataTextField = "Description";
+            ddlproduct.DataValueField = "ID";
+            ddlproduct.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to load Product");
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+    #endregion
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField hdnCustomerId = (HiddenField)ucCustomerCodeLov.FindControl("hdnID");
+            if (hdnCustomerId != null && hdnCustomerId.Value != "")
+            {
+                hdnCustID.Value = hdnCustomerId.Value;
+                FunPubGetCustomerDetails(hdnCustID.Value);
+            }
+
+            objSerClient = new ReportAccountsMgtServicesClient();
+            byte[] bytePASA = objSerClient.FunPubGetPASA(CompanyId, hdnCustID.Value, "", "");
+            List<ClsPubPASA> PASADetails = (List<ClsPubPASA>)DeSerialize(bytePASA);
+            grvprimeaccount.DataSource = PASADetails;
+            grvprimeaccount.DataBind();
+            if (grvprimeaccount.Rows.Count != 0)
+            {
+                grvprimeaccount.HeaderRow.Style.Add("position", "relative");
+                grvprimeaccount.HeaderRow.Style.Add("z-index", "auto");
+                grvprimeaccount.HeaderRow.Style.Add("top", "auto");
+
+            }
+            FunPriLoadProduct(CompanyId, Customer_ID);
+        }
+        catch(Exception)
+        {
+
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+
+    }
+
+    private void FunPubGetCustomerDetails(string CustomerID)
+    {
+        try
+        {
+            DataTable dtCustomer = new DataTable();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Option", "56");
+            Procparam.Add("@Param1", CustomerID);
+            dtCustomer = Utility.GetDefaultData("S3G_ORG_GetCustomerLookUp", Procparam);
+
+            if (dtCustomer.Rows.Count > 0)
+                ucCustDetails.SetCustomerDetails(dtCustomer.Rows[0], true);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to display Customer Details");
+        }
+    }
+
+    private object DeSerialize(byte[] byteObj)
+    {
+        return ClsPubSerialize.DeSerialize(byteObj, SerializationMode.Binary, null);
+    }
+
+
+
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        
+        FunPriValidateFromEndDate();
+        decimal OpeningBalance;
+        List<ClsPubPASA> PASAs = new List<ClsPubPASA>();
+        PASAs.Clear();
+        foreach (GridViewRow item in grvprimeaccount.Rows)
+        {
+            if (((CheckBox)item.FindControl("chkSelectAccount")).Checked)
+            {
+                chk = true;
+                lblerror.Text = "";
+                divAsset.Visible = true;
+                divAsset.Style.Add("display", "block");
+                divTransaction.Style.Add("display", "block");
+                pnlsummary.Visible = true;
+                PnlMemorandum.Visible = true;
+                ClsPubPASA pasa = new ClsPubPASA();
+                pasa.PrimeAccountNo = ((Label)item.FindControl("lblMLA")).Text;
+                pasa.SubAccountNo = ((Label)item.FindControl("lblSLA")).Text;
+                PASAs.Add(pasa);
+                Session["PASA"] = PASAs;
+              }
+        }
+        if (!chk)
+        {
+            lblerror.Text = "Select the Prime Account Number";
+        }
+      
+        byte[] bytePASAs = ClsPubSerialize.Serialize(PASAs, SerializationMode.Binary);
+
+        objSerClient = new ReportAccountsMgtServicesClient();
+        byte[] byteLobs = objSerClient.FunPubGetTransactionDetails(out OpeningBalance, CompanyId, txtStartDateSearch.Text, txtEndDateSearch.Text, bytePASAs);
+        List<ClsPubTransaction> trans = (List<ClsPubTransaction>)DeSerialize(byteLobs);
+        Session["Transaction"] = trans;
+        grvtransaction.DataSource = trans;
+        grvtransaction.DataBind();
+        //if (grvtransaction.Rows.Count != 0)
+        //{
+        //    grvtransaction.HeaderRow.Style.Add("position", "relative");
+        //    grvtransaction.HeaderRow.Style.Add("z-index", "auto");
+        //    grvtransaction.HeaderRow.Style.Add("top", "auto");
+
+        //}
+        if (grvtransaction.Rows.Count <=0)
+        {
+            grvtransaction.EmptyDataText = "No Records Found";
+            grvtransaction.DataBind();
+        }
+
+        decimal totalDues = trans.Sum(ClsTrans => ClsTrans.Dues);
+        decimal totalReceipts = trans.Sum(ClsTrans => ClsTrans.Receipts);
+        decimal totalBalance = OpeningBalance + totalDues - totalReceipts;
+
+        if (grvtransaction.FooterRow != null)
+        {
+            ((Label)grvtransaction.FooterRow.FindControl("lblTotalDues")).Text = totalDues.ToString();
+            ((Label)grvtransaction.FooterRow.FindControl("lblTotalReceipts")).Text = totalReceipts.ToString();
+            ((Label)grvtransaction.FooterRow.FindControl("lblTotalbalance")).Text = totalBalance.ToString();
+        }
+       
+
+
+        byte[] byteAsset = objSerClient.FunPubGetSOAAssetDetails(CompanyId, txtStartDateSearch.Text, txtEndDateSearch.Text, bytePASAs);
+
+        List<ClsPubAsset> assets = (List<ClsPubAsset>)DeSerialize(byteAsset);
+        Session["Assets"] = assets;
+        grvAsset.DataSource = assets;
+        grvAsset.DataBind();
+        //if (grvAsset.Rows.Count != 0)
+        //{
+        //    grvAsset.HeaderRow.Style.Add("position", "relative");
+        //    grvAsset.HeaderRow.Style.Add("z-index", "auto");
+        //    grvAsset.HeaderRow.Style.Add("top", "auto");
+
+        //}
+        if (grvAsset.Rows.Count<=0)
+        {
+            grvAsset.EmptyDataText = "No Assets Found";
+            grvAsset.DataBind();
+        }
+        
+
+        byte[] byteSummay = objSerClient.FunPubGetSummaryDetails(CompanyId, txtStartDateSearch.Text, txtEndDateSearch.Text, bytePASAs);
+
+        ClsPubSummary summary = (ClsPubSummary)DeSerialize(byteSummay);
+        if (summary != null)
+        {
+            txtInstallmentDues.Text = summary.InstallmentDues.ToString();
+            txtInterestDues.Text = summary.InterestDues.ToString();
+            txtInsuranceDues.Text = summary.InstallmentDues.ToString();
+            txtODIDues.Text = summary.ODIDues.ToString();
+            txtOtherDues.Text = summary.OtherDues.ToString();
+            Session["Summary"] = summary;
+        }
+
+
+
+        byte[] byteMemo = objSerClient.FunPubGetMemorandumDetails(CompanyId, txtStartDateSearch.Text, txtEndDateSearch.Text, bytePASAs);
+
+        ClsPubMemorandum memo = (ClsPubMemorandum)DeSerialize(byteMemo);
+        if (memo != null)
+        {
+            txtAFCDue.Text = memo.AFCDues.ToString();
+            txtChequeReturnDue.Text = memo.ChequeReturnDues.ToString();
+            txtGarageRentDue.Text = memo.GarageRentDues.ToString();
+            txtLegalChargeDue.Text = memo.LegalChargesDues.ToString();
+            txtReposDue.Text = memo.RepossessionDues.ToString();
+            txtMemoOtherDues.Text = memo.OtherDues.ToString();
+            Session["Memorandum"] = memo;
+        }
+
+
+        ClsPubCustomer objcust = new ClsPubCustomer();
+        objcust.Customer = ucCustDetails.CustomerName;
+        Session["Customer"] = objcust;
+    }
+
+    protected void chkSelectAll_CheckedChanged(object sender, EventArgs e)
+    {
+        bool isCheck = false;
+        CheckBox chkAll = (CheckBox)sender;
+
+        if (chkAll.Checked)
+        {
+            isCheck = true;
+        }
+
+        foreach (GridViewRow item in grvprimeaccount.Rows)
+        {
+            ((CheckBox)item.FindControl("chkSelectAccount")).Checked = isCheck;
+        }
+    }
+    protected void btnclear_Click(object sender, EventArgs e)
+    {
+        ddlLOB.SelectedValue = "-1";
+        ddlbranch.SelectedValue = "-1";
+        ddlproduct.SelectedValue = "-1";
+        divAsset.Style.Add("display", "none");
+        divTransaction.Style.Add("display", "none");
+        pnlsummary.Visible = false;
+        PnlMemorandum.Visible = false;
+        txtCustomerCode.Text = ucCustDetails.CustomerName;
+        txtCustomerCode.Text = "";
+        ucCustDetails.ClearCustomerDetails();
+        grvprimeaccount.DataSource = null;
+        grvprimeaccount.DataBind();
+        txtStartDateSearch.Text = "";
+        txtEndDateSearch.Text = "";
+     }
+    private void FunPriValidateFromEndDate()
+    {
+
+
+        //if ((!(string.IsNullOrEmpty(DateTime.Parse(txtStartDateSearch.Text, dtformat).ToString()))) &&
+        if ((!(string.IsNullOrEmpty(txtStartDateSearch.Text))) &&
+           (!(string.IsNullOrEmpty(txtEndDateSearch.Text))))                                   // If start and end date is not empty
+        {
+            //if (Convert.ToDateTime(DateTime.Parse(txtStartDateSearch.Text, dtformat).ToString()) > Convert.ToDateTime(DateTime.Parse(txtEndDateSearch.Text, dtformat))) // start date should be less than or equal to the enddate
+            if (Utility.StringToDate(txtStartDateSearch.Text) > Utility.StringToDate(txtEndDateSearch.Text)) // start date should be less than or equal to the enddate
+            {
+                Utility.FunShowAlertMsg(this, "Start Date should be lesser than or equal to the End Date");
+                txtEndDateSearch.Text = "";
+                return;
+            }
+
+        }
+        if ((!(string.IsNullOrEmpty(txtStartDateSearch.Text))) &&
+           ((string.IsNullOrEmpty(txtEndDateSearch.Text))))
+        {
+            txtEndDateSearch.Text = DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+
+        }
+        if (((string.IsNullOrEmpty(txtStartDateSearch.Text))) &&
+            (!(string.IsNullOrEmpty(txtEndDateSearch.Text))))
+        {
+            txtStartDateSearch.Text = txtEndDateSearch.Text;
+
+        }
+
+    }
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
+
+        try
+        {
+            objSerClient = new ReportAccountsMgtServicesClient();
+            byte[] bytePASA = objSerClient.FunPubGetPASA(CompanyId, hdnCustID.Value, ddlLOB.SelectedValue.ToString(), "");
+            List<ClsPubPASA> PASADetails = (List<ClsPubPASA>)DeSerialize(bytePASA);
+            grvprimeaccount.DataSource = PASADetails;
+            grvprimeaccount.DataBind();
+        }
+        catch (Exception ex)
+        {
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+    protected void ddlbranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            objSerClient = new ReportAccountsMgtServicesClient();
+            byte[] bytePASA = objSerClient.FunPubGetPASA(CompanyId, hdnCustID.Value, "", ddlbranch.SelectedValue.ToString());
+            List<ClsPubPASA> PASADetails = (List<ClsPubPASA>)DeSerialize(bytePASA);
+            grvprimeaccount.DataSource = PASADetails;
+            grvprimeaccount.DataBind();
+        }
+        catch (Exception ex)
+        {
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+    private string Funsetsuffix()
+    {
+
+        int suffix = 1;
+        S3GSession ObjS3GSession = new S3GSession();
+        suffix = ObjS3GSession.ProGpsSuffixRW;
+        string strformat = "0.";
+        for (int i = 1; i <= suffix; i++)
+        {
+            strformat += "0";
+        }
+        return strformat;
+    }
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        Response.Redirect("S3GStatementOfAccountsReport.aspx");
+
+    }
+
+
+
+}

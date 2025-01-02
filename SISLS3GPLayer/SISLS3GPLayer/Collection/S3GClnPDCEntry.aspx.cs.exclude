@@ -1,0 +1,2314 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : PDC Entry 
+/// Created By                : Irsathameen .K
+/// Created Date              : 15-OCT-2010
+/// Purpose                   : 
+/// Last Updated By           : Swarnalatha
+/// Last Updated Date         : 26-jan-2011
+/// Reason                    : Added User control in Customer Details
+
+/// Last Updated By           : Irsathameen .K
+/// Last Updated Date         : 06-May-2011
+/// Reason                    : First Round  Bug fixation
+
+/// Last Updated By           : Sathiyanathan S
+/// Last Updated Date         : 23-Sep-2013
+/// Reason                    : ISFC CR_001
+
+/// Last Updated By           : Chandru K
+/// Last Updated Date         : 10-Dec-2014
+/// Reason                    : OPC Changes
+
+
+/// <Program Summary>
+
+#region Namespaces
+
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Globalization;
+using System.ServiceModel;
+using Resources;
+using S3GBusEntity;
+using S3GBusEntity.Collection;
+using System.Text;
+
+#endregion
+
+public partial class Collection_S3GClnPDCEntry : ApplyThemeForProject
+{
+    #region Variable Declaration
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient ObjPDCEntryClient;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCModuleDetailsDataTable ObjS3G_CLN_PDCModuleDataTable = null;
+    SerializationMode SerMode = SerializationMode.Binary;
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+
+    int intCompanyID, intUserID, i, intErrCode = 0, intGPSPrefix = 0, intGPSSuffix = 0;
+    long endno;
+
+    DataTable dt = new DataTable();
+    Dictionary<string, string> dictParam = null;
+    StringBuilder strbDraweebankDet = new StringBuilder();
+    UserInfo ObjUserInfo = new UserInfo();
+    S3GSession ObjS3GSession = new S3GSession();
+
+    string strPDCID = "";
+    static string strPageName = "PDC Entry";
+    string StrXMLPDC, StrXMLGVPDC, strPDCNo, strchequeNo, s, strexistingdate;
+    string strRedirectPage = "../Collection/S3GClnTransLander.aspx?Code=CPM";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strDateFormat = string.Empty;
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnPDCEntry.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CPM';";
+    public static Collection_S3GClnPDCEntry obj_Page;
+    #endregion
+
+    #region Page Events
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+            ddlDraweeBank.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_10 + " PDC entry details";
+            CVPDCEntry.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region DropDownList Events
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearcontrols();
+            if (ddlPAN.Items.Count > 0)
+            {
+                ddlPAN.SelectedIndex = 0;
+                ddlPAN.ClearDropDownList();
+            }
+            FunPriGetBankNames();
+            CustomerDetails1.ClearCustomerDetails();
+            ucCustomerCodeLov.FunPubClearControlValue();
+            txtCustomerName.Text = "";
+            ddlDraweeBank.AddItemToolTip();
+
+        }
+
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_1;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearcontrols();
+            if (ddlPAN.Items.Count > 0)
+            {
+                ddlPAN.SelectedIndex = 0;
+                ddlPAN.ClearDropDownList();
+            }
+
+            ucCustomerCodeLov.FunPubClearControlValue();
+            FunPriGetBankNames();
+            CustomerDetails1.ClearCustomerDetails();
+            ViewState["CustomerID"] = null;
+            txtCustomerName.Text = "";
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_1;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlPAN_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearcontrols();
+            //Changed By Thangam M on 14/Ma
+            if (ddlPAN.SelectedIndex > 0)
+            {
+                FunPubSetStartinstallmentNo();
+            }
+            //FunProGetCustomerDetails();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_2;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlSAN_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            txtFromInstallmentNo.Text = hdnFromInstallmentNo.Value = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_2;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+
+    protected void ddlTranche_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            dictParam = new Dictionary<string, string>();
+            dictParam.Clear();
+            dictParam.Add("@Tranche_Header_Id", ddlTranche.SelectedValue);
+            ddlPAN.Items.Clear();
+            ddlPAN.BindDataTable("S3G_CLN_GetPANum_Tranche", dictParam, false, new string[] { "PA_SA_REF_ID", "PANum" });
+            System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("All", "0");
+            ddlPAN.Items.Insert(0, liSelect);
+
+            if (ddlTranche.SelectedIndex != 0)
+                RFVMLA.Enabled = false;
+            else
+                RFVMLA.Enabled = true;
+
+            if (ddlPAN.Items.Count > 1)
+            {
+                ddlPAN.SelectedIndex = 1;
+                ddlPAN_SelectedIndexChanged(this, new EventArgs());
+                btnGo.Enabled = true;
+                ViewState["PANum"] = ddlPAN.SelectedValue;
+                ddlPAN.SelectedIndex = 0;
+            }
+            else
+            {
+                btnGo.Enabled = false;
+            }
+
+            RFVMLA.ErrorMessage = Resources.ValidationMsgs.CLNPDC_13;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_13;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlDraweeBankG_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            foreach (GridViewRow grvData in GRVPDCDetails.Rows)
+            {
+                DropDownList ddlDraweeBankG = (DropDownList)grvData.FindControl("ddlDraweeBankG");
+                Label lblDraweeBankG = (Label)grvData.FindControl("lblDraweeBankG");
+                lblDraweeBankG.Text = ddlDraweeBankG.SelectedItem.Text.Trim();
+
+                if (ddlDraweeBank.Items.Count > 0)
+                {
+                    if (ddlDraweeBank.SelectedItem.Text.Trim() != ddlDraweeBankG.SelectedItem.Text.Trim())
+                        ddlDraweeBank.SelectedIndex = 0;
+                    RFVDraweeBank.Visible = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_8;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlPDCStatus_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            int intRowID = Utility.FunPubGetGridRowID("GRVPDCDetails", ((DropDownList)sender).ClientID.ToString());
+            DropDownList ddlPDCStatus = (DropDownList)GRVPDCDetails.Rows[intRowID].FindControl("ddlPDCStatus");
+            Label lblStatus = (Label)GRVPDCDetails.Rows[intRowID].FindControl("lblStatus");
+            if (ddlPDCStatus.SelectedValue == "2")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Status Processed can not be changed manually");
+                ddlPDCStatus.SelectedValue = lblStatus.Text;
+                lblStatus.Text = ddlPDCStatus.SelectedValue;
+                return;
+            }
+            lblStatus.Text = ddlPDCStatus.SelectedValue;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlDraweeBankGNO_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            foreach (GridViewRow grvData in GRVPDCDetailsEntry.Rows)
+            {
+                DropDownList ddlDraweeBankG = (DropDownList)grvData.FindControl("ddlDraweeBankG");
+                Label lblDraweeBankG = (Label)grvData.FindControl("lblDraweeBankG");
+                lblDraweeBankG.Text = ddlDraweeBankG.SelectedItem.Text;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlInstrmentSequence_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            pnlGRDSeqYes.Visible = pnlGRDSeqNo.Visible = pnlPreEMIPDC.Visible = false;
+            if (ddlInstrmentSequence.SelectedValue == "1")
+            {
+                RFVInstrumentStartNo.Enabled = true;
+
+                GRVPDCDetailsEntry.Visible = false;
+                lblInstrumentType.Enabled = ddlInstrmentType.Enabled = RFVDraweeBank.Visible = RFVInstrumentType.Visible = GRVPDCDetails.Visible = ddlDraweeBank.Enabled = txtInstrumentStartNo.Enabled = lblInstrumentStartNo.Enabled = lblDraweeBank.Enabled = true;
+            }
+            else if (ddlInstrmentSequence.SelectedValue == "2")
+            {
+                GRVPDCDetailsEntry.Visible = true;
+                txtInstrumentStartNo.Enabled = GRVPDCDetails.Visible = lblInstrumentStartNo.Enabled = false;
+
+                RFVInstrumentStartNo.Enabled = false;
+
+                RFVDraweeBank.Enabled = lblDraweeBank.Enabled = ddlDraweeBank.Enabled = true;
+
+                txtInstrumentStartNo.Text = string.Empty;
+                if (ddlDraweeBank.Items.Count > 0)
+                    ddlDraweeBank.SelectedIndex = 0;
+                //if (ddlInstrmentType.Items.Count > 0)
+                //    ddlInstrmentType.SelectedIndex = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Button Events
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriGeneratePDCDetails();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_3;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriSavePDCEntry();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_4;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage);
+    }
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        //FunPriClearPage();
+        Response.Redirect("../Collection/S3GClnPDCEntry.aspx?qsMode=C");
+    }
+
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField hdnCustomerId = (HiddenField)ucCustomerCodeLov.FindControl("hdnID");
+            if (hdnCustomerId != null && hdnCustomerId.Value != "")
+            {
+                if (ViewState["CustomerID"] == null || ViewState["CustomerID"].ToString() != hdnCustomerId.Value)
+                {
+                    FunPriClearcontrols();
+                    CustomerDetails1.ClearCustomerDetails();
+                    //txtCustomerName.Text = "";
+                    CustomerDetails1.SetCustomerDetails(Convert.ToInt32(hdnCustomerId.Value), true);
+                    txtCustomerName.Text = CustomerDetails1.CustomerName.ToString();
+                    LoadTranche(hdnCustomerId.Value);
+                    LoadPrimeAccNo(hdnCustomerId.Value);
+                    ViewState["CustomerID"] = hidcuscode.Value = hdnCustomerId.Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to display Customer Details");
+        }
+    }
+
+    #endregion
+
+    #region Gridview Events
+
+    protected void GRVPDCDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            FunPriGridviewPDCdatabound(e);
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_5;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void GrvExisting_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            FunPriGridviewExistingdatabound(e);
+        }
+
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_5;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void GRVPDCDetailsEntry_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            FunPriGridviewPDCDetailsdatabound(e);
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_5;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void GRVPDCDetails_RowCreated(object sender, GridViewRowEventArgs e)
+    {
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            //AjaxControlToolkit.CalendarExtender CE = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("CECInstrumentDate2");
+            //strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //CE.Format = strDateFormat;
+            //if (string.IsNullOrEmpty(strMode))
+            //CE.Enabled = false; 
+        }
+    }
+
+    #endregion
+
+    #region Methods
+
+    private void FunPriBindBranchLOB()
+    {
+        try
+        {
+            // LOB
+
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@Is_Active", "1");
+            dictParam.Add("@User_ID", intUserID.ToString());
+            dictParam.Add("@Program_ID", "106");
+            dictParam.Add("@FilterOption", "'FL','HP','LN','OL','TE','TL'");
+            ddlLOB.BindDataTable(SPNames.LOBMaster, dictParam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            RFVLOB.ErrorMessage = Resources.ValidationMsgs.S3G_ValMsg_LOB;
+
+            if (ddlLOB.Items.Count == 2)
+            {
+                ddlLOB.SelectedIndex = 1;
+                ddlLOB.ClearDropDownList();
+                CustomerDetails1.ClearCustomerDetails();
+                ucCustomerCodeLov.FunPubClearControlValue();
+                txtCustomerName.Text = "";
+            }
+
+            // Drawee Bank name ,Instrumenttype ,Instrument Sequence
+            FunPribindBankSequenceType();
+
+            RFVDraweeBank.ErrorMessage = Resources.ValidationMsgs.S3g_ValMsg_DraweeBank;
+            RFVInstrumentType.ErrorMessage = Resources.ValidationMsgs.CLNPDC_8;
+            RFVTransactionDate.ErrorMessage = Resources.ValidationMsgs.CLNPDC_15;
+            //RFVPostingDate.ErrorMessage = Resources.ValidationMsgs.CLNPDC_16;
+            RFVInstrmentSequence.ErrorMessage = Resources.ValidationMsgs.CLNPDC_6;
+
+            rfvPdcNature.ErrorMessage = "Select the PDC Nature";//Added by Sathiyanathan on 20-Sep-2013
+            rfvPDCType.ErrorMessage = "Select the PDC Type";
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+   
+    private void FunPribindBankSequenceType()
+    {
+        try
+        {
+            DataSet ds = new DataSet();
+            // Instruction Sequence  Yes & No          
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LookupType_Code", "18");
+            ddlInstrmentSequence.BindDataTable(SPNames.S3G_LOANAD_GetLookUpValues, dictParam, new string[] { "Lookup_Code", "Lookup_Description" });
+
+            // Instruction Type Local Outstation
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LookupType_Code", "48");
+            ddlInstrmentType.BindDataTable(SPNames.S3G_LOANAD_GetLookUpValues, dictParam, new string[] { "Lookup_Code", "Lookup_Description" });
+
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LookupType_Code", "57");
+            ds = Utility.GetDataset(SPNames.S3G_LOANAD_GetLookUpValues, dictParam);
+            ViewState["Status"] = ds.Tables[0];
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    protected void LoadPrimeAccNo(string strCustomer_ID)
+    {
+        try
+        {
+            // Load Prime Account Number
+            dictParam = new Dictionary<string, string>();
+            dictParam.Clear();
+            dictParam.Add("@Type", "1");
+            dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            //dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParam.Add("@Is_Activated", "1");
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@Customer_ID", strCustomer_ID);
+            ddlPAN.BindDataTable("S3G_CLN_GetMLASLA_PDC", dictParam, new string[] { "PA_SA_REF_ID", "PANum" });
+            if (ddlPAN.Items.Count == 2)
+            {
+                ddlPAN.SelectedIndex = 1;
+                ddlPAN_SelectedIndexChanged(this, new EventArgs());
+            }
+            RFVMLA.ErrorMessage = Resources.ValidationMsgs.CLNPDC_13;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    protected void LoadTranche(string strCustomer_ID)
+    {
+        try
+        {
+            dictParam = new Dictionary<string, string>();
+            dictParam.Clear();
+            dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@Customer_ID", strCustomer_ID);
+            ddlTranche.Items.Clear();
+            ddlTranche.BindDataTable("S3G_CLN_GetTranche_PDC", dictParam, new string[] { "Tranche_Header_Id", "Tranche_Name" });
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    btnSave.Enabled = false;
+                    ddlLOB.Focus();
+                    txtPostingDate.Text = DateTime.Parse(DateTime.Today.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                    //Changed By Thangam on 14/May/2012 for UAT bug - PDCE_003
+                    txtTransactionDate.Text = DateTime.Parse(DateTime.Today.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                    txtTransactionDate.Enabled = false;
+                    ddlBranch.Enabled = true;
+                    //End here
+                    break;
+                case -1:// Query Mode
+                    txtTransactionDate.Enabled = false;
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    FunPriClearDropDown();
+                    imgPostingDate.Enabled = btnClear.Enabled = btnSave.Enabled = btnGo.Enabled = txtInstrumentStartNo.Visible = lblInstrumentStartNo.Visible = imgTransactionDate.Enabled = false;
+                    txtPostingDate.ReadOnly = txtTransactionDate.ReadOnly = txtNoofPDC.ReadOnly = true;
+                    lblNoofPDC.Text = "No of PDC";
+                    txtFromInstallmentNo.Visible = false;
+                    ucCustomerCodeLov.ButtonEnabled = false;
+
+                    //foreach (GridViewRow GvRow in GRVPDCDetails.Rows)
+                    //{
+                    //    AjaxControlToolkit.CalendarExtender CEINSDate = (AjaxControlToolkit.CalendarExtender)GvRow.FindControl("CECInstrumentDate2");
+                    //    if (CEINSDate != null)
+                    //        CEINSDate.Enabled = false;
+                    //}
+                    //lblInstrmentSequence.Visible = ddlInstrmentSequence.Visible = ddlDraweeBank.Visible = lblDraweeBank.Visible =
+                    //Added by Thangam on 17/Jul/2012 for UAT
+                    if (ddlInstrmentSequence.SelectedValue == "1")
+                    {
+                        lblDraweeBank.Visible = ddlDraweeBank.Visible = true;
+                        GRVPDCDetails.Columns[6].Visible = false;
+                    }
+                    else
+                    {
+                        lblDraweeBank.Visible = ddlDraweeBank.Visible = false;
+                        GRVPDCDetails.Columns[6].Visible = true;
+                    }
+                    foreach (GridViewRow GvRow in GRVPDCDetailsEntry.Rows)
+                    {
+                        AjaxControlToolkit.CalendarExtender CEINSDate = (AjaxControlToolkit.CalendarExtender)GvRow.FindControl("CECInstrumentDate1");
+                        if (CEINSDate != null)
+                            CEINSDate.Enabled = false;
+                    }
+                    //End here
+                    break;
+                case 1:// Modify Mode
+                    txtTransactionDate.Enabled = false;
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    FunPriClearDropDown();
+                    txtFromInstallmentNo.Visible = false;
+                    lblNoofPDC.Text = "No of PDC";
+                    //ddlInstrmentSequence.Visible = lblInstrmentSequence.Visible =
+                    imgPostingDate.Enabled = btnGo.Enabled = btnClear.Enabled = imgTransactionDate.Enabled = false;
+                    RFVDraweeBank.Visible = RFVInstrmentSequence.Visible = RFVInstrumentType.Visible = false;
+                    lblInstrumentStartNo.Visible = txtInstrumentStartNo.Visible = false;
+                    txtPostingDate.ReadOnly = txtNoofPDC.ReadOnly = txtTransactionDate.ReadOnly = true;
+                    ucCustomerCodeLov.ButtonEnabled = false;
+                    RFVInstrumentStartNo.Enabled = txtInstrumentStartNo.Visible;
+                    //Added by Thangam on 17/Jul/2012 for UAT
+                    if (ddlInstrmentSequence.SelectedValue == "1")
+                    {
+                        lblDraweeBank.Visible = ddlDraweeBank.Visible = true;
+                        GRVPDCDetails.Columns[6].Visible = false;
+                    }
+                    else
+                    {
+                        lblDraweeBank.Visible = ddlDraweeBank.Visible = false;
+                        GRVPDCDetails.Columns[6].Visible = true;
+                    }
+                    //End here
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriClearDropDown()
+    {
+        if (ddlLOB.Items.Count > 0)
+            ddlLOB.ClearDropDownList();
+        if (ddlInstrmentType.Items.Count > 0)
+            ddlInstrmentType.ClearDropDownList();
+        if (ddlInstrmentSequence.Items.Count > 0)
+            ddlInstrmentSequence.ClearDropDownList();
+        if (ddlDraweeBank.Items.Count > 0)
+            ddlDraweeBank.ClearDropDownList();
+        if (ddlPdcNature.Items.Count > 0)
+            ddlPdcNature.ClearDropDownList();
+    }
+    private void FunPriGetPDCDetails()
+    {
+        try
+        {
+            dictParam = new Dictionary<string, string>();
+            DataSet DS = new DataSet();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@PDCNO", Convert.ToString(strPDCID));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetPDCModuleDetails, dictParam);
+
+            //  Table 0  
+            if (DS.Tables[0].Rows.Count >= 1)
+            {
+                if (strMode == "M")
+                {
+                    ddlLOB.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+
+                    ddlBranch.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+
+                    if (ddlLOB.SelectedValue == "0" || ddlBranch.SelectedValue == "0")
+                        btnSave.Enabled = false;
+
+                    if (ddlLOB.SelectedValue == "0")
+                        Utility.FunShowAlertMsg(this.Page, "The LOB : " + Convert.ToString(DS.Tables[0].Rows[0]["LOBName"]) + " is in deactive");
+                    if (ddlBranch.SelectedValue == "0")
+                        Utility.FunShowAlertMsg(this.Page, "The Location : " + Convert.ToString(DS.Tables[0].Rows[0]["LocationName"]) + " is in deactive");
+
+                }
+
+                if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != string.Empty)
+                {
+                    ddlLOB.Items[0].Text = Convert.ToString(DS.Tables[0].Rows[0]["LOBName"]);
+                    ddlLOB.Items[0].Value = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+                }
+                if (DS.Tables[0].Rows[0]["Location_ID"].ToString() != string.Empty)
+                {
+                    ddlBranch.SelectedText = Convert.ToString(DS.Tables[0].Rows[0]["LocationName"]);
+                    ddlBranch.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+                }
+
+                //ddlLOB.SelectedValue = DS.Tables[0].Rows[0]["LOB_ID"].ToString();
+                //ddlBranch.SelectedValue = DS.Tables[0].Rows[0]["Branch_ID"].ToString();
+                ddlPAN.Items.Add(DS.Tables[0].Rows[0]["PANum"].ToString());
+                s = DS.Tables[0].Rows[0]["SANum"].ToString();
+                DateTime Date = Utility.StringToDate(DS.Tables[0].Rows[0]["PDC_Collection_Date"].ToString());
+                txtTransactionDate.Text = Date.ToString(strDateFormat);
+                DateTime Date1 = Utility.StringToDate(DS.Tables[0].Rows[0]["PDC_Entry_Date"].ToString());
+                txtPostingDate.Text = Date1.ToString(strDateFormat);
+                txtPDCEntryNo.Text = DS.Tables[0].Rows[0]["PDC_ENTRY_NO"].ToString();
+                txtNoofPDC.Text = DS.Tables[0].Rows[0]["No_Of_PDC"].ToString();
+                FunPriGetBankNames();
+                ddlDraweeBank.SelectedItem.Text = DS.Tables[0].Rows[0]["DraweeBank"].ToString();
+                ddlInstrmentSequence.SelectedValue = DS.Tables[0].Rows[0]["InstrumentSequence"].ToString();
+                if (DS.Tables[0].Rows[0]["Instrument_Type_Code"].ToString() == "0")
+                { lblInstrumentType.Enabled = ddlInstrmentType.Enabled = false; }
+                else
+                { ddlInstrmentType.SelectedValue = DS.Tables[0].Rows[0]["Instrument_Type_Code"].ToString(); }
+                //Added by Sathiyanathan on 23-Sep-2013 for ISFC CR_001
+                if (DS.Tables[0].Rows[0]["PDC_Nature_Type"].ToString() == "0")
+                { ddlPdcNature.Enabled = false; }
+                else
+                { ddlPdcNature.SelectedValue = DS.Tables[0].Rows[0]["PDC_Nature_Type"].ToString(); }
+                //End Here
+                ddlPDCType.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["PDC_Type"]);
+                ddlPDCType.ClearDropDownList();
+                txtPayeeName.Text = Convert.ToString(DS.Tables[0].Rows[0]["Payee_Name"]);
+            }
+
+            // Table 1 PDC Details Gridview
+            if (DS.Tables[1].Rows.Count >= 1)
+            {
+                  GRVPDCDetails.DataSource = DS.Tables[1];
+                  GRVPDCDetails.DataBind();
+                  pnlGRDSeqYes.Visible = true;
+              
+                //Set Unwanted columns as visible false for PDC Nature is not regular
+                if (Convert.ToInt32(ddlPdcNature.SelectedValue) != 1)
+                {
+                    GRVPDCDetails.Columns[2].Visible = false;
+                    GRVPDCDetails.Columns[3].Visible = false;
+                    GRVPDCDetails.Columns[9].Visible = false;
+                    GRVPDCDetails.Columns[10].Visible = false;
+                    GRVPDCDetails.Columns[11].Visible = false;
+                    GRVPDCDetails.Columns[12].Visible = false;
+                }
+
+            }
+            ViewState["PDCDetails"] = DS.Tables[2];
+            // Table[2]  Customer Details
+            if (DS.Tables[3].Rows.Count >= 1)
+            {
+                CustomerDetails1.SetCustomerDetails(DS.Tables[3].Rows[0], true);
+                hidcuscode.Value = DS.Tables[3].Rows[0]["Customer_ID"].ToString();
+                txtCustomerName.Text = CustomerDetails1.CustomerName;
+                ucCustomerCodeLov.FunPubSetControlValue(hidcuscode.Value, CustomerDetails1.CustomerCode);
+            }
+            // Tables[3]  Existing PDC Data Entry
+            if (DS.Tables[4].Rows.Count >= 1)
+            {
+                tbExistingPDC.Enabled = true;
+                GrvExisting.DataSource = DS.Tables[4];
+                GrvExisting.DataBind();
+            }
+            else if (DS.Tables[4].Rows.Count == 0)
+            {
+                tbExistingPDC.Enabled = false;
+            }
+
+            LoadTranche(hidcuscode.Value);
+            ddlTranche.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Tranche_Header_Id"]);
+            ddlTranche.ClearDropDownList();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriGetPDCDetails_QueryMode()
+    {
+        try
+        {
+            dictParam = new Dictionary<string, string>();
+            DataSet DS = new DataSet();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@PDCNO", Convert.ToString(strPDCID));
+            DS = Utility.GetDataset("S3G_CLN_GetPDCModuleDetails", dictParam);
+
+            //  Table 0  
+            if (DS.Tables[0].Rows.Count >= 1)
+            {
+                System.Web.UI.WebControls.ListItem LiB = new System.Web.UI.WebControls.ListItem(DS.Tables[0].Rows[0]["LOBName"].ToString(), DS.Tables[0].Rows[0]["LOB_ID"].ToString());
+                ddlLOB.Items.Add(LiB);
+
+                ddlLOB.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+
+                ddlBranch.SelectedText = DS.Tables[0].Rows[0]["LocationName"].ToString();
+                ddlBranch.SelectedValue = DS.Tables[0].Rows[0]["Location_ID"].ToString();
+
+                if (ddlLOB.SelectedValue == "0" || ddlBranch.SelectedValue == "0")
+                    btnSave.Enabled = false;
+
+                if (ddlLOB.SelectedValue == "0")
+                    Utility.FunShowAlertMsg(this.Page, "The LOB : " + Convert.ToString(DS.Tables[0].Rows[0]["LOBName"]) + " is in deactive");
+                if (ddlBranch.SelectedValue == "0")
+                    Utility.FunShowAlertMsg(this.Page, "The Location : " + Convert.ToString(DS.Tables[0].Rows[0]["LocationName"]) + " is in deactive");
+
+                ddlPAN.Items.Add(DS.Tables[0].Rows[0]["PANum"].ToString());
+                s = DS.Tables[0].Rows[0]["SANum"].ToString();
+                DateTime Date = Utility.StringToDate(DS.Tables[0].Rows[0]["PDC_Collection_Date"].ToString());
+                txtTransactionDate.Text = Date.ToString(strDateFormat);
+                DateTime Date1 = Utility.StringToDate(DS.Tables[0].Rows[0]["PDC_Entry_Date"].ToString());
+                txtPostingDate.Text = Date1.ToString(strDateFormat);
+                txtPDCEntryNo.Text = DS.Tables[0].Rows[0]["PDC_ENTRY_NO"].ToString();
+                txtNoofPDC.Text = DS.Tables[0].Rows[0]["No_Of_PDC"].ToString();
+                //FunPriGetBankNames();
+                ddlDraweeBank.Items.Add(DS.Tables[0].Rows[0]["DraweeBank"].ToString());
+
+                ddlInstrmentSequence.SelectedValue = DS.Tables[0].Rows[0]["InstrumentSequence"].ToString();
+                if (DS.Tables[0].Rows[0]["Instrument_Type_Code"].ToString() == "0")
+                { lblInstrumentType.Enabled = ddlInstrmentType.Enabled = false; }
+                else
+                { ddlInstrmentType.SelectedValue = DS.Tables[0].Rows[0]["Instrument_Type_Code"].ToString(); }
+                //Added by Sathiyanathan on 23-Sep-2013 for ISFC CR_001
+                if (DS.Tables[0].Rows[0]["PDC_Nature_Type"].ToString() == "0")
+                { ddlPdcNature.Enabled = false; }
+                else
+                { ddlPdcNature.SelectedValue = DS.Tables[0].Rows[0]["PDC_Nature_Type"].ToString(); }
+                //End Here
+                ddlPDCType.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["PDC_Type"]);
+                ddlPDCType.ClearDropDownList();
+            }
+
+            // Table 1 PDC Details Gridview
+            if (DS.Tables[1].Rows.Count >= 1)
+            {
+                DataTable dtable = DS.Tables[1];
+                GRVPDCDetails.DataSource = DS.Tables[1];
+                GRVPDCDetails.DataBind();
+                pnlGRDSeqYes.Visible = true;
+                //Set Unwanted columns as visible false for PDC Nature is not regular
+                if (Convert.ToInt32(ddlPdcNature.SelectedValue) != 1)
+                {
+                    GRVPDCDetails.Columns[2].Visible = false;
+                    GRVPDCDetails.Columns[3].Visible = false;
+                    GRVPDCDetails.Columns[9].Visible = false;
+                    GRVPDCDetails.Columns[10].Visible = false;
+                    GRVPDCDetails.Columns[11].Visible = false;
+                    GRVPDCDetails.Columns[12].Visible = false;
+                }
+
+            }
+            // Table[2]  Customer Details
+            if (DS.Tables[3].Rows.Count >= 1)
+            {
+                CustomerDetails1.SetCustomerDetails(DS.Tables[3].Rows[0], true);
+                hidcuscode.Value = DS.Tables[3].Rows[0]["Customer_ID"].ToString();
+                txtCustomerName.Text = CustomerDetails1.CustomerName;
+                ucCustomerCodeLov.FunPubSetControlValue(hidcuscode.Value, CustomerDetails1.CustomerCode);
+            }
+            // Tables[3]  Existing PDC Data Entry
+            if (DS.Tables[4].Rows.Count >= 1)
+            {
+                tbExistingPDC.Enabled = true;
+                GrvExisting.DataSource = DS.Tables[4];
+                GrvExisting.DataBind();
+            }
+            else if (DS.Tables[4].Rows.Count == 0)
+            {
+                tbExistingPDC.Enabled = false;
+            }
+
+            LoadTranche(hidcuscode.Value);
+            ddlTranche.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Tranche_Header_Id"]);
+            ddlTranche.ClearDropDownList();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            // Get Prefix and suffix values from Session
+            intGPSPrefix = ObjS3GSession.ProGpsPrefixRW;
+            intGPSSuffix = ObjS3GSession.ProGpsSuffixRW;
+            obj_Page = this;
+
+            CECPostingDate.Format = CECTransactiondate.Format = strDateFormat;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                if (fromTicket != null)
+                    strPDCID = Convert.ToString(fromTicket.Name);
+                else
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Invalid URL");
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                }
+                strMode = Request.QueryString["qsMode"];
+            }
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end  
+            if (!IsPostBack)
+            {
+                FunPriBindBranchLOB();
+
+                //Added by Sathiyanathan on 20-Sep-2013 for loading LOV in PDC Nature
+                FunPriGetPDCNature();
+                //End Here
+
+                ////User Authorization            
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if ((strPDCID != "") && (strMode == "M"))// Modify
+                {
+                    FunPriGetPDCDetails();
+                    FunPriDisableControls(1);
+                }
+                else if ((strPDCID != "") && (strMode == "Q")) // Query 
+                {
+                    //FunPriGetPDCDetails();
+                    FunPriGetPDCDetails_QueryMode();
+                    FunPriDisableControls(-1);
+                }
+                else  //Create Mode
+                    FunPriDisableControls(0);
+            }
+
+            //Values assgnment for Csutomer selection control
+
+            //if (ddlBranch.SelectedValue.ToString() != "0")
+            //{
+            //    ucCustomerCodeLov.strBranchID = ddlBranch.SelectedValue.ToString();
+            //}
+            //else
+            //{
+            ucCustomerCodeLov.strBranchID = "";
+            //}
+            if (ddlLOB.SelectedValue.ToString() != "0")
+            {
+                ucCustomerCodeLov.strLOBID = ddlLOB.SelectedValue.ToString();
+            }
+            else
+            {
+                ucCustomerCodeLov.strLOBID = "-1";
+            }
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+
+            TextBox txt = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            if (PageMode == PageModes.Create)
+            {
+                txt.Attributes.Add("onfocus", "fnLoadCustomer()");
+            }
+            txt.ToolTip = "Customer Code";
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriGeneratePDCDetails()
+    {
+        try
+        {
+            if (strMode == string.Empty)
+            {
+                if (!string.IsNullOrEmpty(hdnFromInstallmentNo.Value) && !string.IsNullOrEmpty(txtFromInstallmentNo.Text) && Convert.ToInt32(txtFromInstallmentNo.Text) < Convert.ToInt32(hdnFromInstallmentNo.Value) && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "From Installment Number should be greater than or equal to " + hdnFromInstallmentNo.Value.ToString());
+                    btnSave.Enabled = false;
+                    return;
+                }
+                else if (!string.IsNullOrEmpty(hdnFromInstallmentNo.Value) && !string.IsNullOrEmpty(txtFromInstallmentNo.Text) && Convert.ToInt32(txtFromInstallmentNo.Text) < Convert.ToInt32(hdnFromInstallmentNo.Value) && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "From Installment Number should be less than or equal to" + hdnmaxInstallmentNo.Value.ToString());
+                    btnSave.Enabled = false;
+                    return;
+                }
+                if (Convert.ToInt32(ViewState["NoOfPDC"].ToString()) < Convert.ToInt32(txtNoofPDC.Text) && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Number of PDC cannot exceed number of balance installments [" + ViewState["NoOfPDC"].ToString() + "]");
+                    btnSave.Enabled = false;
+                    txtNoofPDC.Focus();
+                    return;
+                }
+
+                if (Utility.StringToDate(txtTransactionDate.Text.Trim()) > Utility.StringToDate(txtPostingDate.Text.Trim()))
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDC_11);
+                    btnSave.Enabled = false;
+                    return;
+                }
+
+                Dictionary<string, string> Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyID.ToString());
+                Procparam.Add("@PANum", ddlPAN.SelectedValue.ToString());
+                Procparam.Add("@SANum", ddlPAN.SelectedValue.ToString() + "DUMMY");
+                DataTable dt = Utility.GetDefaultData("S3G_CLN_GetAccountCreationDate", Procparam);
+
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    if (Convert.ToDateTime(Utility.StringToDate(dt.Rows[0][0].ToString()).ToString("dd-MMM-yyyy")) > Convert.ToDateTime(Utility.StringToDate(txtTransactionDate.Text).ToString("dd-MMM-yyyy")))
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Transaction Date should be greater than or equal to account creation date [" + Utility.StringToDate(dt.Rows[0][0].ToString()).ToString(strDateFormat) + "]");
+                        btnSave.Enabled = false;
+                        return;
+                    }
+                    if (Convert.ToDateTime(Utility.StringToDate(dt.Rows[0][0].ToString()).ToString("dd-MMM-yyyy")) > Convert.ToDateTime(Utility.StringToDate(txtPostingDate.Text).ToString("dd-MMM-yyyy")))
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Posting Date should be greater than or equal to account creation date [" + Utility.StringToDate(dt.Rows[0][0].ToString()).ToString(strDateFormat) + "]");
+                        btnSave.Enabled = false;
+                        return;
+                    }
+
+
+                    if (Convert.ToDateTime(Utility.StringToDate(dt.Rows[0][1].ToString()).ToString("dd-MMM-yyyy")) < Convert.ToDateTime(Utility.StringToDate(txtTransactionDate.Text).ToString("dd-MMM-yyyy")))
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Transaction Date should be lesser than or equal to account closing date [" + Utility.StringToDate(dt.Rows[0][0].ToString()).ToString(strDateFormat) + "]");
+                        btnSave.Enabled = false;
+                        return;
+                    }
+                    if (Convert.ToDateTime(Utility.StringToDate(dt.Rows[0][1].ToString()).ToString("dd-MMM-yyyy")) < Convert.ToDateTime(Utility.StringToDate(txtPostingDate.Text).ToString("dd-MMM-yyyy")))
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Posting Date should be lesser than or equal to account closing date [" + Utility.StringToDate(dt.Rows[0][0].ToString()).ToString(strDateFormat) + "]");
+                        btnSave.Enabled = false;
+                        return;
+                    }
+
+                }
+
+                //  Check instrument number exceed 10 digits
+                if (txtInstrumentStartNo.Text.Trim() != "" && (Convert.ToDecimal(txtInstrumentStartNo.Text) + Convert.ToDecimal(txtNoofPDC.Text) - 1) > Convert.ToDecimal("9999999"))
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Instrument Number should not greater then 7 digits ");
+                    btnSave.Enabled = false;
+                    return;
+                }
+            }
+            DataSet DS = new DataSet();
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            dictParam.Add("@Tranche_Header_Id", ddlTranche.SelectedValue);
+            if (ddlPAN.SelectedValue != "0")
+                dictParam.Add("@PA_SA_REF_ID", ddlPAN.SelectedValue);
+
+            // Instruement Sequence    1. Yes 2. No
+            if (ddlInstrmentSequence.SelectedValue == "1")
+            {
+                if (txtInstrumentStartNo.Text != string.Empty)
+                    dictParam.Add("@InststartNo", Convert.ToString(txtInstrumentStartNo.Text.Trim()));
+                else
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDC_9);
+                    return;
+                }
+            }// Instruement Sequence    1. Yes 2. No
+            else if (ddlInstrmentSequence.SelectedValue == "2")
+            { dictParam.Add("@InststartNo", Convert.ToString("1")); }
+            if (txtNoofPDC.Text != string.Empty)
+            {
+                if (ddlInstrmentSequence.SelectedValue == "1")
+                    endno = Convert.ToInt64(txtInstrumentStartNo.Text.Trim()) + Convert.ToInt64(txtNoofPDC.Text.Trim()) - 1;
+                else if (ddlInstrmentSequence.SelectedValue == "2")
+                    endno = Convert.ToInt64(txtNoofPDC.Text.Trim());
+                dictParam.Add("@InstEndNo", Convert.ToString(endno));
+            }
+            if (!string.IsNullOrEmpty(txtFromInstallmentNo.Text))
+                dictParam.Add("@FromInstal_No", Convert.ToString(txtFromInstallmentNo.Text));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetPDCEntryDetails, dictParam);
+
+            // Tables[0] No of installments for given Account
+            if (DS.Tables[0].Rows.Count >= 1)
+            {
+                if (!string.IsNullOrEmpty(DS.Tables[0].Rows[0]["No_Installments"].ToString()))
+                {
+                    //if (Convert.ToInt32(DS.Tables[0].Rows[0]["No_Installments"]) < Convert.ToInt32(txtNoofPDC.Text.Trim()))
+                    //{
+                    //    Utility.FunShowAlertMsg(this.Page, "No. of PDC ( " + Convert.ToInt32(txtNoofPDC.Text.Trim()) + " ) should not be greater than No. of Installment ( " + Convert.ToInt32(DS.Tables[0].Rows[0]["No_Installments"])+" )");
+                    //    return;
+                    //}
+                    if (!string.IsNullOrEmpty(txtFromInstallmentNo.Text) && Convert.ToInt32(DS.Tables[0].Rows[0]["No_Installments"]) < Convert.ToInt32(txtFromInstallmentNo.Text) && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, " Starting Installment between " + Convert.ToInt32(hdnFromInstallmentNo.Value) + " to " + Convert.ToInt32(DS.Tables[0].Rows[0]["No_Installments"]));
+                        return;
+                    }
+
+                    //if (((Convert.ToInt32(DS.Tables[0].Rows[0]["No_Installments"]) - Convert.ToInt32(DS.Tables[1].Rows[0]["ExistingPDC"])) < Convert.ToInt32(txtNoofPDC.Text.Trim())) && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)
+                    //{
+                    //    Utility.FunShowAlertMsg(this.Page, " To be Recorded PDC(s) = " + (Convert.ToInt32(DS.Tables[0].Rows[0]["No_Installments"]) - Convert.ToInt32(DS.Tables[1].Rows[0]["ExistingPDC"])) + " \\n " + " Existing Number of PDC(s)   = " + Convert.ToInt32(DS.Tables[1].Rows[0]["ExistingPDC"]) + "\\n " + " Number of Installment(s)      = " + Convert.ToInt32(DS.Tables[0].Rows[0]["No_Installments"]));
+                    //    return;
+                    //}
+                }
+                else if (string.IsNullOrEmpty(DS.Tables[0].Rows[0]["No_Installments"].ToString()))
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Number of installment is not defined");
+                    return;
+                }
+                // Table [2]PDC Details  
+                //Begin
+                if (DS.Tables[2].Rows.Count == 0 && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)  //check whether All PDC have been recorded
+                {
+                    Utility.FunShowAlertMsg(this.Page, "All (" + DS.Tables[0].Rows[0]["No_Installments"] + ") PDC details has been entered");
+                    if (DS.Tables[4].Rows.Count >= 1)
+                    {
+                        tbExistingPDC.Enabled = true;
+                        GrvExisting.DataSource = DS.Tables[4];
+                        GrvExisting.DataBind();
+                        UpExisting.Update();
+                        upanelPDCEntry111.Update();
+                    }
+                    return;
+                }
+                //End
+
+                if (DS.Tables[2].Rows.Count > 0)
+                {
+                    if (ddlInstrmentSequence.SelectedValue == "1" && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)
+                    {
+                        GRVPDCDetails.DataSource = DS.Tables[2];
+                        GRVPDCDetails.DataBind();
+                        pnlGRDSeqYes.Visible = true;
+                        pnlGRDSeqNo.Visible = false;
+                        pnlPreEMIPDC.Visible = false;
+                    }
+                    else if (ddlInstrmentSequence.SelectedValue == "2" && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)
+                    {
+                        GRVPDCDetailsEntry.DataSource = DS.Tables[2];
+                        GRVPDCDetailsEntry.DataBind();
+                        pnlGRDSeqNo.Visible = true;
+                        pnlGRDSeqYes.Visible = false;
+                        pnlPreEMIPDC.Visible = false;
+                    }
+                    //Added by Thangam on 17/Jul/2012 for UAT
+                    if (ddlInstrmentSequence.SelectedValue == "1")
+                    {
+                        GRVPDCDetails.Columns[6].Visible = true;
+                    }
+                    else
+                    {
+                        GRVPDCDetails.Columns[6].Visible = false;
+                    }
+                    //End here
+                    //ViewState["currenttable"] = DS.Tables[2];
+                }
+            }
+
+            ViewState["PDCDetails"] = DS.Tables[3];
+
+            if (Convert.ToInt32(ddlPdcNature.SelectedValue) > 1)
+            {
+                pnlGRDSeqYes.Visible = false;
+                pnlGRDSeqNo.Visible = false;
+                pnlPreEMIPDC.Visible = true;
+                FunPriGeneratePreEmiPDC(DS.Tables[3]);
+            }
+
+            if (DS.Tables[4].Rows.Count >= 1)
+            {
+                tbExistingPDC.Enabled = true;
+                GrvExisting.DataSource = DS.Tables[4];
+                GrvExisting.DataBind();
+            }
+            else if (DS.Tables[4].Rows.Count == 0)
+            {
+                tbExistingPDC.Enabled = false;
+            }
+
+            upanelPDCEntry111.Update();
+            UpExisting.Update();
+            UpPDCDetails.Update();
+            UpPDCEntrydetails.Update();
+            btnSave.Enabled = true;
+
+            txtInstrumentStartNo.AutoPostBack = true;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    public void FunPubSetStartinstallmentNo()
+    {
+        DataSet DS = new DataSet();
+        dictParam = new Dictionary<string, string>();
+        dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+        dictParam.Add("@PA_SA_REF_ID", Convert.ToString(ddlPAN.SelectedValue));
+        DS = Utility.GetDataset(SPNames.S3G_CLN_GetPDCEntryDetails, dictParam);
+        if (DS.Tables.Count > 0 && DS.Tables[0].Rows.Count > 0)
+        {
+            hdnmaxInstallmentNo.Value = Convert.ToString(DS.Tables[0].Rows[0][0]);
+            //    rgFromInstallmentNo.MaximumValue = Convert.ToString(DS.Tables[0].Rows[0][0]);
+            //    rgFromInstallmentNo.MinimumValue = Convert.ToString(DS.Tables[1].Rows[0][1]);
+            //    //rgFromInstallmentNo.ErrorMessage = "Starting Installment should be with in " + Convert.ToString(DS.Tables[1].Rows[0][1]) + " to " + Convert.ToString(DS.Tables[0].Rows[0][0]);
+        }
+        if (DS.Tables.Count > 1 && DS.Tables[1].Rows.Count > 0)
+        {
+            hdnFromInstallmentNo.Value = txtFromInstallmentNo.Text = Convert.ToString(DS.Tables[1].Rows[0][1]);
+            ViewState["NoOfPDC"] = txtNoofPDC.Text = (Convert.ToInt32(Convert.ToString(DS.Tables[0].Rows[0][0])) - Convert.ToInt32(Convert.ToString(DS.Tables[1].Rows[0][1])) + 1).ToString();
+        }
+    }
+
+    private void FunPriSavePDCEntry()
+    {
+        try
+        {
+            strPDCNo = "";
+            strchequeNo = "";
+            strexistingdate = "";
+            if (strMode != "M")
+            {
+                Dictionary<string, string> Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyID.ToString());
+
+                if (ddlTranche.SelectedValue != "0")
+                {
+                    if (ViewState["PANum"] != null)
+                    {
+                        Procparam.Add("@PANum", ViewState["PANum"].ToString());
+                        Procparam.Add("@SANum", ViewState["PANum"].ToString() + "DUMMY");
+                    }
+                }
+                else
+                {
+                    Procparam.Add("@PANum", ddlPAN.SelectedValue);
+                    Procparam.Add("@SANum", ddlPAN.SelectedValue + "DUMMY");
+                }
+
+                DataTable dt = Utility.GetDefaultData("S3G_CLN_GetAccountCreationDate", Procparam);
+
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    if (Convert.ToDateTime(Utility.StringToDate(dt.Rows[0][0].ToString()).ToString("dd-MMM-yyyy")) > Convert.ToDateTime(Utility.StringToDate(txtTransactionDate.Text).ToString("dd-MMM-yyyy")))
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Transaction Date should be greater than or equal to account creation date [" + Utility.StringToDate(dt.Rows[0][0].ToString()).ToString(strDateFormat) + "]");
+                        return;
+                    }
+                    if (Convert.ToDateTime(Utility.StringToDate(dt.Rows[0][0].ToString()).ToString("dd-MMM-yyyy")) > Convert.ToDateTime(Utility.StringToDate(txtPostingDate.Text).ToString("dd-MMM-yyyy")))
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Posting Date should be greater than or equal to account creation date [" + Utility.StringToDate(dt.Rows[0][0].ToString()).ToString(strDateFormat) + "]");
+                        return;
+                    }
+
+                    if (Convert.ToDateTime(Utility.StringToDate(dt.Rows[0][1].ToString()).ToString("dd-MMM-yyyy")) < Convert.ToDateTime(Utility.StringToDate(txtTransactionDate.Text).ToString("dd-MMM-yyyy")))
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Transaction Date should be lesser than or equal to account closing date [" + Utility.StringToDate(dt.Rows[0][0].ToString()).ToString(strDateFormat) + "]");
+                        return;
+                    }
+                    if (Convert.ToDateTime(Utility.StringToDate(dt.Rows[0][1].ToString()).ToString("dd-MMM-yyyy")) < Convert.ToDateTime(Utility.StringToDate(txtPostingDate.Text).ToString("dd-MMM-yyyy")))
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Posting Date should be lesser than or equal to account closing date [" + Utility.StringToDate(dt.Rows[0][0].ToString()).ToString(strDateFormat) + "]");
+                        return;
+                    }
+                    // ViewState["CreationDate"] = dt.Rows[0][0].ToString();
+                }
+
+
+                if (Utility.StringToDate(txtTransactionDate.Text.Trim()) > Utility.StringToDate(txtPostingDate.Text.Trim()))
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDC_11);
+                    return;
+                }
+            }
+            //  This validation for check 
+            // 1.Drawee bank not selected
+            // 2.Instrument No not entered
+            // 3.Insturment No Duplication
+            // 4. Instrument Date Dupliation
+
+            if (ddlInstrmentSequence.SelectedValue == "2" && PageMode == PageModes.Create)
+            {
+                i = 1;
+
+                //DataRow[] dr = ((DataRow)GRVPDCDetailsEntry.Rows[2][2].Text);
+                foreach (GridViewRow grvData in GRVPDCDetailsEntry.Rows)
+                {
+                    DropDownList ddlDraweeBankG = (DropDownList)grvData.FindControl("ddlDraweeBankG");
+                    TextBox txtInstrumentNo = (TextBox)grvData.FindControl("txtInstrumentNo");
+                    if (txtInstrumentNo.Text == string.Empty)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDC_12);
+                        txtInstrumentNo.Focus();
+                        return;
+                    }
+                    else if (ddlDraweeBankG.SelectedValue == "0")
+                    {
+                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.S3g_ValMsg_DraweeBank);
+                        ddlDraweeBankG.Focus();
+                        return;
+                    }
+                    for (int j = i; j < GRVPDCDetailsEntry.Rows.Count; j++)
+                    {
+                        TextBox txtInstrumentNo1 = (TextBox)GRVPDCDetailsEntry.Rows[j].FindControl("txtInstrumentNo");
+
+                        DropDownList ddlDraweeBankG1 = (DropDownList)GRVPDCDetailsEntry.Rows[j].FindControl("ddlDraweeBankG");
+                        if (txtInstrumentNo1.Text == string.Empty)
+                        {
+                            Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDC_12);
+                            txtInstrumentNo1.Focus();
+                            return;
+                        }
+                        else if (ddlDraweeBankG1.SelectedValue == "0")
+                        {
+                            Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.S3g_ValMsg_DraweeBank);
+                            ddlDraweeBankG1.Focus();
+                            return;
+                        }
+                        if (Convert.ToInt64(txtInstrumentNo.Text.Trim()) == Convert.ToInt64(txtInstrumentNo1.Text.Trim()))
+                        {
+                            if (ddlDraweeBankG1.SelectedItem.Text.Trim().Equals(ddlDraweeBankG.SelectedItem.Text.Trim()))
+                            {
+
+                                Utility.FunShowAlertMsg(this.Page, "Instrument number " + txtInstrumentNo.Text + " can not be duplicated");
+                                txtInstrumentNo.Focus();
+                                return;
+                            }
+                        }
+                    }
+                    i++;
+                }
+            }
+            else
+            {
+                i = 1;
+                foreach (GridViewRow grvData in GRVPDCDetails.Rows)
+                {
+                    TextBox txtInstrumentNo = (TextBox)grvData.FindControl("txtInstrumentNo");
+                    TextBox txtInstrumentDate = (TextBox)grvData.FindControl("txtInstrumentDate");
+                    TextBox txtAmount = (TextBox)grvData.FindControl("txtAmount");
+                    DropDownList ddlPDCStatus = (DropDownList)grvData.FindControl("ddlPDCStatus");
+                    DropDownList ddlDraweeBankG = (DropDownList)grvData.FindControl("ddlDraweeBankG");
+                    Label lblStatus = (Label)grvData.FindControl("lblStatus");
+                    if (txtInstrumentNo.Text == string.Empty)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDC_12);
+                        txtInstrumentNo.Focus();
+                        return;
+                    }
+                    else if (txtAmount.Text == string.Empty)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Enter the amount");
+                        txtAmount.Focus();
+                        return;
+                    }
+                    else if (ddlDraweeBankG.SelectedValue == "0")
+                    {
+                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.S3g_ValMsg_DraweeBank);
+                        ddlDraweeBankG.Focus();
+                        return;
+                    }
+                    if (strMode == "M")
+                    {
+                        if (ddlPDCStatus.SelectedValue == "0" && lblStatus.Text != "2")
+                        {
+                            Utility.FunShowAlertMsg(this.Page, "Select the PDC Status");
+                            ddlPDCStatus.Focus();
+                            return;
+                        }
+                    }
+                    for (int j = i; j < GRVPDCDetails.Rows.Count; j++)
+                    {
+                        TextBox txtInstrumentNo1 = (TextBox)GRVPDCDetails.Rows[j].FindControl("txtInstrumentNo");
+                        TextBox txtInstrumentDate1 = (TextBox)GRVPDCDetails.Rows[j].FindControl("txtInstrumentDate");
+                        DropDownList ddlDraweeBankG1 = (DropDownList)GRVPDCDetails.Rows[j].FindControl("ddlDraweeBankG");
+
+                        if (txtInstrumentNo.Text.Trim() == txtInstrumentNo1.Text.Trim())
+                        {
+                            if (ddlDraweeBankG1.SelectedItem.Text.Trim().Equals(ddlDraweeBankG.SelectedItem.Text.Trim()))
+                            {
+                                Utility.FunShowAlertMsg(this.Page, "Instrument number " + txtInstrumentNo.Text + " can not be duplicated");
+                                txtInstrumentNo.Focus();
+                                return;
+                            }
+                        }
+
+                        if (ddlTranche.SelectedValue == "0")
+                        {
+                            if (Utility.CompareDates(txtInstrumentDate.Text, txtInstrumentDate1.Text) == 0)
+                            {
+                                Utility.FunShowAlertMsg(this.Page, "Instrument date " + txtInstrumentDate.Text + " can not be duplicated");
+                                txtInstrumentDate.Focus();
+                                return;
+                            }
+                        }
+                    }
+                    i++;
+                }
+            }
+            //Added by Sathiyanathan on 23-Sep-2013 for ISFC CR_001
+            if (Convert.ToInt32(ddlPdcNature.SelectedValue) > 1)
+            {
+                i = 1;
+                foreach (GridViewRow grvData in gvPreEMIPDCDtls.Rows)
+                {
+                    TextBox txtInstrumentNo = (TextBox)grvData.FindControl("txtPreInstrumentNo");
+                    TextBox txtInstrumentDate = (TextBox)grvData.FindControl("txtPreInstrumentDate");
+                    TextBox txtAmount = (TextBox)grvData.FindControl("txtPreAmount");
+                    DropDownList ddlPDCStatus = (DropDownList)grvData.FindControl("ddlPrePDCStatus");
+                    DropDownList ddlDraweeBankG = (DropDownList)grvData.FindControl("ddlPreDraweeBankG");
+                    Label lblStatus = (Label)grvData.FindControl("lblpreStatus");
+                    Label lblTotal = (Label)grvData.FindControl("lblTotal");
+                    Label lblPreInstallmentDate = (Label)grvData.FindControl("lblPreInstallmentDate");
+                    if (txtInstrumentNo.Text == string.Empty)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDC_12);
+                        txtInstrumentNo.Focus();
+                        return;
+                    }
+                    else if (txtAmount.Text == string.Empty)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Enter the amount");
+                        txtAmount.Focus();
+                        return;
+                    }
+                    else if (Convert.ToDecimal(txtAmount.Text) == 0)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "PDC Amount should not be zero");
+                        txtAmount.Focus();
+                        return;
+                    }
+                    else if (ddlDraweeBankG.SelectedValue == "0" && Convert.ToInt32(ddlInstrmentSequence.SelectedValue) == 2)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.S3g_ValMsg_DraweeBank);
+                        ddlDraweeBankG.Focus();
+                        return;
+                    }
+                    else if (Convert.ToString(txtInstrumentDate.Text) == "")
+                    {
+                        Utility.FunShowAlertMsg(this.Page, " Enter Instrument Date");
+                        txtInstrumentDate.Focus();
+                        return;
+                    }
+                    else
+                    {
+                        lblTotal.Text = txtAmount.Text;
+                        lblPreInstallmentDate.Text = txtInstrumentDate.Text;
+                    }
+                    if (strMode == "M")
+                    {
+                        if (ddlPDCStatus.SelectedValue == "0" && lblStatus.Text != "2")
+                        {
+                            Utility.FunShowAlertMsg(this.Page, "Select the PDC Status");
+                            ddlPDCStatus.Focus();
+                            return;
+                        }
+                    }
+                    for (int j = i; j < gvPreEMIPDCDtls.Rows.Count; j++)
+                    {
+                        TextBox txtInstrumentNo1 = (TextBox)gvPreEMIPDCDtls.Rows[j].FindControl("txtPreInstrumentNo");
+                        TextBox txtInstrumentDate1 = (TextBox)gvPreEMIPDCDtls.Rows[j].FindControl("txtPreInstrumentDate");
+                        DropDownList ddlDraweeBankG1 = (DropDownList)gvPreEMIPDCDtls.Rows[j].FindControl("ddlPreDraweeBankG");
+
+                        if (Convert.ToString(txtInstrumentDate1.Text) == "")
+                        {
+                            Utility.FunShowAlertMsg(this.Page, " Enter Instrument Date");
+                            txtInstrumentDate1.Focus();
+                            return;
+                        }
+
+                        if (txtInstrumentNo.Text.Trim() == txtInstrumentNo1.Text.Trim())
+                        {
+                            if (ddlDraweeBankG1.SelectedItem.Text.Trim().Equals(ddlDraweeBankG.SelectedItem.Text.Trim()))
+                            {
+                                Utility.FunShowAlertMsg(this.Page, "Instrument number " + txtInstrumentNo.Text + " cannot be duplicated");
+                                txtInstrumentNo.Focus();
+                                return;
+                            }
+                        }
+                        if (ddlTranche.SelectedValue == "0")
+                        {
+                            if (Utility.CompareDates(txtInstrumentDate.Text, txtInstrumentDate1.Text) == 0)
+                            {
+                                Utility.FunShowAlertMsg(this.Page, "Instrument date " + txtInstrumentDate.Text + " cannot be duplicated");
+                                txtInstrumentDate.Focus();
+                                return;
+                            }
+                        }
+                    }
+                    i++;
+                }
+            }
+            //End Here
+
+            ObjS3G_CLN_PDCModuleDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCModuleDetailsDataTable();
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCModuleDetailsRow ObjPDCModuleRow;
+            ObjPDCModuleRow = ObjS3G_CLN_PDCModuleDataTable.NewS3G_CLN_PDCModuleDetailsRow();
+            ObjPDCModuleRow.Company_ID = intCompanyID;
+            ObjPDCModuleRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjPDCModuleRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjPDCModuleRow.Customer_ID = Convert.ToInt32(hidcuscode.Value);
+            ObjPDCModuleRow.PANum = Convert.ToString(ddlPAN.SelectedItem.Text);
+            
+            ObjPDCModuleRow.No_Of_PDC = Convert.ToInt32(txtNoofPDC.Text.Trim());
+            ObjPDCModuleRow.PDC_Collection_Date = Utility.StringToDate(txtTransactionDate.Text.Trim());
+            ObjPDCModuleRow.PDC_Entry_Date = Utility.StringToDate(txtPostingDate.Text.Trim());
+            if (ddlDraweeBank.SelectedIndex != 0)
+                ObjPDCModuleRow.Drawee_Bank_Name = Convert.ToString(ddlDraweeBank.SelectedItem.Text);
+            ObjPDCModuleRow.Instrument_Type = 42;
+            ObjPDCModuleRow.InstrumentSequence = Convert.ToInt32(ddlInstrmentSequence.SelectedValue);
+            ObjPDCModuleRow.Instrument_Type_Code = Convert.ToInt32(ddlInstrmentType.SelectedValue);
+            if (strMode == "M")
+                ObjPDCModuleRow.PDC_Entry_NO = Convert.ToString(txtPDCEntryNo.Text.Trim());
+            else
+                ObjPDCModuleRow.PDC_Entry_NO = "1";
+
+            ObjPDCModuleRow.Created_By = intUserID;
+            FunPriGenerateXMLPDC();
+            if (!String.IsNullOrEmpty(StrXMLGVPDC))
+                ObjPDCModuleRow.SANum = StrXMLGVPDC;
+            ObjPDCModuleRow.XMLPDCEntry = StrXMLPDC;
+
+            //Added by Sathiyanathan on 23-Sep-2013 for ISFC CR_001
+            //Added PDC Nature
+
+            ObjPDCModuleRow.PDC_Nature_Code = 118;
+            ObjPDCModuleRow.PDC_Nature_Type = Convert.ToInt32(ddlPdcNature.SelectedValue);
+
+            //End Here
+            ObjPDCModuleRow.Tranche_Header_Id = Convert.ToInt32(ddlTranche.SelectedValue);
+            ObjPDCModuleRow.PDC_Type = Convert.ToInt32(ddlPDCType.SelectedValue);
+
+            if (!String.IsNullOrEmpty(txtPayeeName.Text))
+                ObjPDCModuleRow.Payee_Name = txtPayeeName.Text;
+
+            ObjS3G_CLN_PDCModuleDataTable.AddS3G_CLN_PDCModuleDetailsRow(ObjPDCModuleRow);
+            ObjPDCEntryClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            intErrCode = ObjPDCEntryClient.FunPubCreatePDCModuleDetails(out strPDCNo, out strchequeNo, out strexistingdate, SerMode, ClsPubSerialize.Serialize(ObjS3G_CLN_PDCModuleDataTable, SerMode));
+
+            if (intErrCode == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                if (strPDCID != String.Empty)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "PDC Entry  " + ValidationMsgs.S3G_ValMsg_Update);
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strRedirectPageView, true);
+                    return;
+                }
+                else
+                {
+                    strAlert = "PDC Entry Number is " + strPDCNo;
+                    strAlert += @"\n\n PDC Entry done successfully";
+                    strAlert += @"\n\nWould you like to add one more PDC Entry?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPage = "";
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                    lblErrorMessage.Text = string.Empty;
+                    return;
+                }
+            }
+            else if (intErrCode == 2)
+            {
+                Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs._1);
+                return;
+            }
+            else if (intErrCode == 3)
+            {
+                //  strchequeNo   This message has been handled in Stored procedure (S3G_CLN_InsertPDCEntry)
+                Utility.FunShowAlertMsg(this.Page, strchequeNo);
+                return;
+            }
+            else if (intErrCode == 4)
+            {
+                strAlert = " PDC Entry Details Updated successfully ";
+                //strAlert += @"\n\n The Instrument(s) Number " + strchequeNo + " can not be Modified";
+                strAlert = "alert('" + strAlert + "');";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                return;
+            }
+            else if (intErrCode == 5)
+            {
+                strAlert = " PDC Entry Details Updated successfully ";
+                //strAlert += @"\n\n The Instrument Date " + strexistingdate + " can not be Modified";
+                strAlert = "alert('" + strAlert + "');";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (ObjPDCEntryClient != null)
+                ObjPDCEntryClient.Close();
+        }
+    }
+    protected void FunPriClearPage()
+    {
+        try
+        {
+
+            ddlBranch.Clear();
+            if (ddlPAN.Items.Count > 0)
+                ddlPAN.Items.Clear();
+            FunPriClearcontrols();
+            txtTransactionDate.Text = string.Empty;
+            UpButtons.Update();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriClearcontrols()
+    {
+        try
+        {
+            if (ddlInstrmentType.Items.Count > 0)
+                ddlInstrmentType.SelectedIndex = 0;
+            if (ddlInstrmentSequence.Items.Count > 0)
+                ddlInstrmentSequence.SelectedIndex = 0;
+            if (ddlDraweeBank.Items.Count > 0)
+                ddlDraweeBank.SelectedIndex = 0;
+            if (ddlPdcNature.Items.Count > 0)
+                ddlPdcNature.SelectedValue = "0";
+            //CustomerDetails1.ClearCustomerDetails();
+            btnSave.Enabled = false;
+            lblErrorMessage.Text = "";
+            //FunPribindBankSequenceType();             
+            txtInstrumentStartNo.Enabled = lblInstrumentStartNo.Enabled = lblDraweeBank.Enabled = ddlDraweeBank.Enabled = ddlInstrmentType.Enabled = lblInstrumentType.Enabled = true;
+            txtPayeeName.Text = txtInstrumentStartNo.Text = txtNoofPDC.Text = txtFromInstallmentNo.Text = hdnFromInstallmentNo.Value = string.Empty;
+            GrvExisting.DataSource = null;
+            GrvExisting.DataBind();
+            tbExistingPDC.Enabled = true;
+            GRVPDCDetails.DataSource = null;
+            GRVPDCDetails.DataBind();
+            GRVPDCDetailsEntry.DataSource = null;
+            pnlGRDSeqNo.Visible = pnlGRDSeqYes.Visible = pnlPreEMIPDC.Visible = false;
+            GRVPDCDetailsEntry.DataBind();
+            gvPreEMIPDCDtls.DataSource = null; gvPreEMIPDCDtls.DataBind();
+            UpPDCEntrydetails.Update();
+            UpExisting.Update();
+            UpPDCDetails.Update();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriGridviewPDCdatabound(GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblSANUM = (Label)e.Row.FindControl("lblSANUM");
+                Label lblInstallmentDate = (Label)e.Row.FindControl("lblInstallmentDate");
+                TextBox txtothercharges = (TextBox)e.Row.FindControl("txtothercharges");
+                TextBox txtInstrumentDate = (TextBox)e.Row.FindControl("txtInstrumentDate");
+                TextBox txtInstrumentNo = (TextBox)e.Row.FindControl("txtInstrumentNo");
+                TextBox txtAmount = (TextBox)e.Row.FindControl("txtAmount");
+                DropDownList ddlPDCStatus = (DropDownList)e.Row.FindControl("ddlPDCStatus");
+                Label lblStatus = (Label)e.Row.FindControl("lblStatus");
+                DropDownList ddlDraweeBankG = (DropDownList)e.Row.FindControl("ddlDraweeBankG");
+                Label lblDraweeBankG = (Label)e.Row.FindControl("lblDraweeBankG");
+                TextBox txttotal = (TextBox)e.Row.FindControl("txttotal");
+
+                TextBox txtInsurance = (TextBox)e.Row.FindControl("txtInsurance");
+                TextBox txtTax = (TextBox)e.Row.FindControl("txtTax");
+                TextBox txtAMF = (TextBox)e.Row.FindControl("txtAMF");
+
+                txttotal.Text = Convert.ToString(Convert.ToDecimal(txtAmount.Text) + Convert.ToDecimal(txtInsurance.Text) + Convert.ToDecimal(txtothercharges.Text) + Convert.ToDecimal(txtTax.Text) + Convert.ToDecimal(txtAMF.Text));
+
+                txtAmount.Text = Convert.ToDecimal(txtAmount.Text.ToString()).ToString(Utility.SetSuffix());
+                //txtAmount.Attributes.Add("onblur", "funChkDecimial(this,'" + intGPSPrefix.ToString() + "','" + intGPSSuffix.ToString() + "','" + "PDC Amount" + "',true)");                
+                txtAmount.Style.Add("text-align", "right");
+                txtAmount.ToolTip = txtAmount.Text;
+
+                txttotal.Text = Convert.ToDecimal(txttotal.Text.ToString()).ToString(Utility.SetSuffix());
+                //txttotal.Attributes.Add("onblur", "funChkDecimial(this,'" + intGPSPrefix.ToString() + "','" + intGPSSuffix.ToString() + "','" + "Total Amount" + "',true)");
+                txttotal.Style.Add("text-align", "right");
+                txttotal.ToolTip = txttotal.Text;
+
+
+                txtothercharges.Text = Convert.ToDecimal(txtothercharges.Text.ToString()).ToString(Utility.SetSuffix());
+                //txtothercharges.Attributes.Add("onblur", "Calculate(" + txtAmount.ClientID + "," + txtothercharges.ClientID + "," + txttotal.ClientID + ");funChkDecimial(this,'" + intGPSPrefix.ToString() + "','" + intGPSSuffix.ToString() + "','" + "Other charges" + "',false)");
+                //txtothercharges.Attributes.Add("onblur", "Calculate(" + txtAmount.ClientID + "," + txtothercharges.ClientID + "," + txttotal.ClientID + "," + intGPSSuffix.ToString() + ")");
+                txtothercharges.Attributes.Add("onblur", "Calculate(" + txtAmount.ClientID + "," + txtInsurance.ClientID + "," + txtTax.ClientID + "," + txtAMF.ClientID + "," + txtothercharges.ClientID + "," + txttotal.ClientID + "," + intGPSSuffix.ToString() + ")");
+                txtothercharges.Style.Add("text-align", "right");
+                txtothercharges.ToolTip = txtothercharges.Text;
+
+                txtInsurance.Text = Convert.ToDecimal(txtInsurance.Text.ToString()).ToString(Utility.SetSuffix());
+                txtInsurance.Style.Add("text-align", "right");
+                txtInsurance.ToolTip = txtInsurance.Text;
+
+                txtTax.Text = Convert.ToDecimal(txtTax.Text.ToString()).ToString(Utility.SetSuffix());
+                txtTax.Style.Add("text-align", "right");
+                txtTax.ToolTip = txtTax.Text;
+
+                txtAMF.Text = Convert.ToDecimal(txtAMF.Text.ToString()).ToString(Utility.SetSuffix());
+                txtAMF.Style.Add("text-align", "right");
+                txtAMF.ToolTip = txtAMF.Text;
+
+                if (lblSANUM.Text.Contains("DUMMY") == true)                     // Avoid Dummy number in Sub A/c
+                    lblSANUM.Text = "";
+                else
+                    lblSANUM.Text = lblSANUM.Text;
+
+                if (lblInstallmentDate.Text.Trim() != string.Empty)              // Convert to gloable data format
+                {
+                    DateTime Date = Utility.StringToDate(lblInstallmentDate.Text);
+                    lblInstallmentDate.Text = Date.ToString(strDateFormat);
+                }
+                if (txtInstrumentDate.Text.Trim() != string.Empty)                // Convert to gloable data format
+                {
+                    DateTime Date = Utility.StringToDate(txtInstrumentDate.Text);
+                    txtInstrumentDate.Text = Date.ToString(strDateFormat);
+                }
+
+                // Load the PDC Status                            
+                ddlPDCStatus.BindDataTable(ViewState["Status"] as DataTable);      // Load Status value
+                // Load the Drawee Bank Name    
+                if (strMode != "Q")
+                {
+                    dt = ViewState["BankNames"] as DataTable;
+                    if (dt != null && dt.Columns.Count == 3)
+                        dt.Columns.RemoveAt(2);
+                    ddlDraweeBankG.BindDataTable(dt, new string[] { "BankName", "BankName" });  // Load Bank Names
+
+                    dt.Dispose();
+                }
+
+
+                if (strMode == "Q")           //Query Mode 
+                {
+                    ddlPDCStatus.SelectedValue = Convert.ToString(lblStatus.Text);
+
+                    ddlPDCStatus.ClearDropDownList();
+                    ddlDraweeBankG.Items.Insert(0, lblDraweeBankG.Text.Trim());
+                    //ddlDraweeBankG.Items[0].Text = lblDraweeBankG.Text.Trim();
+                    //ddlDraweeBankG.Items[0].Value = lblDraweeBankG.Text.Trim();
+                    //ddlDraweeBankG.SelectedItem.Text = lblDraweeBankG.Text.Trim();
+                    ddlDraweeBankG.ClearDropDownList();
+                    ddlDraweeBankG.SelectedValue = lblDraweeBankG.Text.Trim();
+                    txtAmount.ReadOnly = txtInstrumentDate.ReadOnly = txtInstrumentNo.ReadOnly = txtothercharges.ReadOnly = true;
+                }
+                else if (strMode == "M")     // Modify Mode
+                {
+                    //Changed By Thangam M to fix UAT - PDCE_012
+                    if (lblStatus.Text != "2")
+                    {
+                        ddlPDCStatus.Items.Remove(ddlPDCStatus.Items.FindByValue("2"));  // To remove Process from the list
+                    }
+                    //End here
+
+                    ddlPDCStatus.SelectedValue = Convert.ToString(lblStatus.Text);
+                    ListItem Li = new ListItem(lblDraweeBankG.Text.Trim(), lblDraweeBankG.Text.Trim());
+
+                    if (ddlDraweeBankG.Items.Contains(Li))
+                        ddlDraweeBankG.SelectedValue = Convert.ToString(ddlDraweeBankG.Items.FindByText(lblDraweeBankG.Text.Trim()).Value);
+                    else
+                    {
+                        ddlDraweeBankG.Items.Insert(ddlDraweeBankG.Items.Count, Li);
+                        ddlDraweeBankG.SelectedValue = Convert.ToString(ddlDraweeBankG.Items.FindByText(lblDraweeBankG.Text.Trim()).Value);
+                    }
+
+                    if (lblStatus.Text != "1")  // when Status is not "Open"
+                    {
+                        txtAmount.ReadOnly = txtInstrumentDate.ReadOnly = txtInstrumentNo.ReadOnly = txtothercharges.ReadOnly = true;
+                        //AjaxControlToolkit.CalendarExtender CEINSDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("CECInstrumentDate2");
+                        //if (CEINSDate != null)
+                        //    CEINSDate.Enabled = false;
+                        if (lblStatus.Text != "3" && lblStatus.Text != "6") //Changed by Thangam M on 14/may/2012 to fix UAT - PDCE_013 to modify Lost PDC
+                            ddlPDCStatus.ClearDropDownList();
+                        ddlDraweeBankG.ClearDropDownList();
+                    }
+                    else if (lblStatus.Text == "1")   //When Status is "Open"    
+                    {
+                        //txtothercharges.ReadOnly = 
+                        //txtAmount.ReadOnly = 
+                        txtInstrumentDate.ReadOnly = txtInstrumentNo.ReadOnly = txtAmount.ReadOnly = false;
+                    }
+
+                    if (ddlInstrmentSequence.SelectedValue == "1")
+                    {
+                        txtInstrumentNo.ReadOnly = true;
+                        ddlDraweeBankG.ClearDropDownList();
+                    }
+                }
+                else                       // Create Mode
+                {
+                    ddlPDCStatus.SelectedValue = "1";
+                    lblStatus.Text = "1";
+                    ddlPDCStatus.ClearDropDownList();
+                    //ddlDraweeBankG.Items[ddlDraweeBank.Items.IndexOf(ddlDraweeBank.SelectedItem)].Selected = true;
+                    ddlDraweeBankG.SelectedValue = ddlDraweeBank.SelectedItem.Text;
+                    lblDraweeBankG.Text = ddlDraweeBankG.SelectedItem.Text;
+                    ddlDraweeBankG.ClearDropDownList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriGridviewExistingdatabound(GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblInstallmentDate = (Label)e.Row.FindControl("lblInstallmentDate");
+                Label lblStatus = (Label)e.Row.FindControl("lblStatus");
+                Label lblAmount = (Label)e.Row.FindControl("lblAmount");
+
+                if (lblInstallmentDate.Text.Trim() != string.Empty)
+                {
+                    DateTime Date = Utility.StringToDate(lblInstallmentDate.Text.Trim());
+                    lblInstallmentDate.Text = Date.ToString(strDateFormat);
+                }
+                if (lblStatus.Text == "1") { lblStatus.Text = "Open"; }
+                else if (lblStatus.Text == "2") { lblStatus.Text = "Processed"; }
+                else if (lblStatus.Text == "3") { lblStatus.Text = "Hold"; }
+                else if (lblStatus.Text == "4") { lblStatus.Text = "Sent Back to Customer"; }
+                else if (lblStatus.Text == "5") { lblStatus.Text = "Replaced By Cash"; }
+                else if (lblStatus.Text == "6") { lblStatus.Text = "Lost"; }
+
+                lblAmount.Text = Convert.ToDecimal(lblAmount.Text.ToString()).ToString(Utility.SetSuffix());
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriGridviewPDCDetailsdatabound(GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblSANUM = (Label)e.Row.FindControl("lblSANUM");
+                Label lblStatus = (Label)e.Row.FindControl("lblStatus");
+                Label lblInstrumentDate = (Label)e.Row.FindControl("lblInstrumentDate");
+                Label lblInstallmentDate = (Label)e.Row.FindControl("lblInstallmentDate");
+                Label lblDraweeBankG = (Label)e.Row.FindControl("lblDraweeBankG");
+                DropDownList ddlPDCStatus = (DropDownList)e.Row.FindControl("ddlPDCStatus");
+                DropDownList ddlDraweeBankG = (DropDownList)e.Row.FindControl("ddlDraweeBankG");
+                TextBox txtInstrumentNo = (TextBox)e.Row.FindControl("txtInstrumentNo");
+                TextBox txttotal = (TextBox)e.Row.FindControl("txttotal");
+                TextBox txtothercharges = (TextBox)e.Row.FindControl("txtothercharges");
+                TextBox txtAmount = (TextBox)e.Row.FindControl("txtAmount");
+
+                TextBox txtInsurance = (TextBox)e.Row.FindControl("txtInsurance");
+                TextBox txtTax = (TextBox)e.Row.FindControl("txtTax");
+                TextBox txtAMF = (TextBox)e.Row.FindControl("txtAMF");
+
+                txttotal.Text = Convert.ToString(Convert.ToDecimal(txtAmount.Text) + Convert.ToDecimal(txtTax.Text) + Convert.ToDecimal(txtInsurance.Text) + Convert.ToDecimal(txtAMF.Text) + Convert.ToDecimal(txtothercharges.Text));
+
+                txtAmount.Text = Convert.ToDecimal(txtAmount.Text.ToString()).ToString(Utility.SetSuffix());
+                //txtAmount.Attributes.Add("onblur", "funChkDecimial(this,'" + intGPSPrefix.ToString() + "','" + intGPSSuffix.ToString() + "','" + "PDC Amount" + "',true)");
+                txtAmount.Style.Add("text-align", "right");
+                txtAmount.ToolTip = txtAmount.Text;
+
+                txttotal.Text = Convert.ToDecimal(txttotal.Text.ToString()).ToString(Utility.SetSuffix());
+                //txttotal.Attributes.Add("onblur", "funChkDecimial(this,'" + intGPSPrefix.ToString() + "','" + intGPSSuffix.ToString() + "','" + "Total Amount" + "',true)");
+                txttotal.Style.Add("text-align", "right");
+                txttotal.ToolTip = txttotal.Text;
+
+                txtothercharges.Text = Convert.ToDecimal(txtothercharges.Text.ToString()).ToString(Utility.SetSuffix());
+                txtothercharges.Attributes.Add("onblur", "Calculate(" + txtAmount.ClientID + "," + txtInsurance.ClientID + "," + txtTax.ClientID + "," + txtAMF.ClientID + "," + txtothercharges.ClientID + "," + txttotal.ClientID + "," + intGPSSuffix.ToString() + ")");
+                txtothercharges.Style.Add("text-align", "right");
+                txtothercharges.ToolTip = txtothercharges.Text;
+
+                txtInsurance.Text = Convert.ToDecimal(txtInsurance.Text.ToString()).ToString(Utility.SetSuffix());
+                txtInsurance.Style.Add("text-align", "right");
+                txtInsurance.ToolTip = txtInsurance.Text;
+
+                txtTax.Text = Convert.ToDecimal(txtTax.Text.ToString()).ToString(Utility.SetSuffix());
+                txtTax.Style.Add("text-align", "right");
+                txtTax.ToolTip = txtTax.Text;
+
+                if (lblSANUM.Text.Contains("DUMMY") == true)
+                { lblSANUM.Text = ""; }
+                else { lblSANUM.Text = lblSANUM.Text; }
+                if (lblInstallmentDate.Text.Trim() != string.Empty)
+                {
+                    DateTime Date = Utility.StringToDate(lblInstallmentDate.Text);
+                    lblInstallmentDate.Text = Date.ToString(strDateFormat);
+                }
+                if (lblInstrumentDate.Text.Trim() != string.Empty)
+                {
+                    DateTime Date = Utility.StringToDate(lblInstrumentDate.Text.Trim());
+                    lblInstrumentDate.Text = Date.ToString(strDateFormat);
+                }
+                ddlPDCStatus.BindDataTable(ViewState["Status"] as DataTable);
+                if (ddlPDCStatus.Items.Count > 0)
+                {
+                    ddlPDCStatus.SelectedValue = "1";
+                    lblStatus.Text = "1";
+                    ddlPDCStatus.ClearDropDownList();
+                }
+                txtInstrumentNo.Text = string.Empty;
+                ddlDraweeBankG.BindDataTable(ViewState["BankNames"] as DataTable);
+
+                if (strMode == string.Empty) //Create Mode
+                {
+                    ddlDraweeBankG.SelectedValue = ddlDraweeBank.SelectedValue;
+                    lblDraweeBankG.Text = ddlDraweeBankG.SelectedItem.Text;
+                    ddlDraweeBankG.ClearDropDownList();
+                }
+
+                //txtothercharges.Attributes.Add("readonly", "readonly");
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriGenerateXMLPDC()
+    {
+        try
+        {
+            if (strPDCID == "" && ddlInstrmentSequence.SelectedValue == "2" && Convert.ToInt32(ddlPdcNature.SelectedValue) == 1)
+            {
+                StrXMLGVPDC = GRVPDCDetailsEntry.FunPubFormXml();
+                StrXMLPDC = ((DataTable)ViewState["PDCDetails"]).FunPubFormXml();
+            }
+            else if (strPDCID == "" && Convert.ToInt32(ddlPdcNature.SelectedValue) > 1)
+            {
+                StrXMLGVPDC = gvPreEMIPDCDtls.FunPubFormXml();
+                StrXMLPDC = ((DataTable)ViewState["PDCDetails"]).FunPubFormXml();
+            }
+            else
+            {
+                StrXMLGVPDC = GRVPDCDetails.FunPubFormXml();
+                StrXMLPDC = ((DataTable)ViewState["PDCDetails"]).FunPubFormXml();
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    protected void FunProGetCustomerDetails()
+    {
+        try
+        {
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParam.Add("@PANum", Convert.ToString(ddlPAN.SelectedValue));
+            DataTable dtCustomer = Utility.GetDefaultData("S3G_LOANAD_GetCustomerDetailsByPAN", dictParam);
+            if (dtCustomer.Rows.Count >= 1)
+            {
+                DataRow dtRow = dtCustomer.Rows[0];
+                hidcuscode.Value = CustomerDetails1.CustomerId = dtRow["Customer_ID"].ToString();
+                CustomerDetails1.SetCustomerDetails(dtRow, true);
+            }
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(objException);
+            throw new ApplicationException("Unable to get Customer details");
+        }
+    }
+    private void FunPriGetBankNames()
+    {
+        try
+        {
+            DataSet ds = new DataSet();
+
+            // Drawee Bank Names
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParam.Add("@Flag", "1");
+
+            ds = Utility.GetDataset(SPNames.S3G_CLN_GetDraweeBank, dictParam);
+            ViewState["BankNames"] = ds.Tables[0];
+            ddlDraweeBank.BindDataTable(ds.Tables[0], new string[] { "Bank_ID", "BankName" });
+            ddlDraweeBank.SelectedValue = "0";
+            ddlDraweeBank.AddItemToolTip();
+
+            //ddlDraweeBank.BindDataTable(SPNames.S3G_CLN_GetBankNames, dictParam, new string[] { "SYS_BANK_CODE", "BankNames" });
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    //Added by Sathiyanathan on 20-Sep-2013 for ISFC CR_001
+    //Load PDC Nature LOV Values
+    private void FunPriGetPDCNature()
+    {
+        try
+        {
+            if (dictParam != null)
+                dictParam.Clear();
+            else
+                dictParam = new Dictionary<string, string>();
+
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LookupType_Code", "118");//PDC Nature
+            ddlPdcNature.BindDataTable(SPNames.S3G_LOANAD_GetLookUpValues, dictParam, new string[] { "Lookup_Code", "Lookup_Description" });
+
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    #endregion
+
+    protected void txtInstrumentStartNo_TextChanged(object sender, EventArgs e)
+    {
+        //Changed By Thangam on 14/May/2012 to fix UAT - PDCE_008
+        if (txtInstrumentStartNo.Text.Length != 0)
+        {
+            return;
+        }
+        //End here
+        if (ddlDraweeBank.SelectedIndex > 0 && !string.IsNullOrEmpty(txtInstrumentStartNo.Text))
+            FunPriGeneratePDCDetails();
+    }
+
+    //Added by Sathiyanathan S on 23-Sep-2013 for ISFC CR_001
+    //Create Datatable for PRE EMI & Security PDC
+    private void FunPriGeneratePreEmiPDC(DataTable dtable)
+    {
+        try
+        {
+            Int32 _iInstrumentNo = 0;
+            string _strPANUM = string.Empty, _strSANUM = string.Empty;
+            if (dtable != null && dtable.Rows.Count > 0)//Get PANUM and SANUM
+            {
+                _strPANUM = Convert.ToString(dtable.Rows[0]["PA_SA_REF_ID"]);
+            }
+            if (ddlInstrmentSequence.SelectedValue == "1")
+            {
+                _iInstrumentNo = Convert.ToInt32(txtInstrumentStartNo.Text);
+            }
+
+            if (Convert.ToInt32(ddlPdcNature.SelectedValue) > 1)
+            {
+                DataTable dtablePreEmiPdc = new DataTable();
+                dtablePreEmiPdc.Columns.Add("PA_SA_REF_ID");
+                dtablePreEmiPdc.Columns.Add("InstrumentNo");
+                dtablePreEmiPdc.Columns.Add("InstrumentDate");
+                dtablePreEmiPdc.Columns.Add("DraweeBank");
+                dtablePreEmiPdc.Columns.Add("Amount");
+                dtablePreEmiPdc.Columns.Add("Status");
+                dtablePreEmiPdc.Columns.Add("InstallmentNo");
+                dtablePreEmiPdc.Columns.Add("InstallmentDate");
+                dtablePreEmiPdc.Columns.Add("OtherChrgs");
+                dtablePreEmiPdc.Columns.Add("Insurance");
+                dtablePreEmiPdc.Columns.Add("TAX");
+                dtablePreEmiPdc.Columns.Add("Posting_Date");
+                //dtablePreEmiPdc.Columns.Add("");
+                Int32 _iPDCNo = 0;
+                if (ddlTranche.SelectedValue == "0")
+                    _iPDCNo = (Convert.ToString(txtNoofPDC.Text) != "") ? Convert.ToInt32(txtNoofPDC.Text) : 0;
+                else
+                    _iPDCNo = dtable.Rows.Count;
+
+                for (Int32 i = 0; i < _iPDCNo; i++)
+                {
+
+                    DataRow drPreEmiNewRow = dtablePreEmiPdc.NewRow();
+                    drPreEmiNewRow["PA_SA_REF_ID"] = Convert.ToString(dtable.Rows[i]["PA_SA_REF_ID"]);
+                    drPreEmiNewRow["InstrumentNo"] = (Convert.ToInt32(ddlInstrmentSequence.SelectedValue) == 1) ? (_iInstrumentNo + i).ToString() : "";
+                    drPreEmiNewRow["InstrumentDate"] = "";
+                    //drPreEmiNewRow["DraweeBank"] = (Convert.ToInt32(ddlInstrmentSequence.SelectedValue) == 1) ? ddlDraweeBank.SelectedValue.ToString() : "0";
+                    drPreEmiNewRow["DraweeBank"] = ddlDraweeBank.SelectedValue.ToString();
+                    drPreEmiNewRow["Amount"] = "0";
+                    drPreEmiNewRow["Status"] = "";
+                    drPreEmiNewRow["InstallmentNo"] = "0";
+                    drPreEmiNewRow["InstallmentDate"] = "01/01/0001 12:00:00";
+                    drPreEmiNewRow["OtherChrgs"] = "0.00";
+                    drPreEmiNewRow["Insurance"] = "0.00";
+                    drPreEmiNewRow["TAX"] = "0.00";
+
+                    dtablePreEmiPdc.Rows.Add(drPreEmiNewRow);
+                }
+
+                gvPreEMIPDCDtls.DataSource = dtablePreEmiPdc;
+                gvPreEMIPDCDtls.DataBind();
+                gvPreEMIPDCDtls.Visible = true;
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+    //End Here
+
+    protected void gvPreEMIPDCDtls_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            FunPriGridviewPreEmiPDCDetailsdatabound(e);
+        }
+        catch (Exception objException)
+        {
+        }
+    }
+
+    private void FunPriGridviewPreEmiPDCDetailsdatabound(GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblPANUM = (Label)e.Row.FindControl("lblPANUM");
+                Label lblSANUM = (Label)e.Row.FindControl("lblSANUM");
+                Label lblPreStatus = (Label)e.Row.FindControl("lblPreStatus");
+                Label lblPreDraweeBankG = (Label)e.Row.FindControl("lblPreDraweeBankG");
+                Label lblPreInstallmentNo = (Label)e.Row.FindControl("lblPreInstallmentNo");
+                Label lblPreInstallmentDate = (Label)e.Row.FindControl("lblPreInstallmentDate");
+                Label lblPreOtherChrgs = (Label)e.Row.FindControl("lblPreOtherChrgs");
+                Label lblPreInsurance = (Label)e.Row.FindControl("lblPreInsurance");
+                Label lblPreTax = (Label)e.Row.FindControl("lblPreTax");
+                TextBox txtPreInstrumentNo = (TextBox)e.Row.FindControl("txtPreInstrumentNo");
+                TextBox txtPreInstrumentDate = (TextBox)e.Row.FindControl("txtPreInstrumentDate");
+                DropDownList ddlPreDraweeBankG = (DropDownList)e.Row.FindControl("ddlPreDraweeBankG");
+                TextBox txtPreAmount = (TextBox)e.Row.FindControl("txtPreAmount");
+                DropDownList ddlPrePDCStatus = (DropDownList)e.Row.FindControl("ddlPrePDCStatus");
+                AjaxControlToolkit.CalendarExtender CECPreInstrumentDate1 = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("CECPreInstrumentDate1");
+                //TextBox txtPreTotal = (TextBox)e.Row.FindControl("txtPreTotal");
+
+                //txtPreTotal.Text = "0";
+                txtPreInstrumentDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtPreInstrumentDate.ClientID + "','" + strDateFormat + "',false,  true);");
+                CECPreInstrumentDate1.Format = ObjS3GSession.ProDateFormatRW;
+
+                txtPreAmount.Text = Convert.ToDecimal(txtPreAmount.Text.ToString()).ToString(Utility.SetSuffix());
+                txtPreAmount.Attributes.Add("onblur", "funChkDecimial(this,'" + intGPSPrefix.ToString() + "','" + intGPSSuffix.ToString() + "','" + "PDC Amount" + "',false)");
+                txtPreAmount.Style.Add("text-align", "right");
+                txtPreAmount.ToolTip = txtPreAmount.Text;
+
+                //txtPreTotal.Text = Convert.ToDecimal(txtPreTotal.Text.ToString()).ToString(Utility.SetSuffix());
+                //txttotal.Attributes.Add("onblur", "funChkDecimial(this,'" + intGPSPrefix.ToString() + "','" + intGPSSuffix.ToString() + "','" + "Total Amount" + "',true)");
+                //txtPreTotal.Style.Add("text-align", "right");
+                //txtPreTotal.ToolTip = txtPreTotal.Text;
+
+                if (lblSANUM.Text.Contains("DUMMY") == true)
+                { lblSANUM.Text = ""; }
+                else { lblSANUM.Text = lblSANUM.Text; }
+
+                ddlPrePDCStatus.BindDataTable(ViewState["Status"] as DataTable);
+                if (ddlPrePDCStatus.Items.Count > 0)
+                {
+                    ddlPrePDCStatus.SelectedValue = "1";
+                    lblPreStatus.Text = "1";
+                    ddlPrePDCStatus.ClearDropDownList();
+                }
+                txtPreInstrumentNo.Enabled = (Convert.ToInt32(ddlInstrmentSequence.SelectedValue) == 1) ? false : true;
+
+                // Load the Drawee Bank Name     
+                dt = ViewState["BankNames"] as DataTable;
+                if (dt != null && dt.Columns.Count == 3)
+                    dt.Columns.RemoveAt(2);
+                ddlPreDraweeBankG.BindDataTable(dt, new string[] { "BankName", "BankName" });  // Load Bank Names
+
+                dt.Dispose();
+
+                //if (ddlInstrmentSequence.SelectedValue == "1")
+                //{
+                ddlPreDraweeBankG.SelectedValue = ddlDraweeBank.SelectedItem.Text;
+                lblPreDraweeBankG.Text = ddlPreDraweeBankG.SelectedItem.Text;
+                ddlPreDraweeBankG.ClearDropDownList();
+                //}
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    protected void ddlPdcNature_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            GRVPDCDetails.DataSource = null;
+            GRVPDCDetails.DataBind();
+            GRVPDCDetailsEntry.DataSource = null;
+            GRVPDCDetailsEntry.DataBind();
+            gvPreEMIPDCDtls.DataSource = null;
+            gvPreEMIPDCDtls.DataBind();
+            pnlGRDSeqYes.Visible = false;
+            pnlGRDSeqNo.Visible = false;
+            pnlPreEMIPDC.Visible = false;
+
+            if (dictParam != null)
+                dictParam.Clear();
+            else
+                dictParam = new Dictionary<string, string>();
+            dictParam.Add("@COMPANY_ID", Convert.ToString(intCompanyID));
+            if (ddlTranche.SelectedValue != "0")
+            {
+                if (ViewState["PANum"] != null)
+                {
+                    dictParam.Add("@PA_SA_REF_ID", ViewState["PANum"].ToString());
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
+            {
+                dictParam.Add("@PA_SA_REF_ID", ddlPAN.SelectedValue);
+            }
+            dictParam.Add("@PDCNature", Convert.ToString(ddlPdcNature.SelectedValue));
+
+            DataTable dtableRepayMode = Utility.GetDefaultData("S3g_CLN_CHECKPANUMREPAYMODE", dictParam);
+            if (Convert.ToInt32(ddlPdcNature.SelectedValue) == 1 && Convert.ToInt32(dtableRepayMode.Rows[0]["RepayMode"]) == 0)
+            {
+                Utility.FunShowAlertMsg(this, "Regular PDC can be created only for Account Repayment mode as PDC");
+                ddlPdcNature.SelectedValue = "0";
+                return;
+            }
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+        }
+    }
+    protected void ddlPreDraweeBankG_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            foreach (GridViewRow grvData in gvPreEMIPDCDtls.Rows)
+            {
+                DropDownList ddlDraweeBankG = (DropDownList)grvData.FindControl("ddlPreDraweeBankG");
+                Label lblDraweeBankG = (Label)grvData.FindControl("lblPreDraweeBankG");
+                lblDraweeBankG.Text = ddlDraweeBankG.SelectedItem.Text.Trim();
+
+                if (ddlDraweeBank.Items.Count > 0)
+                {
+                    if (ddlDraweeBank.SelectedItem.Text.Trim() != ddlDraweeBankG.SelectedItem.Text.Trim())
+                        ddlDraweeBank.SelectedIndex = 0;
+                    RFVDraweeBank.Visible = false;
+                }
+            }
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+        }
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggestions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+
+        Procparam.Add("@Company_ID", obj_Page.intCompanyID.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", obj_Page.intUserID.ToString());
+        Procparam.Add("@Program_Id", "106");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggestions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggestions.ToArray();
+    }
+}

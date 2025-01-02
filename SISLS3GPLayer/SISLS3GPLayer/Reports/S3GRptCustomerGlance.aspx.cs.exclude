@@ -1,0 +1,342 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using S3GBusEntity;
+using S3GBusEntity.Reports;
+using System.Runtime.Serialization;
+using System.ServiceModel;
+using System.Resources;
+using System.Xml.Serialization;
+using ReportAccountsMgtServicesReference;
+
+public partial class Reports_S3GRptCustomerGlance : ApplyThemeForProject
+{
+    ReportAccountsMgtServicesClient objclient = new ReportAccountsMgtServicesClient();
+    UserInfo userinfo = new UserInfo();
+    Dictionary<string, string> Procparam;
+    public int CompanyID, UserID;
+    public string CustomerID;
+    ClsPubDropDownList objdropdownlist = new ClsPubDropDownList();
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+            TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            txtName.Attributes.Add("onfocus", "fnLoadCustomer()");
+            txtName.Attributes.Add("ReadOnly", "ReadOnly");
+            CompanyID = userinfo.ProCompanyIdRW;
+            UserID = userinfo.ProUserIdRW;
+
+            if (!IsPostBack)
+            {
+
+                FunPubLoadLOB();
+                FunPubLoadRegion();
+                FunPubLoadProduct();
+                //FunPubGetCustomerDetails(CustomerID);
+            }
+            //LblDateRange.Visible = false;
+            //LblFrom.Visible = false;
+            //LblTo.Visible = false;
+        }
+
+        catch (Exception ae)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ae);
+            throw ae;
+        }
+    }
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            CompanyID = userinfo.ProCompanyIdRW;
+            UserID = userinfo.ProUserIdRW;
+            string LOBID = (ComboBoxLOBSearch.SelectedValue);
+            string RegionID = (ComboBoxRegion.SelectedValue);
+            string BranchID = (ComboBoxBranch.SelectedValue);
+            string ProductID = (ComboBoxProductCode.SelectedValue);
+            string StartDate = (txtStartDateSearch.Text);
+            string EndDate = (txtEndDateSearch.Text);
+            HiddenField hdnCustomerId = (HiddenField)ucCustomerCodeLov.FindControl("hdnID");
+            FunPubGetCustomerDetails(hdnCustomerId.Value);
+
+            ClsPubCustomerGlanceHeaderDetails header = new ClsPubCustomerGlanceHeaderDetails();
+            header.CompanyId = Convert.ToString(CompanyID);
+            header.UserId = Convert.ToString(UserID);
+            header.CustomerId = hdnCustomerId.Value;
+            header.LOBId = LOBID;
+            header.RegionId = RegionID;
+            header.BranchId = BranchID;
+            header.ProductId = ProductID;
+            header.StartDate = StartDate;
+            header.EndDate = EndDate;
+
+            byte[] customerglancedetails = ClsPubSerialize.Serialize(header, SerializationMode.Binary);
+            byte[] objCustomerGrid = objclient.FunPubGetCustomerAtAGlanceDetails(customerglancedetails);
+            List<ClsPubCustomerGlanceDetails> CUSTOMER = (List<ClsPubCustomerGlanceDetails>)DeSerialize(objCustomerGrid);
+            grvCustomer.DataSource = CUSTOMER;
+            grvCustomer.DataBind();
+            FunPubLoadAccountTransactionDetails();
+            //grvCustomer.EmptyDataText = "No records Found";
+            //lblAccountTransDetails.Enabled = true;
+            //lblFromDate.Text = StartDate.ToShortDateString();
+            //lblToDate.Text = EndDate.ToShortDateString();
+            //LblDateRange.Visible = true;
+            //LblFrom.Visible = true;
+            //LblTo.Visible = true;
+            //byte[] objAccountgrid = objclient.FunPubGetPASA(CompanyID,hdnCustomerId.Value);
+            //List<ClsPubPASA> PASADetails = (List<ClsPubPASA>)DeSerialize(objAccountgrid);
+            //grvprimeaccount.DataSource = PASADetails;
+            //grvprimeaccount.DataBind();
+            //grvprimeaccount.EmptyDataText = "No Records Found";
+        }
+        catch (Exception btn)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(btn);
+            throw btn;
+        }
+    }
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            grvCustomer.DataSource = null;
+            grvCustomer.DataBind();
+            grvprimeaccount.DataSource = null;
+            grvprimeaccount.DataBind();
+            grvtransaction.DataSource = null;
+            grvtransaction.DataBind();
+            txtEndDateSearch.Text = string.Empty;
+            txtStartDateSearch.Text = string.Empty;
+            ComboBoxLOBSearch.SelectedValue = "-1";
+            ComboBoxProductCode.SelectedValue = "-1";
+            ComboBoxRegion.SelectedValue = "-1";
+            ComboBoxBranch.SelectedValue = "-1";
+            txtCustomerCode.Text = string.Empty;
+            ucCustDetails.ClearCustomerDetails();
+        }
+        catch (Exception cl)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(cl);
+            throw cl;
+        }
+    }
+    protected void ComboBoxLOBSearch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
+    }
+
+    public void FunPubLoadLOB()
+    {
+        try
+        {
+            byte[] objbytelob = objclient.FunPubGetLOB(CompanyID, UserID);
+            List<ClsPubDropDownList> LOB = (List<ClsPubDropDownList>)DeSerialize(objbytelob);
+            ComboBoxLOBSearch.DataSource = LOB;
+            ComboBoxLOBSearch.DataTextField = "Description";
+            ComboBoxLOBSearch.DataValueField = "ID";
+            ComboBoxLOBSearch.DataBind();
+        }
+        catch (Exception lob)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(lob);
+            throw lob;
+        }
+    }
+
+    public void FunPubLoadRegion()
+    {
+        try
+        {
+            byte[] objbytereg = objclient.FunPubGetRegionDetails(CompanyID, UserID);
+            List<ClsPubDropDownList> Region = (List<ClsPubDropDownList>)DeSerialize(objbytereg);
+            ComboBoxRegion.DataSource = Region;
+            ComboBoxRegion.DataTextField = "Description";
+            ComboBoxRegion.DataValueField = "ID";
+            ComboBoxRegion.DataBind();
+        }
+        catch (Exception re)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(re);
+            throw re;
+        }
+    }
+    public void FunPubLoadProduct()
+    {
+        try
+        {
+            byte[] objbytepro = objclient.FunPubGetProductDetails(CompanyID, UserID);
+            List<ClsPubDropDownList> Product = (List<ClsPubDropDownList>)DeSerialize(objbytepro);
+            ComboBoxProductCode.DataSource = Product;
+            ComboBoxProductCode.DataTextField = "Description";
+            ComboBoxProductCode.DataValueField = "ID";
+            ComboBoxProductCode.DataBind();
+        }
+        catch (Exception pro)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(pro);
+            throw pro;
+        }
+    }
+    public void FunPubLoadBranch()
+    {
+        try
+        {
+            int RegionID = Convert.ToInt32(ComboBoxRegion.SelectedValue);
+            byte[] objbytepro = objclient.FunPubGetBranchDetails(userinfo.ProCompanyIdRW, userinfo.ProUserIdRW, RegionID, true);
+            List<ClsPubDropDownList> Product = (List<ClsPubDropDownList>)DeSerialize(objbytepro);
+            ComboBoxBranch.DataSource = Product;
+            ComboBoxBranch.DataTextField = "Description";
+            ComboBoxBranch.DataValueField = "ID";
+            ComboBoxBranch.DataBind();
+        }
+        catch (Exception re)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(re);
+            throw re;
+        }
+    }
+    public void FunPubGetCustomerDetails(string CustomerID)
+    {
+        try
+        {
+            DataTable dtCustomer = new DataTable();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Option", "56");
+            Procparam.Add("@Param1", CustomerID.ToString());
+            dtCustomer = Utility.GetDefaultData("S3G_ORG_GetCustomerLookUp", Procparam);
+
+            if (dtCustomer.Rows.Count > 0)
+            {
+                ucCustDetails.SetCustomerDetails(dtCustomer.Rows[0], true);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to display Customer Details");
+        }
+    }
+
+    private object DeSerialize(byte[] byteObj)
+    {
+        return ClsPubSerialize.DeSerialize(byteObj, SerializationMode.Binary, null);
+    }
+
+    protected void ComboBoxRegion_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (IsPostBack)
+        {
+            FunPubLoadBranch();
+        }
+    }
+    protected void grvAccount_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
+    }
+
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField hdnCustomerId = (HiddenField)ucCustomerCodeLov.FindControl("hdnID");
+            if (hdnCustomerId != null && hdnCustomerId.Value != "")
+            {
+                hdnCustID.Value = hdnCustomerId.Value;
+                FunPubGetCustomerDetails(hdnCustID.Value);
+            }
+
+            FunPriLoadPASA(CompanyID, hdnCustomerId.Value);
+            //ddlPNum.Items.Clear();
+            //ddlSNum.Items.Clear();
+            //lblSNum.CssClass = "styleDisplayLabel";
+            //FunPriLoadPrimeAccount();
+            //FunPriLoadProduct(intCompanyId, intCustomerId);
+            //FunPriLoadLob(intCompanyId, intUserId);
+            //FunPriLoadBranch(intCompanyId, intUserId, true);
+            //pnlAssetDetails.Visible = false;
+            //grvAssetDetails.DataSource = null;
+            //grvAssetDetails.DataBind();
+            //pnlRepayDetails.Visible = false;
+            //grvRepayDetails.DataSource = null;
+            //grvRepayDetails.DataBind();
+        }
+        catch (Exception ex)
+        {
+            //CVRepaymentSchedule.ErrorMessage = "Due to Data Problem, Unable to Load Customer Informations.";
+            //CVRepaymentSchedule.IsValid = false;
+        }
+
+    }
+
+    private void FunPriLoadPASA(int CompanyId, string Customer_ID)
+    {
+
+        objclient = new ReportAccountsMgtServicesClient();
+        byte[] bytePASA = objclient.FunPubGetPASA(CompanyId, hdnCustID.Value, null, null);
+        List<ClsPubPASA> PASADetails = (List<ClsPubPASA>)DeSerialize(bytePASA);
+        grvprimeaccount.DataSource = PASADetails;
+        grvprimeaccount.DataBind();
+    }
+    protected void chkSelectAll_CheckedChanged(object sender, EventArgs e)
+    {
+        bool isCheck = false;
+        CheckBox chkAll = (CheckBox)sender;
+
+        if (chkAll.Checked)
+        {
+            isCheck = true;
+        }
+
+        foreach (GridViewRow item in grvprimeaccount.Rows)
+        {
+            ((CheckBox)item.FindControl("chkSelectAccount")).Checked = isCheck;
+        }
+    }
+    public void FunPubLoadAccountTransactionDetails()
+    {
+        decimal OpeningBalance;
+        List<ClsPubPASA> PASAs = new List<ClsPubPASA>();
+        foreach (GridViewRow item in grvprimeaccount.Rows)
+        {
+            if (((CheckBox)item.FindControl("chkSelectAccount")).Checked)
+            {
+                ClsPubPASA pasa = new ClsPubPASA();
+                pasa.PrimeAccountNo = ((Label)item.FindControl("lblMLA")).Text;
+                pasa.SubAccountNo = ((Label)item.FindControl("lblSLA")).Text;
+                PASAs.Add(pasa);
+            }
+        }
+
+        byte[] bytePASAs = ClsPubSerialize.Serialize(PASAs, SerializationMode.Binary);
+
+        objclient = new ReportAccountsMgtServicesClient();
+        byte[] byteLobs = objclient.FunPubGetTransactionDetails(out OpeningBalance, CompanyID, txtStartDateSearch.Text, txtEndDateSearch.Text, bytePASAs);
+        List<ClsPubTransaction> trans = (List<ClsPubTransaction>)DeSerialize(byteLobs);
+        grvtransaction.DataSource = trans;
+        grvtransaction.DataBind();
+        decimal totalDues = trans.Sum(ClsTrans => ClsTrans.Dues);
+        decimal totalReceipts = trans.Sum(ClsTrans => ClsTrans.Receipts);
+        decimal totalBalance = OpeningBalance + totalDues - totalReceipts;
+        ((Label)grvtransaction.FooterRow.FindControl("lblTotalDues")).Text = totalDues.ToString();
+        ((Label)grvtransaction.FooterRow.FindControl("lblTotalReceipts")).Text = totalReceipts.ToString();
+        ((Label)grvtransaction.FooterRow.FindControl("lblTotalbalance")).Text = totalBalance.ToString();
+    }
+
+}

@@ -1,0 +1,231 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnBulkReceiptProcessing_Add.aspx.cs" Inherits="Collection_S3GClnBulkReceiptProcessing_Add" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel21" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" ID="lblHeading" CssClass="styleInfoLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-top: 10px">
+                        <asp:Panel ID="pnlGeneral" runat="server" CssClass="stylePanel" GroupingText="General"
+                            Width="99%">
+                            <table width="100%">
+                                <tr>
+                                    <td class="styleFieldLabel" width="17%">
+                                        <asp:Label ID="lblLOB" runat="server" Text="Line of Business" CssClass="styleReqFieldLabel"></asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" width="20%">
+                                        <asp:DropDownList ID="ddlLOB" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged"
+                                            ToolTip="Line of Business">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="rfvLOB" runat="server" Display="None" InitialValue="0"
+                                            ErrorMessage="Select the Line of Business" ControlToValidate="ddlLOB" SetFocusOnError="True"
+                                            ValidationGroup="GenRcpt"></asp:RequiredFieldValidator>
+                                    </td>
+                                    <td class="styleFieldLabel" width="20%">
+                                        <asp:Label ID="lblPDCDate" runat="server" Text="PDC Date" CssClass="styleReqFieldLabel"></asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" width="53%">
+                                        <asp:TextBox runat="server" ID="txtDate" Width="30%" AutoPostBack="True" ToolTip="PDC Date"
+                                            OnTextChanged="txtDate_TextChanged"></asp:TextBox>
+                                        <asp:Image ID="imgPDCDate" runat="server" ImageUrl="~/Images/calendaer.gif" ToolTip="PDC Date" />
+                                        <asp:RequiredFieldValidator ID="RFVPDCDate" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="txtDate" Display="None" ErrorMessage="Select the PDC Date"
+                                            ValidationGroup="GenRcpt"></asp:RequiredFieldValidator>
+                                        <cc1:CalendarExtender ID="CECPDCdate" runat="server" Enabled="True"
+                                            PopupButtonID="imgPDCDate" TargetControlID="txtDate" Format="dd/MM/yyyy">
+                                        </cc1:CalendarExtender>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" width="17%">
+                                        <asp:Label ID="lblBranch" runat="server" Text="Location" CssClass="styleReqFieldLabel"></asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" width="20%">
+                                        <uc:Suggest ID="ddlBranch" ToolTip="Location" runat="server" AutoPostBack="True" OnItem_Selected="ddlBranch_SelectedIndexChanged"
+                                                        ServiceMethod="GetBranchList" IsMandatory="true" ValidationGroup="GenRcpt" ErrorMessage="Select a Location"  WatermarkText="--Select--" />
+                                        
+                                    </td>
+                                    <td class="styleFieldLabel" width="20%">
+                                        <asp:Label ID="lblInclude" runat="server" Text="Include Past" CssClass="styleDisplayLabel"></asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" width="53%" style="padding-left: 7px">
+                                        <asp:CheckBox ID="CbxInclude" runat="server" AutoPostBack="True" OnCheckedChanged="CbxInclude_CheckedChanged" />
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:Panel ID="pnlCheque" runat="server" CssClass="stylePanel" GroupingText="Cheque Details"
+                            Width="99%">
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td colspan="4 " width="100%">
+                                        <asp:GridView ID="gvPDCReceipts" runat="server" CssClass="styleInfoLabel" AutoGenerateColumns="False"
+                                            Width="100%" OnRowDataBound="gvPDCReceipts_RowDataBound" ToolTip="Cheque Details">
+                                            <Columns>
+                                                <asp:TemplateField Visible="False">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblPDCNO" runat="server" Text='<%# Eval("PDC_ENTRY_NO") %>' />
+                                                        <asp:Label ID="lblPA_SA_REF_ID" runat="server" Text='<%# Eval("PA_SA_REF_ID") %>' />
+                                                    </ItemTemplate>
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Rental Schedule No." HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblPAN" runat="server" Text='<%# Eval("PANum")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="13%" HorizontalAlign="Left" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Customer Name" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblCustID" runat="server" Text='<%# Eval("Customer_ID") %>' Visible="false" />
+                                                        <asp:Label ID="lblCustomer" runat="server" Text='<%# Eval("Customer")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="10%" HorizontalAlign="Left" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Instrument Date" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblInstrumentDate" runat="server" Text='<%# Eval("Instrument_Date")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="8%" HorizontalAlign="Center" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Drawee Bank" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <%-- <asp:HiddenField ID="hidBankID" runat="server" Value='<%# Eval("Drawee_Bank_ID") %>' />--%>
+                                                        <asp:Label ID="lblBank" runat="server" Text='<%# Eval("Drawee_Bank_Name")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="10%" HorizontalAlign="Left" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Instrument No" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblInstrumentNo" runat="server" Text='<%# Eval("Instrument_No")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="8%" HorizontalAlign="Center" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Installment Amount" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblInstrumentAmount" runat="server" Text='<%# Eval("Instrument_Amount")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="10%" HorizontalAlign="Right" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Others Charges" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblothers" runat="server" Text='<%# Eval("Others_Amount")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="10%" HorizontalAlign="Right" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Receipt No" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblReceiptNo" runat="server" Text='<%# Eval("Receipt_No")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="10%" HorizontalAlign="Left" />
+                                                </asp:TemplateField>
+                                                <%--Columns newly added - Kuppu - June 13 - Starts---%>
+                                                <asp:TemplateField HeaderText="Insurance" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblInsurance" runat="server" Text='<%# Eval("Insurance")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="10%" HorizontalAlign="Right" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Tax" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblTax" runat="server" Text='<%# Eval("Tax")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="15%" HorizontalAlign="Right" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="AMF" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblAMF" runat="server" Text='<%# Eval("AMF")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="15%" HorizontalAlign="Right" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Total Amount" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblTotalAmount" runat="server" Text='<%# Eval("Total Amount")%>' />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="10%" HorizontalAlign="Right" />
+                                                </asp:TemplateField>
+                                                <%--Columns newly added - Kuppu - June 13 - Ends---%>
+                                                <asp:TemplateField HeaderText="Exclude" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:CheckBox ID="CbxExculde" runat="server" /></ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle Width="5%" HorizontalAlign="Center" />
+                                                </asp:TemplateField>
+                                            </Columns>
+                                        </asp:GridView>
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr style="height: 10px">
+                    <td>
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+    <table width="100%" align="center" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="center">
+                <asp:Button runat="server" ID="btnGetLines" CssClass="styleSubmitButton" Text="Get Cheques"
+                    OnClick="btnGetLines_Click" ValidationGroup="GenRcpt" />
+                <asp:Button runat="server" ID="btnGetRec" CssClass="styleSubmitButton" Text="Generate  Receipts"
+                    ValidationGroup="GenRcpt" OnClick="btnGetRec_Click" OnClientClick="return fnCheckPageValidators('GenRcpt');"
+                    Enabled="false" />
+                <asp:Button runat="server" ID="btnXLPorting" Text="Export" CssClass="styleSubmitLongButton" 
+                    OnClick="btnXLPorting_Click" ToolTip="Export Cheque Details" />
+                <asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton"
+                    Text="Clear" OnClientClick="return fnConfirmClear();" OnClick="btnClear_Click"
+                    ToolTip="Clear" />
+                &nbsp;
+                <asp:Button runat="server" ID="btnCancel" CssClass="styleSubmitButton" CausesValidation="False"
+                    Text="Cancel" OnClick="btnCancel_Click" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <asp:ValidationSummary runat="server" ID="vsPDC" HeaderText="Correct the following validation(s):"
+                    Height="177px" CssClass="styleMandatoryLabel" Width="500px" ShowMessageBox="false"
+                    ShowSummary="true" ValidationGroup="GenRcpt" />
+                <asp:CustomValidator ID="cvPDC" runat="server" Display="None" CssClass="styleMandatoryLabel"></asp:CustomValidator>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <asp:Label ID="lblErrorMessage" runat="server" Style="color: Red; font-size: medium"></asp:Label>
+            </td>
+        </tr>
+    </table>
+</asp:Content>

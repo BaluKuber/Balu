@@ -1,0 +1,2284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:tns="http://tempuri.org/" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" name="UserMgtServices" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SymmetricBinding xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:ProtectionToken>
+              <wsp:Policy>
+                <sp:SecureConversationToken sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
+                  <wsp:Policy>
+                    <sp:RequireDerivedKeys />
+                    <sp:BootstrapPolicy>
+                      <wsp:Policy>
+                        <sp:SignedParts>
+                          <sp:Body />
+                          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+                        </sp:SignedParts>
+                        <sp:EncryptedParts>
+                          <sp:Body />
+                        </sp:EncryptedParts>
+                        <sp:SymmetricBinding>
+                          <wsp:Policy>
+                            <sp:ProtectionToken>
+                              <wsp:Policy>
+                                <sp:SpnegoContextToken sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
+                                  <wsp:Policy>
+                                    <sp:RequireDerivedKeys />
+                                  </wsp:Policy>
+                                </sp:SpnegoContextToken>
+                              </wsp:Policy>
+                            </sp:ProtectionToken>
+                            <sp:AlgorithmSuite>
+                              <wsp:Policy>
+                                <sp:Basic256 />
+                              </wsp:Policy>
+                            </sp:AlgorithmSuite>
+                            <sp:Layout>
+                              <wsp:Policy>
+                                <sp:Strict />
+                              </wsp:Policy>
+                            </sp:Layout>
+                            <sp:IncludeTimestamp />
+                            <sp:EncryptSignature />
+                            <sp:OnlySignEntireHeadersAndBody />
+                          </wsp:Policy>
+                        </sp:SymmetricBinding>
+                        <sp:Wss11>
+                          <wsp:Policy>
+                            <sp:MustSupportRefKeyIdentifier />
+                            <sp:MustSupportRefIssuerSerial />
+                            <sp:MustSupportRefThumbprint />
+                            <sp:MustSupportRefEncryptedKey />
+                          </wsp:Policy>
+                        </sp:Wss11>
+                        <sp:Trust10>
+                          <wsp:Policy>
+                            <sp:MustSupportIssuedTokens />
+                            <sp:RequireClientEntropy />
+                            <sp:RequireServerEntropy />
+                          </wsp:Policy>
+                        </sp:Trust10>
+                      </wsp:Policy>
+                    </sp:BootstrapPolicy>
+                  </wsp:Policy>
+                </sp:SecureConversationToken>
+              </wsp:Policy>
+            </sp:ProtectionToken>
+            <sp:AlgorithmSuite>
+              <wsp:Policy>
+                <sp:Basic256 />
+              </wsp:Policy>
+            </sp:AlgorithmSuite>
+            <sp:Layout>
+              <wsp:Policy>
+                <sp:Strict />
+              </wsp:Policy>
+            </sp:Layout>
+            <sp:IncludeTimestamp />
+            <sp:EncryptSignature />
+            <sp:OnlySignEntireHeadersAndBody />
+          </wsp:Policy>
+        </sp:SymmetricBinding>
+        <sp:Wss11 xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:MustSupportRefKeyIdentifier />
+            <sp:MustSupportRefIssuerSerial />
+            <sp:MustSupportRefThumbprint />
+            <sp:MustSupportRefEncryptedKey />
+          </wsp:Policy>
+        </sp:Wss11>
+        <sp:Trust10 xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:MustSupportIssuedTokens />
+            <sp:RequireClientEntropy />
+            <sp:RequireServerEntropy />
+          </wsp:Policy>
+        </sp:Trust10>
+        <wsaw:UsingAddressing />
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateUser_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateUser_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateUser_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubUpdateLOBMapping_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubUpdateLOBMapping_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubUpdateLOBMapping_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUser_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUser_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUser_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserPaging_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserPaging_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserPaging_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserMaster_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserMaster_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserMaster_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryBranchRoleDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryBranchRoleDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryBranchRoleDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserRoleDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserRoleDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserRoleDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserLocationDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserLocationDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryUserLocationDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateRoleCodeMaster_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateRoleCodeMaster_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateRoleCodeMaster_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubModifyRoleCodeMaster_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubModifyRoleCodeMaster_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubModifyRoleCodeMaster_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubDeleteRoleCenterMaster_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubDeleteRoleCenterMaster_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubDeleteRoleCenterMaster_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeList_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeList_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeList_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCheckRoleCodeMasterDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCheckRoleCodeMasterDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCheckRoleCodeMasterDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterPaging_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterPaging_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterPaging_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryProgramMasterList_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryProgramMasterList_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryProgramMasterList_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryModuleMasterList_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryModuleMasterList_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryModuleMasterList_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubRoleCodeList_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubRoleCodeList_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubRoleCodeList_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubRoleUserList_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubRoleUserList_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubRoleUserList_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateEscalationMaster_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateEscalationMaster_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubCreateEscalationMaster_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubModifyEscalationMaster_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubModifyEscalationMaster_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubModifyEscalationMaster_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMaster_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMaster_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMaster_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMasterPaging_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMasterPaging_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMasterPaging_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubDeleteEscalationDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubDeleteEscalationDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IUserMgtServices_FunPubDeleteEscalationDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://tempuri.org/Imports">
+      <xsd:import schemaLocation="http://localhost:3220/UserMgtServices.svc?xsd=xsd0" namespace="http://tempuri.org/" />
+      <xsd:import schemaLocation="http://localhost:3220/UserMgtServices.svc?xsd=xsd3" namespace="http://schemas.datacontract.org/2004/07/S3GServiceLayer" />
+      <xsd:import schemaLocation="http://localhost:3220/UserMgtServices.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+      <xsd:import schemaLocation="http://localhost:3220/UserMgtServices.svc?xsd=xsd2" namespace="http://schemas.datacontract.org/2004/07/S3GBusEntity" />
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="IUserMgtServices_FunPubCreateUser_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateUser" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCreateUser_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateUserResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCreateUser_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q1="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q1:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubUpdateLOBMapping_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubUpdateLOBMapping" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubUpdateLOBMapping_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubUpdateLOBMappingResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubUpdateLOBMapping_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q2="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q2:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUser_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUser" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUser_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUser_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q3="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q3:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserPaging_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserPaging" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserPaging_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserPagingResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserPaging_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q4="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q4:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserMaster_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserMaster" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserMaster_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserMasterResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserMaster_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q5="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q5:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryBranchRoleDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryBranchRoleDetails" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryBranchRoleDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryBranchRoleDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryBranchRoleDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q6="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q6:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserRoleDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserRoleDetails" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserRoleDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserRoleDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserRoleDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q7="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q7:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryRoleDetails" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryRoleDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q8="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q8:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserLocationDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserLocationDetails" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserLocationDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryUserLocationDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryUserLocationDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q9="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q9:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCreateRoleCodeMaster_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateRoleCodeMaster" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCreateRoleCodeMaster_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateRoleCodeMasterResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCreateRoleCodeMaster_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q10="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q10:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubModifyRoleCodeMaster_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubModifyRoleCodeMaster" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubModifyRoleCodeMaster_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubModifyRoleCodeMasterResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubModifyRoleCodeMaster_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q11="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q11:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubDeleteRoleCenterMaster_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubDeleteRoleCenterMaster" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubDeleteRoleCenterMaster_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubDeleteRoleCenterMasterResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubDeleteRoleCenterMaster_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q12="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q12:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeList_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryRoleCodeList" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeList_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryRoleCodeListResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeList_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q13="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q13:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeMasterDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryRoleCodeMasterDetails" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeMasterDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryRoleCodeMasterDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeMasterDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q14="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q14:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCheckRoleCodeMasterDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCheckRoleCodeMasterDetails" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCheckRoleCodeMasterDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCheckRoleCodeMasterDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCheckRoleCodeMasterDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q15="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q15:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeMasterPaging_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryRoleCodeMasterPaging" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeMasterPaging_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryRoleCodeMasterPagingResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryRoleCodeMasterPaging_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q16="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q16:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryProgramMasterList_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryProgramMasterList" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryProgramMasterList_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryProgramMasterListResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryProgramMasterList_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q17="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q17:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryModuleMasterList_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryModuleMasterList" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryModuleMasterList_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryModuleMasterListResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryModuleMasterList_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q18="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q18:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubRoleCodeList_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubRoleCodeList" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubRoleCodeList_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubRoleCodeListResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubRoleCodeList_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q19="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q19:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubRoleUserList_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubRoleUserList" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubRoleUserList_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubRoleUserListResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubRoleUserList_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q20="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q20:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCreateEscalationMaster_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateEscalationMaster" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCreateEscalationMaster_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateEscalationMasterResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubCreateEscalationMaster_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q21="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q21:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubModifyEscalationMaster_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubModifyEscalationMaster" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubModifyEscalationMaster_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubModifyEscalationMasterResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubModifyEscalationMaster_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q22="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q22:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryEscalationMaster_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryEscalationMaster" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryEscalationMaster_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryEscalationMasterResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryEscalationMaster_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q23="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q23:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryEscalationMasterPaging_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryEscalationMasterPaging" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryEscalationMasterPaging_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubQueryEscalationMasterPagingResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubQueryEscalationMasterPaging_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q24="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q24:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubDeleteEscalationDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubDeleteEscalationDetails" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubDeleteEscalationDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubDeleteEscalationDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IUserMgtServices_FunPubDeleteEscalationDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q25="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q25:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:portType name="IUserMgtServices">
+    <wsdl:operation name="FunPubCreateUser">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateUser" message="tns:IUserMgtServices_FunPubCreateUser_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateUserResponse" message="tns:IUserMgtServices_FunPubCreateUser_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateUserClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubCreateUser_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubUpdateLOBMapping">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubUpdateLOBMapping" message="tns:IUserMgtServices_FunPubUpdateLOBMapping_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubUpdateLOBMappingResponse" message="tns:IUserMgtServices_FunPubUpdateLOBMapping_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubUpdateLOBMappingClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubUpdateLOBMapping_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUser">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUser" message="tns:IUserMgtServices_FunPubQueryUser_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserResponse" message="tns:IUserMgtServices_FunPubQueryUser_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryUser_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUserPaging">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserPaging" message="tns:IUserMgtServices_FunPubQueryUserPaging_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserPagingResponse" message="tns:IUserMgtServices_FunPubQueryUserPaging_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserPagingClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryUserPaging_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUserMaster">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserMaster" message="tns:IUserMgtServices_FunPubQueryUserMaster_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserMasterResponse" message="tns:IUserMgtServices_FunPubQueryUserMaster_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserMasterClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryUserMaster_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryBranchRoleDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryBranchRoleDetails" message="tns:IUserMgtServices_FunPubQueryBranchRoleDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryBranchRoleDetailsResponse" message="tns:IUserMgtServices_FunPubQueryBranchRoleDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryBranchRoleDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryBranchRoleDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUserRoleDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserRoleDetails" message="tns:IUserMgtServices_FunPubQueryUserRoleDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserRoleDetailsResponse" message="tns:IUserMgtServices_FunPubQueryUserRoleDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserRoleDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryUserRoleDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryRoleDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleDetails" message="tns:IUserMgtServices_FunPubQueryRoleDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleDetailsResponse" message="tns:IUserMgtServices_FunPubQueryRoleDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryRoleDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUserLocationDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserLocationDetails" message="tns:IUserMgtServices_FunPubQueryUserLocationDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserLocationDetailsResponse" message="tns:IUserMgtServices_FunPubQueryUserLocationDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryUserLocationDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryUserLocationDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateRoleCodeMaster">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateRoleCodeMaster" message="tns:IUserMgtServices_FunPubCreateRoleCodeMaster_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateRoleCodeMasterResponse" message="tns:IUserMgtServices_FunPubCreateRoleCodeMaster_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateRoleCodeMasterClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubCreateRoleCodeMaster_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubModifyRoleCodeMaster">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubModifyRoleCodeMaster" message="tns:IUserMgtServices_FunPubModifyRoleCodeMaster_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubModifyRoleCodeMasterResponse" message="tns:IUserMgtServices_FunPubModifyRoleCodeMaster_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubModifyRoleCodeMasterClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubModifyRoleCodeMaster_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubDeleteRoleCenterMaster">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubDeleteRoleCenterMaster" message="tns:IUserMgtServices_FunPubDeleteRoleCenterMaster_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubDeleteRoleCenterMasterResponse" message="tns:IUserMgtServices_FunPubDeleteRoleCenterMaster_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubDeleteRoleCenterMasterClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubDeleteRoleCenterMaster_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryRoleCodeList">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeList" message="tns:IUserMgtServices_FunPubQueryRoleCodeList_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeListResponse" message="tns:IUserMgtServices_FunPubQueryRoleCodeList_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeListClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryRoleCodeList_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryRoleCodeMasterDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeMasterDetails" message="tns:IUserMgtServices_FunPubQueryRoleCodeMasterDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeMasterDetailsResponse" message="tns:IUserMgtServices_FunPubQueryRoleCodeMasterDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeMasterDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryRoleCodeMasterDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCheckRoleCodeMasterDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCheckRoleCodeMasterDetails" message="tns:IUserMgtServices_FunPubCheckRoleCodeMasterDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCheckRoleCodeMasterDetailsResponse" message="tns:IUserMgtServices_FunPubCheckRoleCodeMasterDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCheckRoleCodeMasterDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubCheckRoleCodeMasterDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryRoleCodeMasterPaging">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeMasterPaging" message="tns:IUserMgtServices_FunPubQueryRoleCodeMasterPaging_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeMasterPagingResponse" message="tns:IUserMgtServices_FunPubQueryRoleCodeMasterPaging_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeMasterPagingClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryRoleCodeMasterPaging_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryProgramMasterList">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryProgramMasterList" message="tns:IUserMgtServices_FunPubQueryProgramMasterList_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryProgramMasterListResponse" message="tns:IUserMgtServices_FunPubQueryProgramMasterList_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryProgramMasterListClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryProgramMasterList_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryModuleMasterList">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryModuleMasterList" message="tns:IUserMgtServices_FunPubQueryModuleMasterList_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryModuleMasterListResponse" message="tns:IUserMgtServices_FunPubQueryModuleMasterList_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryModuleMasterListClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryModuleMasterList_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubRoleCodeList">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubRoleCodeList" message="tns:IUserMgtServices_FunPubRoleCodeList_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubRoleCodeListResponse" message="tns:IUserMgtServices_FunPubRoleCodeList_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubRoleCodeListClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubRoleCodeList_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubRoleUserList">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubRoleUserList" message="tns:IUserMgtServices_FunPubRoleUserList_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubRoleUserListResponse" message="tns:IUserMgtServices_FunPubRoleUserList_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubRoleUserListClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubRoleUserList_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateEscalationMaster">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateEscalationMaster" message="tns:IUserMgtServices_FunPubCreateEscalationMaster_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateEscalationMasterResponse" message="tns:IUserMgtServices_FunPubCreateEscalationMaster_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubCreateEscalationMasterClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubCreateEscalationMaster_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubModifyEscalationMaster">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubModifyEscalationMaster" message="tns:IUserMgtServices_FunPubModifyEscalationMaster_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubModifyEscalationMasterResponse" message="tns:IUserMgtServices_FunPubModifyEscalationMaster_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubModifyEscalationMasterClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubModifyEscalationMaster_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryEscalationMaster">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryEscalationMaster" message="tns:IUserMgtServices_FunPubQueryEscalationMaster_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryEscalationMasterResponse" message="tns:IUserMgtServices_FunPubQueryEscalationMaster_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryEscalationMasterClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryEscalationMaster_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryEscalationMasterPaging">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryEscalationMasterPaging" message="tns:IUserMgtServices_FunPubQueryEscalationMasterPaging_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryEscalationMasterPagingResponse" message="tns:IUserMgtServices_FunPubQueryEscalationMasterPaging_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubQueryEscalationMasterPagingClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubQueryEscalationMasterPaging_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubDeleteEscalationDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubDeleteEscalationDetails" message="tns:IUserMgtServices_FunPubDeleteEscalationDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubDeleteEscalationDetailsResponse" message="tns:IUserMgtServices_FunPubDeleteEscalationDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IUserMgtServices/FunPubDeleteEscalationDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IUserMgtServices_FunPubDeleteEscalationDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="WSHttpBinding_IUserMgtServices" type="tns:IUserMgtServices">
+    <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_policy" />
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="FunPubCreateUser">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubCreateUser" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateUser_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateUser_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateUser_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubUpdateLOBMapping">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubUpdateLOBMapping" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubUpdateLOBMapping_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubUpdateLOBMapping_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubUpdateLOBMapping_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUser">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryUser" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUser_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUser_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUser_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUserPaging">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryUserPaging" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserPaging_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserPaging_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserPaging_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUserMaster">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryUserMaster" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserMaster_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserMaster_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserMaster_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryBranchRoleDetails">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryBranchRoleDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryBranchRoleDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryBranchRoleDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryBranchRoleDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUserRoleDetails">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryUserRoleDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserRoleDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserRoleDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserRoleDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryRoleDetails">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryRoleDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryUserLocationDetails">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryUserLocationDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserLocationDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserLocationDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryUserLocationDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateRoleCodeMaster">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubCreateRoleCodeMaster" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateRoleCodeMaster_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateRoleCodeMaster_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateRoleCodeMaster_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubModifyRoleCodeMaster">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubModifyRoleCodeMaster" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubModifyRoleCodeMaster_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubModifyRoleCodeMaster_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubModifyRoleCodeMaster_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubDeleteRoleCenterMaster">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubDeleteRoleCenterMaster" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubDeleteRoleCenterMaster_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubDeleteRoleCenterMaster_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubDeleteRoleCenterMaster_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryRoleCodeList">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeList" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeList_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeList_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeList_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryRoleCodeMasterDetails">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeMasterDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCheckRoleCodeMasterDetails">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubCheckRoleCodeMasterDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCheckRoleCodeMasterDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCheckRoleCodeMasterDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCheckRoleCodeMasterDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryRoleCodeMasterPaging">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryRoleCodeMasterPaging" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterPaging_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterPaging_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryRoleCodeMasterPaging_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryProgramMasterList">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryProgramMasterList" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryProgramMasterList_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryProgramMasterList_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryProgramMasterList_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryModuleMasterList">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryModuleMasterList" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryModuleMasterList_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryModuleMasterList_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryModuleMasterList_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubRoleCodeList">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubRoleCodeList" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubRoleCodeList_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubRoleCodeList_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubRoleCodeList_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubRoleUserList">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubRoleUserList" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubRoleUserList_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubRoleUserList_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubRoleUserList_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateEscalationMaster">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubCreateEscalationMaster" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateEscalationMaster_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateEscalationMaster_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubCreateEscalationMaster_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubModifyEscalationMaster">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubModifyEscalationMaster" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubModifyEscalationMaster_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubModifyEscalationMaster_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubModifyEscalationMaster_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryEscalationMaster">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryEscalationMaster" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMaster_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMaster_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMaster_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubQueryEscalationMasterPaging">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubQueryEscalationMasterPaging" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMasterPaging_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMasterPaging_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubQueryEscalationMasterPaging_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubDeleteEscalationDetails">
+      <soap12:operation soapAction="http://tempuri.org/IUserMgtServices/FunPubDeleteEscalationDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubDeleteEscalationDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubDeleteEscalationDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IUserMgtServices_FunPubDeleteEscalationDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="UserMgtServices">
+    <wsdl:port name="WSHttpBinding_IUserMgtServices" binding="tns:WSHttpBinding_IUserMgtServices">
+      <soap12:address location="http://localhost:3220/UserMgtServices.svc" />
+      <wsa10:EndpointReference>
+        <wsa10:Address>http://localhost:3220/UserMgtServices.svc</wsa10:Address>
+        <Identity xmlns="http://schemas.xmlsoap.org/ws/2006/02/addressingidentity">
+          <Dns>localhost</Dns>
+        </Identity>
+      </wsa10:EndpointReference>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

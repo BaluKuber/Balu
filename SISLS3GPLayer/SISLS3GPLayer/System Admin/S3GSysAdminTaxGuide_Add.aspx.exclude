@@ -1,0 +1,645 @@
+﻿<%@ Page Title="S3G - Tax Guide Master" Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master"
+    AutoEventWireup="true" CodeFile="S3GSysAdminTaxGuide_Add.aspx.cs" Inherits="S3GSysAdminTaxGuide_Add" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc1" TagName="PageNavigator" Src="~/UserControls/PageNavigator.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="Tax Guide Master - Create" ID="lblHeading" CssClass="styleDisplayLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign="top">
+                        <asp:Panel ID="Panel2" runat="server" CssClass="stylePanel" Width="100%" GroupingText="Tax Guide Master">
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Tax Class" ID="lblTaxClass" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:RadioButton ID="rbpurchase" runat="server" Text="Purchase" OnCheckedChanged="rbpurchase_CheckedChanged" AutoPostBack="true" TabIndex="1" />
+                                        <asp:RadioButton ID="rbsales" runat="server" Text="Sales" OnCheckedChanged="rbsales_CheckedChanged" AutoPostBack="true" TabIndex="2" />
+                                    </td>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:DropDownList ID="ddlLOB" runat="server" Width="60%" TabIndex="3">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="rfvLOB" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlLOB" InitialValue="0" ErrorMessage="Select Line of Business"
+                                            Display="None">
+                                        </asp:RequiredFieldValidator>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Tax Type" ID="lblTaxType" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:DropDownList ID="ddlTaxType" AutoPostBack="true" OnSelectedIndexChanged="ddlTaxType_OnSelectedIndexChanged"
+                                            runat="server" TabIndex="4" Width="60%">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="rfvTaxType" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlTaxType" InitialValue="0" ErrorMessage="Select Tax Type"
+                                            Display="None">
+                                        </asp:RequiredFieldValidator>
+                                    </td>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label ID="lbllessiestate" runat="server" Text="Lessie State">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:DropDownList ID="ddllessiestate" runat="server" Width="60%" TabIndex="5" AutoPostBack="true" OnSelectedIndexChanged="ddllessiestate_OnSelectedIndexChanged">
+                                        </asp:DropDownList>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Tax Code" ID="lblTaxCode">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtTaxCode" Enabled="false" runat="server" Width="60%"></asp:TextBox>
+                                    </td>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label ID="lblTaxDesc" runat="server" Text="Tax Desc." CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtTaxDesc" MaxLength="50" runat="server" Width="60%"
+                                            TabIndex="6"></asp:TextBox>
+                                        <asp:RequiredFieldValidator ID="rfvTaxDesc" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="txtTaxDesc" ErrorMessage="Enter Tax Desc."
+                                            Display="None">
+                                        </asp:RequiredFieldValidator>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Reverse Charge Type/Zone" ID="lblReverseChargeTypeorZone" CssClass="styleDisplayLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:DropDownList ID="ddlReverseChargeTypeorZone" Width="60%" runat="server" TabIndex="7" AutoPostBack="true">
+                                        </asp:DropDownList>
+                                    </td>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Effective From" ID="lblEffFrom" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtEffFrom" runat="server" Width="60%" TabIndex="8" MaxLength="10"></asp:TextBox>
+                                        <asp:Image ID="imgEffFrom" runat="server" ImageUrl="~/Images/calendaer.gif" />
+                                        <asp:RequiredFieldValidator ID="rfvEffFrom" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="txtEffFrom" ErrorMessage="Enter Effective From" Display="None">
+                                        </asp:RequiredFieldValidator>
+                                        <cc1:CalendarExtender runat="server" Format="dd/MM/yyyy" TargetControlID="txtEffFrom"
+                                            PopupButtonID="imgEffFrom" ID="CalendarExtender1" Enabled="True">
+                                        </cc1:CalendarExtender>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Tax" ID="lblTax" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtTax" onblur="return fnValidateTax();" MaxLength="5" runat="server" Width="60%"
+                                            TabIndex="9" Style="text-align: right"></asp:TextBox>
+                                        <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender3" runat="server" TargetControlID="txtTax"
+                                            FilterType="Numbers,Custom" ValidChars="." Enabled="True">
+                                        </cc1:FilteredTextBoxExtender>
+                                        <asp:RequiredFieldValidator ID="rfvTax" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="txtTax" ErrorMessage="Enter Tax" Display="None">
+                                        </asp:RequiredFieldValidator>
+                                        <asp:RangeValidator ID="rvTax" CssClass="styleMandatoryLabel" Enabled="false" runat="server"
+                                            ControlToValidate="txtTax" Type="Double" MaximumValue="99.99" ErrorMessage="Tax should not exceed 99.99%"
+                                            Display="None">
+                                        </asp:RangeValidator>
+                                    </td>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="GL Code" ID="lblGLCode" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:DropDownList ID="ddlGLCode" runat="server" Width="60%" TabIndex="10">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="rfvGLCode" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlGLCode" InitialValue="0" ErrorMessage="Select GL Code"
+                                            Display="None">
+                                        </asp:RequiredFieldValidator>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Surcharge" ID="lblSurcharge" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtsurcharge" onblur="return fnValidateTax();" runat="server" MaxLength="5"
+                                            TabIndex="11" Width="60%" Style="text-align: right"></asp:TextBox>
+                                        <asp:RequiredFieldValidator ID="rfvsurcharge" CssClass="stylemandatorylabel" runat="server"
+                                            ControlToValidate="txtsurcharge" ErrorMessage="Enter surcharge"
+                                            Display="none">
+                                        </asp:RequiredFieldValidator>
+                                        <asp:RangeValidator ID="rvsurcharge" CssClass="stylemandatorylabel" Enabled="false"
+                                            runat="server" ControlToValidate="txtsurcharge" Type="double" MaximumValue="99.99"
+                                            ErrorMessage="surcharge should not exceed 99.99%" Display="none">
+                                        </asp:RangeValidator>
+                                        <cc1:FilteredTextBoxExtender ID="filteredtextboxextender4" runat="server" TargetControlID="txtsurcharge"
+                                            FilterType="numbers,custom" ValidChars="." Enabled="true">
+                                        </cc1:FilteredTextBoxExtender>
+                                    </td>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Rate %" ID="lblRate" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtRate" MaxLength="5" runat="server" Width="60%" Style="text-align: right"
+                                            TabIndex="12"></asp:TextBox>
+                                        <asp:RequiredFieldValidator ID="rfvRate" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="txtRate" ErrorMessage="Enter Rate %" Display="None">
+                                        </asp:RequiredFieldValidator>
+                                        <asp:RangeValidator ID="rvRate" CssClass="styleMandatoryLabel" runat="server" ControlToValidate="txtRate"
+                                            Type="Double" MaximumValue="99.99" ErrorMessage="Rate % should not exceed 99.99%"
+                                            Display="None">
+                                        </asp:RangeValidator>
+                                        <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender2" runat="server" TargetControlID="txtRate"
+                                            FilterType="Numbers,Custom" ValidChars="." Enabled="True">
+                                        </cc1:FilteredTextBoxExtender>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Cess" ID="lblCess" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtCess" onblur="return fnValidateTax();" runat="server" MaxLength="5"
+                                            TabIndex="13" Width="60%" Style="text-align: right"></asp:TextBox>
+                                        <asp:RequiredFieldValidator ID="rfvCess" CssClass="styleReqFieldLabel" runat="server"
+                                            ControlToValidate="txtCess" ErrorMessage="Enter Cess" Display="None">
+                                        </asp:RequiredFieldValidator>
+                                        <asp:RangeValidator ID="rvCess" CssClass="styleMandatoryLabel" runat="server" ControlToValidate="txtCess"
+                                            Type="Double" MaximumValue="99.99" Enabled="false" ErrorMessage="Cess should not exceed 99.99%"
+                                            Display="None">
+                                        </asp:RangeValidator>
+                                        <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender5" runat="server" TargetControlID="txtCess"
+                                            FilterType="Numbers,Custom" ValidChars="." Enabled="True">
+                                        </cc1:FilteredTextBoxExtender>
+                                    </td>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Active" ID="lblActive" CssClass="styleDisplayLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:CheckBox ID="chkActive" Checked="true" runat="server" TabIndex="14" />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Additional Tax" ID="lblAdditionalTax" CssClass="styleDisplayLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtAdditionalTax" AutoPostBack="True" runat="server" MaxLength="5" TabIndex="15" Width="60%" Style="text-align: right" OnTextChanged="txtAdditionalTax_TextChanged"></asp:TextBox>
+                                        <asp:RangeValidator ID="rvAdditionalTax" runat="server" ControlToValidate="txtAdditionalTax"
+                                            Type="Double" MaximumValue="99.99" ErrorMessage="Additional Tax should not exceed 99.99%"
+                                            Display="None">
+                                        </asp:RangeValidator>
+                                        <cc1:FilteredTextBoxExtender ID="ftbetxtAdditionalTax" runat="server" TargetControlID="txtAdditionalTax"
+                                            FilterType="Numbers,Custom" ValidChars="." Enabled="True">
+                                        </cc1:FilteredTextBoxExtender>
+                                    </td>
+                                    <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label runat="server" Text="Additional Tax Based On" ID="lbladditionaltaxbasedon" CssClass="styleDisplayLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:DropDownList ID="ddlAdditionalTaxBasedOn" runat="server" TabIndex="16" Width="60%">
+                                        </asp:DropDownList>
+                                    </td>
+                                </tr>
+                                <tr>
+                                     <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label ID="lblAbatement" runat="server" Text="Abatement" CssClass="styleDisplayLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:TextBox ID="txtAbatement" runat="server" Text="0" 
+                                             Width="60%" Style="text-align: right" ></asp:TextBox>
+                                        <asp:RequiredFieldValidator ID="RfvAbatement" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="txtAbatement" ErrorMessage="Enter Abatement" ValidationGroup="Save" Display="None" Enabled="false">
+                                        </asp:RequiredFieldValidator>
+                                        <asp:RangeValidator ID="RangeValidator1" CssClass="styleMandatoryLabel" runat="server" ControlToValidate="txtEduCess"
+                                            Type="Double" MaximumValue="100" ErrorMessage="Abatement should not exceed 99.99%"
+                                            Display="None">
+                                        </asp:RangeValidator>
+                                        <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender1" runat="server" TargetControlID="txtAbatement"
+                                            FilterType="Numbers,Custom" ValidChars="." Enabled="True">
+                                        </cc1:FilteredTextBoxExtender>
+                                    </td>
+                                        <td class="styleFieldLabel" style="width: 25%">
+                                        <asp:Label ID="lblserviceType" runat="server" Text="Service Type" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" style="width: 25%">
+                                        <asp:DropDownList ID="ddlServiceType" runat="server"  Width="62%"  OnSelectedIndexChanged="ddlServiceType_SelectedIndexChanged" 
+                                            AutoPostBack="true" >
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="RequiredFieldValidator1" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlServiceType" InitialValue="0" ValidationGroup="Save" ErrorMessage="Select Service Type"
+                                            Display="None">
+                                        </asp:RequiredFieldValidator>
+                                    </td>
+                                </tr>
+                            </table>
+                            <br />
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 100%">
+
+                        <asp:Panel ID="pnlHSN" GroupingText="HSN Details" CssClass="stylePanel" runat="server" Visible="false">
+                            <div style="height: 135px; overflow-x: hidden; overflow-y: auto;">
+                                <asp:GridView ID="grvHSNCOde" runat="server" AutoGenerateColumns="false"
+                                    OnRowDataBound="gvTaxAssetGr_RowDataBound" Width="100%">
+                                    <Columns>
+                                        <asp:TemplateField HeaderText="S.No." ItemStyle-HorizontalAlign="Right">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblHSNSerialNo" runat="server" Text='<%#Container.DataItemIndex+1%>'
+                                                    ToolTip="Serial No."></asp:Label>
+                                            </ItemTemplate>
+                                            <FooterStyle HorizontalAlign="Center" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Code">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblHSNID" runat="server" Visible="false" Text='<%#Eval("HSN_ID")%>'></asp:Label>
+                                                <asp:Label ID="lblHSNCode" runat="server" Text='<%#Bind("HSN_Code") %>'></asp:Label>
+                                            </ItemTemplate>
+                                            <FooterStyle HorizontalAlign="Center" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Select">
+
+                                            <ItemTemplate>
+                                                <table>
+                                                    <tr>
+                                                        <td></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>
+                                                            <asp:CheckBox ID="chkSel" runat="server"
+                                                                Checked='<%#Convert.ToBoolean(Eval("Is_Checked")) %>' />
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </ItemTemplate>
+                                        </asp:TemplateField>
+                                    </Columns>
+                                </asp:GridView>
+                            </div>
+                        </asp:Panel>
+
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="width: 100%" align="center">
+                        <asp:Button ID="btnGo" runat="server" Text="Go" CssClass="styleSubmitShortButton" OnClick="btnGo_Click" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <cc1:TabContainer ID="tcTaxAsset" runat="server" ActiveTabIndex="0" CssClass="styleTabPanel"
+                            Width="99%" ScrollBars="Auto" TabStripPlacement="top" AutoPostBack="false">
+                            <cc1:TabPanel ID="tpTaxAsset" runat="server" HeaderText="Asset Details">
+                                <HeaderTemplate>
+                                    Asset Type Wise Details
+                                </HeaderTemplate>
+                                <ContentTemplate>
+                                    <asp:UpdatePanel ID="upTaxAsset" runat="server">
+                                        <ContentTemplate>
+                                            <div style="height: 135px; overflow-x: hidden; overflow-y: auto; width: 100%">
+                                                <div>
+                                                    <asp:GridView ID="gvTaxAsset" runat="server" AutoGenerateColumns="false" ShowFooter="true"
+                                                        OnRowDataBound="gvTaxAsset_RowDataBound" Width="100%" OnRowCommand="gvTaxAsset_RowCommand"
+                                                        OnRowDeleting="gvTaxAsset_RowDeleting">
+                                                        <Columns>
+                                                            <asp:TemplateField HeaderText="S.No." ItemStyle-Width="20%" ItemStyle-HorizontalAlign="Right">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblAssetSerialNoo" runat="server" Text='<%#Bind("Asset_Serial_Number") %>' Width="70px" Visible="false"></asp:Label>
+                                                                    <asp:Label ID="lblAssetSerialNo" runat="server" Text='<%#Container.DataItemIndex+1%>'
+                                                                        Width="20px" ToolTip="Serial No."></asp:Label>
+                                                                </ItemTemplate>
+                                                                <FooterStyle HorizontalAlign="Right" Width="15%" />
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Asset Category" ItemStyle-Width="20%" ItemStyle-HorizontalAlign="Left">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblAssetCategory" runat="server" Text='<%#Bind("Asset_Category") %>' ToolTip="Asset Category"></asp:Label>
+                                                                </ItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:DropDownList ID="ddlAssetCategory" runat="server" AutoPostBack="true" ToolTip="Asset Category" OnSelectedIndexChanged="ddlAssetCategory_Grd_SelectedIndexChanged" Width="150px">
+                                                                    </asp:DropDownList>
+                                                                </FooterTemplate>
+                                                                <FooterStyle HorizontalAlign="Left" Width="25%" />
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Asset Type" ItemStyle-Width="20%" ItemStyle-HorizontalAlign="Left">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblAssetType" runat="server" Text='<%#Bind("Asset_Type") %>' ToolTip="Asset Type"></asp:Label>
+                                                                </ItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:DropDownList ID="ddlAssetType" runat="server" AutoPostBack="true" ToolTip="Asset Type" Width="150px">
+                                                                    </asp:DropDownList>
+                                                                </FooterTemplate>
+                                                                <FooterStyle HorizontalAlign="Left" Width="25%" />
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Add | Delete" HeaderStyle-Wrap="false" ItemStyle-Width="20%">
+                                                                <ItemTemplate>
+                                                                    <asp:LinkButton ID="lnkRemove" runat="server" Text="Delete" CommandName="Delete"
+                                                                        ToolTip="Delete" OnClientClick="return confirm('Do you want to delete?');"
+                                                                        CausesValidation="false"></asp:LinkButton>
+                                                                </ItemTemplate>
+                                                                <ItemStyle HorizontalAlign="Left" Width="20%" />
+                                                                <FooterTemplate>
+                                                                    <asp:HiddenField ID="ghTax_Guide_Detail_ID" runat="server" Value='<%#Bind("Tax_Guide_Detail_ID") %>'></asp:HiddenField>
+                                                                    <asp:LinkButton ID="lnkAdd" runat="server" Text="Add" CommandName="Add" CausesValidation="false"
+                                                                        ToolTip="Add"></asp:LinkButton>
+                                                                </FooterTemplate>
+                                                                <FooterStyle HorizontalAlign="Left" Width="20%" />
+                                                            </asp:TemplateField>
+                                                        </Columns>
+                                                    </asp:GridView>
+                                                </div>
+                                            </div>
+                                        </ContentTemplate>
+                                    </asp:UpdatePanel>
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                        </cc1:TabContainer>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:Panel ID="pnlservice" Visible="false" GroupingText="Services" CssClass="stylePanel" runat="server">
+                            <div style="height: 135px; overflow-x: hidden; overflow-y: auto;">
+                                <asp:GridView ID="grvServices" runat="server" AutoGenerateColumns="false"
+                                    Width="100%">
+                                    <Columns>
+                                        <asp:TemplateField HeaderText="S.No." ItemStyle-HorizontalAlign="Right">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblSerialNo" runat="server" Text='<%#Container.DataItemIndex+1%>'
+                                                    ToolTip="Serial No."></asp:Label>
+                                            </ItemTemplate>
+                                            <FooterStyle HorizontalAlign="Center" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Cashflow Flag">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblserviceID" runat="server" Visible="false" Text='<%#Eval("ID")%>'></asp:Label>
+                                                <asp:Label ID="lblserviceName" runat="server" Text='<%#Bind("NAME") %>'></asp:Label>
+                                            </ItemTemplate>
+                                            <FooterStyle HorizontalAlign="Center" />
+                                        </asp:TemplateField>
+
+                                    </Columns>
+                                </asp:GridView>
+                            </div>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <tr>
+                        <td>
+                            <cc1:TabContainer ID="tcTaxAssetHistory" runat="server" ActiveTabIndex="0" CssClass="styleTabPanel"
+                                Width="99%" ScrollBars="Auto" TabStripPlacement="top" AutoPostBack="false">
+                                <cc1:TabPanel ID="tpTaxAssetHistory" runat="server" HeaderText="Asset History">
+                                    <HeaderTemplate>
+                                        Asset History
+                                    </HeaderTemplate>
+                                    <ContentTemplate>
+                                        <asp:UpdatePanel ID="upTaxAssetHistory" runat="server">
+                                            <ContentTemplate>
+                                                <div style="height: 135px; overflow-x: hidden; overflow-y: auto; width: 100%">
+                                                    <div>
+                                                        <asp:GridView ID="gvTaxAssetHistory" runat="server" AutoGenerateColumns="false" ShowFooter="false" Width="100%">
+                                                            <Columns>
+                                                                <asp:TemplateField HeaderText="S.No." ItemStyle-Width="15%" ItemStyle-HorizontalAlign="Right">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lblassethistoryserialno" runat="server" Text='<%#Container.DataItemIndex+1%>'
+                                                                            Width="20px" ToolTip="Serial No."></asp:Label>
+                                                                    </ItemTemplate>
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Asset Category">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lblassetcategorydesc" runat="server" Text='<%#Bind("Asset_Category_Desc") %>' ToolTip="Asset Category"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Asset Type">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lblassettypedesc" runat="server" Text='<%#Bind("Asset_Type_Desc") %>' ToolTip="Asset Type"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Effective From">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lbleffectivefrom" runat="server" Text='<%#ShowDate(Eval("Effective_From").ToString())%>' ToolTip="Effective From"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Effective To" Visible="false">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lbleffectiveto" runat="server" Text='<%#Bind("Effective_To") %>' ToolTip="Effective To"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Tax Rate">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lbltaxrate" runat="server" Text='<%#Bind("RatePercentage") %>' ToolTip="Tax Rate"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                </asp:TemplateField>
+                                                            </Columns>
+                                                        </asp:GridView>
+                                                    </div>
+                                                </div>
+                                            </ContentTemplate>
+                                        </asp:UpdatePanel>
+                                    </ContentTemplate>
+                                </cc1:TabPanel>
+                            </cc1:TabContainer>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" valign="top">
+                            <uc1:PageNavigator ID="ucCustomPaging" runat="server"></uc1:PageNavigator>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding-top: 5px; padding-left: 5px;" align="Center">
+                            <span runat="server" id="lblErrorMessage1" class="styleMandatoryLabel"></span>
+                        </td>
+                    </tr>
+
+                    <tr class="styleButtonArea">
+                        <td align="center">
+                            <asp:Button runat="server" ID="btnSave" TabIndex="15" CssClass="styleSubmitButton" Text="Save" OnClick="btnSave_Click"
+                                OnClientClick="return fnCheckPageValidation();" />
+
+                            <asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton"
+                                Text="Clear" OnClientClick="return fnConfirmClear();" OnClick="btnClear_Click"
+                                TabIndex="16" />
+                            <asp:Button runat="server" ID="btnCancel" Text="Cancel" CausesValidation="false"
+                                CssClass="styleSubmitButton" OnClick="btnCancel_Click" TabIndex="17" />
+                        </td>
+                    </tr>
+
+
+
+                    <tr class="styleButtonArea">
+                        <td>
+                            <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <asp:ValidationSummary runat="server" ID="vsUserMgmt" HeaderText="Please correct the following validation(s):"
+                                Height="250px" CssClass="styleMandatoryLabel" Width="500px" ShowMessageBox="false"
+                                ShowSummary="true" />
+                        </td>
+                    </tr>
+                    <input type="hidden" id="hdnID" runat="server" />
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+
+    <script language="javascript" type="text/javascript">
+
+        function fnValidateTax() {
+            if (document.getElementById('<%=txtTax.ClientID%>').value != '' || document.getElementById('<%=txtsurcharge.ClientID%>').value != '' || document.getElementById('<%=txtCess.ClientID%>').value != '')//If onFC is Yes
+            {
+                if (document.getElementById('<%=txtTax.ClientID%>').value == '') {
+                    document.getElementById('<%=rfvTax.ClientID%>').enabled = true;
+                    return false;
+                }
+
+                if (document.getElementById('<%=txtsurcharge.ClientID%>').value == '') {
+                    document.getElementById('<%=rfvsurcharge.ClientID%>').enabled = true;
+                    return false;
+                }
+
+                if (document.getElementById('<%=txtCess.ClientID%>').value == '') {
+                    document.getElementById('<%=rfvCess.ClientID%>').enabled = true;
+                    return false;
+                }
+
+                if (document.getElementById('<%=txtTax.ClientID %>').value > 99.99) {
+                    document.getElementById('<%=rvTax.ClientID%>').enabled = true;
+                    return false;
+                }
+                if (document.getElementById('<%=txtsurcharge.ClientID %>').value > 99.99) {
+                    document.getElementById('<%=rfvsurcharge.ClientID%>').enabled = true;
+                    return false;
+                }
+                if (document.getElementById('<%=txtCess.ClientID %>').value > 99.99) {
+                    document.getElementById('<%=rvCess.ClientID%>').enabled = true;
+                   return false;
+               }
+           }
+           else {
+               document.getElementById('<%=rfvTax.ClientID%>').enabled = false;
+                document.getElementById('<%=rfvsurcharge.ClientID%>').enabled = false;
+                document.getElementById('<%=rfvCess.ClientID%>').enabled = false;
+            }
+        }
+
+        function fnCheckPageValidation() {
+            if ((!fnCheckPageValidators(null, 'false'))) {
+                if (Page_ClientValidate() == false) {
+                    Page_BlockSubmit = false;
+                    return false;
+                }
+            }
+            debugger;
+            document.getElementById('<%=txtTax.ClientID%>').className = 'styleReqFieldDefalut';
+            document.getElementById('<%=txtsurcharge.ClientID%>').className = 'styleReqFieldDefalut';
+            document.getElementById('<%=txtCess.ClientID%>').className = 'styleReqFieldDefalut';
+            document.getElementById('<%=txtRate.ClientID%>').className = 'styleReqFieldDefalut';
+
+
+            if (Page_ClientValidate()) {
+
+                if (document.getElementById('<%=txtTax.ClientID%>').value != '' || document.getElementById('<%=txtsurcharge.ClientID%>').value != '' || document.getElementById('<%=txtCess.ClientID%>').value != '')//If onFC is Yes
+                {
+
+                    if (document.getElementById('<%=txtTax.ClientID%>').value == '') {
+                        document.getElementById('<%=rfvTax.ClientID%>').enabled = true;
+                        return false;
+                    }
+
+                    if (document.getElementById('<%=txtsurcharge.ClientID%>').value == '') {
+                        document.getElementById('<%=rfvsurcharge.ClientID%>').enabled = true;
+                        return false;
+                    }
+
+                    if (document.getElementById('<%=txtCess.ClientID%>').value == '') {
+                        document.getElementById('<%=rfvCess.ClientID%>').enabled = true;
+                        return false;
+                    }
+
+                    if (document.getElementById('<%=txtTax.ClientID %>').value > 100) {
+                        document.getElementById('<%=rvTax.ClientID%>').enabled = true;
+                       return false;
+                   }
+                   if (document.getElementById('<%=txtsurcharge.ClientID %>').value > 100) {
+                        document.getElementById('<%=rfvsurcharge.ClientID%>').enabled = true;
+                       //return false;
+                   }
+                   if (document.getElementById('<%=txtCess.ClientID %>').value > 100) {
+                        document.getElementById('<%=rvCess.ClientID%>').enabled = true;
+                       return false;
+                   }
+
+                   var RatePer = document.getElementById('<%=txtRate.ClientID%>').value;
+                    var Tax = document.getElementById('<%=txtTax.ClientID%>').value;
+                    var Surcharge = document.getElementById('<%=txtsurcharge.ClientID%>').value;
+                    var Cess = document.getElementById('<%=txtCess.ClientID%>').value;
+
+                    var Result;
+                    var Surcharge = parseFloat((parseFloat(Tax) * (parseFloat(Surcharge) / 100)));
+                    var Cess = Math.round(parseFloat((parseFloat(Tax) + Surcharge) * (parseFloat(Cess) / 100)) * 100) / 100
+
+                    Result = Math.round((parseFloat(Tax) + parseFloat(Surcharge) + parseFloat(Cess)) * 100) / 100
+
+                    if (parseFloat(Result, 2) != parseFloat(RatePer, 2)) {
+                        alert('Please enter correct rate percentage (Tax+[(surcharge on Tax)+(cess(Tax+Surcharge of Tax))]=Rate%)');
+                        document.getElementById('<%=btnSave.ClientID%>').style.display = "inline";
+                        return false;
+                    }
+                }
+
+                if (confirm('Do you want to save?')) {
+                    return true;
+                }
+                else {
+                    //Added by Santhosh S on 29/Jun/2013 to avoid Save button to be hidden in Modify mode, when modification is Cancelled.
+                    document.getElementById('<%=btnSave.ClientID%>').style.display = "inline";
+                    //End here
+                    return false;
+                }
+            }
+            return true;
+        }
+    </script>
+</asp:Content>

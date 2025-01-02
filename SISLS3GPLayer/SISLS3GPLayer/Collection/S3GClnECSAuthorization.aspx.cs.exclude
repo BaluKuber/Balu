@@ -1,0 +1,813 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         : Collection 
+/// Screen Name         : ECS Authorization
+/// Created By          : VijayaKumar
+/// Created Date        : 28-Jan-2011
+/// Purpose             : 
+/// Last Updated By		:   Chandra Sekhar BS
+/// Last Updated Date   :   18-Sep-2013
+/// Reason              :   SQL Performance
+
+/// <Program Summary>
+
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+#endregion
+
+public partial class Collection_S3GClnECSAuthorization : ApplyThemeForProject
+{
+    #region Common Variable declaration
+
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> Procparam = null;
+    string strEcsNo = string.Empty;
+    int intErrCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    //string _DateFormat = "dd/MM/yyyy";
+    string strDateFormat = string.Empty;
+    StringBuilder strEcsBuilder = new StringBuilder();
+    StringBuilder strbuXML = new StringBuilder();
+    string strErrorMessagePrefix = @"Correct the following validation(s): </br></br>   ";
+    public string strProgram_ID = "116";
+
+    UserMgtServicesReference.UserMgtServicesClient objUserManagementClient = new UserMgtServicesReference.UserMgtServicesClient();
+    UserMgtServices.S3G_SYSAD_UserMaster_ListDataTable ObjS3G_SYSAD_UserMasterDataTable = new UserMgtServices.S3G_SYSAD_UserMaster_ListDataTable();
+    UserMgtServices.S3G_SYSAD_UserManagementDataTable ObjS3G_SYSAD_UserManagementDataTable = new UserMgtServices.S3G_SYSAD_UserManagementDataTable();
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objEcs_Client;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSDataTable objS3G_CLN_EcsDataTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSRow objS3G_CLN_EcsDataRow = null;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3gCLNTransLander.aspx?Code=CEA";
+
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnECSAuthorization.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3gCLNTransLander.aspx?Code=CEA';";
+    static string strPageName = "ECS Authorization";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+    #endregion
+
+    #region [Event's]
+
+    #region [Page Load Event]
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriPageLoad();
+        }
+        catch (Exception ex)
+        {
+            cvECSAuthorization.ErrorMessage = " Unable to Load the ECS Authorization";
+            cvECSAuthorization.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region [Button Events]
+    //Authorize
+    protected void btnAuthorize_Click(object sender, EventArgs e)
+    {
+        S3GAdminServicesReference.S3GAdminServicesClient ObjS3GAdminServices = new S3GAdminServicesReference.S3GAdminServicesClient();
+        try
+        {
+            if (ObjS3GAdminServices.FunPubPasswordValidation(intUserID, txtPassword.Text.Trim()) == 0)
+            {
+                FunPriSaveECSAuthorization();
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(this, " Invalid Password.");
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSAuthorization.ErrorMessage = "Unable To Authorize the ECSProcess";
+            cvECSAuthorization.IsValid = false;
+        }
+        finally
+        {
+            if (ObjS3GAdminServices != null)
+                ObjS3GAdminServices.Close();
+        }
+    }
+
+    //Clear
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearPage();
+        }
+        catch (Exception ex)
+        {
+
+            cvECSAuthorization.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_Clear + this.Page.Header.Title;
+            cvECSAuthorization.IsValid = false;
+        }
+    }
+
+    //Cancel
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect(strRedirectPage,false);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSAuthorization.ErrorMessage = Resources.ValidationMsgs.CLNBUK_22;
+            cvECSAuthorization.IsValid = false;
+        }
+
+    }
+
+    #endregion
+
+    #region [DropDownlist Events]
+
+    protected void ddlECSNo_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriGetECSAuthDetails();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSAuthorization.ErrorMessage = "Unable To Load ECSProcess Details";
+            cvECSAuthorization.IsValid = false;
+        }
+
+    }
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadECSNo();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSAuthorization.ErrorMessage = "Unable To Load ECS Numbers";
+            cvECSAuthorization.IsValid = false;
+        }
+    }
+    //protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    //{
+    //    try
+    //    {
+    //        FunPriLoadECSNo();
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //          ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+    //        cvECSAuthorization.ErrorMessage = "Unable To Load ECS Numbers";
+    //        cvECSAuthorization.IsValid = false;
+    //    }
+    //}
+
+    #endregion
+
+    #endregion
+
+    #region [Function's]
+
+    #region To Load Page
+    private void FunPriPageLoad()
+    {
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            //FunPubSetIndex(1);
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //_DateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strEcsNo = fromTicket.Name;
+            }
+
+            if (!IsPostBack)
+            {
+                txtAuthorizeDate.Text = DateTime.Now.ToString(strDateFormat);
+                txtAuthorizedBy.Text = ObjUserInfo.ProUserNameRW.Trim().ToUpper();
+                strMode = Request.QueryString["qsMode"].ToString();
+                //CalendarExtender2.Format = strDateFormat;                
+
+                if (strMode == "C") {
+                    FunPriLoadLOBList();
+                    FunPriLoadECSNo();
+                    FunPriLoadFixedBillingDate();
+                }
+
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    //FunPriLoadECSNo();
+                    FunPriECSAuthorization_QueryMode(strEcsNo);
+                    FunPriDisableControls(-1);
+                }
+                else if (Request.QueryString["qsMode"] == "M")
+                {
+                    FunPriECSAuthorization_QueryMode(strEcsNo);
+                    FunPriDisableControls(1);
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ObjS3GSession = null;
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+    private void FunPriPageLoad_OLD()
+    {
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            //FunPubSetIndex(1);
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //_DateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strEcsNo = fromTicket.Name;
+            }
+
+            if (!IsPostBack)
+            {
+                txtAuthorizeDate.Text = DateTime.Now.ToString(strDateFormat);
+                txtAuthorizedBy.Text = ObjUserInfo.ProUserNameRW.Trim().ToUpper();
+                strMode = Request.QueryString["qsMode"].ToString();
+                //CalendarExtender2.Format = strDateFormat;                
+                FunPriLoadLOBList();
+                FunPriLoadECSNo();
+                FunPriLoadFixedBillingDate();
+
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunPriLoadECSNo();
+                    FunPriECSAuthorizationForQuery(strEcsNo);
+                    FunPriDisableControls(-1);
+                }
+                else if (Request.QueryString["qsMode"] == "M")
+                {
+                    FunPriDisableControls(1);
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ObjS3GSession = null;
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+    #endregion
+
+    #region To populate LOB List Values
+    private void FunPriLoadLOBList()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            if (strEcsNo == "0" || strEcsNo == "")
+                Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Program_ID", strProgram_ID);            
+            ddlLOB.BindDataTable("S3G_CLN_GetECS_LOB", Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            //ddlLOB.Items.Add(new ListItem("All", null));
+        }        
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To populate Fixed Billing Date Values
+    private void FunPriLoadFixedBillingDate()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            //ddlFixedBillDate.BindDataTable(SPNames.S3G_CLN_GetFBDate, Procparam, new string[] { "FB_Date", "FB_Date" });
+        }       
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To Populate User Names
+    private void FunPriLoadAuthUser()
+    {
+        try
+        {
+            UserMgtServices.S3G_SYSAD_UserMaster_ListRow ObjUserMasterRow;
+            ObjUserMasterRow = ObjS3G_SYSAD_UserMasterDataTable.NewS3G_SYSAD_UserMaster_ListRow();
+            ObjUserMasterRow.Company_ID = Convert.ToInt32(ObjUserInfo.ProCompanyIdRW.ToString());
+            ObjUserMasterRow.User_ID = Convert.ToInt32(ObjUserInfo.ProUserIdRW.ToString());
+            ObjS3G_SYSAD_UserMasterDataTable.AddS3G_SYSAD_UserMaster_ListRow(ObjUserMasterRow);
+
+            byte[] byteUserDetails = objUserManagementClient.FunPubQueryUserMaster(ObjSerMode, ClsPubSerialize.Serialize(ObjS3G_SYSAD_UserMasterDataTable, ObjSerMode));
+
+            ObjS3G_SYSAD_UserMasterDataTable = (UserMgtServices.S3G_SYSAD_UserMaster_ListDataTable)ClsPubSerialize.DeSerialize(byteUserDetails, SerializationMode.Binary, typeof(UserMgtServices.S3G_SYSAD_UserMaster_ListDataTable));
+
+            ddlAuthUser.FillDataTable(ObjS3G_SYSAD_UserMasterDataTable, "User_ID", "User_Code");
+        }      
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To Load Grid
+    private void FunPriGetECSAuthDetails()
+    {
+        DataTable dtECSAuthDetails = new DataTable();
+        grvEcsProcess.ClearGrid();
+        if (grvEcsProcess.Rows.Count <= 0) pnlGrid.Visible = false;
+
+        txtBranch.Text = txtFBDate.Text = "";
+        hidDelete.Value = "0";
+        ddlLOB.SelectedValue = "0";
+
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@ECS_No", ddlECSNo.Items.FindByValue(ddlECSNo.SelectedValue).Text);
+            Procparam.Add("@Option", "Authorize");
+            Procparam.Add("@User_ID", intUserID.ToString());
+
+            dtECSAuthDetails = Utility.GetDefaultData(SPNames.S3G_CLN_GetECSProcess, Procparam);
+            ViewState["dtECSAuthDetails"] = dtECSAuthDetails;
+            if (dtECSAuthDetails != null && dtECSAuthDetails.Rows.Count > 0)
+            {
+                ddlLOB.SelectedValue = (Convert.ToString(dtECSAuthDetails.Rows[0]["LOB_ID"]) == "") ? "0" : Convert.ToString(dtECSAuthDetails.Rows[0]["LOB_ID"]);
+                txtBranch.Text = dtECSAuthDetails.Rows[0]["Location_Name"].ToString();
+                txtFBDate.Text = dtECSAuthDetails.Rows[0]["FixedBillDate"].ToString();
+                if (dtECSAuthDetails.Rows[0]["Location_ID"].ToString() != "")
+                    hidBranch.Value = dtECSAuthDetails.Rows[0]["Location_ID"].ToString();
+                else
+                    hidBranch.Value = "0";
+                //DateTime.Parse(dtECSAuthDetails.Rows[0]["FixedBillDate"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                grvEcsProcess.DataSource = dtECSAuthDetails;
+                grvEcsProcess.DataBind();
+                hidDelete.Value = "0";
+                pnlGrid.Visible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSAuthorization.ErrorMessage = "Unable To Load ECSProcess Details Grid";
+            cvECSAuthorization.IsValid = false;
+        }
+
+    }
+    #endregion
+
+    #region To Save ECS Authorization Details
+    private void FunPriSaveECSAuthorization()
+    {
+        strEcsBuilder.Append("<Root>");
+        strbuXML.Append("<Root>");
+        strEcsBuilder.Append("</Root>");
+        strbuXML.Append("</Root>");
+        string strECSNumber = "";
+
+        if (grvEcsProcess.Rows.Count == 0)
+        {
+            //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('No record exists for ECS Process');", true);
+            //return;
+            cvECSAuthorization.ErrorMessage = strErrorMessagePrefix + " Record does not exists for ECS Authorization";
+            cvECSAuthorization.IsValid = false;
+            return;
+
+        }
+        if (Page.IsValid)
+        {
+            //if (strEcsNo == "") LoadXMLValues();
+            objEcs_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            try
+            {
+                objS3G_CLN_EcsDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSDataTable();
+                objS3G_CLN_EcsDataRow = objS3G_CLN_EcsDataTable.NewS3G_CLN_ECSRow();
+
+                objS3G_CLN_EcsDataRow.Company_ID = intCompanyID;
+                objS3G_CLN_EcsDataRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                //if (ddlBranch.SelectedValue != "All")
+                objS3G_CLN_EcsDataRow.Branch_ID = Convert.ToInt32(hidBranch.Value);
+                //else
+                //objS3G_CLN_EcsDataRow.Branch_ID = 0;
+
+                objS3G_CLN_EcsDataRow.ECS_No = ddlECSNo.Items.FindByValue(ddlECSNo.SelectedValue).Text;
+                objS3G_CLN_EcsDataRow.ECS_DocDate = DateTime.Now; ; // Convert.ToDateTime(strEcsday[1] + "/" + strEcsday[0] + "/" + strEcsday[2]);
+                //Source modified by Tamilselvan on 11/01/2011
+                objS3G_CLN_EcsDataRow.Fixed_Billing_date = DateTime.Now; ;
+                objS3G_CLN_EcsDataRow.Authorized_By = Convert.ToInt32(intUserID);
+                objS3G_CLN_EcsDataRow.Authorized_Date = Utility.StringToDate(txtAuthorizeDate.Text);
+                objS3G_CLN_EcsDataRow.Authorization_Status = "1";
+                objS3G_CLN_EcsDataRow.FilePath = "";
+                objS3G_CLN_EcsDataRow.Account_Link_key = 1;
+                objS3G_CLN_EcsDataRow.Created_By = intUserID;
+                objS3G_CLN_EcsDataRow.Created_On = DateTime.Now;
+                objS3G_CLN_EcsDataRow.Modified_By = intUserID;
+                objS3G_CLN_EcsDataRow.Modified_On = DateTime.Now;
+                objS3G_CLN_EcsDataRow.Txn_ID = 1;
+                objS3G_CLN_EcsDataRow.XMLDetails = strEcsBuilder.ToString();
+                objS3G_CLN_EcsDataRow.XMLReceipt = strbuXML.ToString();
+                objS3G_CLN_EcsDataRow.Password = txtPassword.Text.Trim();
+
+                objS3G_CLN_EcsDataTable.AddS3G_CLN_ECSRow(objS3G_CLN_EcsDataRow);
+                intErrCode = objEcs_Client.FunPubCreateECSProcess(out strECSNumber, ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_EcsDataTable, ObjSerMode));
+                if (intErrCode == 0)
+                {
+                    //To avoid double save click
+                    btnAuthorize.Enabled = false;
+                    //End here
+
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('ECS Authorized successfully');" + strRedirectPageView, true);
+                }
+                else if (intErrCode == 2)
+                {
+                    Utility.FunShowAlertMsg(this, "Document Control ID not defined yet for Receipt Process");
+                    return;                   
+                }
+                else if (intErrCode == 4)
+                {                   
+                    Utility.FunShowAlertMsg(this, " Receipt Process Document Control ID reach the maximum defined");
+                    return;                                    
+                }
+                else if (intErrCode == 5)
+                {                  
+                    Utility.FunShowAlertMsg(this, " Define the GL Account in Cashflow Master ");
+                    return;   
+                }
+                else if (intErrCode == 10)
+                {                    
+                    Utility.FunShowAlertMsg(this, " Invalid Password. ");
+                    return;                    
+                }
+                else if (intErrCode == 11)
+                {
+                    Utility.FunShowAlertMsg(this, "ECS Processed user can not have a rights to authorize ");
+                    return;
+                }
+                else if (intErrCode == 31)//define cashflow for Principal and interest for TL /TLE
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Cashflow not defined for Principal/Interest');", true);
+                    return;
+                }
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            }
+            catch (Exception ex)
+            {
+                  ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+                if (objEcs_Client != null)
+                {
+                    objEcs_Client.Close();
+                }
+                throw ex;
+            }
+            finally
+            {
+                if (objEcs_Client != null)
+                {
+                    objEcs_Client.Close();
+                }
+            }
+        }
+
+    }
+    #endregion
+
+    #region Load data For Query Mode
+    private void FunPriECSAuthorizationForQuery(string strEcsNo)
+    {
+        DataTable dtTable = new DataTable();
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@ECS_No", strEcsNo);
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@Option", "1");
+            Procparam.Add("@User_ID", intUserID.ToString());
+            dtTable = Utility.GetDefaultData(SPNames.S3G_CLN_GetECSProcess, Procparam);// true, "--All Customers--", new string[] { "Customer_ID", "Customer_Code", "Customer_Name" });
+
+            if (dtTable != null && dtTable.Rows.Count > 0)
+            {                
+                ddlECSNo.SelectedValue = dtTable.Rows[0]["ECS_No"].ToString();                
+                txtAuthorizedBy.Text = dtTable.Rows[0]["Authorized_By"].ToString();
+                ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                txtBranch.Text = dtTable.Rows[0]["Location_Name"].ToString();
+                txtFBDate.Text = dtTable.Rows[0]["FixedBillDate"].ToString();//DateTime.Parse(dtTable.Rows[0]["FixedBillDate"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);                
+                grvEcsProcess.DataSource = dtTable;
+                grvEcsProcess.DataBind();
+                txtAuthorizeDate.Text = DateTime.Parse(dtTable.Rows[0]["Authorized_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat); // DateTime.Parse(dtTable.Rows[0]["Authorized_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                pnlGrid.Visible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSAuthorization.ErrorMessage = "Unable To Show ECSAuthorization Details";
+            cvECSAuthorization.IsValid = false;
+        }
+    }
+    private void FunPriECSAuthorization_QueryMode(string strEcsNo)
+    {
+        DataTable dtTable = new DataTable();
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@ECS_No", strEcsNo);
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@Option", "1");
+            Procparam.Add("@User_ID", intUserID.ToString());
+            dtTable = Utility.GetDefaultData("S3G_CLN_GetECSProcess", Procparam);// true, "--All Customers--", new string[] { "Customer_ID", "Customer_Code", "Customer_Name" });
+
+            if (dtTable != null && dtTable.Rows.Count > 0)
+            {
+
+                
+                if (dtTable.Rows[0]["LOB_ID"].ToString() == "All" || dtTable.Rows[0]["LOB_ID"].ToString() == "" || dtTable.Rows[0]["LOB_ID"].ToString() == "0")
+                {
+                    ListItem Libr = new ListItem("--All--", "0");
+                    ddlLOB.Items.Add(Libr);
+                    ddlLOB.SelectedValue = "0";
+                }
+                else
+                {
+                    ListItem Libr = new ListItem(dtTable.Rows[0]["LOB_Name"].ToString(), dtTable.Rows[0]["LOB_ID"].ToString());
+                    ddlLOB.Items.Add(Libr);
+                    ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                }
+
+
+                ListItem LiEC = new ListItem(dtTable.Rows[0]["ECS_No"].ToString(), dtTable.Rows[0]["ECS_No"].ToString());
+                ddlECSNo.Items.Add(LiEC);
+
+                
+                ddlECSNo.SelectedValue = dtTable.Rows[0]["ECS_No"].ToString();
+                txtAuthorizedBy.Text = dtTable.Rows[0]["Authorized_By"].ToString();
+                ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                txtBranch.Text = dtTable.Rows[0]["Location_Name"].ToString();
+                txtFBDate.Text = dtTable.Rows[0]["FixedBillDate"].ToString();//DateTime.Parse(dtTable.Rows[0]["FixedBillDate"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);                
+                grvEcsProcess.DataSource = dtTable;
+                grvEcsProcess.DataBind();
+                txtAuthorizeDate.Text = DateTime.Parse(dtTable.Rows[0]["Authorized_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat); // DateTime.Parse(dtTable.Rows[0]["Authorized_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                pnlGrid.Visible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSAuthorization.ErrorMessage = "Unable To Show ECSAuthorization Details";
+            cvECSAuthorization.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region To populate ECS No Values
+    private void FunPriLoadECSNo()
+    {
+        txtBranch.Text = txtFBDate.Text = "";
+        hidDelete.Value = "0";
+        grvEcsProcess.ClearGrid();
+        if (grvEcsProcess.Rows.Count <= 0) pnlGrid.Visible = false;
+
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_Id", intUserID.ToString());
+            Procparam.Add("@Program_Id", strProgram_ID);
+            if (ddlLOB.SelectedValue != "All" && ddlLOB.SelectedValue != "0") Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            if (strEcsNo == "" || strEcsNo == "0")
+                Procparam.Add("@Option", "5");
+            else
+                Procparam.Add("@Option", "6");
+
+            ddlECSNo.BindDataTable("S3G_CLN_GetECSFlatFileGeneration", Procparam, new string[] { "ECS_NO", "ECS_NO" });
+
+            if (ddlLOB.SelectedValue == "All" || ddlLOB.SelectedValue == "0")
+                ViewState["dtECSno"] = ddlECSNo.DataSource as DataTable;
+        }       
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSAuthorization.ErrorMessage = "Unable To Load ECSNumbers";
+            cvECSAuthorization.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region "User Authorization"
+    //This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    if (!bCreate)
+                    {
+                        //btnListing.Enabled = false;
+                    }
+                    ddlLOB.Focus();
+                    break;
+                case 1: // Modify Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    if (!bModify)
+                    {
+
+                    }                    
+                    Utility.ClearDropDownList(ddlLOB);
+                    break;
+
+                case -1:// Query Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+
+                    if (!bQuery)
+                    {
+                        Response.Redirect(strRedirectPage,false);
+                    }                  
+                    Utility.ClearDropDownList(ddlLOB);
+                    Utility.ClearDropDownList(ddlECSNo);
+                    txtPassword.ReadOnly = true;
+                    btnAuthorize.Enabled = btnClear.Enabled = false;// CalendarExtender2 .Enabled = false;
+                 
+                    break;
+            }
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    //Code end
+    #endregion
+
+    #region To clear the Data
+
+    //  To clear the Data in the Page
+    private void FunPriClearPage()
+    {
+        try
+        {
+            ddlLOB.SelectedValue = "0";                        
+            ddlECSNo.DataSource = ViewState["dtECSno"] as DataTable;
+            ddlECSNo.DataBind();
+            System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+            ddlECSNo.Items.Insert(0, liSelect);            
+            txtBranch.Text = txtFBDate.Text = "";
+            grvEcsProcess.ClearGrid();
+            if (grvEcsProcess.Rows.Count <= 0) pnlGrid.Visible = false;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    // To clear the Data in the DropDown List
+    private void FunClearDDL(DropDownList ddlctrl, int val)
+    {
+        try
+        {
+            if (ddlctrl.Items.Count > 0)
+            {
+                ddlctrl.SelectedIndex = 0;
+                if (val == 0)
+                    ddlctrl.ClearDropDownList();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    #endregion
+    #endregion
+}
+
+

@@ -1,0 +1,149 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeFile="MasterPage.master.cs"
+    Inherits="SmartLend3G.MasterPage" EnableTheming="true" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head id="Head1" runat="server">
+
+    <script type="text/javascript" src="../Scripts/Common.js"></script>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>SMARTLEND 3G</title>
+
+    <script type="text/javascript" language="javascript">
+
+        function GetSize(img) {
+            alert(img.title);
+        }
+
+        window.history.forward(-1);
+        window.onerror = function () { return true; }
+
+        //Narayanan - start
+
+        var message = "Sorry, that function is disabled.\nThis Page Copyrighted and\nImages and Text protected!\nALL RIGHTS RESERVED";
+
+        // Don't edit below!
+
+        function click(e) {
+            if (document.all) {
+                if (event.button == 2) {
+                    alert(message);
+                    return false;
+                }
+            }
+            if (document.layers) {
+                if (e.which == 3) {
+                    alert(message);
+                    return false;
+                }
+            }
+        }
+        if (document.layers) {
+            document.captureEvents(Event.MOUSEDOWN);
+        }
+        document.onmousedown = click;
+        // --> 
+
+        //Narayanan - End
+
+        window.onload = window_onload;
+        var prm;
+        function window_onload() {
+            prm = Sys.WebForms.PageRequestManager.getInstance();
+            prm.add_pageLoaded(PageLoaded);
+            //document.getElementById('divLoading').style.display='none';
+            //GetMenuVisibility();
+        }
+
+        //        function autoResize() {
+        //            var newheight;
+        //            var newwidth;
+        //            if (window.parent.document.getElementById('ifrmMain')) {
+        //                
+        //                newheight = window.parent.document.getElementById('ifrmMain').contentWindow.document.body.scrollHeight + 20;
+        //                newwidth = window.parent.document.getElementById('ifrmMain').contentWindow.document.body.scrollWidth;
+        //                
+        //                if (newheight < 445) {
+        //                    window.parent.document.getElementById('ifrmMain').height = 450;
+        //                }
+        //                else {
+        //                    window.parent.document.getElementById('ifrmMain').height = (newheight + 20) + "px";
+        //                }
+        //                
+        //                window.parent.document.getElementById('ifrmMain').width = (newwidth) + "px";
+        //            }
+        //        }
+        function autoResize() {
+            var newheight;
+            var newwidth;
+
+            try {
+                if (window.parent.document.getElementById(window.frames.frameElement.id)) {
+
+                    newheight = window.parent.document.getElementById(window.frames.frameElement.id).contentWindow.document.body.scrollHeight + 20;
+                    //  newwidth = window.parent.document.getElementById(window.frames.frameElement.id).contentWindow.document.body.scrollWidth;
+
+                    if (newheight < 445) {
+                        window.parent.document.getElementById(window.frames.frameElement.id).height = 450;
+                    }
+                    else {
+                        window.parent.document.getElementById(window.frames.frameElement.id).height = (newheight + 20) + "px";
+                    }
+                }
+            }
+            catch (e) {
+            }
+
+        }
+        function PageLoaded(sender, args) {
+            autoResize();
+        }
+    </script>
+
+</head>
+<body id="bodyMaster" runat="server" style="margin-right: 0px; margin-left: 1px; margin-bottom: 0px; margin-top: 2px;" onresize="autoResize();" oncontextmenu="return false;">
+    <form id="form1" style="margin: 0px" runat="server">
+        <%--<cc1:ToolkitScriptManager ID="ScriptManager1" runat="server" ScriptMode="Release"></cc1:ToolkitScriptManager>--%>
+        <asp:ScriptManager ID="ScriptManager1" runat="server" AsyncPostBackTimeout="1800" EnablePageMethods="true">
+        </asp:ScriptManager>
+
+        <asp:SiteMapDataSource ID="SiteMapDataSource1" runat="server" ShowStartingNode="False" />
+        <div id="up_container">
+            <table style="width: 100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="padding-left: 5px; padding-bottom: 3px" valign="top">
+                        <asp:SiteMapPath ID="SiteMapPath1" runat="server" PathSeparator=" > " EnableTheming="True"
+                            CssClass="styleSitepath" Visible="false">
+                            <PathSeparatorStyle CssClass="stylePathsep" />
+                            <CurrentNodeStyle CssClass="styleCurrentNode" />
+                            <NodeStyle CssClass="styleNode" />
+                            <RootNodeStyle CssClass="styleRootNode" />
+                        </asp:SiteMapPath>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server">
+                        </asp:ContentPlaceHolder>
+                        <asp:UpdateProgress ID="UpProgress" DisplayAfter="1"
+                            runat="server">
+                            <ProgressTemplate>
+                                <cc1:DropShadowExtender ID="dseProspect" runat="server" TargetControlID="progress"
+                                    Opacity=".2" Rounded="false" TrackPosition="true" />
+                                <div id="progress" runat="server" style="background-image: url(../images/login/login_box_bg_01.gif); background-repeat: repeat-x; border-color: #c8c8c8; border-style: solid; border-width: 1px; width: 150px; height: 50px; position: absolute; top: 50%; left: 50%; margin-top: -30px; margin-left: -30px; z-index: 100001; vertical-align: middle; text-align: left">
+                                    <%--<img src="../images/processing_new.gif" style="position:absolute; vertical-align:middle; padding-top:5px" />--%>
+                                    <img src="../images/processing_new.gif" style="position: absolute; vertical-align: middle; padding-top: 8px; padding-left: 10px; height: 35px" />
+                                    <span style="position: absolute; font-weight: bold; font-size: medium; padding-left: 50px; padding-top: 13px">Loading..</span>
+                                </div>
+                            </ProgressTemplate>
+                        </asp:UpdateProgress>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</body>
+</html>
+

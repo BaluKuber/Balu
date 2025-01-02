@@ -1,0 +1,813 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:tns="http://tempuri.org/" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" name="ApplicationMgtServices" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SymmetricBinding xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:ProtectionToken>
+              <wsp:Policy>
+                <sp:SecureConversationToken sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
+                  <wsp:Policy>
+                    <sp:RequireDerivedKeys />
+                    <sp:BootstrapPolicy>
+                      <wsp:Policy>
+                        <sp:SignedParts>
+                          <sp:Body />
+                          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+                        </sp:SignedParts>
+                        <sp:EncryptedParts>
+                          <sp:Body />
+                        </sp:EncryptedParts>
+                        <sp:SymmetricBinding>
+                          <wsp:Policy>
+                            <sp:ProtectionToken>
+                              <wsp:Policy>
+                                <sp:SpnegoContextToken sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
+                                  <wsp:Policy>
+                                    <sp:RequireDerivedKeys />
+                                  </wsp:Policy>
+                                </sp:SpnegoContextToken>
+                              </wsp:Policy>
+                            </sp:ProtectionToken>
+                            <sp:AlgorithmSuite>
+                              <wsp:Policy>
+                                <sp:Basic256 />
+                              </wsp:Policy>
+                            </sp:AlgorithmSuite>
+                            <sp:Layout>
+                              <wsp:Policy>
+                                <sp:Strict />
+                              </wsp:Policy>
+                            </sp:Layout>
+                            <sp:IncludeTimestamp />
+                            <sp:EncryptSignature />
+                            <sp:OnlySignEntireHeadersAndBody />
+                          </wsp:Policy>
+                        </sp:SymmetricBinding>
+                        <sp:Wss11>
+                          <wsp:Policy />
+                        </sp:Wss11>
+                        <sp:Trust10>
+                          <wsp:Policy>
+                            <sp:MustSupportIssuedTokens />
+                            <sp:RequireClientEntropy />
+                            <sp:RequireServerEntropy />
+                          </wsp:Policy>
+                        </sp:Trust10>
+                      </wsp:Policy>
+                    </sp:BootstrapPolicy>
+                  </wsp:Policy>
+                </sp:SecureConversationToken>
+              </wsp:Policy>
+            </sp:ProtectionToken>
+            <sp:AlgorithmSuite>
+              <wsp:Policy>
+                <sp:Basic256 />
+              </wsp:Policy>
+            </sp:AlgorithmSuite>
+            <sp:Layout>
+              <wsp:Policy>
+                <sp:Strict />
+              </wsp:Policy>
+            </sp:Layout>
+            <sp:IncludeTimestamp />
+            <sp:EncryptSignature />
+            <sp:OnlySignEntireHeadersAndBody />
+          </wsp:Policy>
+        </sp:SymmetricBinding>
+        <sp:Wss11 xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy />
+        </sp:Wss11>
+        <sp:Trust10 xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:MustSupportIssuedTokens />
+            <sp:RequireClientEntropy />
+            <sp:RequireServerEntropy />
+          </wsp:Policy>
+        </sp:Trust10>
+        <wsaw:UsingAddressing />
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationApproval_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationApproval_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationApproval_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateProformaDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateProformaDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateProformaDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessInt_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessInt_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessInt_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubUpdateApplicationStatus_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubUpdateApplicationStatus_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubUpdateApplicationStatus_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateTallyIntegDetails_Input_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateTallyIntegDetails_output_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsp:Policy wsu:Id="WSHttpBinding_IApplicationMgtServices_FunPubCreateTallyIntegDetails_ClsPubFaultExceptionFault_Fault">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:SignedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+          <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+        </sp:SignedParts>
+        <sp:EncryptedParts xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <sp:Body />
+        </sp:EncryptedParts>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://tempuri.org/Imports">
+      <xsd:import schemaLocation="http://localhost:3221/Origination/ApplicationMgtServices.svc?xsd=xsd0" namespace="http://tempuri.org/" />
+      <xsd:import schemaLocation="http://localhost:3221/Origination/ApplicationMgtServices.svc?xsd=xsd3" namespace="http://schemas.datacontract.org/2004/07/S3GServiceLayer" />
+      <xsd:import schemaLocation="http://localhost:3221/Origination/ApplicationMgtServices.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+      <xsd:import schemaLocation="http://localhost:3221/Origination/ApplicationMgtServices.svc?xsd=xsd2" namespace="http://schemas.datacontract.org/2004/07/S3GBusEntity" />
+      <xsd:import schemaLocation="http://localhost:3221/Origination/ApplicationMgtServices.svc?xsd=xsd4" namespace="http://schemas.datacontract.org/2004/07/S3GBusEntity.ApplicationProcess" />
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationApproval_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateApplicationApproval" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationApproval_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateApplicationApprovalResponse" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationApproval_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q1="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q1:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateProformaDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateProformaDetails" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateProformaDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateProformaDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateProformaDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q2="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q2:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubRevokeOrUpdateApprovedDetails" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubRevokeOrUpdateApprovedDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q3="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q3:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationProcessInt_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateApplicationProcessInt" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationProcessInt_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateApplicationProcessIntResponse" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationProcessInt_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q4="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q4:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateApplicationProcessGoldLoanInt" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateApplicationProcessGoldLoanIntResponse" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q5="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q5:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubUpdateApplicationStatus_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubUpdateApplicationStatus" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubUpdateApplicationStatus_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubUpdateApplicationStatusResponse" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubUpdateApplicationStatus_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q6="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q6:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubRevokeOrUpdateApprovedDetailsPricing" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubRevokeOrUpdateApprovedDetailsPricingResponse" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q7="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q7:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateTallyIntegDetails_InputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateTallyIntegDetails" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateTallyIntegDetails_OutputMessage">
+    <wsdl:part name="parameters" element="tns:FunPubCreateTallyIntegDetailsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IApplicationMgtServices_FunPubCreateTallyIntegDetails_ClsPubFaultExceptionFault_FaultMessage">
+    <wsdl:part xmlns:q8="http://schemas.datacontract.org/2004/07/S3GServiceLayer" name="detail" element="q8:ClsPubFaultException" />
+  </wsdl:message>
+  <wsdl:portType name="IApplicationMgtServices">
+    <wsdl:operation name="FunPubCreateApplicationApproval">
+      <wsdl:input wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationApproval" message="tns:IApplicationMgtServices_FunPubCreateApplicationApproval_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationApprovalResponse" message="tns:IApplicationMgtServices_FunPubCreateApplicationApproval_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationApprovalClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IApplicationMgtServices_FunPubCreateApplicationApproval_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateProformaDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateProformaDetails" message="tns:IApplicationMgtServices_FunPubCreateProformaDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateProformaDetailsResponse" message="tns:IApplicationMgtServices_FunPubCreateProformaDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateProformaDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IApplicationMgtServices_FunPubCreateProformaDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubRevokeOrUpdateApprovedDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubRevokeOrUpdateApprovedDetails" message="tns:IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubRevokeOrUpdateApprovedDetailsResponse" message="tns:IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubRevokeOrUpdateApprovedDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateApplicationProcessInt">
+      <wsdl:input wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationProcessInt" message="tns:IApplicationMgtServices_FunPubCreateApplicationProcessInt_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationProcessIntResponse" message="tns:IApplicationMgtServices_FunPubCreateApplicationProcessInt_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationProcessIntClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IApplicationMgtServices_FunPubCreateApplicationProcessInt_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateApplicationProcessGoldLoanInt">
+      <wsdl:input wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationProcessGoldLoanInt" message="tns:IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationProcessGoldLoanIntResponse" message="tns:IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationProcessGoldLoanIntClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubUpdateApplicationStatus">
+      <wsdl:input wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubUpdateApplicationStatus" message="tns:IApplicationMgtServices_FunPubUpdateApplicationStatus_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubUpdateApplicationStatusResponse" message="tns:IApplicationMgtServices_FunPubUpdateApplicationStatus_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubUpdateApplicationStatusClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IApplicationMgtServices_FunPubUpdateApplicationStatus_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubRevokeOrUpdateApprovedDetailsPricing">
+      <wsdl:input wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubRevokeOrUpdateApprovedDetailsPricing" message="tns:IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubRevokeOrUpdateApprovedDetailsPricingResponse" message="tns:IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubRevokeOrUpdateApprovedDetailsPricingClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateTallyIntegDetails">
+      <wsdl:input wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateTallyIntegDetails" message="tns:IApplicationMgtServices_FunPubCreateTallyIntegDetails_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateTallyIntegDetailsResponse" message="tns:IApplicationMgtServices_FunPubCreateTallyIntegDetails_OutputMessage" />
+      <wsdl:fault wsaw:Action="http://tempuri.org/IApplicationMgtServices/FunPubCreateTallyIntegDetailsClsPubFaultExceptionFault" name="ClsPubFaultExceptionFault" message="tns:IApplicationMgtServices_FunPubCreateTallyIntegDetails_ClsPubFaultExceptionFault_FaultMessage" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="WSHttpBinding_IApplicationMgtServices" type="tns:IApplicationMgtServices">
+    <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_policy" />
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="FunPubCreateApplicationApproval">
+      <soap12:operation soapAction="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationApproval" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationApproval_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationApproval_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationApproval_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateProformaDetails">
+      <soap12:operation soapAction="http://tempuri.org/IApplicationMgtServices/FunPubCreateProformaDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateProformaDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateProformaDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateProformaDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubRevokeOrUpdateApprovedDetails">
+      <soap12:operation soapAction="http://tempuri.org/IApplicationMgtServices/FunPubRevokeOrUpdateApprovedDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateApplicationProcessInt">
+      <soap12:operation soapAction="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationProcessInt" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessInt_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessInt_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessInt_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateApplicationProcessGoldLoanInt">
+      <soap12:operation soapAction="http://tempuri.org/IApplicationMgtServices/FunPubCreateApplicationProcessGoldLoanInt" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateApplicationProcessGoldLoanInt_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubUpdateApplicationStatus">
+      <soap12:operation soapAction="http://tempuri.org/IApplicationMgtServices/FunPubUpdateApplicationStatus" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubUpdateApplicationStatus_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubUpdateApplicationStatus_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubUpdateApplicationStatus_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubRevokeOrUpdateApprovedDetailsPricing">
+      <soap12:operation soapAction="http://tempuri.org/IApplicationMgtServices/FunPubRevokeOrUpdateApprovedDetailsPricing" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubRevokeOrUpdateApprovedDetailsPricing_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="FunPubCreateTallyIntegDetails">
+      <soap12:operation soapAction="http://tempuri.org/IApplicationMgtServices/FunPubCreateTallyIntegDetails" style="document" />
+      <wsdl:input>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateTallyIntegDetails_Input_policy" />
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateTallyIntegDetails_output_policy" />
+        <soap12:body use="literal" />
+      </wsdl:output>
+      <wsdl:fault name="ClsPubFaultExceptionFault">
+        <wsp:PolicyReference URI="#WSHttpBinding_IApplicationMgtServices_FunPubCreateTallyIntegDetails_ClsPubFaultExceptionFault_Fault" />
+        <soap12:fault use="literal" name="ClsPubFaultExceptionFault" namespace="" />
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ApplicationMgtServices">
+    <wsdl:port name="WSHttpBinding_IApplicationMgtServices" binding="tns:WSHttpBinding_IApplicationMgtServices">
+      <soap12:address location="http://localhost:3221/Origination/ApplicationMgtServices.svc" />
+      <wsa10:EndpointReference>
+        <wsa10:Address>http://localhost:3221/Origination/ApplicationMgtServices.svc</wsa10:Address>
+        <Identity xmlns="http://schemas.xmlsoap.org/ws/2006/02/addressingidentity">
+          <Dns>localhost</Dns>
+        </Identity>
+      </wsa10:EndpointReference>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

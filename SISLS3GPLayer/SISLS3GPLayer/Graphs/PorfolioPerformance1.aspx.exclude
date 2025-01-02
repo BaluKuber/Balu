@@ -1,0 +1,150 @@
+﻿
+<%@ Page Language="C#" AutoEventWireup="true" 
+ MasterPageFile="~/Common/S3GMasterPageCollapse.master" 
+CodeFile="PorfolioPerformance1.aspx.cs" Inherits="PorfolioPerformance1" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+<asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+        
+         <table width="100%" border="0">
+            <tr>
+                <td>
+                    <asp:Panel ID="pnlDemand" runat="server" CssClass="stylePanel" GroupingText="Input Criteria" Width="100%">
+                        <table cellpadding="0" cellspacing="0" style="width: 100%">
+                            <tr>
+                            <td width="20%" class="styleFieldLabel">
+                                    <asp:Label ID="lblLOB" runat="server" Text="Line of Business" CssClass="styleReqFieldLabel" ToolTip="Line of Business"></asp:Label>
+                                </td>
+                                <td width="30%" class="styleFieldAlign">
+                                    <asp:DropDownList ID="ddlLOB" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged" ToolTip="Line of Business"
+                                        Width="60%">
+                                    </asp:DropDownList>
+                                    <asp:RequiredFieldValidator ID="rfvddlLOB" runat="server" ErrorMessage="Select Line of Business"
+                                        ValidationGroup="Ok" Display="None" SetFocusOnError="True" ControlToValidate="ddlLOB"
+                                        InitialValue="--Select--"></asp:RequiredFieldValidator>
+                                </td>
+                                <td width="20%" class="styleFieldLabel">
+                                    <asp:Label ID="lblLocation1" runat="server" Text="Location" CssClass="styleReqFieldLabel" ToolTip="Location1"></asp:Label>
+                                </td>
+                                <td width="30%" class="styleFieldAlign">
+                                    <asp:DropDownList ID="ddlLocation1" runat="server" AutoPostBack="true"  OnSelectedIndexChanged="ddlLocation_SelectedIndexChanged" ToolTip="Location1"
+                                        Width="60%">
+                                    </asp:DropDownList>
+                                    <asp:RequiredFieldValidator ID="rfvddlLocation" Display="None" runat="server" ErrorMessage="Select Location"
+                                        ValidationGroup="Ok" SetFocusOnError="True" ControlToValidate="ddlLocation1" InitialValue="0"></asp:RequiredFieldValidator>
+                                </td>
+                            </tr>
+                            <tr>
+                            <td width="20%" class="styleFieldLabel">
+                                    <asp:Label ID="lblAssetClass" runat="server" Text="Asset Class" ToolTip="Asset Class"></asp:Label>
+                                </td>
+                                <td width="30%" class="styleFieldAlign">
+                                    <asp:DropDownList ID="ddlAssetClass" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlAssetClass_SelectedIndexChanged" ToolTip="Asset Class"
+                                        Width="60%">
+                                    </asp:DropDownList>
+                                </td>
+                                <td width="20%" class="styleFieldLabel">
+                                    <asp:Label ID="lblAssetMake" runat="server" Text="Asset Make" ToolTip="Asset Make"></asp:Label>
+                                </td>
+                                <td width="30%" class="styleFieldAlign">
+                                    <asp:DropDownList ID="ddlAssetMake" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlAssetMake_SelectedIndexChanged" ToolTip="Asset Make"
+                                        Width="60%">
+                                    </asp:DropDownList>
+                                </td>
+                            </tr>
+                            <tr>
+                            <td width="20%" class="styleFieldLabel">
+                                    <asp:Label ID="lblAssetType" runat="server" Text="Asset Type" ToolTip="Asset Type"></asp:Label>
+                                </td>
+                                <td width="30%" class="styleFieldAlign">
+                                    <asp:DropDownList ID="ddlAssetType" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlAssetType_SelectedIndexChanged" ToolTip="Asset Type"
+                                        Width="60%">
+                                    </asp:DropDownList>
+                                </td>
+                                <td width="20%" class="styleFieldLabel">
+                                    <asp:Label ID="lblAssetModel" runat="server" Text="Asset Model" ToolTip="Asset Model"></asp:Label>
+                                </td>
+                                <td width="30%" class="styleFieldAlign">
+                                    <asp:DropDownList ID="ddlAssetModel" runat="server" AutoPostBack="true" ToolTip="Asset Model"
+                                        Width="60%">
+                                    </asp:DropDownList>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="20%" class="styleFieldLabel">
+                                    <asp:Label runat="server" Text="Start Date" ID="lblStartDate" ToolTip="Start Date" CssClass="styleReqFieldLabel">
+                                    </asp:Label>
+                                </td>
+                                <td width="30%" class="styleFieldAlign">
+                                    <asp:TextBox ID="txtStartDate" runat="server" Width="56%" ToolTip="Start Date"></asp:TextBox>
+                                    <asp:Image ID="imgStartDate" runat="server" ImageUrl="~/Images/calendaer.gif" />
+                                    <cc1:CalendarExtender runat="server" Format="MM/dd/yyyy" TargetControlID="txtStartDate"
+                                        PopupButtonID="imgStartDate" ID="CalendarExtender1">
+                                    </cc1:CalendarExtender>
+                                    <asp:RequiredFieldValidator ID="rfvStartDate" runat="server" ErrorMessage="Enter the Start Date"
+                                        ValidationGroup="Ok" Display="None" SetFocusOnError="True" ControlToValidate="txtStartDate"></asp:RequiredFieldValidator>
+                                </td>
+                                <td width="20%" class="styleFieldLabel">
+                                    <asp:Label runat="server" Text="End Date" ID="lblEndDate" ToolTip="End Date" CssClass="styleReqFieldLabel">
+                                    </asp:Label>
+                                </td>
+                                <td width="30%" class="styleFieldAlign">
+                                    <asp:TextBox ID="txtEndDate" runat="server" Width="56%" ToolTip="End Date"></asp:TextBox>
+                                    <asp:Image ID="ImgEndDate" runat="server" ImageUrl="~/Images/calendaer.gif" />
+                                    <cc1:CalendarExtender runat="server" Format="MM/dd/yyyy" TargetControlID="txtEndDate"
+                                        PopupButtonID="imgEndDate" ID="CalendarExtender2">
+                                    </cc1:CalendarExtender>
+                                     <asp:RequiredFieldValidator ID="rfvEndDate" runat="server" ErrorMessage="Enter the End Date"
+                                        ValidationGroup="Ok" Display="None" SetFocusOnError="True" ControlToValidate="txtEndDate">
+                                    </asp:RequiredFieldValidator>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td width="20%">
+                                    &nbsp;
+                                </td>
+                                <td width="30%">
+                                    &nbsp;
+                                </td>
+                                <td width="20%">
+                                    &nbsp;
+                                </td>
+                                <td width="30%">
+                                    &nbsp;
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center" colspan="4">
+                                    <asp:Button ID="btnChart" runat="server" CausesValidation="true" CssClass="styleSubmitButton"
+                                        Text="Generate Chart" OnClick="bntGenReport_Click"  ToolTip="Generate Chart"  ValidationGroup="Ok" />
+                                        &nbsp;<asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton"
+                                        Text="Clear" OnClick="btnClear_Click" OnClientClick="return fnConfirmClear();" />
+                                </td>
+                            </tr>
+                        </table>
+                    </asp:Panel>
+                </td>
+            </tr>
+             <tr>
+                <td>
+                    <asp:ValidationSummary ID="vsDemand" runat="server" CssClass="styleMandatoryLabel"
+                        CausesValidation="true" HeaderText="Correct the following validation(s):" ValidationGroup="Ok" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <asp:Panel ID="PnlChart" runat="server" CssClass="stylePanel" Visible="false" GroupingText="Demand Vs Collection Chart"
+                        HorizontalAlign="Center">
+                        <div id="ChartSpan" runat="server">
+                        </div>
+                    </asp:Panel>
+                </td>
+            </tr>
+        </table>
+   </ContentTemplate>
+   </asp:UpdatePanel>
+   </asp:Content>

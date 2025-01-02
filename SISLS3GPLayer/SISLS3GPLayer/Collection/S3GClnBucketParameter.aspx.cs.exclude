@@ -1,0 +1,1629 @@
+﻿
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : Bucket Parameter
+/// Created By                : Irsathameen .K
+/// Created Date              : 08-OCT-2010
+/// Purpose                   : 
+/// Last Updated By           : 
+/// Last Updated Date         : 
+/// Reason                    :
+
+/// <Program Summary>
+
+
+#region Namespaces
+
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Globalization;
+using System.ServiceModel;
+using Resources;
+using System.Text;
+using S3GBusEntity;
+using S3GBusEntity.Collection;
+
+#endregion
+
+
+public partial class Collection_S3GClnBucketParameter : ApplyThemeForProject
+{
+    #region  Variable declaration
+    ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient ObjBucketParameterClient;
+    ClnReceivableMgtServices.S3G_CLN_BucketParameterDetailsDataTable ObjS3G_CLN_BucketParameterDataTable = null;
+    SerializationMode SerMode = SerializationMode.Binary;
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+
+    int intBuckID, intErrCode, intUserID, intCompanyID = 0;
+    DataTable dt = new DataTable();
+    DataTable dtable = new DataTable();
+
+    Dictionary<string, string> dictParam = null;
+    string StrXMLDays, StrXMLValue, strBuckNo, StrXMLCategory;
+    static string strPageName = "Bucket Parameter";
+    string strRedirectPage = "../Collection/S3GClnTransLander.aspx?Code=CBP";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnBucketParameter.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CBP';";
+    const string strvalidationName = "CLNBUK";
+
+    #endregion
+
+    #region Methods
+
+    //FunPrisetinitialDayRow()
+
+    private void FunPrisetinitialDayRow()
+    {
+        try
+        {
+            DataTable dt = new DataTable();
+            DataRow dr;
+            dt.Columns.Add("Todays");
+            dt.Columns.Add("Fromdays");
+            dt.Columns.Add("DescriptionDays");
+            dt.Columns.Add("Descvalue");
+            dt.Columns.Add("CreditWeightage");
+            dr = dt.NewRow();
+
+            dr["Todays"] = string.Empty;
+            dr["Fromdays"] = string.Empty;
+            dr["DescriptionDays"] = string.Empty;
+            dr["Descvalue"] = string.Empty;
+            dr["CreditWeightage"] = string.Empty;
+            dt.Rows.Add(dr);
+            ViewState["currenttableDays"] = dt;
+            GRVDays.DataSource = dt;
+            GRVDays.DataBind();
+            GRVDays.Rows[0].Visible = false;
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+        finally
+        {
+            dt.Dispose();
+        }
+    }
+
+    private void FunPrisetinitialValueRow()
+    {
+        try
+        {
+            DataTable dt = new DataTable();
+            DataRow dr;
+
+            dt.Columns.Add("ToValue");
+            dt.Columns.Add("FromValue");
+            dt.Columns.Add("DescriptionValue");
+            dt.Columns.Add("Descvalue");
+            dr = dt.NewRow();
+
+            dr["ToValue"] = string.Empty;
+            dr["FromValue"] = string.Empty;
+            dr["DescriptionValue"] = string.Empty;
+            dr["Descvalue"] = string.Empty;
+            dt.Rows.Add(dr);
+
+            ViewState["currenttableValue"] = dt;
+            GRDValue.DataSource = dt;
+            GRDValue.DataBind();
+            GRDValue.Rows[0].Visible = false;
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+        finally
+        {
+            dt.Dispose();
+        }
+
+    }
+
+    private void FunPriBindBranchLOB()
+    {
+        try
+        {
+            //Branch
+            //dictParam = new Dictionary<string, string>();
+            //dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            //dictParam.Add("@Is_Active", "1");
+            //dictParam.Add("@User_ID", intUserID.ToString());
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, dictParam, new string[] { "Branch_ID", "Branch_Code", "Branch_Name" });
+            //ddlBranch.Items.Insert(1, (new System.Web.UI.WebControls.ListItem("Select All", "-1")));
+
+            // LOB
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            if (strMode != "M" && strMode != "Q")
+                dictParam.Add("@Is_Active", "1");
+            dictParam.Add("@User_ID", intUserID.ToString());
+            dictParam.Add("@Program_ID", "92");
+            ddlLOB.BindDataTable(SPNames.LOBMaster, dictParam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            if (ddlLOB.Items.Count > 0)
+            {
+                ddlLOB.Items.RemoveAt(0);
+                if (ddlLOB.Items.Count != 1)
+                    ddlLOB.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--All--", "-1")));
+            }
+
+            //// Category Type
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            DataTable dttemp = Utility.GetDefaultData("S3G_CLN_GetCategoryListBucketParam", dictParam);
+            if (dttemp.Rows.Count > 0)
+            {
+                GrvCategory.DataSource = dttemp;
+                GrvCategory.DataBind();
+            }
+
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriBindDescription()
+    {
+        try
+        {
+
+            if (GRVDays.FooterRow != null)
+            {
+                dt = ViewState["Description"] as DataTable;
+                DropDownList ddlDescriptionDaysF = (DropDownList)GRVDays.FooterRow.FindControl("ddlDescriptionDaysF");
+                ddlDescriptionDaysF.BindDataTable(dt, new string[] { "Lookup_Code", "Lookup_Description" });
+                if (dt.Columns.Count == 4)
+                    dt.Columns.RemoveAt(3);
+            }
+            if (GRDValue.FooterRow != null)
+            {
+                dt = ViewState["Description"] as DataTable;
+                DropDownList ddlDescriptionValueF = (DropDownList)GRDValue.FooterRow.FindControl("ddlDescriptionValueF");
+                ddlDescriptionValueF.BindDataTable(dt, new string[] { "Lookup_Code", "Lookup_Description" });
+                if (dt.Columns.Count == 4)
+                    dt.Columns.RemoveAt(3);
+            }
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+        finally
+        {
+            dt.Dispose();
+        }
+    }
+
+    private void FunPriGenerateXMLDays()
+    {
+        try
+        { StrXMLDays = GRVDays.FunPubFormXml(); }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+    private void FunPriGetDescriptionValues()
+    {
+        try
+        {
+            DataSet ds = new DataSet();
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LookupType_Code", "39");
+
+            ds = Utility.GetDataset(SPNames.S3G_LOANAD_GetLookUpValues, dictParam);
+            ViewState["Description"] = ds.Tables[0];
+            ds.Dispose();
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriGenerateXMLValue()
+    {
+        try
+        { StrXMLValue = GRDValue.FunPubFormXml(); }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+
+    private void FunPriGenerateXMLCategory()
+    {
+        try
+        {
+            StringBuilder strXMLBucketCategoryDet = new StringBuilder();
+            string strCategoryId = string.Empty;
+            string strCategoryName = string.Empty;
+            CheckBox chkCategory = null;
+            strXMLBucketCategoryDet.Append("<Root>");
+
+            foreach (GridViewRow GrvCategoryR in GrvCategory.Rows)
+            {
+                chkCategory = ((CheckBox)GrvCategoryR.FindControl("chkCategory"));
+                if (chkCategory.Checked)
+                {
+                    strCategoryId = ((Label)GrvCategoryR.FindControl("lblcategoryId")).Text;
+                    strCategoryName = ((Label)GrvCategoryR.FindControl("lblcategoryName")).Text;
+                    strXMLBucketCategoryDet.Append(" <Details CategoryId='" + strCategoryId +
+                                                     "' CategoryName='" + strCategoryName +
+                                                      "' /> ");
+                }
+            }
+            strXMLBucketCategoryDet.Append("</Root>");
+            StrXMLCategory = strXMLBucketCategoryDet.ToString();
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+
+    private void FunPriGetBucketParameterDetails()
+    {
+        try
+        {
+            DataSet DS = new DataSet();
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@Buck_ID", Convert.ToString(intBuckID));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetBucketparameterDetails, dictParam);
+
+            // Table 0[OLE Details]
+            if (DS.Tables[0].Rows.Count >= 1)
+            {
+                if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != string.Empty)
+                { ddlLOB.SelectedValue = DS.Tables[0].Rows[0]["LOB_ID"].ToString(); }
+                //if (DS.Tables[0].Rows[0]["Branch_ID"].ToString() != string.Empty)
+                //{ ddlBranch.SelectedValue = DS.Tables[0].Rows[0]["Branch_ID"].ToString(); }
+                chkActive.Checked = Convert.ToBoolean(DS.Tables[0].Rows[0]["Is_Active"]);
+            }
+
+            // Table 1 Category Type
+            if (DS.Tables[1].Rows.Count > 0)
+            {
+                //ddlCategorytype.SelectedValue = DS.Tables[1].Rows[0]["Category_Type"].ToString();
+                //ddlCategorytype_SelectedIndexChanged(this, EventArgs.Empty);
+                CheckBox chkCategory = null;
+                Label lblcategoryId = null;
+                foreach (GridViewRow GrvCategoryR in GrvCategory.Rows)
+                {
+                    chkCategory = ((CheckBox)GrvCategoryR.FindControl("chkCategory"));
+                    lblcategoryId = ((Label)GrvCategoryR.FindControl("lblcategoryId"));
+                    for (int i = 0; i < DS.Tables[1].Rows.Count; i++)
+                    {
+                        if (lblcategoryId.Text == DS.Tables[1].Rows[i]["Category_Type"].ToString())
+                        {
+                            chkCategory.Checked = true;
+                        }
+                    }
+                }
+            }
+            // Table 2 [Days Details to be stored in Gridvview]
+            if (DS.Tables[2].Rows.Count >= 1)
+            {
+                ViewState["currenttableDays"] = DS.Tables[2];
+                GRVDays.DataSource = DS.Tables[2];
+                GRVDays.EmptyDataText = "No Records Found";
+                GRVDays.DataBind();
+            }
+            else if (DS.Tables[2].Rows.Count == 0)
+                FunPrisetinitialDayRow();
+            // Table 3 [Value Details to be stored in Gridvview]
+            if (DS.Tables[3].Rows.Count >= 1)
+            {
+                ViewState["currenttableValue"] = DS.Tables[3];
+                GRDValue.DataSource = DS.Tables[3];
+                GRDValue.EmptyDataText = "No Records Found";
+                GRDValue.DataBind();
+            }
+            else if (DS.Tables[3].Rows.Count == 0)
+                FunPrisetinitialValueRow();
+
+            FunPriBindDescription();
+            DS.Dispose();
+            //Added by saran on 19-oct-2011 for uat fix BP_004
+            if (GRVDays != null)
+            {
+                Label lblToDays = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+                int intToDays = 0;
+                if (lblToDays != null && lblToDays.Text.Length > 0)
+                {
+                    intToDays = Convert.ToInt32(lblToDays.Text) + 1;
+                }
+                FunPriSetVisibleFooterRow(intToDays.ToString());
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    ddlLOB.Focus();
+                    chkActive.Enabled = false;
+                    break;
+                case -1:// Query Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    ddlLOB.ClearDropDownList();
+                    CheckBox chkCategory = null;
+                    Label lblcategoryId = null;
+                    foreach (GridViewRow GrvCategoryR in GrvCategory.Rows)
+                    {
+                        chkCategory = ((CheckBox)GrvCategoryR.FindControl("chkCategory"));
+                        chkCategory.Enabled = false;
+                    }
+                    //ddlBranch.ClearDropDownList();
+                    //ddlCategorytype.ClearDropDownList();
+                    chkActive.Enabled = btnSave.Enabled = btnClear.Enabled = false;
+                    GRDValue.FooterRow.Visible = GRVDays.FooterRow.Visible = GRVDays.Columns[4].Visible = GRDValue.Columns[4].Visible = false;
+                    break;
+                case 1:// Modify Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    ddlLOB.ClearDropDownList();
+                    btnClear.Enabled = false;
+                    //ddlBranch.ClearDropDownList();
+                    //ddlCategorytype.ClearDropDownList();
+
+                    if (GRDValue.Rows.Count > 0)
+                    {
+                        Label lblToValue = (Label)GRDValue.Rows[GRDValue.Rows.Count - 1].FindControl("lblToValue");
+                        LinkButton lnkEdit = (LinkButton)GRDValue.Rows[GRDValue.Rows.Count - 1].FindControl("lnkEdit"); ;
+                        LinkButton btnRemovevalue = (LinkButton)GRDValue.Rows[GRDValue.Rows.Count - 1].FindControl("btnRemovevalue");
+
+                        if (!string.IsNullOrEmpty(lblToValue.Text))
+                        {
+                            // btnRemovevalue.Enabled = lnkEdit.Enabled = true;
+                            TextBox txtFromValueF1 = (TextBox)GRDValue.FooterRow.FindControl("txtFromValueF");
+                            txtFromValueF1.Text = Convert.ToString(Convert.ToInt64(lblToValue.Text.Trim()) + 1);
+                            txtFromValueF1.ReadOnly = true;
+                        }
+                    }
+                    if (GRVDays.Rows.Count > 0)
+                    {
+                        Label lblToDays = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+                        LinkButton lnkEdit = (LinkButton)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lnkEdit"); ;
+                        LinkButton btnRemoveDays = (LinkButton)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("btnRemoveDays");
+                        if (!string.IsNullOrEmpty(lblToDays.Text))
+                        {
+                            //  btnRemoveDays.Enabled = lnkEdit.Enabled = true;
+                            TextBox txtFromDaysF1 = (TextBox)GRVDays.FooterRow.FindControl("txtFromDaysF");
+                            txtFromDaysF1.Text = Convert.ToString(Convert.ToInt64(lblToDays.Text.Trim()) + 1);
+                            txtFromDaysF1.ReadOnly = true;
+                        }
+                    }
+                    break;
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriClearPage()
+    {
+        try
+        {
+            if (ddlLOB.Items.Count > 0)
+                ddlLOB.SelectedIndex = 0;
+            //if (ddlBranch.Items.Count > 0)
+            //{ ddlBranch.SelectedIndex = 0; }
+            //if (ddlCategorytype.Items.Count > 0)
+            //{ ddlCategorytype.SelectedIndex = 0; }
+            //txtCategoryDesc.Text = string.Empty;
+            FunPrisetinitialValueRow();
+            FunPrisetinitialDayRow();
+            FunPriBindDescription();
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private bool FunchkCategory()
+    {
+        bool blnchk = false;
+        int count = 0;
+        CheckBox chkCategory = null;
+        Label lblcategoryId = null;
+        foreach (GridViewRow GrvCategoryR in GrvCategory.Rows)
+        {
+            chkCategory = ((CheckBox)GrvCategoryR.FindControl("chkCategory"));
+            if (chkCategory.Checked)
+            {
+                count++;
+            }
+        }
+        if (count > 0)
+        {
+            blnchk = true;
+        }
+        else
+        {
+            blnchk = false;
+        }
+        return blnchk;
+
+
+
+    }
+
+
+    private void FunPriSaveBucketParameter()
+    {
+        try
+        {
+            strBuckNo = "";
+            dt = (DataTable)ViewState["currenttableDays"];
+            dtable = (DataTable)ViewState["currenttableValue"];
+            if (dt.Rows[0]["FromDays"].ToString() == string.Empty && dtable.Rows[0]["FromValue"].ToString() == string.Empty && !FunchkCategory())
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 2);
+                return;
+            }
+            ObjS3G_CLN_BucketParameterDataTable = new ClnReceivableMgtServices.S3G_CLN_BucketParameterDetailsDataTable();
+            ClnReceivableMgtServices.S3G_CLN_BucketParameterDetailsRow ObjBucketParameterRow;
+            ObjBucketParameterRow = ObjS3G_CLN_BucketParameterDataTable.NewS3G_CLN_BucketParameterDetailsRow();
+            ObjBucketParameterRow.Company_ID = intCompanyID;
+            if (ddlLOB.SelectedValue != "-1")
+                ObjBucketParameterRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            //if (ddlBranch.SelectedValue != "0")
+            // ObjBucketParameterRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue); 
+            ObjBucketParameterRow.Created_By = intUserID;
+            FunPriGenerateXMLDays();
+            ObjBucketParameterRow.XMLDays = StrXMLDays;
+            FunPriGenerateXMLValue();
+            ObjBucketParameterRow.XMLValue = StrXMLValue;
+            FunPriGenerateXMLCategory();
+            ObjBucketParameterRow.XMLCategory = StrXMLCategory;
+            ObjBucketParameterRow.Is_Active = chkActive.Checked;
+
+            if (strMode == string.Empty)// Create Mode
+            {
+                //if (ddlCategorytype.SelectedIndex != 0)
+                //{
+                //    ObjBucketParameterRow.Categorytype = 40;
+                //    //ObjBucketParameterRow.Categorycode = Convert.ToInt32(ddlCategorytype.SelectedValue);
+                //    ObjBucketParameterRow.Categorycode = 0;
+                //}
+            }
+            else  // Modify mode
+            {
+                //ObjBucketParameterRow.Categorytype = 40;
+                ////ObjBucketParameterRow.Categorycode = Convert.ToInt32(ddlCategorytype.SelectedValue);
+                //ObjBucketParameterRow.Categorycode = 0;
+            }
+            ObjBucketParameterRow.Buck_ID = intBuckID;
+            ObjS3G_CLN_BucketParameterDataTable.AddS3G_CLN_BucketParameterDetailsRow(ObjBucketParameterRow);
+            ObjBucketParameterClient = new ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient();
+            intErrCode = ObjBucketParameterClient.FunPubCreateBucketParameterDetails(out strBuckNo, SerMode, ClsPubSerialize.Serialize(ObjS3G_CLN_BucketParameterDataTable, SerMode));
+
+            if (intErrCode == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                if (intBuckID > 0)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Bucket Parameter " + ValidationMsgs.S3G_ValMsg_Update, strRedirectPage);
+                }
+                else
+                {
+                    strAlert = "Bucket Parameter " + Resources.ValidationMsgs.S3G_ValMsg_Save;
+                    strAlert += @"\n\nWould you like to add one more Bucket Parameter?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPageView = "";
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                    lblErrorMessage.Text = string.Empty;
+                    return;
+                }
+            }
+            else if (intErrCode == 3)
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 4);
+                return;
+            }
+            else if (intErrCode == 10)
+            {
+                //Utility.FunShowAlertMsg(this.Page, "Active Bucket parameter is already exists.");
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 25);
+                return;
+            }
+            else if (intErrCode == 16)
+            {
+                Utility.FunShowAlertMsg(this, "Cannot Modify Bucket Parameter.Debt Collector Rule card has been done using the Bucket Parameter.");
+                return;
+            }
+            dt.Dispose();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (ObjBucketParameterClient != null)
+                ObjBucketParameterClient.Close();
+
+        }
+    }
+
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            UserInfo ObjUserInfo = new UserInfo();
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            S3GSession ObjS3GSession = new S3GSession();
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                if (fromTicket != null)
+                { intBuckID = Convert.ToInt32(fromTicket.Name); }
+                else
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Invalid URL");
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                }
+                strMode = Request.QueryString["qsMode"];
+            }
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end  
+
+            if (!IsPostBack)
+            {
+                FunPriBindBranchLOB();
+                FunPriGetDescriptionValues();
+
+                //User Authorization            
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if ((intBuckID > 0) && (strMode == "M"))// Modify
+                {
+                    FunPriGetBucketParameterDetails();
+                    FunPriDisableControls(1);
+                }
+                else if ((intBuckID > 0) && (strMode == "Q")) // Query 
+                {
+                    FunPriGetBucketParameterDetails();
+                    FunPriDisableControls(-1);
+                }
+                else  //Create Mode
+                {
+                    FunPriDisableControls(0);
+                    FunPrisetinitialDayRow();
+                    FunPrisetinitialValueRow();
+                }
+                FunPriBindDescription();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriGetCategorytype()
+    {
+        try
+        {
+            //if (ddlCategorytype.SelectedValue == "0")
+            //{ txtCategoryDesc.Text = string.Empty; }
+            //else if (ddlCategorytype.SelectedValue == "1")
+            //{ txtCategoryDesc.Text = "Delinquent"; }
+            //else if (ddlCategorytype.SelectedValue == "2")
+            //{ txtCategoryDesc.Text = "Legal"; }
+            //else if (ddlCategorytype.SelectedValue == "3")
+            //{ txtCategoryDesc.Text = "Repossession"; }
+            //else if (ddlCategorytype.SelectedValue == "4")
+            //{ txtCategoryDesc.Text = "Write Off"; }
+            //else if (ddlCategorytype.SelectedValue == "5")
+            //{ txtCategoryDesc.Text = "Others"; }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriGridviewvalueRowcommand(GridViewCommandEventArgs e)
+    {
+        try
+        {
+            DataRow dr;
+            if (e.CommandName == "AddNew")
+            {
+                dt = (DataTable)ViewState["currenttableValue"];
+                TextBox txtFromValueF = (TextBox)GRDValue.FooterRow.FindControl("txtFromValueF");
+                TextBox txtToValueF = (TextBox)GRDValue.FooterRow.FindControl("txtToValueF");
+                DropDownList ddlDescriptionValueF = (DropDownList)GRDValue.FooterRow.FindControl("ddlDescriptionValueF");
+
+                TextBox txtdesc = (TextBox)GRDValue.FooterRow.FindControl("txtdesc");
+
+                if (txtFromValueF.Text.Trim() == string.Empty)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 5);
+                    txtFromValueF.Focus();
+                    return;
+                }
+                else if (txtToValueF.Text.Trim() == string.Empty)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 6);
+                    txtToValueF.Focus();
+                    return;
+                }
+                else if (ddlDescriptionValueF.SelectedIndex == 0)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 7);
+                    ddlDescriptionValueF.Focus();
+                    return;
+                }
+                else if (Convert.ToInt64(txtFromValueF.Text.Trim()) > Convert.ToInt64(txtToValueF.Text.Trim()))
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 13);
+                    txtToValueF.Focus();
+                    return;
+                }
+                if (dt.Rows.Count >= 9)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 14);
+                    txtFromValueF.Text = "";
+                    txtToValueF.Text = "";
+                    ddlDescriptionValueF.SelectedIndex = 0;
+                    return;
+                }
+
+                long Todays = 0;
+                Label lblToValue = (Label)GRDValue.Rows[GRDValue.Rows.Count - 1].FindControl("lblToValue");
+                if (!string.IsNullOrEmpty(lblToValue.Text.Trim()))
+                {
+                    Todays = Convert.ToInt64(lblToValue.Text.Trim());
+                    if (Todays >= Convert.ToInt64(txtFromValueF.Text.Trim()))
+                    {
+                        Utility.FunShowValidationMsg(this.Page, strvalidationName, 9);
+                        txtFromValueF.Focus();
+                        return;
+                    }
+                }
+                if (dt.Rows.Count > 0)
+                {
+                    if (dt.Rows[0]["FromValue"].ToString() == "")
+                    { dt.Rows[0].Delete(); }
+                }
+
+                dr = dt.NewRow();
+                dr["FromValue"] = txtFromValueF.Text.Trim();
+                dr["ToValue"] = txtToValueF.Text.Trim();
+                dr["DescriptionValue"] = ddlDescriptionValueF.SelectedItem.Text;
+                dr["Descvalue"] = ddlDescriptionValueF.SelectedValue;
+                dt.Rows.Add(dr);
+
+                GRDValue.DataSource = dt;
+                GRDValue.DataBind();
+                ViewState["currenttableValue"] = dt;
+                FunPriBindDescription();
+
+                TextBox txtFromValueF1 = (TextBox)GRDValue.FooterRow.FindControl("txtFromValueF");
+                txtFromValueF1.Text = Convert.ToString(Convert.ToInt64(txtToValueF.Text.Trim()) + 1);
+                txtFromValueF1.ReadOnly = true;
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            dt.Dispose();
+        }
+    }
+
+    private void PriFunGridviewDayRowcommand(GridViewCommandEventArgs e)
+    {
+        try
+        {
+            DataRow dr;
+            if (e.CommandName.ToUpper() == "ADDNEW")
+            {
+                dt = (DataTable)ViewState["currenttableDays"];
+                TextBox txtFromDaysF = (TextBox)GRVDays.FooterRow.FindControl("txtFromDaysF");
+                TextBox txtToDaysF = (TextBox)GRVDays.FooterRow.FindControl("txtToDaysF");
+                DropDownList ddlDescriptionDaysF = (DropDownList)GRVDays.FooterRow.FindControl("ddlDescriptionDaysF");
+                TextBox txtCreditWeightageF = (TextBox)GRVDays.FooterRow.FindControl("txtCreditWeightageF");
+
+                if (txtFromDaysF.Text.Trim() == string.Empty)
+                {
+
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 5);
+                    txtFromDaysF.Focus();
+                    return;
+                }
+                else if (txtToDaysF.Text.Trim() == string.Empty)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 6);
+                    txtToDaysF.Focus();
+                    return;
+                }
+                else if (ddlDescriptionDaysF.SelectedIndex == 0)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 7);
+                    ddlDescriptionDaysF.Focus();
+                    return;
+                }
+                else if (Convert.ToInt64(txtFromDaysF.Text.Trim()) > Convert.ToInt64(txtToDaysF.Text.Trim()))
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 8);
+                    txtToDaysF.Focus();
+                    return;
+                }
+                else if (string.IsNullOrEmpty (txtCreditWeightageF.Text))
+                {
+                    Utility.FunShowAlertMsg(this, "Enter the Credit Weightage");
+                    txtCreditWeightageF.Focus();
+                    return;
+                }
+                else if (dt.Rows.Count >= 9)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 14);
+                    txtFromDaysF.Text = "";
+                    txtToDaysF.Text = "";
+                    ddlDescriptionDaysF.SelectedIndex = 0;
+                    return;
+                }
+
+                long Todays = 0;
+                Label lblToDays = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+                if (!string.IsNullOrEmpty(lblToDays.Text.Trim()))
+                {
+                    Todays = Convert.ToInt64(lblToDays.Text.Trim());
+                    if (Todays >= Convert.ToInt64(txtFromDaysF.Text.Trim()))
+                    {
+                        Utility.FunShowValidationMsg(this.Page, strvalidationName, 24);
+
+                        txtFromDaysF.Focus();
+                        return;
+                    }
+                }
+                dt = (DataTable)ViewState["currenttableDays"];
+                if (dt.Rows.Count > 0)
+                {
+                    if (dt.Rows[0]["FromDays"].ToString() == "")
+                    { dt.Rows[0].Delete(); }
+                }
+                dr = dt.NewRow();
+                dr["Fromdays"] = txtFromDaysF.Text.Trim();
+                dr["ToDays"] = txtToDaysF.Text.Trim();
+                dr["DescriptionDays"] = ddlDescriptionDaysF.SelectedItem.Text;
+                dr["Descvalue"] = ddlDescriptionDaysF.SelectedValue;
+                dr["CreditWeightage"] = txtCreditWeightageF.Text.Trim();
+                dt.Rows.Add(dr);
+                GRVDays.DataSource = dt;
+                GRVDays.DataBind();
+                ViewState["currenttableDays"] = dt;
+                FunPriBindDescription();
+                TextBox txtFromDaysF1 = (TextBox)GRVDays.FooterRow.FindControl("txtFromDaysF");
+                txtFromDaysF1.Text = Convert.ToString(Convert.ToInt64(txtToDaysF.Text.Trim()) + 1);
+                txtFromDaysF1.ReadOnly = true;
+                FunPriSetVisibleFooterRow(txtFromDaysF1.Text);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            dt.Dispose();
+        }
+    }
+
+    private void PriFunGridviewvalueRowDeleting(GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            DataTable dtDelete;
+            dtDelete = (DataTable)ViewState["currenttableValue"];
+
+            if (e.RowIndex != 0)
+            {
+                if (dtDelete.Rows.Count > e.RowIndex + 1)
+                    dtDelete.Rows[e.RowIndex + 1]["FromValue"] = Convert.ToInt64(dtDelete.Rows[e.RowIndex - 1]["ToValue"]) + 1;
+                dtDelete.AcceptChanges();
+            }
+            dtDelete.Rows.RemoveAt(e.RowIndex);
+            GRDValue.DataSource = dtDelete;
+            GRDValue.DataBind();
+            ViewState["currenttableValue"] = dtDelete;
+            if (dtDelete.Rows.Count == 0)
+            { FunPrisetinitialValueRow(); }
+            FunPriBindDescription();
+            if (GRDValue.Rows.Count > 0)
+            {
+                TextBox txtFromValueF1 = (TextBox)GRDValue.FooterRow.FindControl("txtFromValueF");
+                Label lblToValueEdit1 = (Label)GRDValue.Rows[GRDValue.Rows.Count - 1].FindControl("lblToValue");
+                if (!string.IsNullOrEmpty(lblToValueEdit1.Text.Trim()))
+                    txtFromValueF1.Text = Convert.ToString(Convert.ToInt64(lblToValueEdit1.Text.Trim()) + 1);
+
+            }
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    private void PriGridviewDayRowDeleting(GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            //FunPriBindDescription();
+            DataTable dtDelete;
+            dtDelete = (DataTable)ViewState["currenttableDays"];
+            if (e.RowIndex != 0)
+            {
+                if (dtDelete.Rows.Count > e.RowIndex + 1)
+                    dtDelete.Rows[e.RowIndex + 1]["Fromdays"] = Convert.ToInt64(dtDelete.Rows[e.RowIndex - 1]["Todays"]) + 1;
+                dtDelete.AcceptChanges();
+            }
+            dtDelete.Rows.RemoveAt(e.RowIndex);
+            GRVDays.DataSource = dtDelete;
+            GRVDays.DataBind();
+            ViewState["currenttableDays"] = dtDelete;
+            if (dtDelete.Rows.Count == 0)
+            { FunPrisetinitialDayRow(); }
+            FunPriBindDescription();
+            if (GRVDays.Rows.Count >= 1)
+            {
+                TextBox txtFromDaysF1 = (TextBox)GRVDays.FooterRow.FindControl("txtFromDaysF");
+                Label lblToDaysEdit1 = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+                if (!string.IsNullOrEmpty(lblToDaysEdit1.Text.Trim()))
+                    txtFromDaysF1.Text = Convert.ToString(Convert.ToInt64(lblToDaysEdit1.Text.Trim()) + 1);
+            }
+            //Added on 19-oct-2011 for uat bug fix BP_004.
+            Label lblToDays = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+            int intToDays = 0;
+            if (lblToDays != null && lblToDays.Text.Length > 0)
+            {
+                intToDays = Convert.ToInt32(lblToDays.Text) + 1;
+            }
+            FunPriSetVisibleFooterRow(intToDays.ToString());
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+
+    private void FunPriSetVisibleFooterRow(string txtFrom)
+    {
+        if (txtFrom.Length > 0)
+        {
+            if (Convert.ToInt32(txtFrom) >= 10000)
+            {
+                if (GRVDays.FooterRow != null && GRVDays.FooterRow.Visible)
+                    GRVDays.FooterRow.Visible = false;
+            }
+            //else
+            //{
+            //    grvDelinquentParameterdetails.FooterRow.Visible = true;
+            //}
+        }
+    }
+
+
+    #endregion
+
+    #region Events
+
+    #region Button Events
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearPage();
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_23;
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        { FunPriSaveBucketParameter(); }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_21;
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Grid Events
+
+    #region Gridview-Days
+
+    protected void GRVDays_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            PriGridviewDayRowDeleting(e);
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_20;
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+    protected void GRVDays_RowCommand1(object sender, GridViewCommandEventArgs e)
+    {
+        try
+        {
+            PriFunGridviewDayRowcommand(e);
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_19;
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+    protected void GRVDays_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+        try
+        {
+
+            TextBox txtFromDaysEdit = (TextBox)GRVDays.Rows[e.RowIndex].FindControl("txtFromDaysEdit");
+            TextBox txtToDaysEdit = (TextBox)GRVDays.Rows[e.RowIndex].FindControl("txtToDaysEdit");
+            DropDownList ddlDescriptionDaysEdit = (DropDownList)GRVDays.Rows[e.RowIndex].FindControl("ddlDescriptionDaysEdit");
+            TextBox txtCreditWeightageEdit = (TextBox)GRVDays.Rows[e.RowIndex].FindControl("txtCreditWeightageEdit");
+            HiddenField hdnDescDays = (HiddenField)GRVDays.Rows[e.RowIndex].FindControl("hdnDescDays");
+
+            dtable = (DataTable)ViewState["currenttableDays"];
+
+            if (txtFromDaysEdit.Text.Trim() == string.Empty)
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 5);
+                txtFromDaysEdit.Focus();
+                return;
+            }
+            else if (txtToDaysEdit.Text.Trim() == string.Empty)
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 6);
+                txtToDaysEdit.Focus();
+                return;
+            }
+            else if (ddlDescriptionDaysEdit.SelectedIndex == 0)
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 7);
+                ddlDescriptionDaysEdit.Focus();
+                return;
+            }
+            else if (string.IsNullOrEmpty(txtCreditWeightageEdit.Text.Trim()))
+            {
+                Utility.FunShowAlertMsg(this, "Enter the Credit Weightage");
+                txtCreditWeightageEdit.Focus();
+                return;
+            }
+            else if (dtable.Rows.Count > e.RowIndex + 1)
+            {
+                long intPreToVlaue = Convert.ToInt64(dtable.Rows[e.RowIndex + 1]["ToDays"].ToString());
+                if (Convert.ToInt64(txtToDaysEdit.Text.Trim()) >= intPreToVlaue)
+                {
+                    //Utility.FunShowAlertMsg(this.Page, "Should not overlapped");
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 24);
+                    txtToDaysEdit.Focus();
+                    return;
+                }
+            }
+            //if (e.RowIndex != dtable.Rows.Count - 1)
+            //{
+            //    long intNxtFromVlaue = Convert.ToInt64(dtable.Rows[e.RowIndex + 1]["FromDays"].ToString());
+            //    if (Convert.ToInt64(txtToDaysEdit.Text.Trim()) >= intNxtFromVlaue)
+            //    {
+            //        Utility.FunShowAlertMsg(this.Page, "Should not overlapped");
+            //        txtToDaysEdit.Focus();
+            //        return;
+            //    }
+            //}
+            if (Convert.ToInt64(txtFromDaysEdit.Text.Trim()) > Convert.ToInt64(txtToDaysEdit.Text.Trim()))
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 8);
+                txtToDaysEdit.Focus();
+                return;
+            }
+            if (dt.Rows.Count >= 9)
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 14);
+                txtFromDaysEdit.Text = "";
+                txtToDaysEdit.Text = "";
+                ddlDescriptionDaysEdit.SelectedIndex = 0;
+                return;
+            }
+
+            dtable.Rows[e.RowIndex]["Fromdays"] = txtFromDaysEdit.Text;
+            dtable.Rows[e.RowIndex]["Todays"] = txtToDaysEdit.Text;
+
+            if (dtable.Rows.Count > e.RowIndex + 1)
+                dtable.Rows[e.RowIndex + 1]["Fromdays"] = Convert.ToInt64(txtToDaysEdit.Text) + 1;
+            dtable.Rows[e.RowIndex]["DescriptionDays"] = ddlDescriptionDaysEdit.SelectedItem.Text;
+            dtable.Rows[e.RowIndex]["Descvalue"] = ddlDescriptionDaysEdit.SelectedValue;
+            dtable.Rows[e.RowIndex]["CreditWeightage"] = txtCreditWeightageEdit.Text;
+            dtable.AcceptChanges();
+            GRVDays.EditIndex = -1;
+            dt = (DataTable)ViewState["currenttableDays"];
+            GRVDays.DataSource = dt;
+            GRVDays.DataBind();
+            FunPriBindDescription();
+            if (GRVDays.Rows.Count < 9)
+            {
+                TextBox txtFromDaysF1 = (TextBox)GRVDays.FooterRow.FindControl("txtFromDaysF");
+                Label lblToDaysEdit1 = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+                if (!string.IsNullOrEmpty(lblToDaysEdit1.Text.Trim()))
+                    txtFromDaysF1.Text = Convert.ToString(Convert.ToInt64(lblToDaysEdit1.Text.Trim()) + 1);
+                GRVDays.FooterRow.Visible = true;
+            }
+            //Added by saran on 19-oct-2011 for uat fix BP_004
+
+            Label lblToDays = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+            int intToDays = 0;
+            if (lblToDays != null && lblToDays.Text.Length > 0)
+            {
+                intToDays = Convert.ToInt32(lblToDays.Text) + 1;
+            }
+            FunPriSetVisibleFooterRow(intToDays.ToString());
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.IsValid = false;
+        }
+
+    }
+
+    protected void GRVDays_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+    {
+        try
+        {
+            GRVDays.EditIndex = -1;
+            dt = (DataTable)ViewState["currenttableDays"];
+            GRVDays.DataSource = dt;
+            GRVDays.DataBind();
+            FunPriBindDescription();
+            TextBox txtFromDaysF1 = (TextBox)GRVDays.FooterRow.FindControl("txtFromDaysF");
+            Label lblToDaysEdit1 = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+            if (!string.IsNullOrEmpty(lblToDaysEdit1.Text.Trim()))
+                txtFromDaysF1.Text = Convert.ToString(Convert.ToInt64(lblToDaysEdit1.Text.Trim()) + 1);
+            //Added on 19-oct-2011 for uat bug fix BP_004.
+            Label lblToDays = (Label)GRVDays.Rows[GRVDays.Rows.Count - 1].FindControl("lblToDays");
+            int intToDays = 0;
+            if (lblToDays != null && lblToDays.Text.Length > 0)
+            {
+                intToDays = Convert.ToInt32(lblToDays.Text) + 1;
+            }
+            FunPriSetVisibleFooterRow(intToDays.ToString());
+            //GRVDays.FooterRow.Visible = true;
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.IsValid = false;
+        }
+
+    }
+
+    protected void GRVDays_RowEditing(object sender, GridViewEditEventArgs e)
+    {
+        try
+        {
+            GRVDays.EditIndex = e.NewEditIndex;
+            dt = (DataTable)ViewState["currenttableDays"];
+            GRVDays.DataSource = dt;
+            GRVDays.DataBind();
+            dt.Dispose();
+            DropDownList ddlDescriptionDaysEdit = GRVDays.Rows[e.NewEditIndex].FindControl("ddlDescriptionDaysEdit") as DropDownList;
+            HiddenField hdnDescDays = (HiddenField)GRVDays.Rows[e.NewEditIndex].FindControl("hdnDescDays");
+            TextBox txtFromDaysEdit = GRVDays.Rows[e.NewEditIndex].FindControl("txtFromDaysEdit") as TextBox;
+            TextBox txtCreditWeightageEdit = GRVDays.Rows[e.NewEditIndex].FindControl("txtCreditWeightageEdit") as TextBox;
+
+            if (e.NewEditIndex == 0)
+                txtFromDaysEdit.ReadOnly = false;
+            else
+                txtFromDaysEdit.ReadOnly = true;
+
+            // Description For Days
+            dt = ViewState["Description"] as DataTable;
+            ddlDescriptionDaysEdit.BindDataTable(dt, new string[] { "Lookup_Code", "Lookup_Description" });
+            if (dt.Columns.Count == 4)
+                dt.Columns.RemoveAt(3);
+
+            ddlDescriptionDaysEdit.SelectedValue = hdnDescDays.Value;
+            // lblLookupCode.Text;
+            GRVDays.FooterRow.Visible = false;
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.IsValid = false;
+        }
+        finally
+        {
+            dt.Dispose();
+        }
+
+    }
+
+    protected void GRVDays_RowCreated(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (GRVDays.Rows.Count >= 9)
+                GRVDays.ShowFooter = false;
+            else if (GRVDays.Rows.Count < 9)
+                GRVDays.ShowFooter = true;
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = "Unable to create Row";
+            CVBucketParameter.IsValid = false;
+        }
+
+    }
+
+    protected void GRVDays_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                //if (strMode == "") // Create Mode
+                //{
+                //    LinkButton lnkEdit = e.Row.FindControl("lnkEdit") as LinkButton;
+                //    LinkButton btnRemoveDays = e.Row.FindControl("btnRemoveDays") as LinkButton;
+                //    if (ViewState["currenttableDays"] != null)
+                //    {
+                //        if (e.Row.RowIndex != ((DataTable)ViewState["currenttableDays"]).Rows.Count - 1)
+                //        {
+                //            lnkEdit.Enabled = btnRemoveDays.Enabled = false;
+                //            btnRemoveDays.OnClientClick = "";
+                //        }
+                //    }
+                //}
+                //else if (strMode == "M")  // Modify Mode
+                //{
+                //    LinkButton lnkEdit = e.Row.FindControl("lnkEdit") as LinkButton;
+                //    LinkButton btnRemoveDays = e.Row.FindControl("btnRemoveDays") as LinkButton;
+                //    if (ViewState["currenttableDays"] != null)
+                //    {
+                //        if (e.Row.RowIndex != ((DataTable)ViewState["currenttableDays"]).Rows.Count - 1)
+                //        {
+                //            lnkEdit.Enabled = btnRemoveDays.Enabled = false;
+                //            btnRemoveDays.OnClientClick = "";
+                //        }
+                //    }
+                //}
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = "Unable to create Row";
+            CVBucketParameter.IsValid = false;
+        }
+
+    }
+    #endregion
+
+    #region Gridview-Value
+
+    protected void GRDValue_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            PriFunGridviewvalueRowDeleting(e);
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_18;
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+    protected void GRDValue_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        try
+        {
+            FunPriGridviewvalueRowcommand(e);
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_17;
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+    protected void GRDValue_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+
+        TextBox txtFromValueEdit = (TextBox)GRDValue.Rows[e.RowIndex].FindControl("txtFromValueEdit");
+        TextBox txtToValueEdit = (TextBox)GRDValue.Rows[e.RowIndex].FindControl("txtToValueEdit");
+        DropDownList ddlDescriptionValueEdit = (DropDownList)GRDValue.Rows[e.RowIndex].FindControl("ddlDescriptionValueEdit");
+        HiddenField hdnDescValue = (HiddenField)GRDValue.Rows[e.RowIndex].FindControl("hdnDescValue");
+
+        dtable = (DataTable)ViewState["currenttableValue"];
+
+        if (txtFromValueEdit.Text.Trim() == string.Empty)
+        {
+            Utility.FunShowValidationMsg(this.Page, strvalidationName, 5);
+            txtFromValueEdit.Focus();
+            return;
+        }
+        else if (txtToValueEdit.Text.Trim() == string.Empty)
+        {
+            Utility.FunShowValidationMsg(this.Page, strvalidationName, 6);
+            txtToValueEdit.Focus();
+            return;
+        }
+        else if (ddlDescriptionValueEdit.SelectedIndex == 0)
+        {
+            Utility.FunShowValidationMsg(this.Page, strvalidationName, 7);
+            ddlDescriptionValueEdit.Focus();
+            return;
+        }
+        else if (dtable.Rows.Count > e.RowIndex + 1)
+        {
+            long intPreToVlaue = Convert.ToInt64(dtable.Rows[e.RowIndex + 1]["ToValue"].ToString());
+            if (Convert.ToInt64(txtToValueEdit.Text.Trim()) >= intPreToVlaue)
+            {
+                //Utility.FunShowAlertMsg(this.Page, "Should not overlapped");
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 9);
+                txtToValueEdit.Focus();
+                return;
+            }
+        }
+
+        //if (e.RowIndex != dtable.Rows.Count - 1)
+        //{
+        //    long intNxtFromVlaue = Convert.ToInt64(dtable.Rows[e.RowIndex + 1]["FromValue"].ToString());
+        //    if (Convert.ToInt64(txtToValueEdit.Text.Trim()) >= intNxtFromVlaue)
+        //    {
+        //        Utility.FunShowAlertMsg(this.Page, "Should not overlapped");
+        //        txtToValueEdit.Focus();
+        //        return;
+        //    }
+        //}
+        if (Convert.ToInt64(txtFromValueEdit.Text.Trim()) > Convert.ToInt64(txtToValueEdit.Text.Trim()))
+        {
+            Utility.FunShowValidationMsg(this.Page, strvalidationName, 13);
+            txtToValueEdit.Focus();
+            return;
+        }
+        if (dt.Rows.Count >= 9)
+        {
+            Utility.FunShowValidationMsg(this.Page, strvalidationName, 14);
+            txtFromValueEdit.Text = "";
+            txtToValueEdit.Text = "";
+            ddlDescriptionValueEdit.SelectedIndex = 0;
+            return;
+        }
+
+        //long Todays = 0;
+        //Label lblToValue = (Label)GRDValue.Rows[GRDValue.Rows.Count - 1].FindControl("lblToValue");
+        //if (!string.IsNullOrEmpty(lblToValue.Text.Trim()))
+        //{
+        //    Todays = Convert.ToInt64(lblToValue.Text.Trim());
+        //    if (Todays >= Convert.ToInt64(txtFromValueEdit.Text.Trim()))
+        //    {
+        //        Utility.FunShowValidationMsg(this.Page, strvalidationName, 9);
+        //        txtFromValueEdit.Focus();
+        //        return;
+        //    }
+        //}
+
+
+        dtable.Rows[e.RowIndex]["FromValue"] = txtFromValueEdit.Text;
+        dtable.Rows[e.RowIndex]["ToValue"] = txtToValueEdit.Text;
+        if (dtable.Rows.Count > e.RowIndex + 1)
+            dtable.Rows[e.RowIndex + 1]["FromValue"] = Convert.ToInt64(txtToValueEdit.Text) + 1;
+        dtable.Rows[e.RowIndex]["DescriptionValue"] = ddlDescriptionValueEdit.SelectedItem.Text;
+        dtable.Rows[e.RowIndex]["Descvalue"] = ddlDescriptionValueEdit.SelectedValue;
+        dtable.AcceptChanges();
+        GRDValue.EditIndex = -1;
+        dt = (DataTable)ViewState["currenttableValue"];
+        GRDValue.DataSource = dt;
+        GRDValue.DataBind();
+        FunPriBindDescription();
+        if (GRDValue.Rows.Count < 9)
+        {
+            TextBox txtFromValueF1 = (TextBox)GRDValue.FooterRow.FindControl("txtFromValueF");
+            Label lblToValueEdit1 = (Label)GRDValue.Rows[GRDValue.Rows.Count - 1].FindControl("lblToValue");
+            if (!string.IsNullOrEmpty(lblToValueEdit1.Text.Trim()))
+                txtFromValueF1.Text = Convert.ToString(Convert.ToInt64(lblToValueEdit1.Text.Trim()) + 1);
+            GRDValue.FooterRow.Visible = true;
+        }
+    }
+
+    protected void GRDValue_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+    {
+        GRDValue.EditIndex = -1;
+        dt = (DataTable)ViewState["currenttableValue"];
+        GRDValue.DataSource = dt;
+        GRDValue.DataBind();
+        FunPriBindDescription();
+        TextBox txtFromValueF1 = (TextBox)GRDValue.FooterRow.FindControl("txtFromValueF");
+        Label lblToValueEdit1 = (Label)GRDValue.Rows[GRDValue.Rows.Count - 1].FindControl("lblToValue");
+        if (!string.IsNullOrEmpty(lblToValueEdit1.Text.Trim()))
+            txtFromValueF1.Text = Convert.ToString(Convert.ToInt64(lblToValueEdit1.Text.Trim()) + 1);
+        //GRDValue.FooterRow.Visible = true;
+    }
+
+    protected void GRDValue_RowEditing(object sender, GridViewEditEventArgs e)
+    {
+        try
+        {
+            GRDValue.EditIndex = e.NewEditIndex;
+            dt = (DataTable)ViewState["currenttableValue"];
+            GRDValue.DataSource = dt;
+            GRDValue.DataBind();
+            dt.Dispose();
+            DropDownList ddlDescriptionValueEdit = GRDValue.Rows[e.NewEditIndex].FindControl("ddlDescriptionValueEdit") as DropDownList;
+            HiddenField hdnDescValue = (HiddenField)GRDValue.Rows[e.NewEditIndex].FindControl("hdnDescValue");
+            TextBox txtFromValueEdit = GRDValue.Rows[e.NewEditIndex].FindControl("txtFromValueEdit") as TextBox;
+            if (e.NewEditIndex == 0)
+                txtFromValueEdit.ReadOnly = false;
+            else
+                txtFromValueEdit.ReadOnly = true;
+
+            // Description For Days
+            dt = ViewState["Description"] as DataTable;
+            ddlDescriptionValueEdit.BindDataTable(dt, new string[] { "Lookup_Code", "Lookup_Description" });
+            if (dt.Columns.Count == 4)
+                dt.Columns.RemoveAt(3);
+            ddlDescriptionValueEdit.SelectedValue = hdnDescValue.Value;// lblLookupCode.Text;
+            GRDValue.FooterRow.Visible = false;
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_18;
+            CVBucketParameter.IsValid = false;
+        }
+        finally
+        {
+            dt.Dispose();
+        }
+
+    }
+
+    protected void GRDValue_RowCreated(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (GRDValue.Rows.Count >= 9)
+                GRDValue.ShowFooter = false;
+            else if (GRDValue.Rows.Count < 9)
+                GRDValue.ShowFooter = true;
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_18;
+            CVBucketParameter.IsValid = false;
+        }
+
+    }
+
+    protected void GRDValue_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                //if (strMode == "") // Create Mode
+                //{
+                //    LinkButton lnkEdit = e.Row.FindControl("lnkEdit") as LinkButton;
+                //    LinkButton btnRemovevalue = e.Row.FindControl("btnRemovevalue") as LinkButton;
+                //    if (ViewState["currenttableValue"] != null)
+                //    {
+                //        if (e.Row.RowIndex != ((DataTable)ViewState["currenttableValue"]).Rows.Count - 1)
+                //        {
+                //            lnkEdit.Enabled = btnRemovevalue.Enabled = false;
+                //            btnRemovevalue.OnClientClick = "";
+                //        }
+                //    }
+                //}
+
+                //else if (strMode == "M")
+                //{
+                //    LinkButton lnkEdit = e.Row.FindControl("lnkEdit") as LinkButton;
+                //    LinkButton btnRemovevalue = e.Row.FindControl("btnRemovevalue") as LinkButton;
+
+                //    if (ViewState["currenttableValue"] != null)
+                //    {
+                //        if (e.Row.RowIndex != ((DataTable)ViewState["currenttableValue"]).Rows.Count - 1)
+                //        {
+                //            lnkEdit.Enabled = btnRemovevalue.Enabled = false;
+                //            btnRemovevalue.OnClientClick = "";
+                //        }
+                //    }
+                //}
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = "Unable to create Row";
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #endregion
+
+    #region DropDownList Events
+
+    //protected void ddlCategorytype_SelectedIndexChanged(object sender, EventArgs e)
+    //{
+    //    try
+    //    {
+    //        FunPriGetCategorytype();
+    //    }
+    //    catch (Exception objException)
+    //    {
+    //          ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+    //        CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_16;
+    //        CVBucketParameter.IsValid = false;
+    //    }
+    //}
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //if (ddlCategorytype.Items.Count > 0)
+            //  ddlCategorytype.SelectedIndex = 0; 
+            FunPrisetinitialValueRow();
+            FunPrisetinitialDayRow();
+            FunPriBindDescription();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVBucketParameter.ErrorMessage = ex.Message.ToString();
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Page Events
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVBucketParameter.ErrorMessage = Resources.ValidationMsgs.CLNBUK_15;
+            CVBucketParameter.IsValid = false;
+        }
+    }
+
+
+    #endregion
+
+    #endregion
+
+
+
+
+
+
+
+
+
+
+}

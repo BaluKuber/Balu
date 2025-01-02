@@ -1,0 +1,1412 @@
+﻿///Module Name      :   System Admin
+///Screen Name      :   S3GSysAdminTaxGuide_Add.aspx
+///Created By       :   Vinodha.M
+///Created Date     :   17-Sep-2014
+///Purpose          :   To insert and update Tax Guide details
+
+using System;
+using System.ServiceModel;
+using System.Web.UI;
+using S3GBusEntity;
+using System.Globalization;
+using System.Collections.Generic;
+using System.Data;
+using System.Web.Security;
+using System.Web;
+using System.Web.UI;
+using System.Text;
+using System.Web.UI.WebControls;
+using System.Configuration;
+
+public partial class S3GSysAdminTaxGuide_Add : ApplyThemeForProject
+{
+    #region Intialization
+
+    AccountMgtServicesReference.AccountMgtServicesClient ObjTaxGuideMasterClient;
+    AccountMgtServices.S3G_SYSAD_TaxGuideDataTable ObjS3G_SYSAD_TaxGuideDataTable = new AccountMgtServices.S3G_SYSAD_TaxGuideDataTable();
+    string strDateFormat = string.Empty;
+    Dictionary<string, string> Procparam = null;
+    SerializationMode SerMode = SerializationMode.Binary;
+    int intErrCode = 0;
+    int intTaxGuideId = 0;
+    int intUserId = 0;
+    int intCompanyID = 0;
+    bool bClearList = false;
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    UserInfo ObjUserInfo = null;
+    DataSet dsTaxDetails, dsInitTaxTypeDetails;
+    DataSet dsInitLoadDetails;
+    Dictionary<string, string> dictParam;
+    string strProcName = null;
+    string strXMLTaxAssetDet = null;
+    string strxmlHSN = null;
+    StringBuilder strbTaxAssetDet = new StringBuilder();
+    StringBuilder strbHSNDet = new StringBuilder();
+    DataTable dtTaxAsset = new DataTable();
+    DataTable dtTaxAssetHistory = new DataTable();
+    DataTable dtHSN = new DataTable();
+    DataTable dtservices = new DataTable();
+    string strRedirectPage = "../System Admin/S3GSysAdminTaxGuide_View.aspx";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageAdd = "window.location.href='../System Admin/S3GSysAdminTaxGuide_Add.aspx';";
+    string strRedirectPageView = "window.location.href='../System Admin/S3GSysAdminTaxGuide_View.aspx';";
+    string state = String.Empty;
+    int taxtype = 0;
+    PagingValues ObjPaging = new PagingValues();
+
+    public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    public int ProPageNumRW
+    {
+        get;
+        set;
+    }
+
+    public int ProPageSizeRW
+    {
+        get;
+        set;
+    }
+
+    protected void AssignValue(int intPageNum, int intPageSize)
+    {
+        ProPageNumRW = intPageNum;
+        ProPageSizeRW = intPageSize;
+        FunPriBindGrid();
+    }
+    #endregion
+
+    #region PageLoad
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            ObjUserInfo = new UserInfo();
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserId = ObjUserInfo.ProUserIdRW;
+            S3GSession ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            CalendarExtender1.Format = strDateFormat;
+
+            #region Paging Config
+
+            ProPageNumRW = 1;
+            TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+            if (txtPageSize.Text != "")
+                ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+            else
+                ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+            PageAssignValue obj = new PageAssignValue(this.AssignValue);
+            ucCustomPaging.callback = obj;
+            ucCustomPaging.ProPageNumRW = ProPageNumRW;
+            ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+            #endregion
+
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            bDelete = ObjUserInfo.ProDeleteRW;
+            bMakerChecker = ObjUserInfo.ProMakerCheckerRW;
+
+            txtRate.Attributes.Add("onblur", "funChkDecimial(this," + 3 + "," + 2 + ",'Rate %')");
+            txtTax.Attributes.Add("onblur", "funChkDecimial(this," + 3 + "," + 2 + ",'Tax %')");
+            txtsurcharge.Attributes.Add("onblur", "funChkDecimial(this," + 3 + "," + 2 + ",'Surcharge %')");
+            txtCess.Attributes.Add("onblur", "funChkDecimial(this," + 3 + "," + 2 + ",'Cess %')");
+
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+
+            if (Request.QueryString["qsTaxCodeId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsTaxCodeId"));
+                strMode = Request.QueryString.Get("qsMode");
+                if (fromTicket != null)
+                {
+                    intTaxGuideId = Convert.ToInt32(fromTicket.Name);
+                }
+                else
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Invalid URL");
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                }
+            }
+            txtEffFrom.Attributes.Add("onblur", "fnDoDate(this,'" + txtEffFrom.ClientID + "','" + strDateFormat + "',false,  false);");
+            if (!IsPostBack)
+            {
+                if (dtTaxAssetHistory.Rows.Count == 0)
+                {
+                    FunPriInsertTaxAssetHistoryDataTable();
+                }
+                else
+                {
+                    FunPubBindTaxAssetHistory(dtTaxAssetHistory);
+                }
+                FunPriBindLOBBranchTaxType();
+                FunpriLoadGLCode();
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (((intTaxGuideId > 0)) && (strMode == "M"))
+                {
+                    FunPriDisableControls(1);
+                    FunPriBindGrid();
+                }
+                else if (((intTaxGuideId > 0)) && (strMode == "Q"))
+                {
+                    FunPriDisableControls(-1);
+                    FunPriBindGrid();
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }                
+                if (dtTaxAsset.Rows.Count == 0)
+                {
+                    FunPriInsertTaxAssetDataTable("-1", "-1", "", "", "");
+                }
+                else
+                {
+                    FunPubBindTaxAsset(dtTaxAsset);
+                }
+                if (strMode == "Q" && (gvTaxAsset.FooterRow != null))
+                {
+                    gvTaxAsset.Columns[3].Visible = false;
+                    gvTaxAsset.FooterRow.Visible = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+    #endregion
+
+    public string ShowDate(string dt)
+    {
+        if (!dt.Equals(""))
+        {
+            return DateTime.Parse(dt, CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+        }
+        else
+            return "";
+    }
+
+    private void FunPriBindGrid()
+    {
+        AccountMgtServicesReference.AccountMgtServicesClient objTaxGuideClient = new AccountMgtServicesReference.AccountMgtServicesClient();
+        try
+        {
+            if (ObjS3G_SYSAD_TaxGuideDataTable.Rows.Count > 0)
+                ObjS3G_SYSAD_TaxGuideDataTable.Clear();
+
+            AccountMgtServices.S3G_SYSAD_TaxGuideRow ObjTaxGuideRow;
+            ObjTaxGuideRow = ObjS3G_SYSAD_TaxGuideDataTable.NewS3G_SYSAD_TaxGuideRow();
+            ObjTaxGuideRow.Company_ID = intCompanyID;
+            ObjTaxGuideRow.Tax_Guide_ID = intTaxGuideId;
+            if (ddlTaxType.SelectedIndex > 0)
+                ObjTaxGuideRow.Tax_Type_ID = Convert.ToInt32(ddlTaxType.SelectedValue);
+            else
+                ObjTaxGuideRow.Tax_Type_ID = 0;
+            if (ddllessiestate.SelectedIndex > 0)
+                ObjTaxGuideRow.State_ID = Convert.ToInt32(ddllessiestate.SelectedValue);
+            else
+                ObjTaxGuideRow.State_ID = 0;
+
+            //Paging Properties set
+
+            int intTotalRecords = 0;
+            ObjPaging.ProCompany_ID = intCompanyID;
+            ObjPaging.ProUser_ID = intUserId;
+            ObjPaging.ProTotalRecords = intTotalRecords;
+            ObjPaging.ProCurrentPage = ProPageNumRW;
+            ObjPaging.ProPageSize = ProPageSizeRW;
+
+            //Paging Properties end
+
+
+            ObjS3G_SYSAD_TaxGuideDataTable.AddS3G_SYSAD_TaxGuideRow(ObjTaxGuideRow);
+            byte[] byteTaxGuideDetails = objTaxGuideClient.FunPubCreateTaxGuideAssetHistoryPaging(out  intTotalRecords, SerMode, ClsPubSerialize.Serialize(ObjS3G_SYSAD_TaxGuideDataTable, SerMode), ObjPaging);
+
+            AccountMgtServices.S3G_SYSAD_TaxGuideDataTable dtTaxGuide = (AccountMgtServices.S3G_SYSAD_TaxGuideDataTable)ClsPubSerialize.DeSerialize(byteTaxGuideDetails, SerializationMode.Binary, typeof(AccountMgtServices.S3G_SYSAD_TaxGuideDataTable));
+            DataView dvTaxGuide = dtTaxGuide.DefaultView;
+            //Paging Config            
+
+            //This is to show grid header
+            bool bIsNewRow = false;
+            if (dvTaxGuide.Count == 0)
+            {
+                dvTaxGuide.AddNew();
+                bIsNewRow = true;
+            }
+
+            gvTaxAssetHistory.DataSource = dvTaxGuide;
+            gvTaxAssetHistory.DataBind();
+
+            //This is to hide first row if grid is empty
+            if (bIsNewRow)
+            {
+                gvTaxAssetHistory.Rows[0].Visible = false;
+            }
+
+            ucCustomPaging.Navigation(intTotalRecords, ProPageNumRW, ProPageSizeRW);
+            ucCustomPaging.setPageSize(ProPageSizeRW);
+
+            //Paging Config End
+
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            //lblErrorMessage.InnerText = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            //lblErrorMessage.InnerText = ex.Message;
+        }
+        finally
+        {
+            objTaxGuideClient.Close();
+        }
+    }
+
+    #region Page Events
+
+    /// <summary>
+    /// This is used to save TaxGuide details
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        vsUserMgmt.Visible = true;
+        if (ViewState["Tax_AssetDetails"] != null)
+        {
+            DataTable DT = ViewState["Tax_AssetDetails"] as DataTable;
+            if (DT.Rows.Count == 1)
+            {
+                if (DT.Rows[0]["Asset_Serial_Number"].Equals("0"))
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Atleast One Row Should Be Added In Asset Type Wise Details");
+                    return;
+                }
+            }
+        }
+
+        string Tax_Code = "";
+        ObjTaxGuideMasterClient = new AccountMgtServicesReference.AccountMgtServicesClient();
+        try
+        {
+            AccountMgtServices.S3G_SYSAD_TaxGuideRow ObjTaxGuideRow;
+            ObjTaxGuideRow = ObjS3G_SYSAD_TaxGuideDataTable.NewS3G_SYSAD_TaxGuideRow();
+
+            ObjTaxGuideRow.Company_ID = intCompanyID;
+            if (ddlLOB.SelectedValue != "0")
+                ObjTaxGuideRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjTaxGuideRow.Tax_Class = rbpurchase.Checked == true ? 1 : 2;
+            if (ddlTaxType.SelectedValue != "0")
+                ObjTaxGuideRow.Tax_Type_ID = Convert.ToInt32(ddlTaxType.SelectedValue);
+            ObjTaxGuideRow.State_ID = Convert.ToInt32(ddllessiestate.SelectedValue);
+            ObjTaxGuideRow.Effective_From = Utility.StringToDate(txtEffFrom.Text);
+            ObjTaxGuideRow.Tax_Description = txtTaxDesc.Text;
+            if (!string.IsNullOrEmpty(txtRate.Text))
+                ObjTaxGuideRow.RatePercentage = Convert.ToDecimal(txtRate.Text);
+            if (!string.IsNullOrEmpty(txtTax.Text))
+                ObjTaxGuideRow.Tax = (txtTax.Text.Replace(".", "") == "") ? 0 : Convert.ToDecimal(txtTax.Text);
+            if (!string.IsNullOrEmpty(txtsurcharge.Text))
+                ObjTaxGuideRow.Surcharge = (txtsurcharge.Text.Replace(".", "") == "") ? 0 : Convert.ToDecimal(txtsurcharge.Text);
+            if (!string.IsNullOrEmpty(txtCess.Text))
+                ObjTaxGuideRow.Cess = (txtCess.Text.Replace(".", "") == "") ? 0 : Convert.ToDecimal(txtCess.Text);
+            if (!string.IsNullOrEmpty(txtAdditionalTax.Text))
+            {
+                ObjTaxGuideRow.Additional_tax = (txtAdditionalTax.Text.Replace(".", "") == "") ? 0 : Convert.ToDecimal(txtAdditionalTax.Text);
+                ObjTaxGuideRow.Additional_tax_On = Convert.ToInt32(ddlAdditionalTaxBasedOn.SelectedValue);
+            }
+            else
+            {
+                ObjTaxGuideRow.Additional_tax = 0;
+                ObjTaxGuideRow.Additional_tax_On = 0;
+            }
+            if (ddlGLCode.SelectedValue != "0")
+                ObjTaxGuideRow.Posting_GL_Code = Convert.ToInt32(ddlGLCode.SelectedValue);
+            if (ddlTaxType.SelectedValue != "0")
+            {
+                if (ddlTaxType.SelectedValue == "268" || ddlTaxType.SelectedValue == "274")
+                {
+                    if (ddlTaxType.SelectedValue.Equals("268"))//reverse charge tax                                
+                        ObjTaxGuideRow.Reverse_charge_type = Convert.ToInt32(ddlReverseChargeTypeorZone.SelectedValue);
+                    if (ddlTaxType.SelectedValue.Equals("274"))//zone
+                        ObjTaxGuideRow.Zone_ID = Convert.ToInt32(ddlReverseChargeTypeorZone.SelectedValue);
+                }
+                else
+                {
+                    ObjTaxGuideRow.Reverse_charge_type = 0;
+                    ObjTaxGuideRow.Zone_ID = 0;
+                }
+            }
+            ObjTaxGuideRow.Created_By = intUserId;
+            ObjTaxGuideRow.Tax_Guide_ID = intTaxGuideId;
+            ObjTaxGuideRow.Is_Active = chkActive.Checked;
+
+            if (ViewState["Tax_AssetDetails"] != null)
+            {
+                FunPriGenerateTaxAssetXMLDet();
+            }
+            ObjTaxGuideRow.XMLAsset = strXMLTaxAssetDet;
+
+            ObjTaxGuideRow.Service_Type = Convert.ToInt32(ddlServiceType.SelectedValue);
+            if (ViewState["dtservices"] != null)
+            {
+                dtservices = (DataTable)ViewState["dtservices"];
+                ObjTaxGuideRow.XML_Services = dtservices.FunPubFormXml();
+            }
+            
+            if (ViewState["dtHSN"] != null)
+            {
+                FunPriGenerateHSNAssetXMLDet();
+            }
+            ObjTaxGuideRow.XMLHSN = strxmlHSN;
+
+            ObjS3G_SYSAD_TaxGuideDataTable.AddS3G_SYSAD_TaxGuideRow(ObjTaxGuideRow);
+
+            intErrCode = ObjTaxGuideMasterClient.FunPubCreateTaxGuide(out Tax_Code, SerMode, ClsPubSerialize.Serialize(ObjS3G_SYSAD_TaxGuideDataTable, SerMode));
+
+            if (intErrCode == 0)
+            {
+                btnSave.Enabled = false;
+                txtTaxCode.Text = Tax_Code;
+                strAlert = "Tax Guide " + Tax_Code + " added successfully";
+                strAlert += @"\n\nWould you like to add one more tax guide?";
+                strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                strRedirectPageView = "";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                lblErrorMessage.Text = string.Empty;
+            }
+            else if (intErrCode == 4)
+            {
+                btnSave.Enabled = false;
+                txtTaxCode.Text = Tax_Code;
+                strAlert = "Tax Guide " + Tax_Code + " Updated successfully";
+                strAlert += @"\n\nWould you like to add one more tax guide?";
+                strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                strRedirectPageView = "";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                lblErrorMessage.Text = string.Empty;
+            }
+            else if (intErrCode == 1)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Tax Guide already exist");
+            }
+            else if (intErrCode == 7)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Define Tax Guide at Location Level");
+            }
+            else if (intErrCode == 8)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Define Tax Guide at LOB Level");
+            }
+            else if (intErrCode == 2)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Document sequence number is not defined to create TaxCode");
+            }
+            else if (intErrCode == 3)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Effective from date cannot be less than date of incorporation of the company");
+            }
+            lblErrorMessage.Text = string.Empty;
+
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            ObjTaxGuideMasterClient.Close();
+        }
+    }
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        dtHSN = new DataTable();
+        dtHSN.Columns.Add("HSN_ID");
+
+        foreach (GridViewRow grvRow in grvHSNCOde.Rows)
+        {
+            if (((CheckBox)grvRow.FindControl("chkSel")).Checked)
+            {
+                DataRow drAdd = dtHSN.NewRow();
+                drAdd["HSN_ID"] = ((Label)grvRow.FindControl("lblHSNID")).Text;
+
+                dtHSN.Rows.Add(drAdd);
+                dtHSN.AcceptChanges();
+            }
+        }
+        ViewState["dtHSN"] = dtHSN;
+        if (ddlServiceType.SelectedValue == "1")
+        {
+            FunPubBindTaxAssetGr();
+            FunPriGenerateHSNAssetXMLDet();
+
+        }
+        else if (ddlServiceType.SelectedValue == "2")
+        {
+            FunPubBindServices();
+        }
+        FunPriBindGrid();
+
+    }
+    protected void ddlServiceType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            grvServices.DataSource = null;
+            grvServices.DataBind();
+            gvTaxAsset.DataSource = null;
+            gvTaxAsset.DataBind();
+            gvTaxAssetHistory.DataSource = null;
+            gvTaxAssetHistory.DataBind();
+            ViewState["Tax_AssetDetails"] = null;
+            ViewState["dtservices"] = null;
+            pnlservice.Visible = false;
+            //pnlAsset.Visible = false;
+            //pnlHistory.Visible = false;
+            FunPubBindHSNGr();
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    private bool FunPriGenerateHSNAssetXMLDet()
+    {
+        try
+        {
+            CheckBox chkAssetType = null;
+            string strHSNID = string.Empty;
+            strbHSNDet = new StringBuilder();
+
+            strbHSNDet.Append("<Root>");
+            foreach (GridViewRow grvData in grvHSNCOde.Rows)
+            {
+                chkAssetType = ((CheckBox)grvData.FindControl("chkSel"));
+                if (chkAssetType.Checked)
+                {
+                    strHSNID = ((Label)grvData.FindControl("lblHSNID")).Text;
+                    strbHSNDet.Append(" <Details HSN_ID='" + strHSNID + "' /> ");
+                }
+            }
+            strbHSNDet.Append("</Root>");
+            strxmlHSN = strbHSNDet.ToString();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            lblErrorMessage.Text = ex.Message;
+        }
+        return true;
+    }
+
+    private void FunPubBindServices()
+    {
+        try
+        {
+            dtservices = (DataTable)ViewState["dtservices"];
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@TaxCode_ID", intTaxCodeId.ToString());
+            if (dtHSN != null)
+                Procparam.Add("@Xml_HSN", dtHSN.FunPubFormXml());
+            dtservices = Utility.GetDefaultData("S3G_Get_Taxguide_Services", Procparam);
+
+            pnlservice.Visible = true;
+            if (dtservices.Rows.Count > 0)
+            {
+                grvServices.DataSource = dtservices;
+                grvServices.DataBind();
+                ViewState["dtservices"] = dtservices;
+            }
+            else
+            {
+                grvServices.EmptyDataText = "No records found";
+                grvServices.DataBind();
+            }
+        }
+        catch (Exception ex)
+        {
+        }
+    }
+
+    private void FunPubBindHSNGr()
+    {
+        try
+        {
+
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@service_Type", ddlServiceType.SelectedValue);
+            dtHSN = Utility.GetDefaultData("S3G_Get_HSN_Tax_Details", Procparam);
+          
+            pnlHSN.Visible = true;
+            if (dtHSN.Rows.Count > 0)
+            {
+
+                grvHSNCOde.DataSource = dtHSN;
+                grvHSNCOde.DataBind();
+                ViewState["dtHSN"] = dtHSN;
+            }
+            else
+            {
+                grvHSNCOde.EmptyDataText = "No records found";
+                grvHSNCOde.DataBind();
+            }
+            if (ddlServiceType.SelectedValue == "1")
+            {
+                pnlHSN.GroupingText = "HSN Details";
+            }
+            else if (ddlServiceType.SelectedValue == "2")
+            {
+                pnlHSN.GroupingText = "SAC Details";
+            }
+        }
+
+        catch (Exception ex)
+        {
+        }
+    }
+
+    /// <summary>
+    /// This is used to redirect page
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage, false);
+    }
+
+    /// <summary>
+    /// This is used to clear data
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            ddlLOB.SelectedIndex = ddllessiestate.SelectedIndex = ddlGLCode.SelectedIndex = 0;
+            rbpurchase.Checked = rbsales.Checked = false;
+            ddlTaxType.SelectedIndex = 0;
+            ddlTaxType.Enabled = false;
+            txtTaxCode.Text = txtTaxDesc.Text = txtEffFrom.Text = txtTax.Text = txtRate.Text = txtsurcharge.Text = txtCess.Text = txtAdditionalTax.Text = String.Empty;
+            chkActive.Checked = true;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            // ObjTaxGuideMasterClient.Close();
+        }
+    }
+
+    #endregion
+
+    #region Page Methods
+
+
+    /// <summary>
+    /// This is used to bind lob,product,module and program details in dropdownlist
+    /// </summary>
+
+    private void FunPriBindLOBBranchTaxType()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+
+            if (intTaxGuideId == 0)
+            {
+                Procparam.Add("@User_ID", intUserId.ToString());
+                Procparam.Add("@Is_Active", "1");
+            }
+            Procparam.Add("@Program_ID", "16");
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@User_ID", intUserId.ToString());
+            ddllessiestate.BindMemoDataTable("S3G_SYSAD_Get_StateDetails", Procparam, new string[] { "Location_Category_ID", "LocationCat_Description" });
+            ddlReverseChargeTypeorZone.Enabled = false;
+            ddlAdditionalTaxBasedOn.Enabled = false;
+            ddlTaxType.Enabled = false;
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Option", "3");
+            Procparam.Add("@Param1", "Service_Type");
+            ddlServiceType.BindDataTable(strProcName, Procparam, new string[] { "ID", "Name" });
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    private void loblist()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@Is_Active", "1");
+            if (intTaxGuideId == 0)
+            {
+                Procparam.Add("@User_ID", intUserId.ToString());
+            }
+            Procparam.Add("@Program_ID", "16");
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    private void FunpriLoadGLCode()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        if (ddlLOB.SelectedIndex > 0)
+        {
+            Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+        }
+        ddlGLCode.BindDataTable("S3G_SYSAD_GetGLCode", Procparam, new string[] { "GLac", "GLAccount" });
+    }
+    /// <summary>
+    /// This method is used to display User details
+    /// </summary>
+    private void FunGetTaxGuideDetails()
+    {
+        ObjTaxGuideMasterClient = new AccountMgtServicesReference.AccountMgtServicesClient();
+        try
+        {
+            ObjS3G_SYSAD_TaxGuideDataTable = new AccountMgtServices.S3G_SYSAD_TaxGuideDataTable();
+            AccountMgtServices.S3G_SYSAD_TaxGuideRow ObjTaxGuideRow;
+            SerializationMode SerMode = SerializationMode.Binary;
+            ObjTaxGuideRow = ObjS3G_SYSAD_TaxGuideDataTable.NewS3G_SYSAD_TaxGuideRow();
+            ObjTaxGuideRow.Company_ID = intCompanyID;
+            ObjTaxGuideRow.Tax_Code_ID = intTaxGuideId;
+
+            ObjS3G_SYSAD_TaxGuideDataTable.AddS3G_SYSAD_TaxGuideRow(ObjTaxGuideRow);
+
+            byte[] byteTaxGuideDetails = ObjTaxGuideMasterClient.FunPubQueryTaxGuide(SerMode, ClsPubSerialize.Serialize(ObjS3G_SYSAD_TaxGuideDataTable, SerMode));
+
+            ObjS3G_SYSAD_TaxGuideDataTable = new AccountMgtServices.S3G_SYSAD_TaxGuideDataTable();
+            ObjS3G_SYSAD_TaxGuideDataTable = (AccountMgtServices.S3G_SYSAD_TaxGuideDataTable)ClsPubSerialize.DeSerialize(byteTaxGuideDetails, SerializationMode.Binary, typeof(AccountMgtServices.S3G_SYSAD_TaxGuideDataTable));
+
+            dsTaxDetails = new DataSet();
+            strProcName = "S3G_Get_Taxguide_Details";
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@TaxGuide_ID", intTaxGuideId.ToString());
+            dsTaxDetails = Utility.GetTableValues(strProcName, Procparam);
+            if (dsTaxDetails.Tables[1].Rows.Count > 0)
+            {
+                dtTaxAsset = dsTaxDetails.Tables[1].Copy();
+                ViewState["Tax_AssetDetails"] = dtTaxAsset;
+                FunPubBindTaxAsset(dtTaxAsset);
+            }
+            dsTaxDetails.Dispose();
+
+            loblist();
+            ddlLOB.SelectedValue = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["LOB_ID"].ToString();
+
+            if (ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["TaxClass"].ToString() == "Purchase")
+            {
+                rbpurchase.Checked = true;
+                string TaxClass = "Purchase";
+                FunPubFillTaxTypeDetails(TaxClass);
+                rbsales.Checked = false;
+            }
+            else
+            {
+                rbsales.Checked = true;
+                string TaxClass = "Sales";
+                FunPubFillTaxTypeDetails(TaxClass);
+                rbpurchase.Checked = false;
+            }
+            txtTaxCode.Text = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Tax_Code"].ToString();
+            ddlTaxType.SelectedValue = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Tax_Type_ID"].ToString();
+            ddllessiestate.SelectedValue = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["State_ID"].ToString();
+            txtTaxDesc.Text = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Tax_Description"].ToString();
+            txtRate.Text = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["RatePercentage"].ToString();
+            txtTax.Text = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Tax"].ToString();
+            txtsurcharge.Text = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Surcharge"].ToString();
+            txtCess.Text = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Cess"].ToString();
+            txtAdditionalTax.Text = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Additional_tax"].ToString();
+            if (txtAdditionalTax.Text != String.Empty)
+                txtAdditionalTax_TextChanged(null, null);
+            ddlAdditionalTaxBasedOn.SelectedValue = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Additional_tax_On"].ToString();
+            ddlGLCode.SelectedValue = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Posting_GL_Code"].ToString();
+            if (ddlTaxType.SelectedIndex > 0)
+            {
+                if (ddlTaxType.SelectedValue.Equals("268"))//reverse charge tax                                
+                    ddlReverseChargeTypeorZone.SelectedValue = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Reverse_charge_type"].ToString();
+                if (ddlTaxType.SelectedValue.Equals("274"))//zone
+                    ddlReverseChargeTypeorZone.SelectedValue = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Zone_ID"].ToString();
+            }
+
+            hdnID.Value = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["USRID"].ToString();
+
+            string strTax = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Tax"].ToString();
+            string strSur = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Surcharge"].ToString();
+            string strCess = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Cess"].ToString();
+            if ((strTax != "0.00") || (strSur != "0.00") || (strCess != "0.00"))
+            {
+                txtTax.Text = strTax;
+                txtsurcharge.Text = strSur;
+                txtCess.Text = strCess;
+            }
+            txtEffFrom.Text = DateTime.Parse(ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Effective_From"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+
+            if (ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Is_Active"].ToString() == "True")
+                chkActive.Checked = true;
+            else
+                chkActive.Checked = false;
+            ddlServiceType.SelectedValue = ObjS3G_SYSAD_TaxGuideDataTable.Rows[0]["Service_Type"].ToString();
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            ObjTaxGuideMasterClient.Close();
+        }
+    }
+
+    /// <summary>
+    /// This is to disable controls based on user level role id
+    /// </summary>
+    /// <param name="intModeID"></param>
+    private void FunPriDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+                if (!bCreate)
+                {
+                    btnSave.Enabled = false;
+                }
+                chkActive.Enabled = false;
+                chkActive.Checked = true;
+                break;
+
+            case 1: // Modify Mode
+
+                if (!bModify)
+                {
+                    btnSave.Enabled = false;
+                }
+                FunGetTaxGuideDetails();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                ddlLOB.ClearDropDownList();
+                ddlLOB.Enabled = false;
+                rbpurchase.Enabled = false;
+                rbsales.Enabled = false;
+                ddllessiestate.ClearDropDownList();
+                ddllessiestate.Enabled = false;
+                ddlTaxType.ClearDropDownList();
+                ddlTaxType.Enabled = false;
+                chkActive.Enabled = false;
+                txtEffFrom.Enabled = false;
+                CalendarExtender1.Enabled = false;
+                btnClear.Enabled = false;
+                ddlGLCode.Enabled = false;
+                break;
+
+            case -1:// Query Mode                
+                FunGetTaxGuideDetails();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPageView);
+                }
+                if (bClearList)
+                {
+                    ddlLOB.ClearDropDownList();
+                    rbpurchase.Enabled = false;
+                    rbsales.Enabled = false;
+                    txtTaxCode.ReadOnly = true;
+                    txtTaxCode.Enabled = true;
+                    ddllessiestate.ClearDropDownList();
+                    txtTaxDesc.ReadOnly = true;
+                    if (ddlReverseChargeTypeorZone.Items.Count > 0)
+                        ddlReverseChargeTypeorZone.ClearDropDownList();
+                    CalendarExtender1.Enabled = false;
+                    txtEffFrom.ReadOnly = true;
+                    txtTax.ReadOnly = true;
+                    ddlGLCode.ClearDropDownList();
+                    txtRate.ReadOnly = true;
+                    txtsurcharge.ReadOnly = true;
+                    txtCess.ReadOnly = true;
+                    txtAdditionalTax.ReadOnly = true;
+                    if (ddlAdditionalTaxBasedOn.Items.Count > 0)
+                        ddlAdditionalTaxBasedOn.ClearDropDownList();
+                    ddlAdditionalTaxBasedOn.Enabled = false;
+                    chkActive.Enabled = false;
+                    ddlGLCode.ClearDropDownList();
+                    gvTaxAsset.Enabled = false;
+                }
+
+                CalendarExtender1.Enabled = false;
+
+                txtEffFrom.Attributes.Remove("onblur");
+                btnClear.Enabled = false;
+                btnSave.Enabled = false;
+                chkActive.Enabled = false;
+                txtTaxCode.Enabled = true;
+                break;
+        }
+    }
+    #endregion
+
+    protected void rbpurchase_CheckedChanged(object sender, System.EventArgs e)
+    {
+        try
+        {
+            if (rbpurchase.Checked == true)
+            {
+                rbsales.Checked = false;
+                string TaxClass = "Purchase";
+                FunPubFillTaxTypeDetails(TaxClass);
+                ddlReverseChargeTypeorZone.Enabled = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            //ObjTaxGuideMasterClient.Close();
+        }
+    }
+
+    protected void rbsales_CheckedChanged(object sender, System.EventArgs e)
+    {
+        try
+        {
+            if (rbsales.Checked == true)
+            {
+                rbpurchase.Checked = false;
+                string TaxClass = "Sales";
+                FunPubFillTaxTypeDetails(TaxClass);
+                ddlReverseChargeTypeorZone.Enabled = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            //ObjTaxGuideMasterClient.Close();
+        }
+    }
+
+
+    protected void txtAdditionalTax_TextChanged(object sender, System.EventArgs e)
+    {
+        try
+        {
+            if (txtAdditionalTax.Text != String.Empty && txtAdditionalTax.Text != "0")
+            {
+                lbladditionaltaxbasedon.CssClass = "styleReqFieldLabel";
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyID.ToString());
+                Procparam.Add("@User_ID", intUserId.ToString());
+                dsInitLoadDetails = Utility.GetDataset("S3G_SYSAD_Get_StateDetails", Procparam);
+                ddlAdditionalTaxBasedOn.Enabled = true;
+                ddlAdditionalTaxBasedOn.BindDataTable(dsInitLoadDetails.Tables[3], new string[] { "LookUp_ID", "Name" });
+            }
+            else
+            {
+                lbladditionaltaxbasedon.CssClass = "styleDisplayLabel";
+                ddlAdditionalTaxBasedOn.Enabled = false;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            //ObjTaxGuideMasterClient.Close();
+        }
+    }
+
+    protected void FunPubFillTaxTypeDetails(string TaxClass)
+    {
+        try
+        {
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", intCompanyID.ToString());
+            dictParam.Add("@User_ID", intUserId.ToString());
+            dictParam.Add("@TaxClass", TaxClass);
+            dsInitTaxTypeDetails = Utility.GetDataset("GetTaxTypeDetailsByTaxClass", dictParam);
+            ddlTaxType.Enabled = true;
+            ddlTaxType.BindDataTable(dsInitTaxTypeDetails.Tables[0], new string[] { "LookUp_ID", "Name" });
+            if (ddlTaxType.SelectedIndex > 0)
+                taxtype = Convert.ToInt32(ddlTaxType.SelectedValue);
+            FunPriFillAssetHistory(taxtype, ddllessiestate.SelectedValue);
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            //ObjTaxGuideMasterClient.Close();
+        }
+    }
+
+    private DataTable FunPubGetTaxAssetHistoryDataTable()
+    {
+        try
+        {
+            if (ViewState["Tax_AssetHistoryDetails"] == null)
+            {
+                dtTaxAssetHistory = new DataTable();
+                dtTaxAssetHistory.Columns.Add("Asset_Category_Desc");
+                dtTaxAssetHistory.Columns.Add("Asset_Type_Desc");
+                dtTaxAssetHistory.Columns.Add("Effective_From");
+                dtTaxAssetHistory.Columns.Add("Effective_To");
+                dtTaxAssetHistory.Columns.Add("RatePercentage");
+                dtTaxAssetHistory.Columns.Add("Asset_Serial_Number");
+                ViewState["Tax_AssetHistoryDetails"] = dtTaxAssetHistory;
+            }
+            dtTaxAssetHistory = (DataTable)ViewState["Tax_AssetHistoryDetails"];
+            return dtTaxAssetHistory;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }   
+
+    #region GridEvents
+
+    protected void ddlTaxType_OnSelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ddlTaxType.SelectedValue == "268" || ddlTaxType.SelectedValue == "274")
+            {
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyID.ToString());
+                Procparam.Add("@User_ID", intUserId.ToString());
+                dsInitLoadDetails = Utility.GetDataset("S3G_SYSAD_Get_StateDetails", Procparam);
+
+                if (ddlTaxType.SelectedValue == "268")//268-Reverse Charge Tax
+                {
+                    lblReverseChargeTypeorZone.Text = "Reverse Charge Type";
+                    ddlReverseChargeTypeorZone.Enabled = true;
+                    ddlReverseChargeTypeorZone.BindDataTable(dsInitLoadDetails.Tables[1], new string[] { "LookUp_ID", "Name" });
+                }
+                else if (ddlTaxType.SelectedValue == "274")//274-Zone
+                {
+                    lblReverseChargeTypeorZone.Text = "Zone";
+                    ddlReverseChargeTypeorZone.Enabled = true;
+                    ddlReverseChargeTypeorZone.BindDataTable(dsInitLoadDetails.Tables[2], new string[] { "LookUp_ID", "Name" });
+                }
+            }
+            else
+            {
+                lblReverseChargeTypeorZone.Text = "Reverse Charge Type/Zone";
+                ddlReverseChargeTypeorZone.Enabled = false;
+            }
+
+            if (ddlTaxType.SelectedIndex > 0)
+                taxtype = Convert.ToInt32(ddlTaxType.SelectedValue);
+            state = ddllessiestate.SelectedValue;
+            FunPriBindGrid();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    protected void ddllessiestate_OnSelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ddlTaxType.SelectedIndex > 0)
+                taxtype = Convert.ToInt32(ddlTaxType.SelectedValue);
+            state = ddllessiestate.SelectedValue;
+            FunPriBindGrid();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    protected void FunPriFillAssetHistory(int taxtype, string State)
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@User_ID", intUserId.ToString());
+            Procparam.Add("@Tax_Type_ID", taxtype.ToString());
+            Procparam.Add("@State_ID", State.ToString());
+            Procparam.Add("@Tax_Guide_ID", intTaxGuideId.ToString());
+            dsInitLoadDetails = Utility.GetDataset("S3G_SYSAD_GetAssetHistoryDetailsByTaxTypeState", Procparam);
+            if (dsInitLoadDetails.Tables[0].Rows.Count > 0)
+            {
+                ViewState["Tax_AssetHistoryDetail"] = dsInitLoadDetails.Tables[0];
+                gvTaxAssetHistory.DataSource = dsInitLoadDetails.Tables[0];
+                gvTaxAssetHistory.DataBind();
+            }
+            else
+            {
+                FunPriInsertTaxAssetHistoryDataTable();
+            }
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            //ObjTaxGuideMasterClient.Close();
+        }
+    }
+
+    protected void ddlAssetCategory_Grd_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            DropDownList ddlAssetCategory_Grd;
+            DropDownList ddlAssetType_Grd;
+            if (gvTaxAsset.FooterRow.Visible)
+            {
+                ddlAssetCategory_Grd = (DropDownList)gvTaxAsset.FooterRow.FindControl("ddlAssetCategory");
+                ddlAssetType_Grd = (DropDownList)gvTaxAsset.FooterRow.FindControl("ddlAssetType");
+            }
+            else
+            {
+                ddlAssetCategory_Grd = (DropDownList)sender;
+                GridViewRow gvRow = (GridViewRow)ddlAssetCategory_Grd.Parent.Parent;
+                ddlAssetType_Grd = (DropDownList)gvTaxAsset.Rows[gvRow.RowIndex].FindControl("ddlAssetType");
+            }
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@Asset_Category_ID", ddlAssetCategory_Grd.SelectedValue);
+            ddlAssetType_Grd.BindDataTable("S3G_SYSAD_GetAssetTypeByAssetCategory", Procparam, new string[] { "AT_ID", "AT_DESC" });
+            ddlAssetType_Grd.Items.RemoveAt(0);
+            ddlAssetType_Grd.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--ALL--", "0")));
+            ddlAssetType_Grd.Enabled = true;
+            Procparam = null;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            //ObjTaxGuideMasterClient.Close();
+        }
+    }
+
+    protected void gvTaxAsset_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.Footer)
+            {
+                DropDownList ddlAssetCategory = e.Row.FindControl("ddlAssetCategory") as DropDownList;
+                DropDownList ddlAssetType = e.Row.FindControl("ddlAssetType") as DropDownList;
+
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyID.ToString());
+                Procparam.Add("@User_ID", intUserId.ToString());
+                dsInitLoadDetails = Utility.GetDataset("S3G_SYSAD_Get_StateDetails", Procparam);
+
+                ddlAssetCategory.BindDataTable(dsInitLoadDetails.Tables[4], new string[] { "AC_ID", "AC_DESC" });
+                ddlAssetCategory.Items.RemoveAt(0);
+                ddlAssetCategory.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--ALL--", "0")));
+                ddlAssetType.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--ALL--", "0")));
+                ddlAssetCategory.Focus();                
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void gvTaxAsset_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        try
+        {
+            string strAssetCategoryID, strAssetCategory, strTaxAssetID;
+
+            if (e.CommandName == "Add")
+            {
+                DropDownList ddlAssetCategory = gvTaxAsset.FooterRow.FindControl("ddlAssetCategory") as DropDownList;
+                DropDownList ddlAssetType = gvTaxAsset.FooterRow.FindControl("ddlAssetType") as DropDownList;                
+
+                strTaxAssetID = "0";
+                strAssetCategoryID = ddlAssetCategory.SelectedValue.ToString();
+                strAssetCategory = ddlAssetCategory.SelectedItem.Text.ToString();
+
+                DataRow[] drCheck = null;
+                dtTaxAsset = FunPriGetTaxAssetDataTable();
+                string strFilterQuery = "Asset_Category_ID='" + strAssetCategoryID + "' AND Asset_Type_ID='" + ddlAssetType.SelectedValue + "'";                
+                drCheck = dtTaxAsset.Select(strFilterQuery);
+
+                if (drCheck.Length > 0)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Same record already exists in the grid");
+                    return;
+                }
+                FunPriInsertTaxAssetDataTable(strAssetCategoryID.ToString(), ddlAssetType.SelectedValue, strAssetCategory, ddlAssetType.SelectedItem.Text, strTaxAssetID);
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    protected void gvTaxAsset_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            dtTaxAsset = FunPriGetTaxAssetDataTable();
+            dtTaxAsset.Rows.RemoveAt(e.RowIndex);
+            ViewState["Tax_AssetDetails"] = dtTaxAsset;
+            dtTaxAsset = FunPriGetTaxAssetDataTable();
+
+            if (dtTaxAsset.Rows.Count == 0)
+            {
+                FunPriInsertTaxAssetDataTable("-1", "-1", "", "", "");
+            }
+            else
+            {
+                FunPubBindTaxAsset(dtTaxAsset);
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    private DataTable FunPriGetTaxAssetDataTable()
+    {
+        try
+        {
+            if (ViewState["Tax_AssetDetails"] == null)
+            {
+                dtTaxAsset = new DataTable();
+                dtTaxAsset.Columns.Add("Asset_Serial_Number");
+                dtTaxAsset.Columns.Add("Tax_Guide_Detail_ID");
+                dtTaxAsset.Columns.Add("Asset_Category_ID");
+                dtTaxAsset.Columns.Add("Asset_Type_ID");
+                dtTaxAsset.Columns.Add("Asset_Category");
+                dtTaxAsset.Columns.Add("Asset_Type");
+                ViewState["Tax_AssetDetails"] = dtTaxAsset;
+            }
+            dtTaxAsset = (DataTable)ViewState["Tax_AssetDetails"];
+            return dtTaxAsset;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriInsertTaxAssetDataTable(string strAssetClass_ID, string strAssetType_ID, string strAssetClass, string strAssetType, string strTaxAsset_ID)
+    {
+        try
+        {
+            DataRow drEmptyRow;
+            dtTaxAsset = FunPriGetTaxAssetDataTable();
+
+            if (strAssetClass_ID.Equals("-1"))
+            {
+                if (dtTaxAsset.Rows.Count == 0)
+                {
+                    drEmptyRow = dtTaxAsset.NewRow();
+                    drEmptyRow["Asset_Serial_Number"] = "0";
+                    dtTaxAsset.Rows.Add(drEmptyRow);
+                }
+            }
+            else
+            {
+                drEmptyRow = dtTaxAsset.NewRow();
+                drEmptyRow["Asset_Serial_Number"] = Convert.ToInt32(dtTaxAsset.Rows[dtTaxAsset.Rows.Count - 1]["Asset_Serial_Number"]) + 1;
+                drEmptyRow["Tax_Guide_Detail_ID"] = 0;
+                drEmptyRow["Asset_Category_ID"] = strAssetClass_ID;
+                drEmptyRow["Asset_Type_ID"] = strAssetType_ID;
+                drEmptyRow["Asset_Category"] = strAssetClass;
+                drEmptyRow["Asset_Type"] = strAssetType;
+                dtTaxAsset.Rows.Add(drEmptyRow);
+            }
+
+            if (dtTaxAsset.Rows.Count > 1)
+            {
+                if (dtTaxAsset.Rows[0]["Asset_Serial_Number"].Equals("0"))
+                {
+                    dtTaxAsset.Rows[0].Delete();
+                }
+            }
+
+            ViewState["Tax_AssetDetails"] = dtTaxAsset;
+
+            dtTaxAsset = FunPriGetTaxAssetDataTable();
+            FunPubBindTaxAsset(dtTaxAsset);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriInsertTaxAssetHistoryDataTable()
+    {
+        try
+        {
+            DataRow drEmptyRow;
+            dtTaxAssetHistory = FunPubGetTaxAssetHistoryDataTable();
+
+            if (dtTaxAssetHistory.Rows.Count == 0)
+            {
+                drEmptyRow = dtTaxAssetHistory.NewRow();
+                drEmptyRow["Asset_Serial_Number"] = "0";
+                dtTaxAssetHistory.Rows.Add(drEmptyRow);
+            }
+
+            if (dtTaxAssetHistory.Rows.Count > 1)
+            {
+                if (dtTaxAssetHistory.Rows[0]["Asset_Serial_Number"].Equals("0"))
+                {
+                    dtTaxAssetHistory.Rows[0].Delete();
+                }
+            }
+
+            ViewState["Tax_AssetHistoryDetails"] = dtTaxAssetHistory;
+
+            dtTaxAssetHistory = FunPubGetTaxAssetHistoryDataTable();
+            FunPubBindTaxAssetHistory(dtTaxAssetHistory);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPubBindTaxAsset(DataTable dtTaxAsset)
+    {
+        try
+        {
+            gvTaxAsset.DataSource = dtTaxAsset;
+            gvTaxAsset.DataBind();
+            if (dtTaxAsset.Rows[0]["Asset_Serial_Number"].ToString().Equals("0"))
+            {
+                gvTaxAsset.Rows[0].Visible = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPubBindTaxAssetHistory(DataTable dtTaxAssetHistory)
+    {
+        try
+        {
+            gvTaxAssetHistory.DataSource = dtTaxAssetHistory;
+            gvTaxAssetHistory.DataBind();
+            if (dtTaxAssetHistory.Rows[0]["Asset_Serial_Number"].ToString().Equals("0"))
+            {
+                gvTaxAssetHistory.Rows[0].Visible = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private bool FunPriGenerateTaxAssetXMLDet()
+    {
+        try
+        {
+            dtTaxAsset = (DataTable)ViewState["Tax_AssetDetails"];
+
+            if (dtTaxAsset.Rows.Count == 1)
+            {
+                if (dtTaxAsset.Rows[0]["Asset_Serial_Number"].ToString().Equals("0") && PageMode == PageModes.Create)
+                {
+                    return false;
+                }
+            }
+            strbTaxAssetDet.Append("<Root>");
+            foreach (DataRow drow in dtTaxAsset.Rows)
+            {
+                strbTaxAssetDet.Append("<Details ");
+                strbTaxAssetDet.Append(" Tax_Guide_Detail_ID = '" + drow["Tax_Guide_Detail_ID"].ToString() + "'");
+                strbTaxAssetDet.Append(" Asset_Category_ID = '" + drow["Asset_Category_ID"].ToString() + "'");
+                strbTaxAssetDet.Append(" Asset_Type_ID = '" + drow["Asset_Type_ID"].ToString() + "'");
+                strbTaxAssetDet.Append(" />");
+            }
+            strbTaxAssetDet.Append("</Root>");
+            strXMLTaxAssetDet = strbTaxAssetDet.ToString();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }   
+    
+    #endregion
+}
+
+
+

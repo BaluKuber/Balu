@@ -1,0 +1,1262 @@
+﻿/// Module Name     :   Origination
+/// Screen Name     :   S3GORGEnquiryAssignment_Add
+/// Created By      :   Narayanan
+/// Created Date    :   18-May-2010
+/// Purpose         :   To Insert and Query 
+/// Modified By     :   Thangam M
+/// Date            :   17/Sep/2013
+/// Purpose         :   Performance related changes
+
+
+
+#region Namespaces
+
+using System;
+using System.Data;
+using System.Globalization;
+using System.ServiceModel;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using S3GBusEntity.Origination;
+using System.Collections.Generic;
+using System.Web.Security;
+using System.Configuration;
+
+#endregion
+public partial class Origination_EnquiryAssignment : ApplyThemeForProject
+{
+
+    #region Initialization
+
+    int _CompanyID, _UserID, _SlNo = 0;
+    string _Assigned = "Assigned", _NotAssigned = "NotAssigned", _DateFormat = "dd/MM/yyyy";
+    Dictionary<string, string> Procparam = null;
+    string strDateFormat = string.Empty;
+    string strEnquiryNo = string.Empty;
+
+    Decimal decRoundOff = 0;
+    int intGPSPrefix = 0;
+    int intGPSSuffix = 0;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    //string strRedirectPage = "~/Origination/S3GORGTransLander.aspx?Code=ENQA&Modify=0";
+    //string strRedirectPageAdd = "~/Origination/S3G_ORG_EnquiryAssignment.aspx";
+    string strRedirectPage = "../Origination/S3GORGTransLander.aspx?Code=ENA&Modify=0";
+    string strRedirectPageAdd = "window.location.href='../Origination/S3G_ORG_EnquiryAssignment.aspx'";
+    string strRedirectPageView = "window.location.href='../Origination/S3GORGTransLander.aspx?Code=ENA&Modify=0';";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    S3GSession ObjS3GSession;
+
+    public static Origination_EnquiryAssignment obj_Page;
+    //Code end
+
+    #endregion
+
+    #region Page Load
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+
+        this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+        #region "WorkFlow Initiation"
+        ProgramCode = "034";
+        #endregion
+        try
+        {
+            FunPubSetIndex(1);
+            UserInfo ObjUserInfo = new UserInfo();
+            ObjS3GSession = new S3GSession();
+
+            intGPSPrefix = ObjS3GSession.ProGpsPrefixRW;
+            intGPSSuffix = ObjS3GSession.ProGpsSuffixRW;
+
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            _CompanyID = ObjUserInfo.ProCompanyIdRW;
+            _UserID = ObjUserInfo.ProUserIdRW;
+            _DateFormat = ObjS3GSession.ProDateFormatRW;
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (!IsPostBack)
+            {
+                if (Request.QueryString["qsViewId"] != string.Empty && Request.QueryString["qsViewId"] != null)
+                {
+                    FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                    strEnquiryNo = fromTicket.Name;
+                }
+                SetResourceSettings();
+                FunToolTip();
+
+                PopulateEnquiryNumber();
+                PopulateLOBList();
+
+                if (Request.QueryString["qsMode"] == "Q")
+                    PopulateBranchList();
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    btnSave.Enabled = false;
+                    GetEnquiryDetails(strEnquiryNo);
+                    FunPriDisableControls(-1);
+                }
+                else
+                    btnSave.Enabled = true;
+                ScriptManager scriptManager = ScriptManager.GetCurrent(this.Page);
+                scriptManager.SetFocus(ddlEnquiryNo);
+            }
+        }
+        catch (Exception ex)
+        {
+            cvEnquiryAssignment.ErrorMessage = ex.Message;
+            cvEnquiryAssignment.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region DropDownList Events
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            int intProductID = 0;
+            txtWorkflowSeq.Text = lblErrorMessage.Text = string.Empty;
+            PopulateLOBProductList(Convert.ToInt32(ddlLOB.SelectedValue), intProductID);
+            if (ddlLOB.Items.Count > 0)
+            { ddlLOB.ToolTip = ddlLOB.SelectedItem.Text; }
+            ddlBranch.Focus();
+            PopulateBranchList();
+        }
+
+        catch (Exception ex)
+        {
+            cvEnquiryAssignment.ErrorMessage = ex.Message;
+            cvEnquiryAssignment.IsValid = false;
+        }
+    }
+    protected void ddlProductCode_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            txtWorkflowSeq.Text = lblErrorMessage.Text = string.Empty;
+            PopulateWorkflowSequenceList(Convert.ToInt32(ddlProductCode.SelectedValue), Convert.ToInt32(ddlLOB.SelectedValue));
+            if (ddlProductCode.Items.Count > 0)
+            { ddlProductCode.ToolTip = ddlProductCode.SelectedItem.Text; }
+        }
+        catch (Exception ex)
+        {
+            cvEnquiryAssignment.ErrorMessage = ex.Message;
+            cvEnquiryAssignment.IsValid = false;
+        }
+    }
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        //if (ddlBranch.Items.Count > 0)
+        //{ ddlBranch.ToolTip = ddlBranch.SelectedItem.Text; }
+        ddlBranch.ToolTip = ddlBranch.SelectedText;
+        ddlProductCode.Focus();
+    }
+    protected void ddlEnquiryNo_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (ddlEnquiryNo.SelectedIndex > 0)
+        {
+            GetEnquiryDetails(ddlEnquiryNo.SelectedValue);
+            ddlLOB.Focus();
+        }
+        else if (ddlEnquiryNo.SelectedIndex == 0)
+        { Clear(); }
+    }
+
+    #endregion
+
+    #region Button Events
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+
+            //if (txtWorkflowSeq.Text != string.Empty)
+            //{
+            Insert_Router();
+            //}
+
+            //Added by Thangam M on 18/Oct/2012 to avoid double save click
+            btnSave.Enabled = false;
+            //End here
+
+            strAlert = "Enquiry Reference Number is " + ddlEnquiryNo.SelectedItem.Text;
+            strAlert += @"\n\nEnquiry Assignment done successfully";
+            strAlert += @"\n\nWould you like to do assignment for one more Enquiry?";
+            strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+            strRedirectPage = "";
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+            //strAlert = strAlert.Replace("__ALERT__", "Details for enquiry number assigned successfully");
+            //strRedirectPage = "";
+
+
+            lblErrorMessage.Text = string.Empty;
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            cvEnquiryAssignment.ErrorMessage = ex.Message;
+            cvEnquiryAssignment.IsValid = false;
+        }
+    }
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            // wf cancel
+            if (PageMode == PageModes.WorkFlow)
+                ReturnToWFHome();
+            else
+                Response.Redirect(strRedirectPage,false);
+        }
+        catch (Exception ex)
+        {
+            cvEnquiryAssignment.ErrorMessage = ex.Message;
+            cvEnquiryAssignment.IsValid = false;
+        }
+    }
+    protected void btnSchedule_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            #region  To get Round Off value from Glopbal parameter setup
+            Dictionary<string, string> dictRoundOFF = new Dictionary<string, string>();
+            dictRoundOFF.Add("@Company_ID", _CompanyID.ToString());
+            DataTable dtRoundOff = Utility.GetDefaultData("S3g_ORG_GetGlobalIRRDetails", dictRoundOFF);
+            if (dtRoundOff != null && dtRoundOff.Rows.Count > 0)
+            {
+                decRoundOff = Convert.ToDecimal(dtRoundOff.Rows[0]["Roundoff"].ToString());
+            }
+            #endregion
+
+            // tbLoanSchedule.Enabled = true;
+            if (txtMargine.Text == string.Empty)
+                txtMargine.Text = "0";
+            if (!string.IsNullOrEmpty(txtFacilityAmount.Text))
+            {
+                if (txtInterestType.Text.Trim().ToUpper() == "RATE")
+                {
+                    string strFreQuency = string.Empty;
+                    if (txtTenureType.Text.ToUpper() == "MONTHS")
+                        strFreQuency = "4";
+                    else if (txtTenureType.Text.ToUpper() == "DAYS")
+                        strFreQuency = "0";
+                    else if (txtTenureType.Text.ToUpper() == "WEEKS")
+                        strFreQuency = "2";
+
+                    bool blnIsRounded = false;
+                    DataTable dtRepay = new DataTable();
+                    CommonS3GBusLogic objCommonS3GBusLogic = new CommonS3GBusLogic();
+                    dtRepay = objCommonS3GBusLogic.FunPubCalculateRepaymentDetails(strFreQuency, int.Parse(txtTenure.Text),
+                        txtTenureType.Text, decimal.Parse(txtFacilityAmount.Text),
+                        decimal.Parse(txtInterestPercentage.Text), RepaymentType.EMI, null,
+                        Convert.ToDateTime(DateTime.Now.ToShortDateString()), Convert.ToDateTime(DateTime.Now.ToShortDateString()),
+                        decRoundOff, out blnIsRounded, "advance");
+
+                    ViewState["gvScheduleViewState"] = gvSchedule.DataSource = FunPriAddSerialNumber(dtRepay);
+                }
+                else
+                    ViewState["gvScheduleViewState"] = gvSchedule.DataSource = FunPriAddSerialNumber(GenerateRepaymentSchedule(Convert.ToInt32(txtMargine.Text), Convert.ToInt64(txtFacilityAmount.Text), Convert.ToDecimal(txtInterestPercentage.Text), Convert.ToInt32(txtTenure.Text)));
+
+                gvSchedule.DataBind();
+                TCEnqu.ActiveTabIndex = 2;
+                if (txtMargine.Text == "0")
+                    txtMargine.Text = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvQuery.ErrorMessage = ex.Message;
+            cvQuery.IsValid = false;
+        }
+    }
+    #endregion
+
+    //protected void gvSchedule_RowDataBound(object sender, System.Web.UI.WebControls.GridViewRowEventArgs e)
+    //{
+    //    try
+    //    {
+    //        e.Row.Cells[0].Width = 30;
+    //        e.Row.Cells[1].Width = 120;
+    //        e.Row.Cells[2].Width = 120;
+
+    //        if (e.Row.RowType == DataControlRowType.DataRow)
+    //        {
+    //            _SlNo += 1;
+    //            e.Row.Cells[0].Text = _SlNo.ToString();
+    //        }
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        cvQuery.ErrorMessage = ex.Message;
+    //        cvQuery.IsValid = false;
+    //    }
+    //}     
+
+    #region User Defined functions
+
+    private void FunToolTip()
+    {
+        try
+        {
+            //throw new NotImplementedException();
+            txtAddress.ToolTip = lblAddress.Text;
+            txtEnqDate.ToolTip = lblEnqDate.Text;
+            txtEnqRefNo.ToolTip = lblEnquiryNo.Text;
+            txtNewCustomer.ToolTip = lblNewCustomer.Text;
+            txtEmail.ToolTip = lblEmail.Text;
+            txtFacilityAmount.ToolTip = lblFacilityAmount.Text;
+            txtFacilityType.ToolTip = lblFacilityType.Text;
+            txtInterestPercentage.ToolTip = lblInterestPercentage.Text;
+            txtInterestType.ToolTip = lblInterestType.Text;
+            ddlBranch.ToolTip = lblBranch.Text;
+            ddlLOB.ToolTip = lblLOB.Text;
+            txtMargine.ToolTip = lblMargineAmount.Text;
+            txtMobile.ToolTip = lblMobile.Text;
+            txtCity.ToolTip = lblCity.Text;
+            txtConstitution.ToolTip = lblConstitution.Text;
+            txtCurrencyCode.ToolTip = lblCurrencyCode.Text;
+            ddlEnquiryNo.ToolTip = lblEnquiryNo.Text;
+            txtWorkflowSeq.ToolTip = lblworkflowSeq.Text;
+            txtTenure.ToolTip = lblTenure.Text;
+            txtTenureType.ToolTip = lblTenureType.Text;
+            txtPinCode.ToolTip = lblPincode.Text;
+            txtRemarks.ToolTip = lblRemarks.Text;
+            txtCountry.ToolTip = lblCountry.Text;
+            txtAddress2.ToolTip = lblAddress2.Text;
+            txtState.ToolTip = lblState.Text;
+            txtAssetDetails.ToolTip = lblAssetDetails.Text;
+            txtResidualValue.ToolTip = lblResidualValue.Text;
+            ddlProductCode.ToolTip = lblProductCode.Text;
+            txtUserName.ToolTip = lblUserName.Text;
+            txtTransDate.ToolTip = lblTransactionDate.Text;
+            btnSave.ToolTip = btnSave.Text;
+            btnCancel.ToolTip = btnCancel.Text;
+            txtWebSite.ToolTip = lblWebsite.Text;
+            txtComAddress.ToolTip = lblComAddress.Text;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+
+        }
+    }
+    private DataTable FunPriAddSerialNumber(DataTable dt)
+    {
+        try
+        {
+            DataColumn dc = new DataColumn("SerialNumber");
+            dt.Columns.Add(dc);
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                for (int i_serialNum = 0; i_serialNum < dt.Rows.Count; i_serialNum++)
+                { dt.Rows[i_serialNum]["SerialNumber"] = (i_serialNum + 1).ToString(); }
+            }
+            return dt;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    private void Clear()
+    {
+        try
+        {
+            txtFacilityType.Text = txtEmail.Text = txtMobile.Text = txtPinCode.Text = txtCity.Text = txtState.Text = txtCountry.Text = txtAddress2.Text = txtAddress.Text = txtConstitution.Text = txtName.Text = txtCustomerReference.Text = txtNewCustomer.Text = txtEnqDate.Text = txtEnqRefNo.Text = string.Empty;
+            txtWorkflowSeq.Text = txtWebSite.Text = txtComAddress.Text = txtTransDate.Text = txtUserName.Text = txtResidualValue.Text = txtMargine.Text = txtInterestPercentage.Text = txtInterestType.Text = txtTenureType.Text = txtTenure.Text = txtRemarks.Text = txtAssetDetails.Text = txtCurrencyCode.Text = txtFacilityAmount.Text = string.Empty;
+            //if (ddlBranch.Items.Count > 0) ddlBranch.SelectedIndex = 0;
+            ddlBranch.Clear();
+            if (ddlLOB.Items.Count > 0) ddlLOB.SelectedIndex = 0;
+            if (ddlProductCode.Items.Count > 0) ddlProductCode.SelectedIndex = 0;
+            S3GCustomerAddress1.ClearCustomerDetails();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    private void Insert_Router()
+    {
+        EnquiryMgtServicesReference.EnquiryMgtServicesClient ObjRouter = new EnquiryMgtServicesReference.EnquiryMgtServicesClient();
+
+        try
+        {
+            //DataSet dtSet = new DataSet();
+            //if (Procparam != null)
+            //    Procparam.Clear();
+            //else
+            //{
+            //    Procparam = new Dictionary<string, string>();
+            //    Procparam.Add("@Company_ID", _CompanyID.ToString());
+            //    Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            //    Procparam.Add("@Branch_ID", ddlBranch.SelectedValue);
+            //}
+            //dtSet = Utility.GetTableValues(SPNames.S3G_ORG_GetLOBBranchMapperdToUser, Procparam);
+            //if (dtSet.Tables[0].Rows.Count > 0)
+            //{
+            //    if (dtSet.Tables[1].Rows.Count > 0)
+            //    {
+            S3GBusEntity.Origination.EnquiryService.S3G_ORG_RouterDataTable ObjS3G_ORG_RouterDataTable = new EnquiryService.S3G_ORG_RouterDataTable();
+            S3GBusEntity.Origination.EnquiryService.S3G_ORG_RouterRow ObjS3G_ORG_RouterRow = ObjS3G_ORG_RouterDataTable.NewS3G_ORG_RouterRow();
+            ObjS3G_ORG_RouterRow.Company_ID = _CompanyID;
+            ObjS3G_ORG_RouterRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjS3G_ORG_RouterRow.Created_By = _UserID;
+            ObjS3G_ORG_RouterRow.EnquiryUpdation_ID = Convert.ToInt32(ViewState["EnquiryUpdation_ID"]);
+            ObjS3G_ORG_RouterRow.In_Employee_ID = _UserID;
+            ObjS3G_ORG_RouterRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            if (ViewState["Workflow_ID"] != null)
+            {
+                if (ViewState["Workflow_ID"] != "")
+                { ObjS3G_ORG_RouterRow.WorkFlow_Seq_ID = Convert.ToInt32(ViewState["Workflow_ID"]); }
+            }
+            ObjS3G_ORG_RouterRow.Product_ID = Convert.ToInt32(ddlProductCode.SelectedValue);
+            ObjS3G_ORG_RouterRow.Status = true;
+            ObjS3G_ORG_RouterRow.In_Date = DateTime.Now;
+            ObjS3G_ORG_RouterRow.In_Time = DateTime.Now;
+            ObjS3G_ORG_RouterRow.Created_On = DateTime.Now;
+            ObjS3G_ORG_RouterRow.Created_By = _UserID;
+            ObjS3G_ORG_RouterDataTable.AddS3G_ORG_RouterRow(ObjS3G_ORG_RouterRow);
+            SerializationMode SMode = SerializationMode.Binary;
+
+            ObjRouter.FunPubInsertRouter(SMode, ClsPubSerialize.Serialize(ObjS3G_ORG_RouterDataTable, SMode));
+
+            cvEnquiryAssignment.ErrorMessage = Resources.LocalizationResources.SaveSuccess;
+            cvEnquiryAssignment.IsValid = false;
+
+            // Work Flow Implementation * EA --> WF INITIATION
+            WorkFlowSave();
+            Clear();
+            //}
+            //else
+            //{
+            //    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('The selected Branch is not mapped to any user so unable to assign the Enquiry Number');" + strRedirectPageAdd, true);
+            //    lblErrorMessage.Text = string.Empty;
+            //}
+            //}
+            //else
+            //{
+            //    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('The selected Line of Business is not mapped to any user so unable to assign the Enquiry Number');" + strRedirectPageAdd, true);
+            //    lblErrorMessage.Text = string.Empty;
+            //}
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+        finally
+        {
+            ObjRouter.Close();
+
+        }
+    }
+    #region " WORK FLOW SAVE"
+    private void WorkFlowSave()
+    {
+        WorkFlowSession WFValues = new WorkFlowSession();
+        DataTable dtWorkFlow;
+        int WFProgramId = 0;
+        if (CheckForWorkFlowConfiguration(ProgramCode, WFLOBId, WFProductId, out WFProgramId, out dtWorkFlow) > 0)
+        {
+            try
+            {
+                int intWorkflowStatus = InsertWorkFlowTasks(CompanyId.ToString(), UserId.ToString(), WFLOBId, WFBranchId, txtEnqRefNo.Text, WFProgramId, WFProductId, 1);
+                WFValues.LastDocumentNo = txtEnqRefNo.Text.Trim();
+                strAlert = "";
+
+                //Added by Thangam M on 18/Oct/2012 to avoid double save click
+                btnSave.Enabled = false;
+                //End here
+            }
+            catch (Exception ex)
+            {
+                strAlert = "Work Flow Not Assigned";
+            }
+            //ShowWFAlertMessage(txtEnqRefNo.Text, ProgramCode);
+            //return;
+        }
+    }
+    /* WorkFlow Properties */
+    private int WFLOBId { get { return int.Parse(ddlLOB.SelectedValue); } }
+    private int WFBranchId { get { return int.Parse(ddlBranch.SelectedValue); } }
+    private int WFProductId { get { return int.Parse(ddlProductCode.SelectedValue); } }
+
+    #endregion
+    private void PopulateEnquiryNumber()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", _CompanyID.ToString());
+            ddlEnquiryNo.BindDataTable(SPNames.S3G_ORG_GetEnquiryNumberforAssignment, Procparam, true, "-- Select --", new string[] { "ID", "Enquiry_No", "Customer" });
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page._CompanyID.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", obj_Page._UserID.ToString());
+        Procparam.Add("@Program_Id", "34");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    private void PopulateBranchList()
+    {
+        try
+        {
+            ddlBranch.Clear();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Company_ID", _CompanyID.ToString());
+            Procparam.Add("@Lob_id", ddlLOB.SelectedValue);
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location" });
+            txtWorkflowSeq.Text = string.Empty;
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    private void PopulateLOBList()
+    {
+        try
+        {
+            UserInfo ObjUserInfo = new UserInfo();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(_CompanyID));
+            Procparam.Add("@Consitution_Id", txtConstitution.Attributes["Const_ID"]);
+            Procparam.Add("@Program_id", "34");
+            Procparam.Add("@Is_Active", "1");
+            //User_id parameter added to get LOB _BUG_ID-5505-kuppusamy.B - 16-Feb-2012
+            Procparam.Add("@User_Id", ObjUserInfo.ProUserIdRW.ToString());
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        { throw objFaultExp; }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    private void PopulateLOBProductList(int LOBID, int ProductID)
+    {
+        EnquiryMgtServicesReference.EnquiryMgtServicesClient ObjEnquiryMgtServicesClient = new EnquiryMgtServicesReference.EnquiryMgtServicesClient();
+
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(_CompanyID));
+            Procparam.Add("@Is_Active", "1");
+
+            if (Request.QueryString["qsMode"] == "Q")
+                Procparam.Add("@Product_ID", Convert.ToString(ProductID));
+            Procparam.Add("@LOB_ID", Convert.ToString(LOBID));
+            /*Product Code  removed from parameter list - Prod code not nteeded - Bug_ID -5507- Kuppusamy.B*/
+            ddlProductCode.BindDataTable(SPNames.SYS_ProductMaster, Procparam, new string[] { "Product_ID", "Product_Name" });
+
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        { throw objFaultExp; }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+        finally
+        {
+            ObjEnquiryMgtServicesClient.Close();
+        }
+    }
+    private void PopulateWorkflowSequenceList(int ProductID, int LOB_ID)
+    {
+        DataTable dtTable1 = new DataTable();
+        DataTable dtTable = new DataTable();
+        try
+        {
+            //if (Request.QueryString["qsMode"] != "Q")
+            //{
+            //    //EnquiryMgtServicesReference.EnquiryMgtServicesClient ObjEnquiryMgtServicesClient = new EnquiryMgtServicesReference.EnquiryMgtServicesClient();
+
+            //S3GBusEntity.CompanyHierarchyEntity ObjCompanyHierarchyEntity = new CompanyHierarchyEntity();
+            //ObjCompanyHierarchyEntity.ProductID = ProductID;
+            //ObjCompanyHierarchyEntity.LOBID = LOB_ID;
+            //ObjCompanyHierarchyEntity.ProgramCode = "034";
+            //dtTable = ObjEnquiryMgtServicesClient.FunPubGetWorkFlowList(ObjCompanyHierarchyEntity);
+
+            if (Procparam == null)
+                Procparam = new Dictionary<string, string>();
+            else
+                Procparam.Clear();
+
+            Procparam.Add("@LOB_ID", LOB_ID.ToString());
+            Procparam.Add("@Product_ID", ProductID.ToString());
+            Procparam.Add("@Company_ID", _CompanyID.ToString());
+            dtTable1 = Utility.GetDefaultData(SPNames.S3G_WORKFLOW_GetWorkFlowListEnqAssignment, Procparam);
+            if (dtTable1.Rows.Count > 0)
+            {
+                Procparam.Add("@Program_Ref_No", "034");
+                dtTable = Utility.GetDefaultData(SPNames.S3G_WORKFLOW_GetWorkFlowListEnqAssignment, Procparam);
+                if (dtTable.Rows.Count > 0)
+                {
+                    ViewState["Workflow_Sequence"] = dtTable.Rows[0]["Workflow_Sequence"].ToString();
+                    ViewState["Workflow_ID"] = dtTable.Rows[0]["Workflow_ID"].ToString();
+                    //dtTable.Rows[0]["Workflow_Sequence_ID"].ToString();
+                    //txtWorkflowSeq.Text = "001HPSRMO034";
+                    txtWorkflowSeq.Text = dtTable.Rows[0]["Workflow_Sequence"].ToString();
+                    lblErrorMessage.Text = string.Empty;
+                    if (Request.QueryString["qsMode"] == "C")
+                    { btnSave.Enabled = true; }
+                }
+            }
+
+            if (Request.QueryString["qsMode"] != "Q")
+            {
+                if (dtTable.Rows.Count == 0)
+                {
+                    ///btnSave.Enabled = false;
+                    //lblErrorMessage.Visible = true;
+                    //lblErrorMessage.Text = "There is no Work Flow Sequence for this Line of Business and Product";
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Work Flow not defined for Enquiry Assignment');", true);
+                    lblErrorMessage.Text = string.Empty;
+                }
+                else if (dtTable1.Rows.Count == 0)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Work Flow not defined for the selected Line of Business and Product');", true);
+                    lblErrorMessage.Text = string.Empty;
+                }
+                //ObjEnquiryMgtServicesClient.Close();
+            }
+        }
+        //}
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        { throw objFaultExp; }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    private void GetEnquiryDetails(string EnqNo)
+    {
+        UserInfo objUser = new UserInfo();
+        string strCustomerAddress = "";
+        EnquiryMgtServicesReference.EnquiryMgtServicesClient ObjEnqDetailservice = new EnquiryMgtServicesReference.EnquiryMgtServicesClient();
+        try
+        {
+            byte[] ByteEnquiryAssignment;
+            S3GBusEntity.Origination.EnquiryService.S3G_ORG_DV_GetEnquiryUpdateDetailsDataTable ObjEnqDetails =
+                new EnquiryService.S3G_ORG_DV_GetEnquiryUpdateDetailsDataTable();
+
+            ByteEnquiryAssignment = ObjEnqDetailservice.FunPubGetEnquiryUpdateDetails(EnqNo);
+            ObjEnqDetails = (S3GBusEntity.Origination.EnquiryService.S3G_ORG_DV_GetEnquiryUpdateDetailsDataTable)
+                ClsPubSerialize.DeSerialize(ByteEnquiryAssignment, SerializationMode.Binary,
+                typeof(S3GBusEntity.Origination.EnquiryService.S3G_ORG_DV_GetEnquiryUpdateDetailsDataTable));
+            if (ObjEnqDetails.Rows.Count > 0)
+            {
+                S3GBusEntity.Origination.EnquiryService.S3G_ORG_DV_GetEnquiryUpdateDetailsRow ObjEnqDetailsRow = (S3GBusEntity.Origination.EnquiryService.S3G_ORG_DV_GetEnquiryUpdateDetailsRow)ObjEnqDetails.Rows[0];
+                ViewState["EnquiryUpdation_ID"] = ObjEnqDetailsRow.EnquiryUpdateID;
+                txtEnqRefNo.Text = ObjEnqDetailsRow.EnquiryNo;
+                txtEnqDate.Text = DateTime.Parse(ObjEnqDetailsRow.EnquiryDate.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                txtNewCustomer.Text = ObjEnqDetailsRow.IsNewCustomer;
+                txtCustomerReference.Text = ObjEnqDetailsRow.CustomerCode;
+                txtName.Text = ObjEnqDetailsRow.Customer_Name;
+                txtConstitution.Text = ObjEnqDetailsRow.Constitution;
+                txtConstitution.Attributes.Add("Const_ID", ObjEnqDetailsRow.Constitution_ID.ToString());
+                txtAddress.Text = ObjEnqDetailsRow.Address;
+                txtAddress2.Text = ObjEnqDetailsRow.Address2;
+                txtCity.Text = ObjEnqDetailsRow.City;
+                txtState.Text = ObjEnqDetailsRow.State;
+                txtCountry.Text = ObjEnqDetailsRow.Country;
+                txtPinCode.Text = ObjEnqDetailsRow.PINCodeZipCode;
+                txtComAddress.Text = strCustomerAddress = SetCustomerAddress(ObjEnqDetailsRow.Address.ToString(), ObjEnqDetailsRow.Address2.ToString(), ObjEnqDetailsRow.City.ToString(), ObjEnqDetailsRow.State.ToString(), ObjEnqDetailsRow.Country.ToString(), ObjEnqDetailsRow.PINCodeZipCode.ToString());
+                txtWebSite.Text = ObjEnqDetailsRow.Website;
+                if (!(ObjEnqDetailsRow.IsMobileNull()))
+                    txtMobile.Text = ObjEnqDetailsRow.Mobile;
+                else
+                    txtMobile.Text = string.Empty;
+                txtEmail.Text = ObjEnqDetailsRow.Email;
+                S3GCustomerAddress1.SetCustomerDetails(ObjEnqDetailsRow.CustomerCode, strCustomerAddress, ObjEnqDetailsRow.Customer_Name, ObjEnqDetailsRow.Telephone, ObjEnqDetailsRow.Mobile, ObjEnqDetailsRow.Email, ObjEnqDetailsRow.Website);
+                txtFacilityType.Text = ObjEnqDetailsRow.FacilityType;
+                if (txtFacilityType.Text.Trim().Contains("Factoring") || txtFacilityType.Text.Trim().Contains("Working Capital"))
+                { TCEnqu.Tabs[1].Visible = false; }
+                else
+                { TCEnqu.Tabs[1].Visible = true; }
+                txtFacilityAmount.Text = Convert.ToString(ObjEnqDetailsRow.FacilityAmount);
+                txtCurrencyCode.Text = ObjEnqDetailsRow.Currency_Code;
+                if (!(ObjEnqDetailsRow.IsAssetCodeNull()))
+                    txtAssetDetails.Text = ObjEnqDetailsRow.AssetCode;
+                else
+                    txtAssetDetails.Text = string.Empty;
+
+                if (!(ObjEnqDetailsRow.IsRemarksNull()))
+                    txtRemarks.Text = ObjEnqDetailsRow.Remarks;
+                else
+                    txtRemarks.Text = string.Empty; ;
+
+                txtTenure.Text = Convert.ToString(ObjEnqDetailsRow.Tenure);
+                txtTenureType.Text = ObjEnqDetailsRow.TenureType;
+                txtInterestType.Text = ObjEnqDetailsRow.InterestType;
+                txtWorkflowSeq.Text = ObjEnqDetailsRow.WorkFlow_Sequence;
+                txtInterestPercentage.Text = Convert.ToString(ObjEnqDetailsRow.InterestPercentage);
+                if (!(ObjEnqDetailsRow.IsMarginAmountNull()))
+                    txtMargine.Text = Convert.ToString(ObjEnqDetailsRow.MarginAmount);
+                else
+                    txtMargine.Text = string.Empty;
+                if (!(ObjEnqDetailsRow.IsResidualValueNull()))
+                {
+                    if (Convert.ToInt32(ObjEnqDetailsRow.ResidualValue) == 0)
+                        txtResidualValue.Text = "";
+                    else
+                        txtResidualValue.Text = Convert.ToString(ObjEnqDetailsRow.ResidualValue);
+                }
+                else
+                    txtResidualValue.Text = string.Empty;
+
+                /*Code changed for Bug Fixing - ID- 5504 - kuppusamy.B - Feb-20-2012*/
+                if (PageMode == PageModes.Create)
+                {
+                    txtUserName.Text = objUser.ProUserNameRW.ToString();
+                }
+                else
+                {
+                    txtUserName.Text = ObjEnqDetailsRow.CreatedUserName;
+                }
+
+
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    if (!ObjEnqDetailsRow.IsTransDateNull())
+                        txtTransDate.Text = ObjEnqDetailsRow.TransDate.ToString(_DateFormat);
+                }
+                else
+                    txtTransDate.Text = DateTime.Now.ToString(_DateFormat);
+
+                DataTable dtTable = new DataTable();
+                dtTable = (DataTable)ViewState["Enquiry_Table"];
+                // TCEnqu.ActiveTabIndex = 1;
+
+                //fOR ol REALTED iSSUES 26/7/2011.
+                Dictionary<string, string> procparam = new Dictionary<string, string>();
+                procparam.Add("@EnquiryNo", EnqNo);
+                procparam.Add("@Company_Id", _CompanyID.ToString());
+                DataTable dtEnqAssign = Utility.GetDefaultData("S3G_ORG_GETlOBFORENQASSIGN", procparam);
+                if (dtEnqAssign.Rows.Count > 0)
+                {
+                    if (dtEnqAssign.Rows[0]["Asset_Type"] != null && dtEnqAssign.Rows[0]["Asset_Type"].ToString() == "1")
+                    {
+                        ddlLOB.SelectedValue = dtEnqAssign.Rows[0]["Facility_Type"].ToString();
+                        ddlLOB.ClearDropDownList();
+                        ddlLOB_SelectedIndexChanged(null, null);
+                    }
+                }
+            }
+            else
+            {
+                cvQuery.ErrorMessage = Resources.LocalizationResources.ORG_EnqAssign_Foreignkey;
+                cvQuery.IsValid = false;
+            }
+
+            if (Request.QueryString["qsMode"] == "Q")
+            {
+                ByteEnquiryAssignment = null;
+                S3GBusEntity.Origination.EnquiryService.S3G_RouterDetailsDataTable ObjRouter = new EnquiryService.S3G_RouterDetailsDataTable();
+
+                ByteEnquiryAssignment = ObjEnqDetailservice.FunPubGetRouterDetails(EnqNo);
+                ObjRouter = (S3GBusEntity.Origination.EnquiryService.S3G_RouterDetailsDataTable)
+                    ClsPubSerialize.DeSerialize(ByteEnquiryAssignment, SerializationMode.Binary,
+                    typeof(S3GBusEntity.Origination.EnquiryService.S3G_RouterDetailsDataTable));
+                if (ObjRouter.Rows.Count > 0)
+                {
+                    S3GBusEntity.Origination.EnquiryService.S3G_RouterDetailsRow ObjRouterRow = (S3GBusEntity.Origination.EnquiryService.S3G_RouterDetailsRow)ObjRouter.Rows[0];
+                    if (ObjRouter.Rows.Count > 0)
+                    {
+                        PopulateLOBProductList(ObjRouterRow.LOB_ID, ObjRouterRow.Product_ID);
+                        PopulateWorkflowSequenceList(ObjRouterRow.Product_ID, ObjRouterRow.LOB_ID);
+                        ddlLOB.SelectedValue = ObjRouterRow.LOB_ID.ToString();
+                        ddlBranch.SelectedValue = ObjRouterRow.Branch_ID.ToString();
+                        ddlProductCode.SelectedValue = ObjRouterRow.Product_ID.ToString();
+                        //ddlBranch.Enabled = ddlLOB.Enabled = txtWorkflowSeq.Enabled = ddlProductCode.Enabled = false;
+                    }
+                }
+                else
+                { txtUserName.Text = txtTransDate.Text = string.Empty; }
+            }
+            gvSchedule.Dispose();
+            ViewState["gvScheduleViewState"] = null;
+            gvSchedule.DataSource = null;
+            gvSchedule.DataBind();
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        { throw objFaultExp; }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+        finally
+        {
+            ObjEnqDetailservice.Close();
+        }
+    }
+    private DataTable GenerateRepaymentSchedule(Int32 Margine, Int64 FacilityAmount, decimal InterestPercentage, Int32 iTenure)
+    {
+        try
+        {
+            decimal FinanceAmount = 0;
+            decimal InterestAmount = 0m;
+            decimal TotalReceive = 0;
+            decimal MonthIns = 0;
+            int Tenure = iTenure;
+            double IRR;
+            //if (txtInterestType.Text.ToLower() == "rate")
+            //    FinanceAmount = FacilityAmount - Margine;
+            //else
+            //    FinanceAmount = Margine - FacilityAmount;
+
+            if (txtInterestType.Text.ToLower() == "rate")
+            {
+                if (txtMargine.Text != "0")
+                {
+                    FinanceAmount = Convert.ToInt64(txtFacilityAmount.Text) - Convert.ToInt32(txtMargine.Text);
+                }
+                else if (txtResidualValue.Text != "")
+                {
+                    FinanceAmount = Convert.ToInt64(txtFacilityAmount.Text) - Convert.ToInt32(txtResidualValue.Text);
+                }
+                else
+                { FinanceAmount = unchecked(Convert.ToInt64(txtFacilityAmount.Text)); }
+            }
+            else
+            {   // FinanceAmount = Margine - FacilityAmount;      
+                FinanceAmount = 0 - FacilityAmount;
+            }
+
+            if (txtInterestType.Text.ToLower() == "rate")
+            {
+                if (txtTenureType.Text.ToUpper() == "MONTHS")
+                    InterestAmount = (decimal)FinanceAmount * Tenure / 12 * InterestPercentage / 100;
+                else if (txtTenureType.Text.ToUpper() == "WEEKS")
+                    InterestAmount = (decimal)FinanceAmount * Tenure / 52 * InterestPercentage / 100;
+                else if (txtTenureType.Text.ToUpper() == "DAYS")
+                    InterestAmount = (decimal)FinanceAmount * Tenure / 365 * InterestPercentage / 100;
+                TotalReceive = (decimal)FinanceAmount + InterestAmount;
+                //MonthIns = (int)Math.Round(TotalReceive / iTenure);
+                MonthIns = (int)Math.Round((TotalReceive / Convert.ToDecimal(iTenure)), intGPSSuffix);
+            }
+            else
+            {
+                //InterestPercentage = InterestPercentage / 2;
+                //if (txtTenureType.Text.ToUpper() == "MONTHS")
+                //    InterestAmount = (decimal)FinanceAmount * Tenure / 12 * InterestPercentage / 100;
+                //else if (txtTenureType.Text.ToUpper() == "WEEKS")
+                //    InterestAmount = (decimal)FinanceAmount * Tenure / 52 * InterestPercentage / 100;
+                //else if (txtTenureType.Text.ToUpper() == "DAYS")
+                //    InterestAmount = (decimal)FinanceAmount * Tenure / 365 * InterestPercentage / 100;
+
+                IRR = Math.Round(Microsoft.VisualBasic.Financial.Pmt(Convert.ToDouble(txtInterestPercentage.Text) / (12 * 100), Convert.ToDouble(Tenure), Convert.ToDouble(FinanceAmount), 0, Microsoft.VisualBasic.DueDate.EndOfPeriod), intGPSSuffix);
+                //InterestAmount = Math.Round((Convert.ToDecimal(IRR)), 0);
+                InterestAmount = Math.Round((Convert.ToDecimal(IRR)), intGPSSuffix);
+                MonthIns = InterestAmount;
+            }
+
+            string strInsDate = "";
+            DateTime dateMonthlyInsDate = DateTime.Now.Date;
+            DateTime locDateInsDate = dateMonthlyInsDate;
+            DateTime locDateInsDate1 = dateMonthlyInsDate;
+
+            if (txtTenureType.Text.ToUpper() == "MONTHS")
+            { dateMonthlyInsDate = dateMonthlyInsDate.AddMonths(1); }
+            else if (txtTenureType.Text.ToUpper() == "WEEKS")
+            { dateMonthlyInsDate = dateMonthlyInsDate.AddDays(7); }
+            else if (txtTenureType.Text.ToUpper() == "DAYS")
+            { dateMonthlyInsDate = dateMonthlyInsDate.AddDays(1); }
+            //dateMonthlyInsDate = dateMonthlyInsDate.AddMonths(1);
+            DataTable dtRepay = new DataTable();
+            DataColumn dc1 = new DataColumn("InstallmentDate");
+            DataColumn dc2 = new DataColumn("InstallmentAmount");
+            DataColumn dc3 = new DataColumn("SLNo");
+            dtRepay.Columns.Add(dc1);
+            dtRepay.Columns.Add(dc2);
+            dtRepay.Columns.Add(dc3);
+            DataRow dr;
+            decimal decActualAmount = 0;
+            decimal decTotalAmt = 0;
+
+            for (int i = 0; i < Tenure; i++)
+            {
+                decTotalAmt = decTotalAmt + MonthIns;
+                decActualAmount = decActualAmount + Math.Round((MonthIns / decRoundOff), 0) * decRoundOff;
+
+                if (locDateInsDate.Day == 31)
+                {
+                    DateTime loc = LastDate(dateMonthlyInsDate);
+                    strInsDate = loc.ToString();
+                    dr = dtRepay.NewRow();
+                    dr[0] = strInsDate;
+                    //dr[1] = Math.Round(MonthIns, 0);                    
+                    dr[1] = Math.Round((MonthIns / decRoundOff), 0) * decRoundOff;
+                    dtRepay.Rows.Add(dr);
+                    dateMonthlyInsDate = dateMonthlyInsDate.AddMonths(1);
+                }
+                else
+                {
+                    strInsDate = dateMonthlyInsDate.ToString();
+                    dr = dtRepay.NewRow();
+                    dr[0] = strInsDate;
+                    //dr[1] = Math.Round(MonthIns, 0);
+                    dr[1] = Math.Round((MonthIns / decRoundOff), 0) * decRoundOff;
+                    dtRepay.Rows.Add(dr);
+                    if (txtTenureType.Text.ToUpper() == "MONTHS")
+                    {
+                        if (dateMonthlyInsDate.Month != 2)
+                            dateMonthlyInsDate = dateMonthlyInsDate.AddMonths(1);
+                        else
+                        {
+                            dateMonthlyInsDate = locDateInsDate1.AddMonths(i + 2);
+                        }
+                    }
+                    else if (txtTenureType.Text.ToUpper() == "WEEKS")
+                    {
+                        dateMonthlyInsDate = dateMonthlyInsDate.AddDays(7);
+                    }
+                    else if (txtTenureType.Text.ToUpper() == "DAYS")
+                    {
+                        dateMonthlyInsDate = dateMonthlyInsDate.AddDays(1);
+                    }
+                }
+            }
+
+            decimal decbalamt;
+            if (decActualAmount < decTotalAmt)
+            {
+                decbalamt = decTotalAmt - decActualAmount;
+                dtRepay.Rows[0]["InstallmentAmount"] = Math.Round(Convert.ToDecimal(dtRepay.Rows[0]["InstallmentAmount"].ToString()) + decbalamt, 0);
+            }
+            else if (decActualAmount > decTotalAmt)
+            {
+                decbalamt = decActualAmount - decTotalAmt;
+                dtRepay.Rows[0]["InstallmentAmount"] = Math.Round(Convert.ToDecimal(dtRepay.Rows[0]["InstallmentAmount"].ToString()) - decbalamt, 0);
+            }
+
+            return dtRepay;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+
+    #region  DateFormat
+    public string FormatDate(string strDate)
+    {
+        return DateTime.Parse(strDate, CultureInfo.CurrentCulture.DateTimeFormat).ToString(ObjS3GSession.ProDateFormatRW);
+    }
+    #endregion
+
+    private DateTime LastDate(DateTime dt)
+    {
+        try
+        {
+            DateTime dtTo = dt;
+            dtTo = dt.AddMonths(1);
+            dtTo = dtTo.AddDays(-(dtTo.Day));
+            return dtTo;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    private string ConvertToCurrentFormat(string strDate)
+    {
+        try
+        {
+            if (strDate.Contains("1900"))
+                strDate = string.Empty;
+            strDate = strDate.Replace("12:00:00 AM", "");
+            CultureInfo myDTFI = new CultureInfo("en-GB", true);
+            DateTimeFormatInfo DTF = myDTFI.DateTimeFormat;
+            DTF.ShortDatePattern = _DateFormat;
+            DateTime _Date = new DateTime();
+            if (strDate != "")
+            {
+                _Date = System.Convert.ToDateTime(strDate, DTF);
+                return _Date.ToString(_DateFormat);
+            }
+            else
+                return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    private void SetResourceSettings()
+    {
+        try
+        {
+            //lblEnqRefNo.Text = Resources.LocalizationResources.ORG_EnqAssignlblEnqRefNo;
+            lblEnqDate.Text = Resources.LocalizationResources.ORG_EnqAssignlblEnqDate;
+            lblNewCustomer.Text = Resources.LocalizationResources.ORG_EnqAssignlblNewCustomer;
+            //lblCustomerReference.Text = Resources.LocalizationResources.ORG_EnqAssignlblCustomerReference;
+            //lblName.Text = Resources.LocalizationResources.ORG_EnqAssignlblName;
+            lblConstitution.Text = Resources.LocalizationResources.ORG_EnqAssignlblConstitution;
+            lblAddress.Text = Resources.LocalizationResources.ORG_EnqAssignlblAddress;
+            lblAddress2.Text = Resources.LocalizationResources.ORG_EnqAssignlblAddress2;
+            lblCity.Text = Resources.LocalizationResources.ORG_EnqAssignlblCity;
+            lblState.Text = Resources.LocalizationResources.ORG_EnqAssignlblState;
+            lblCountry.Text = Resources.LocalizationResources.ORG_EnqAssignlblCountry;
+            lblPincode.Text = Resources.LocalizationResources.ORG_EnqAssignlblPincode;
+            lblMobile.Text = Resources.LocalizationResources.ORG_EnqAssignlblMobile;
+            lblEmail.Text = Resources.LocalizationResources.ORG_EnqAssignlblEmail;
+            lblFacilityType.Text = Resources.LocalizationResources.ORG_EnqAssignlblFacilityType;
+            lblFacilityAmount.Text = Resources.LocalizationResources.ORG_EnqAssignlblFacilityAmount;
+            lblCurrencyCode.Text = Resources.LocalizationResources.ORG_EnqAssignlblCurrencyCode;
+            lblAssetDetails.Text = Resources.LocalizationResources.ORG_EnqAssignlblAssetDetails;
+            lblRemarks.Text = Resources.LocalizationResources.ORG_EnqAssignlblRemarks;
+            lblTenure.Text = Resources.LocalizationResources.ORG_EnqAssignlblTenure;
+            lblTenureType.Text = Resources.LocalizationResources.ORG_EnqAssignlblTenureType;
+            lblInterestType.Text = Resources.LocalizationResources.ORG_EnqAssignlblInterestType;
+            lblInterestPercentage.Text = Resources.LocalizationResources.ORG_EnqAssignlblInterestPercentage;
+            lblMargineAmount.Text = Resources.LocalizationResources.ORG_EnqAssignlblMargineAmount;
+            lblResidualValue.Text = Resources.LocalizationResources.ORG_EnqAssignlblResidualValue;
+            lblBranch.Text = Resources.LocalizationResources.ORG_EnqAssignlblBranch;
+            lblLOB.Text = Resources.LocalizationResources.ORG_EnqAssignlblLOB;
+            lblProductCode.Text = Resources.LocalizationResources.ORG_EnqAssignlblProductCode;
+            lblworkflowSeq.Text = Resources.LocalizationResources.ORG_EnqAssignlblworkflowSeq;
+            lblUserName.Text = Resources.LocalizationResources.ORG_EnqAssignlblUserName;
+            lblTransactionDate.Text = Resources.LocalizationResources.ORG_EnqAssignlblTransactionDate;
+            //btnSchedule.Text = Resources.LocalizationResources.ORG_EnqAssignbtnSchedule;
+            btnSave.Text = Resources.LocalizationResources.ORG_EnqAssignbtnSave;
+            btnCancel.Text = Resources.LocalizationResources.ORG_EnqAssignbtnCancel;
+            lblHeading.Text = Resources.LocalizationResources.ORG_EnqAssign_lblHeading;
+            lblEnquiryNo.Text = Resources.LocalizationResources.GCPT_lblEnquiryNo;
+            //rfvddlBranch.ErrorMessage = Resources.LocalizationResources.ORG_EnqAssignrfvddlBranch;
+            ddlBranch.ErrorMessage = Resources.LocalizationResources.ORG_EnqAssignrfvddlBranch;
+            rfvddlLOB.ErrorMessage = Resources.LocalizationResources.ORG_EnqAssignrfvddlLOB;
+            rfvddlProductCode.ErrorMessage = Resources.LocalizationResources.ORG_EnqAssignrfvddlProductCode;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    ////This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    if (!bCreate)
+                    { btnSave.Enabled = false; }
+                    txtEnqRefNo.Visible = false;
+                    break;
+                case -1:// Query Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    btnSave.Enabled = false;
+                    ddlEnquiryNo.Visible = false;
+                    //Populate DeactiveLOB,Branch,Product List();
+                    FunPubgetDeactiveLOBBranchProduct(Convert.ToInt32(strEnquiryNo), 1);
+                    if (!bQuery)
+                    { Response.Redirect(strRedirectPage,false); }
+                    if (bClearList)
+                    {
+                        if (ddlEnquiryNo.Items.Count > 0)
+                            ddlEnquiryNo.ClearDropDownList();
+                    }
+                    ddlProductCode.Enabled = ddlBranch.Enabled = ddlLOB.Enabled = true;
+                    txtEnqRefNo.Visible = true;
+                    if (ddlLOB.Items.Count > 0)
+                    {
+                        ddlLOB.ClearDropDownList();
+                        ddlLOB.ToolTip = ddlLOB.SelectedItem.Text;
+                    }
+                    //if (ddlBranch.Items.Count > 0)
+                    //{
+                    //    ddlBranch.ClearDropDownList();
+                    //    ddlBranch.ToolTip = ddlBranch.SelectedItem.Text;
+                    //}
+                    ddlBranch.ReadOnly = true;
+                    ddlBranch.ToolTip = ddlBranch.SelectedText;
+
+                    if (ddlProductCode.Items.Count > 0)
+                    {
+                        ddlProductCode.ClearDropDownList();
+                        ddlProductCode.ToolTip = ddlProductCode.SelectedItem.Text;
+                    }
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    // This code for get deactive LOB Name,Branch and Product
+    private void FunPubgetDeactiveLOBBranchProduct(int EnquiryId, int flag)
+    {
+        try
+        {
+            if (flag == 1)
+            {
+                Dictionary<string, string> dictLOB = new Dictionary<string, string>();
+                dictLOB.Add("@Company_ID", Convert.ToString(_CompanyID));
+                dictLOB.Add("@EnqID", Convert.ToString(strEnquiryNo));
+                DataSet DS = Utility.GetDataset("S3G_Org_GetEnquiryLOBNameForEA", dictLOB);
+
+                // Load Deactive LOB
+                if (DS.Tables[0].Rows.Count >= 1)
+                {
+                    ddlLOB.SelectedValue = DS.Tables[0].Rows[0]["LOB_ID"].ToString();
+                    ddlLOB.SelectedItem.Text = DS.Tables[0].Rows[0]["LOBNAME"].ToString();
+                }
+                // Load Deactive Branch
+                if (DS.Tables[1].Rows.Count >= 1)
+                {
+                    ddlBranch.SelectedValue = DS.Tables[1].Rows[0]["Branch_ID"].ToString();
+                    ddlBranch.SelectedText = DS.Tables[1].Rows[0]["Branch_Name"].ToString();
+                }
+                // Load Deactive Product
+                if (DS.Tables[2].Rows.Count >= 1)
+                {
+                    ddlProductCode.SelectedValue = DS.Tables[2].Rows[0]["Product_ID"].ToString();
+                    ddlProductCode.SelectedItem.Text = DS.Tables[2].Rows[0]["Product_Name"].ToString();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+    //Code end
+    protected void TCEnqu_ActiveTabChanged(object sender, EventArgs e)
+    {
+        if (TCEnqu.ActiveTabIndex == 1)
+        { btnSchedule_Click(sender, e); }
+    }
+    protected void gvSchedule_PageIndexChanging(object sender, GridViewPageEventArgs e)
+    {
+        try
+        {
+            int newPageIndex = 1;
+            if (ViewState["PreviousPageIndex"] == null)
+                ViewState["PreviousPageIndex"] = 1;
+            //else
+            //{
+            if (((int)ViewState["PreviousPageIndex"]) > (e.NewPageIndex + 1))
+            { newPageIndex = e.NewPageIndex - 1; }
+            else
+            { newPageIndex = e.NewPageIndex + 1; }
+            //}
+            if (ViewState["gvScheduleViewState"] != null)
+                gvSchedule.DataSource = (DataTable)ViewState["gvScheduleViewState"];
+            gvSchedule.PageIndex = (newPageIndex - 1);
+            gvSchedule.DataBind();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    public static string SetCustomerAddress(string Address1, string Address2, string City, string State, string Country, string Pincode)
+    {
+        try
+        {
+            string strAddress = "";
+            if (Address1.ToString() != "") strAddress += Address1.ToString() + System.Environment.NewLine;
+            if (Address2.ToString() != "") strAddress += Address2.ToString() + System.Environment.NewLine;
+            if (City.ToString() != "") strAddress += City.ToString() + System.Environment.NewLine;
+            if (State.ToString() != "") strAddress += State.ToString() + System.Environment.NewLine;
+            if (Country.ToString() != "") strAddress += Country.ToString() + System.Environment.NewLine;
+            if (Pincode.ToString() != "") strAddress += Pincode.ToString();
+            return strAddress;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+
+    #endregion
+
+}

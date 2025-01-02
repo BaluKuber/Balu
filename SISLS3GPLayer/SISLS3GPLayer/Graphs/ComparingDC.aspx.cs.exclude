@@ -1,0 +1,377 @@
+﻿using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Data.Sql;
+using System.Data;
+using System.Data.SqlClient;
+using System.IO;
+using System.Reflection;
+using org.jfree.chart;
+using org.jfree.chart.plot;
+using org.jfree.chart.urls;
+using Ujihara.Demo;
+using org.jfree.chart.renderer.category;
+using System.Drawing;
+using org.jfree.data.xy;
+using org.jfree.data.time;
+using System.Collections;
+using org.jfree.chart.renderer.xy;
+using org.jfree.chart.axis;
+using org.jfree.ui;
+using java.awt.image;
+using java.awt;
+using java.awt.geom;
+using org.jfree.data.category;
+
+
+public partial class ComparingDC :ApplyThemeForProject
+{
+    #region Initial Values
+    private const string TagName = "map";
+    public const string ImageDirName = "image";
+    private const string DetailsURL = "ComparingDC_CustomerDetails.aspx";
+    public SqlConnection SqlConn;
+    public SqlCommand SqlComnd;
+    public SqlDataAdapter SqlDaAdp;
+    public string StrQuery = "";
+    public string chartName = "";
+    public string strProcedureName = "S3G_RPT_GET_BranchDetails";
+    public DataSet DSQuery;
+    public  ArrayList DSseriesArray;
+    public  ArrayList DScategoriesArray;
+    public  ArrayList DSValueArray;
+    #endregion
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        SqlConn = new SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["s3gconnectionstring"].ConnectionString);
+
+        if (!IsPostBack)
+        {
+            FunPriLoadLOB();
+            FunPriLoadLocation1();
+            FunPriLoadLocation2();
+            List<String> list = new List<string>();
+            IEnumerator etor = new CreatorEnumerator();
+            while (etor.MoveNext())
+            {
+                Type type = (System.Type)etor.Current;
+                ConstructorInfo ci = type.GetConstructor(Type.EmptyTypes);
+                ChartCreator cc = (ChartCreator)ci.Invoke(new Object[] { });
+                list.Add(cc.Name);
+            }
+            list.Sort();
+        }
+    }
+    private void FunPriLoadLOB()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand("S3G_RPT_GetRepayLobDetails", SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+            SqlComnd.Parameters.Add("@USER_ID", SqlDbType.Int).Value = 3;
+            SqlComnd.Parameters.Add("@PROGRAM_ID", SqlDbType.Int).Value = 175;
+            SqlComnd.Parameters.Add("@OPTION", SqlDbType.Int).Value = 1;
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlLOB.DataSource = dt;
+            ddlLOB.DataTextField = "LOB_NAME";
+            ddlLOB.DataValueField = "LOB_ID";
+            ddlLOB.DataBind();
+            ddlLOB.Items.Insert(0, "--Select--");
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    private void FunPriLoadLocation1()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand(strProcedureName, SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlLocation1.DataSource = dt;
+            ddlLocation1.DataTextField = "LOCATION";
+            ddlLocation1.DataValueField = "LOCATION_ID";
+            ddlLocation1.DataBind();
+            ddlLocation1.Items.Insert(0, new ListItem("--Select--","0"));
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriLoadLocation2()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand(strProcedureName, SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlLocation2.DataSource = dt;
+            ddlLocation2.DataTextField = "LOCATION";
+            ddlLocation2.DataValueField = "LOCATION_ID";
+            ddlLocation2.DataBind();
+            ddlLocation2.Items[0].Text = "--ALL--";
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriLoadBranch()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand("S3G_RPT_LEVELVALUE", SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@PROGRAM_ID", SqlDbType.Int).Value = 175;
+            SqlComnd.Parameters.Add("@USER_ID", SqlDbType.Int).Value = 3;
+            SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+            SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLOB.SelectedValue);
+            SqlComnd.Parameters.Add("@LOCATION_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLocation1.SelectedValue);
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlLocation2.DataSource = dt;
+            ddlLocation2.DataTextField = "LOCATION";
+            ddlLocation2.DataValueField = "LOCATION_ID";
+            ddlLocation2.DataBind();
+            ddlLocation2.Items[0].Text = "--Select--";
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    protected void ddlLocation1_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        ddlLocation2.Enabled = true;
+        if (ddlLocation1.SelectedIndex > 0)
+        {
+            FunPriLoadBranch();
+        }
+        else
+        {
+            ddlLocation2.Enabled = false;
+            FunPriLoadLocation2();
+        }
+    }
+
+    public  DefaultCategoryDataset createDefaultCategoryDatasetBar(DataSet DS)
+    {
+        DSseriesArray = new ArrayList();
+        //DScategoriesArray = new ArrayList();
+        //DSValueArray = new ArrayList();
+
+        DSseriesArray.Add("Demand");
+        DSseriesArray.Add("Collection");
+        //for (int i = 0; i < DS.Tables[0].Rows.Count; i++)
+        //{
+        //    DScategoriesArray.Add(DS.Tables[0].Rows[i][0].ToString());
+        //    DSValueArray.Add(DS.Tables[0].Rows[i][1].ToString());
+        //    DSValueArray.Add(DS.Tables[0].Rows[i][2].ToString());
+        //}
+
+        //return createDefaultCategoryDS(0, DSseriesArray.Count);
+
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        DataTable DTLocation = DS.Tables[0].DefaultView.ToTable(true, "LOCATION");
+        foreach (DataRow DRLoc in DTLocation.Rows)
+        {
+            DataRow[] DRDemColl = DS.Tables[0].Select("LOCATION='" + DRLoc["LOCATION"].ToString() + "'");
+           for (int j = 0; j < DSseriesArray.Count; j++)
+            {
+                dataset.addValue(Convert.ToDouble(DRDemColl[0][DSseriesArray[j].ToString()]), DSseriesArray[j].ToString(), DRDemColl[0]["LOCATION"].ToString());
+            }
+        }
+        return dataset;
+    }
+    public  DefaultCategoryDataset createDefaultCategoryDS(int start, int end)
+    {
+       
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        for (int i = 0; i < DScategoriesArray.Count; i++)
+        {
+            for (int j = 0; j < DSseriesArray.Count; j++)
+            {
+                dataset.addValue(Convert.ToDouble(DSValueArray[j]), DSseriesArray[j].ToString(), DScategoriesArray[i].ToString());
+            }
+        }              
+                    
+        return dataset;
+    }
+    protected void bntGenReport_Click(object sender, EventArgs e)
+    {
+        PnlChart.Visible = true;
+        Session["StartDate"] = txtStartDate.Text;
+        Session["EndDate"] = txtEndDate.Text;
+        Session["LOB"] = ddlLOB.SelectedValue;
+        Session["Location"] = ddlLocation1.SelectedValue;
+        bool urlGen = false;
+        SqlComnd = new SqlCommand("S3G_RPT_LocationWiseDCForChart", SqlConn);
+        SqlComnd.CommandType = CommandType.StoredProcedure;
+        SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+        SqlComnd.Parameters.Add("@USER_ID", SqlDbType.Int).Value = 3;
+        SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLOB.SelectedValue);
+        SqlComnd.Parameters.Add("@PROGRAM_ID", SqlDbType.Int).Value = 175;
+        SqlComnd.Parameters.Add("@LOCATION_ID1", SqlDbType.Int).Value = Convert.ToInt32(ddlLocation1.SelectedValue);
+        if (ddlLocation2.SelectedIndex > 0)
+        {
+            SqlComnd.Parameters.Add("@LOCATION_ID2", SqlDbType.Int).Value = Convert.ToInt32(ddlLocation2.SelectedValue);
+        }
+        SqlComnd.Parameters.Add("@FM_STARTDATE", SqlDbType.DateTime).Value = Convert.ToDateTime(txtStartDate.Text);
+        SqlComnd.Parameters.Add("@TM_ENDDATE", SqlDbType.DateTime).Value = Convert.ToDateTime(txtEndDate.Text);
+        SqlDaAdp = new SqlDataAdapter(SqlComnd);
+        DSQuery = new DataSet();
+        SqlDaAdp.Fill(DSQuery);
+        JFreeChart chart = ChartFactory.createBarChart3D(
+                "Demand Vs Collection",  // title
+                "Location",             // x-axis label
+                "Amount in Rupees",   // y-axis label
+                createDefaultCategoryDatasetBar(DSQuery),
+                PlotOrientation.VERTICAL,// data
+                true,               // create legend?
+                true,               // generate tooltips?
+                false               // generate URLs?
+            );
+
+
+        chart.setBackgroundPaint(System.Drawing.Color.White);
+        //XYPlot plotchart = (XYPlot)chart.getPlot();
+        //plotchart.setBackgroundPaint(System.Drawing.Color.LightGray);
+        //plotchart.setDomainGridlinePaint(System.Drawing.Color.White);
+        //plotchart.setRangeGridlinePaint(System.Drawing.Color.White);
+        //plotchart.setDomainCrosshairVisible(true);
+        //plotchart.setRangeCrosshairVisible(true);
+
+        //XYItemRenderer r = plotchart.getRenderer();
+        //if (r is XYLineAndShapeRenderer)
+        //{
+        //    XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer)r;
+        //    renderer.setBaseShapesVisible(true);
+        //    renderer.setBaseShapesFilled(true);
+        //}
+
+        //DateAxis axis = (DateAxis)plotchart.getDomainAxis();
+        //axis.setDateFormatOverride(new java.text.SimpleDateFormat("MMM-yyyy"));
+        Plot plot = chart.getPlot();
+        try
+        {
+            if (plot is MultiplePiePlot)
+            {
+                MultiplePiePlot pp = (MultiplePiePlot)plot;
+                plot = pp.getPieChart().getPlot();
+            }
+            if (plot is PiePlot)
+            {
+                PiePlot pp = (PiePlot)plot;
+                pp.setURLGenerator(new StandardPieURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is CombinedDomainCategoryPlot)
+            {
+                CombinedDomainCategoryPlot cdcp = (CombinedDomainCategoryPlot)plot;
+                java.util.Iterator itor = cdcp.getSubplots().iterator();
+                while (itor.hasNext())
+                {
+                    CategoryPlot pp = (CategoryPlot)itor.next();
+                    pp.getRenderer().setBaseItemURLGenerator(new StandardCategoryURLGenerator(DetailsURL));
+                    urlGen = true;
+                }
+            }
+            else if (plot is CategoryPlot)
+            {
+                CategoryPlot pp = (CategoryPlot)plot;
+                pp.getRenderer().setBaseItemURLGenerator(new StandardCategoryURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is XYPlot)
+            {
+                XYPlot pp = (XYPlot)plot;
+                pp.getRenderer().setURLGenerator(new StandardXYURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is ContourPlot)
+            {
+                ContourPlot pp = (ContourPlot)plot;
+                pp.setURLGenerator(new StandardXYURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+        }
+        catch (Exception)
+        {
+            // ignore
+        }
+
+        //ChartPanel CP = new ChartPanel(chart);
+        //CP.setPreferredSize(new Dimension(90000, 5000));
+
+        string filename = Guid.NewGuid().ToString() + ".png";
+        ChartRenderingInfo cri = new ChartRenderingInfo();
+        String dir = Server.MapPath(ImageDirName);
+        FileInfo imageFile = new FileInfo(Path.Combine(dir, filename));
+        try
+        {
+            imageFile.Create().Close();
+        }
+        catch (Exception)
+        {
+            Response.Write(Server.HtmlEncode("You need to give ASP.NET a privilege to write to " + "<" + dir + ">" + "."));
+            Response.End();
+            return;
+        }
+        ChartUtilities.saveChartAsPNG(imageFile, chart, 500, 500, cri);
+        string chartHtml = "<img src=\"image/" + filename
+            + "\" usemap=\"#" + TagName + "\""
+            + " />";
+        if (urlGen)
+            chartHtml = chartHtml + ChartUtilities.getImageMap(TagName, cri);
+        chartHtml = chartHtml.Replace("area", "area target=\"_blank\"");
+        ChartSpan.InnerHtml = chartHtml;
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+
+        ddlLOB.ClearSelection();
+        ddlLocation1.ClearSelection();
+        ddlLocation2.ClearSelection();
+        txtStartDate.Text = "";
+        txtEndDate.Text = "";
+        PnlChart.Visible = false;
+
+    }
+
+}

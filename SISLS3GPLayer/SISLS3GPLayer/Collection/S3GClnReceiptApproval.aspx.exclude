@@ -1,0 +1,470 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" Title="S3G - Receipt Approval" CodeFile="S3GClnReceiptApproval.aspx.cs"
+    Inherits="Collection_S3GClnReceiptApproval" MasterPageFile="~/Common/S3GMasterPageCollapse.master" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register Src="../UserControls/S3GCustomerAddress.ascx" TagName="S3GCustomerAddress"
+    TagPrefix="uc1" %>
+<%@ Register TagPrefix="uc1" TagName="PageNavigator" Src="~/UserControls/PageNavigator.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script language="javascript" type="text/javascript">
+    function FunResetGrid()
+    {           
+        if(document.getElementById('<%=gvReceiptDetails.ClientID %>')!=null)
+        {
+            document.getElementById('<%=gvReceiptDetails.ClientID %>').innerText=null;
+        }
+        document.getElementById('<%=pnlReceiptDetails.ClientID %>').style.display ='none';
+    }
+    </script>
+
+    <table width="100%" align="center" cellpadding="0" cellspacing="0">
+        <tr>
+            <td valign="top" class="stylePageHeading">
+                <span class="styleDisplayLabel">Receipt Authorization </span>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" align="center">
+                <div runat="server" style="border-width: 1px; border-color: ButtonShadow; border-style: solid; margin-bottom: 10px;">
+                    <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                            <td colspan="2">
+                                <asp:Panel GroupingText="Receipt Details" ID="pnlReceipt" runat="server" CssClass="stylePanel">
+                                    <div runat="server" style="margin-top: 10px; margin-bottom: 10px;">
+                                        <asp:UpdatePanel ID="upReceipt" runat="server">
+                                            <ContentTemplate>
+                                                <table width="100%" cellspacing="5px" cellpadding="0" border="0">
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <span class="styleReqFieldLabel">Receipt Type </span>
+                                                        </td>
+                                                        <td align="left" class="styleFieldLabel">
+                                                            <asp:RadioButtonList ID="rblReceiptType" runat="server" AutoPostBack="True" 
+                                                                DataTextField="Type_Code" DataValueField="Type_ID" 
+                                                                onclick="FunResetGrid()" RepeatColumns="3" RepeatDirection="Horizontal" 
+                                                                onselectedindexchanged="rblReceiptType_SelectedIndexChanged">
+                                                            </asp:RadioButtonList>
+                                                            <asp:RequiredFieldValidator ID="rfvReceiptType" runat="server" 
+                                                                ControlToValidate="rblReceiptType" Display="None" 
+                                                                ErrorMessage="Select the Receipt Type" InitialValue="" SetFocusOnError="true" 
+                                                                ValidationGroup="btnSearch"></asp:RequiredFieldValidator>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label ID="lblLineOfBusiness" runat="server" Text="Line of Business"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:DropDownList ID="ddllLineOfBusiness" runat="server" AutoPostBack="true" 
+                                                                onchange="FunResetGrid()" 
+                                                                OnSelectedIndexChanged="ddllLineOfBusiness_SelectedIndexChanged" Width="200px">
+                                                            </asp:DropDownList>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+                                                            <span>Start Date</span>
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtStartDate" runat="server" ValidationGroup="btnSearch"></asp:TextBox>
+                                                            <asp:Image ID="imgStartDateSearch" runat="server" 
+                                                                ImageUrl="~/Images/calendaer.gif" />
+                                                            <cc1:CalendarExtender ID="ceStartDate" runat="server" Enabled="True" 
+                                                                OnClientDateSelectionChanged="checkDate_NextSystemDate" 
+                                                                PopupButtonID="imgStartDateSearch" TargetControlID="txtStartDate">
+                                                            </cc1:CalendarExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label ID="lblBranch" runat="server" Text="Location"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:DropDownList ID="ddlBranch" runat="server" AutoPostBack="false" 
+                                                                onchange="return FunResetGrid()" 
+                                                                OnSelectedIndexChanged="ddlBranch_SelectedIndexChanged" Width="200px">
+                                                            </asp:DropDownList>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+                                                            <span>End Date</span>
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtEndDate" runat="server" AutoPostBack="True" 
+                                                                ValidationGroup="btnSearch"></asp:TextBox>
+                                                            <asp:Image ID="imgEndDateSearch" runat="server" 
+                                                                ImageUrl="~/Images/calendaer.gif" />
+                                                            <cc1:CalendarExtender ID="ceEndDate" runat="server" Enabled="True" 
+                                                                OnClientDateSelectionChanged="checkDate_NextSystemDate" 
+                                                                PopupButtonID="imgEndDateSearch" TargetControlID="txtEndDate">
+                                                            </cc1:CalendarExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td align="center" colspan="4">
+                                                            <div style="margin-bottom: 10px; margin-top: 10px;">
+                                                                <asp:Button ID="btnSearch" runat="server" CssClass="styleSubmitButton" 
+                                                                    OnClick="btnSearch_Click" Text="Search" ValidationGroup="btnSearch" />
+                                                                &nbsp;
+                                                                <asp:Button ID="btnAuthorization" runat="server" CssClass="styleSubmitButton" 
+                                                                    OnClick="btnAuthorization_Click" Text="Authorize" 
+                                                                    ValidationGroup="btnAuthorization" Visible="false" />
+                                                                &nbsp;
+                                                                <asp:Button ID="btnClear" runat="server" CausesValidation="False" 
+                                                                    CssClass="styleSubmitButton" OnClick="btnClear_Click" 
+                                                                    OnClientClick="return fnConfirmClear();" Text="Clear" />
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="4">
+                                                            <asp:Panel ID="pnlReceiptDetails" runat="server" Style="display: none;">
+                                                                <asp:GridView ID="gvReceiptDetails" runat="server" AutoGenerateColumns="false" 
+                                                                    OnRowDataBound="gvReceiptDetails_RowDataBound" ShowHeader="true" Width="100%">
+                                                                    <Columns>
+                                                                        <asp:TemplateField Visible="false">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblReceiptID" runat="server" Text='<%# Bind("Receipt_ID") %>'></asp:Label>
+                                                                                <asp:Label ID="lblReceiptNo" runat="server" Text='<%# Bind("Receipt_No") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+                                                                        <asp:BoundField DataField="Receipt_No" HeaderText="Receipt Number" 
+                                                                            ItemStyle-HorizontalAlign="Left" />
+                                                                        <asp:TemplateField HeaderText="Receipt Date">
+                                                                            <ItemTemplate>
+                                                                                <%# FormatDate(Eval("Receipt_Date").ToString())%>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+                                                                        <asp:BoundField DataField="Customer_Name" HeaderText="Customer Name" 
+                                                                            ItemStyle-HorizontalAlign="Left" />
+                                                                        <asp:TemplateField HeaderText="Receipt Amount">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblReceiptAmount" runat="server" Style="text-align: right;" 
+                                                                                    Text='<%# Eval("Total_Receipt_Amount") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle HorizontalAlign="Right" Width="22%" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:BoundField DataField="Status" HeaderText="Status" 
+                                                                            ItemStyle-HorizontalAlign="Left" />
+                                                                        <asp:TemplateField HeaderText="Select All" Visible="false">
+                                                                            <HeaderTemplate>
+                                                                                <table width="100%">
+                                                                                    <tr>
+                                                                                        <td align="center">
+                                                                                            Select All
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                    <tr align="center">
+                                                                                        <td>
+                                                                                            <asp:CheckBox ID="cbxAll" runat="server" AutoPostBack="true" 
+                                                                                                OnCheckedChanged="cbxAll_OnCheckedChanged" ToolTip="Select All" />
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </HeaderTemplate>
+                                                                            <ItemTemplate>
+                                                                                <asp:CheckBox ID="cbxSelect" runat="server" AutoPostBack="true" 
+                                                                                    Checked='<%#bool.Parse(Convert.ToString(DataBinder.Eval(Container.DataItem, "BolStatus")))%> '
+                                                                                    OnCheckedChanged="cbxSelect_OnCheckedChanged" />
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField HeaderText="View">
+                                                                            <ItemTemplate>
+                                                                                <asp:LinkButton ID="lnkView" runat="server" 
+                                                                                    CommandArgument='<%# Eval("Receipt_ID") %>' 
+                                                                                    CommandName='<%# Eval("Entity_Type") %>' OnClick="lnkView_Click" Text="View" 
+                                                                                    ToolTip='<%# Eval("Receipt_No") %>'>
+                                                                                </asp:LinkButton>
+                                                                                <asp:HiddenField ID="hdnReceiptType" runat="server" 
+                                                                                    Value='<%# Eval("Entity_Type") %>' />
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+                                                                        <%--<asp:TemplateField Visible="false">
+                                                                        <ItemTemplate>
+                                                                            <asp:Label ID="lblRowNumber" runat="server" Text='<%# Eval("RowNumber") %>'></asp:Label>
+                                                                        </ItemTemplate>
+                                                                    </asp:TemplateField>--%>
+                                                                    </Columns>
+                                                                </asp:GridView>
+                                                                <uc1:PageNavigator ID="ucCustomPaging" runat="server" />
+                                                            </asp:Panel>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                          </ContentTemplate>
+                                            <Triggers>
+                                                <asp:PostBackTrigger ControlID="gvReceiptDetails" />
+                                                
+                                                <asp:AsyncPostBackTrigger ControlID="ddllLineOfBusiness" 
+                                                    EventName="SelectedIndexChanged" />
+                                                
+                                            </Triggers>
+                                        </asp:UpdatePanel>
+                                    </div>
+                                </asp:Panel>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td align="left">
+                <asp:ValidationSummary ID="vsReceipt" runat="server" CssClass="styleMandatoryLabel"
+                    HeaderText="Correct the following validation(s):" ValidationGroup="btnSearch"
+                    ShowSummary="true" />
+                <asp:CustomValidator ID="cvReceipt" runat="server">
+                </asp:CustomValidator>
+            </td>
+        </tr>
+    </table>
+    <asp:Button ID="BtnHide" runat="server" Style="display: none;" />
+    <cc1:ModalPopupExtender ID="MPE" runat="server" TargetControlID="BtnHide" PopupControlID="pnlPopUpReceiptDetails"
+        BackgroundCssClass="styleModalBackground" DropShadow="false" CancelControlID="btnClose" />
+    <asp:Panel ID="pnlPopUpReceiptDetails" GroupingText="Receipt Details" Width="75%"
+        CssClass="stylePanel" Height="100%" runat="server" Style="display: none; overflow: hidden;"
+        BackColor="White" BorderColor="WhiteSmoke" ScrollBars=Vertical>
+        <cc1:TabContainer runat="server" ID="tcReceipt" Width="100%" CssClass="styleTabPanel"
+            ScrollBars="None">
+            <cc1:TabPanel ID="tpGeneral" runat="server">
+                <HeaderTemplate>
+                    General
+                </HeaderTemplate>
+                <ContentTemplate>
+                    <table width="100%">
+                        <tr>
+                            <td style="width: 50%; height: 40%;" align="left" valign="top" valign="top">
+                                <asp:Panel ID="pnlReceiptInfo" GroupingText="Receipt Information" runat="server"
+                                    CssClass="stylePanel">
+                                    <table cellspacing="6px" cellpadding="0">
+                                        <tr>
+                                            <td class="styleFieldLabel" style="width: 20%;">
+                                                <span>Line of Business</span>
+                                            </td>
+                                            <td style="width: 25%;">
+                                                <asp:TextBox ID="lblpLob" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                            <td>
+                                                <span class="styleFieldLabel">Location</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="lblpBranch" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                            <td class="styleFieldLabel">
+                                                <span>Doc No</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="lblpDocNo" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <span>Doc Date</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="lblpDocDate" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                            <td class="styleFieldLabel">
+                                                <span>Value Date</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="lblpValueDate" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                            <td>
+                                                <span class="styleFieldLabel">Mode</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="txtpMode" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <span>TR Ref</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="lblpTRRef" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                            <td class="styleFieldLabel">
+                                                <span>Receipt Amount</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="lblpReceiptAmount" runat="server" ReadOnly="True" 
+                                                    Style="text-align: right;"></asp:TextBox>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <span class="">Authorized By</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="lblpAuthorizedBy" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                            <td class="styleFieldLabel">
+                                                <span class="">Authorized Date</span>
+                                            </td>
+                                            <td>
+                                                <asp:TextBox ID="lblpAuthorizedDate" runat="server" ReadOnly="True"></asp:TextBox>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </asp:Panel>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td valign="top">
+                                <asp:Panel GroupingText="Customer Information" ID="pnlCustomerinformation"
+                                    runat="server" CssClass="stylePanel">
+                                    <uc1:S3GCustomerAddress ID="S3GCustomerPermAddress0" runat="server" FirstColumnStyle="styleFieldLabel"
+                                        SecondColumnStyle="styleFieldAlign" ActiveViewIndex="1" />
+                                </asp:Panel>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <asp:Panel runat="server" ID="pnlAccount" CssClass="stylePanel" GroupingText="Account Details">
+                                    <div style="height: 70px; overflow-x: auto; overflow-y: auto;">
+                                        <asp:GridView ID="gvReceiptDetailsView" runat="server" AutoGenerateColumns="False"
+                                            HorizontalAlign="Center" Width="97%" OnRowDataBound="gvReceiptDetailsView_RowDataBound">
+                                            <Columns>
+                                                <asp:BoundField DataField="PANum" HeaderText="Prime Account No" >
+                                                    <ItemStyle HorizontalAlign="Left" />
+                                                </asp:BoundField>
+                                                <asp:BoundField DataField="SANum" HeaderText="Sub Account No" >
+                                                    <ItemStyle HorizontalAlign="Left" />
+                                                </asp:BoundField>
+                                                <asp:TemplateField HeaderText="Account Description">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblAcDescription" Text='<%#Eval("CashFlowFlag_Desc") %>' runat="server"></asp:Label>
+                                                    </ItemTemplate>
+                                                </asp:TemplateField>
+                                                <asp:BoundField DataField="GL_Account" HeaderText="GLAccount" >
+                                                    <ItemStyle HorizontalAlign="Left" />
+                                                </asp:BoundField>
+                                                <asp:BoundField DataField="SL_Account" HeaderText="SLAccount" >
+                                                    <ItemStyle HorizontalAlign="Left" />
+                                                </asp:BoundField>
+                                                <asp:TemplateField HeaderText="Amount">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="txtAmount" runat="server" Style="text-align: right;" Text='<%#Eval("Transaction_Amount") %>'></asp:Label>
+                                                    </ItemTemplate>
+                                                    <ItemStyle HorizontalAlign="Right" />
+                                                </asp:TemplateField>
+                                            </Columns>
+                                            <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" VerticalAlign="Middle" />
+                                        </asp:GridView>
+                                    </div>
+                                </asp:Panel>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <asp:Panel runat="server" ID="pnlAddLess" CssClass="stylePanel" GroupingText="Add Less Details">
+                                    <div style="height: 70px; overflow-x: auto; overflow-y: auto;">
+                                        <asp:GridView ID="gvAddLess" runat="server" AutoGenerateColumns="False" ShowFooter="True"
+                                            Width="97%" HorizontalAlign="Center" OnRowDataBound="gvAddLess_RowDataBound">
+                                            <Columns>
+                                                <asp:BoundField DataField="AddLess" HeaderText="Add or Less" >
+                                                    <ItemStyle HorizontalAlign="Left" />
+                                                </asp:BoundField>
+                                                <asp:BoundField DataField="GL_Account" HeaderText="GL Account" >
+                                                    <ItemStyle HorizontalAlign="Left" />
+                                                </asp:BoundField>
+                                                <asp:BoundField DataField="SL_Account" HeaderText="SL Account" >
+                                                    <ItemStyle HorizontalAlign="Left" />
+                                                </asp:BoundField>
+                                                <asp:TemplateField HeaderText="Amount">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblAmount" runat="server" Text='<%#Bind("Amount") %>'></asp:Label>
+                                                    </ItemTemplate>
+                                                    <ItemStyle HorizontalAlign="Right" />
+                                                </asp:TemplateField>
+                                             
+                                            </Columns>
+                                            <EmptyDataRowStyle BorderStyle="None" HorizontalAlign="Center" />
+                                            <EmptyDataTemplate>
+                                                No Records Found
+                                            </EmptyDataTemplate>
+                                            <HeaderStyle HorizontalAlign="Center" />
+                                        </asp:GridView>
+                                    </div>
+                                </asp:Panel>
+                            </td>
+                        </tr>
+                    </table>
+                </ContentTemplate>
+            </cc1:TabPanel>
+            <cc1:TabPanel ID="tpDraweebank" runat="server">
+                <HeaderTemplate>
+                    Drawee Bank
+                </HeaderTemplate>
+                <ContentTemplate>
+                    <table align="center" width="98%">
+                        <tr>
+                            <td class="styleFieldLabel">
+                                <asp:Label ID="lblInstrumentNo" runat="server" CssClass="styleDisplayLabel" Text="Instrument No"></asp:Label>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtInstrumentNo" runat="server" ReadOnly="true"></asp:TextBox>
+                            </td>
+                            <td class="styleFieldLabel">
+                                <asp:Label ID="lblpaymentGateway" runat="server" CssClass="styleReqdFieldLabel" Text="Payment Gateway Ref No"></asp:Label>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtPaymentGateway" runat="server" ReadOnly="true"></asp:TextBox>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="styleFieldLabel">
+                                <asp:Label ID="lblInstrumentDate" runat="server" CssClass="styleDisplayLabel" Text="Instrument Date"></asp:Label>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtInstrumentDate" runat="server" ReadOnly="True"></asp:TextBox>
+                            </td>
+                            <td class="styleFieldLabel">
+                                <asp:Label ID="lblACKNo" runat="server" CssClass="styleDisplayLabel" Text="ACK No"></asp:Label>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtACKNo" runat="server" ReadOnly="true"></asp:TextBox>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="styleFieldLabel">
+                                <asp:Label ID="lblLocation" runat="server" CssClass="styleDisplayLabel" Text="Location"></asp:Label>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtLocation" runat="server" ReadOnly="true"></asp:TextBox>
+                            </td>
+                            <td class="styleFieldLabel">
+                                <asp:Label ID="lblDraweeBank" runat="server" CssClass="styleDisplayLabel" Text="Drawee Bank"></asp:Label>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtDraweeBank" runat="server" ReadOnly="true"></asp:TextBox>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                            </td>
+                            <td>
+                            </td>
+                            <td>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtOtherBankName" runat="server" ReadOnly="true" Visible="false"></asp:TextBox>
+                            </td>
+                        </tr>
+                    </table>
+                </ContentTemplate>
+            </cc1:TabPanel>
+        </cc1:TabContainer>
+        <table width="100%" style="height: 100%;" visible="false">
+            <tr align="center" visible="false">
+                <td>
+                    <asp:Button ID="btnAuthorize" OnClick="btnAuthorize_Click" runat="server" Text="Authorize"
+                        CssClass="styleSubmitButton" />
+                    <asp:Button ID="btnRevoke" runat="server" Text="Revoke" CssClass="styleSubmitButton"
+                        Enabled="false" OnClick="btnRevoke_Click" />
+                    <%--OnClientClick="confirm('Do you want to revoke?')"--%>
+                    <asp:Button ID="btnClose" runat="server" Text="Close" CssClass="styleSubmitShortButton" />
+                </td>
+            </tr>
+        </table>
+    </asp:Panel>
+</asp:Content>

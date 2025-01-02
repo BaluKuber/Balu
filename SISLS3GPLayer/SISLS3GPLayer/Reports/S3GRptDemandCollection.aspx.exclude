@@ -1,0 +1,373 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true" CodeFile="S3GRptDemandCollection.aspx.cs" Inherits="Reports_S3GRptDemandCollection"  Title="Demand VS Collection"%>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+<%--<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>    
+   
+
+  </head>
+  <body>  --%> 
+    <table width="100%" border="0">
+        <tr>
+            <td class="stylePageHeading">
+                <table>
+                    <tr>
+                        <td>
+                            <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel" Text="Demand Collection Report">
+                            </asp:Label>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <table width="100%" border="0">
+                    <tr>
+                        <td>
+                            <asp:Panel ID="pnlDemand" runat="server" GroupingText="Input Criteria" CssClass="stylePanel" Width="100%">
+                                <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    <tr>
+                                        <td class="styleFieldLabel" width="20%">
+                                            <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleReqFieldLabel" ToolTip="Line of Business">
+                                            </asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" align="left" width="30%">
+                                            <asp:DropDownList ID="ddlLOB" runat="server" AutoPostBack="true" Width="60%" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged" ToolTip="Line of Business">
+                                            </asp:DropDownList>
+                                            <asp:RequiredFieldValidator ID="rfvddlLOB" runat="server" ErrorMessage="Select Line of Business" ValidationGroup="Ok" Display="None" SetFocusOnError="True" ControlToValidate="ddlLOB" InitialValue="-1"></asp:RequiredFieldValidator>
+                                        </td>
+                                        <td class="styleFieldLabel" width="20%">
+                                            <asp:Label runat="server" ID="lblRegion" Text="Location1" CssClass="styleDisplayLabel" ToolTip="Location1"></asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" width="30%">
+                                            <asp:DropDownList ID="ddlRegion" runat="server" Width="60%" AutoPostBack="true" OnSelectedIndexChanged="ddlRegion_SelectedIndexChanged" ToolTip="Location1">
+                                            </asp:DropDownList>
+<%--                                           <asp:RequiredFieldValidator ID="rfvddlRegion" Display="None" runat="server" ErrorMessage="Select Location1" ValidationGroup="Ok" SetFocusOnError="True" ControlToValidate="ddlRegion" InitialValue="-1"></asp:RequiredFieldValidator>
+--%>                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td height="8px">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="styleFieldLabel" width="20%">
+                                            <asp:Label runat="server" ID="lblBranch" Text="Location2" CssClass="styleDisplayLabel"  ToolTip="Location2"></asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" width="30%">
+                                            <asp:DropDownList ID="ddlBranch" runat="server" Width="60%" AutoPostBack="true" OnSelectedIndexChanged="ddlBranch_SelectedIndexChanged" ToolTip="Location2" Enabled="false">
+                                            </asp:DropDownList>
+<%--                                            <asp:RequiredFieldValidator ID="rfvddlBranch" Display="None"  runat="server" ErrorMessage="Select Location2" ValidationGroup="Ok" SetFocusOnError="True" ControlToValidate="ddlBranch" InitialValue="-1"></asp:RequiredFieldValidator>
+--%>                                        </td>
+                                        <td class="styleFieldLabel" width="20%">
+                                            <asp:Label runat="server" ID="lblReportDate" CssClass="styleReqFieldLabel" Text="Report Date" ToolTip="Report Date"></asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" width="30%">
+                                            <asp:TextBox ID="txtReportDate" ContentEditable="true" runat="server" Width="53%" ToolTip="Report Date"></asp:TextBox>
+                                            <asp:Image ID="imgReportDate" runat="server" ImageUrl="~/Images/calendaer.gif" />
+                                            <cc1:CalendarExtender runat="server" Format="dd/MM/yyyy" TargetControlID="txtReportDate" PopupButtonID="imgReportDate" ID="CalendarExtender1" OnClientDateSelectionChanged="checkDate_NextSystemDate">
+                                            </cc1:CalendarExtender>
+                                            <asp:RequiredFieldValidator ID="rfvReportDate" runat="server" ErrorMessage="Select Report Date" ValidationGroup="Ok" Display="None" SetFocusOnError="True" ControlToValidate="txtReportDate"></asp:RequiredFieldValidator>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td height="8px">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="styleFieldLabel" width="20%">
+                                            <asp:Label runat="server" Text="Denomination" ID="lblDenomination" CssClass="styleReqFieldLabel" ToolTip="Denomination">
+                                            </asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" width="30%">
+                                            <asp:DropDownList ID="ddlDenomination" Width="60%" runat="server" ToolTip="Denomination">
+                                            </asp:DropDownList>
+                                        </td>
+                                        <td class="styleFieldLabel" align="center" width="20%">
+                                           
+                                        </td>
+                                        <td class="styleFieldAlign" width="30%">
+                                            
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td height="8px">
+                                        </td>
+                                    </tr>
+                                </table>
+                            </asp:Panel>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <table width="100%" border="0">
+                    <tr>
+                        <td>
+                            <asp:Panel ID="PnlDemandData" runat="server" GroupingText="Compare Data" CssClass="stylePanel" Width="100%">
+                                <table cellpadding="0" cellspacing="0" border="0" style="width: 100%" align="center">
+                                    <tr>
+                                        <td align="center" class="styleFieldLabel">
+                                            <asp:Label ID="lblFinancialYearBase" runat="server" Text="Financial Years " ToolTip="Base Financial Years"></asp:Label>
+                                        </td>
+                                        <td align="center" class="styleFieldAlign">
+                                            <asp:DropDownList ID="ddlFinacialYearBase" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlFinacialYearBase_SelectedIndexChanged" ToolTip="Base Financial Years">
+                                            </asp:DropDownList>
+                                        </td>
+                                        <td align="center" class="styleFieldLabel">
+                                            <asp:Label ID="lblFromYearMonthBase" runat="server" Text="From Year Month" CssClass="styleReqFieldLabel" ToolTip="Base From Year Month"></asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" align="center">
+                                            <asp:DropDownList ID="ddlFromYearMonthBase" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlFromYearMonthBase_SelectedIndexChanged" ToolTip="Base From Year Month">
+                                            </asp:DropDownList>
+                                            <asp:RequiredFieldValidator ID="rfvddlFromYearMonthBase" runat="server" ErrorMessage="Select From Year Month" ValidationGroup="Ok" Display="None" SetFocusOnError="True" ControlToValidate="ddlFromYearMonthBase" InitialValue="0"></asp:RequiredFieldValidator>
+                                        </td>
+                                        <td align="center" class="styleFieldLabel">
+                                            <asp:Label ID="lblToYearMonthBase" runat="server" Text="To Year Month" CssClass="styleReqFieldLabel" ToolTip="Base To Year Month"> </asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" align="center">
+                                            <asp:DropDownList ID="ddlToYearMonthBase" runat="server" OnSelectedIndexChanged="ddlToYearMonthBase_SelectedIndexChanged" AutoPostBack="true" ToolTip="Base To Year Month">
+                                            </asp:DropDownList>
+                                            <asp:RequiredFieldValidator ID="rfvddlToYearMonthBase" runat="server" ErrorMessage="Select To Year Month" ValidationGroup="Ok" Display="None" SetFocusOnError="True" ControlToValidate="ddlToYearMonthBase" InitialValue="0"></asp:RequiredFieldValidator>
+                                        </td>
+                                        
+                                    </tr>
+                                    <tr>
+                                        <td height="8px">
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr align="center">
+                                        <td align="center" class="styleFieldLabel">
+                                            <asp:Label ID="lblFinancialYearCompare" runat="server" Text="Financial Years " ToolTip="Compare Financial Years"></asp:Label>
+                                        </td>
+                                        <td align="center" class="styleFieldAlign">
+                                            <asp:DropDownList ID="ddlFinancialYearCompare" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlFinancialYearCompare_SelectedIndexChanged" ToolTip="Compare Financial Years">
+                                            </asp:DropDownList>
+                                            
+                                        </td>
+                                        <td align="center" class="styleFieldLabel">
+                                            <asp:Label ID="lblFromYearMonthCompare" runat="server" Text="From Year Month" ToolTip="Compare From Year Month"></asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" align="center">
+                                            <asp:DropDownList ID="ddlFromYearMonthCompare" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlFromYearMonthCompare_SelectedIndexChanged" ToolTip="Compare From Year Month">
+                                            </asp:DropDownList>
+                                        </td>
+                                        <td align="center" class="styleFieldLabel">
+                                            <asp:Label ID="lblToYearMonthCompare" runat="server" Text="To Year Month" ToolTip="Compare To Year Month"> </asp:Label>
+                                        </td>
+                                        <td class="styleFieldAlign" align="center">
+                                            <asp:DropDownList ID="ddlToYearMonthCompare" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlToYearMonthCompare_SelectedIndexChanged" ToolTip="Compare To Year Month">
+                                            </asp:DropDownList>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td height="8px">
+                                        </td>
+                                    </tr>
+                                    
+                                </table>
+                                
+                            </asp:Panel>
+                        </td>
+                        
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <table width="100%" border="0" align="center">
+                    
+                    <tr class="styleButtonArea" style="padding-left: 4px">
+                        <td align="center">
+                            <asp:Button runat="server" ID="btnOk" CssClass="styleSubmitButton" OnClientClick="return fnCheckPageValidators('Ok',false);" Text="GO" CausesValidation="true" ValidationGroup="Ok" OnClick="btnOk_Click" ToolTip="Go" />
+                            &nbsp;<asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton" Text="Clear" OnClick="btnClear_Click" OnClientClick="return fnConfirmClear();" ToolTip="Clear" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td height="8px">
+                        </td>
+                    </tr>
+                    <%-- <tr>
+                    <td>
+                    <asp:Panel ID="pnlsilverlightControlHost" runat="server"  CssClass="stylePanel" Width="100%" >
+                    <div id="silverlightControlHost" runat="server" style="overflow: auto; height: 400px; width: 100%; display: none">
+                    
+                    <object width="100%" height="100%" type="application/x-silverlight-2" data="data:application/x-silverlight-2,">
+                        <param name="source" value="<%= this.DashboardViewerUri %>" />
+                        <param name="initParams" value="<%= this.InitParams %>" />
+                        <param name="onerror" value="onSilverlightError" />
+                        <param name="background" value="white" />
+                        <param name="minRuntimeVersion" value="4.0.50401.0" />
+                        <param name="autoUpgrade" value="true" />
+                        <param name="enablehtmlaccess" value="true" />
+                        <a href="http://go.microsoft.com/fwlink/?LinkID=149156&v=4.0.50401.0" style="text-decoration: none;">
+                        <img src="http://go.microsoft.com/fwlink/?LinkId=161376" alt="Get Microsoft Silverlight"
+                            style="border-style: none" />
+                        </a>
+                    </object>
+                    <iframe id="_sl_historyFrame" style='visibility: hidden; height: 0px; width: 0px;border: 0px'> </iframe>
+                    </div>   
+                    </asp:Panel>
+                    </td>
+                    </tr>--%>
+                    <tr>
+                        <td align="right">
+                            <asp:Label ID="lblAmounts" runat="server" Visible="false" CssClass="styleDisplayLabel"></asp:Label>
+                            <%--<asp:Label ID="lblCurrency" runat="server" Visible="false" CssClass="styleDisplayLabel"></asp:Label>--%>
+                        </td>
+                    </tr>
+                   
+                    <tr>
+                        <td>
+                            <asp:Panel ID="pnlDemandCollection" runat="server" GroupingText="Demand Vs Collection" CssClass="stylePanel" Width="100%" Visible="false">
+                                <asp:Label ID="lblError" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                <div id="divDemand" runat="server" style="overflow: auto; height: 300px; width: 100%; display: none">
+                                    <asp:GridView ID="grvDemand" runat="server" Width="100%" AutoGenerateColumns="false" HeaderStyle-CssClass="styleGridHeader" 
+                                    RowStyle-HorizontalAlign="Center" ShowFooter="true"  OnRowDataBound ="grvDemand_RowDataBound">
+                                        <Columns>
+                                            <asp:TemplateField HeaderText="Demand Month" ItemStyle-HorizontalAlign="Left" FooterStyle-HorizontalAlign="Center">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblDemandMonth" runat="server" Text='<%# Bind("DemandMonth") %>' ToolTip="Demand Month"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lblTotal" runat="server" Text="Grand Total" ToolTip="Grand Total"></asp:Label>
+                                                </FooterTemplate>
+                                                <ItemStyle HorizontalAlign="Left" />
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Location" ItemStyle-HorizontalAlign="Left">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblRegion" runat="server" Text='<%# Bind("Region") %>' ToolTip="Location"></asp:Label>
+                                                </ItemTemplate>
+                                                <ItemStyle HorizontalAlign="Left" />
+                                            </asp:TemplateField>
+                                           <%-- <asp:TemplateField HeaderText="Location2" ItemStyle-HorizontalAlign="Left">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblDemandBranch" runat="server" Text='<%# Bind("Location2") %>' ToolTip="Branch"></asp:Label>
+                                                </ItemTemplate>
+                                                <ItemStyle HorizontalAlign="Left" />
+                                            </asp:TemplateField>--%>
+                                            <asp:TemplateField HeaderText="Opening Demand" ItemStyle-HorizontalAlign="Right" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblOpeningDemand" runat="server" Text='<%# Bind("OpeningDemand") %>'  ToolTip="Opening Demand"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotOpeningDemand" runat="server" ToolTip="Total Opening Demand"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Opening Collection" ItemStyle-HorizontalAlign="Right" Visible="false" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblOpeningCollection" runat="server" Text='<%# Bind("OpeningCollection") %>' ToolTip="Opening Collection"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotOpeningCollection" runat="server" ToolTip="Total Opening Collection"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Collection %" ItemStyle-HorizontalAlign="Right" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblOpeningPercentage" runat="server" Text='<%# Bind("OpeningPercentage") %>' ToolTip="Opening Percentage"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotOpeningPercentage" runat="server" ToolTip="Total Opening Percentage"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Monthly Demand" ItemStyle-HorizontalAlign="Right" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblMonthlyDemand" runat="server" Text='<%# Bind("MonthlyDemand") %>' ToolTip="Monthly Demand"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotMonthlyDemand" runat="server" ToolTip="Total Monthly Demand"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Monthly Collection" ItemStyle-HorizontalAlign="Right" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblMonthlyCollection" runat="server" Text='<%# Bind("MonthlyCollection") %>' ToolTip="Monthly Collection"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotMonthlyCollection" runat="server" ToolTip="Total Monthly Collection"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Collection %" ItemStyle-HorizontalAlign="Right" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblMonthlyPercentage" runat="server" Text='<%# Bind("MonthlyPercentage") %>' ToolTip="Monthly Percentage"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotMonthlyPercentage" runat="server" ToolTip="Total Monthly Percentage"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Closing Demand" ItemStyle-HorizontalAlign="Right" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblClosingDemand" runat="server" Text='<%# Bind("ClosingDemand") %>' ToolTip="Closing Demand"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotClosingDemand" runat="server" ToolTip="Total Closing Demand"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Cumulative Collection" ItemStyle-HorizontalAlign="Right" Visible="false" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblClosingCollection" runat="server" Text='<%# Bind("ClosingCollection") %>' ToolTip="Closing Collection"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotClosingCollection" runat="server" ToolTip="Total Closing Collection"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Collection %" ItemStyle-HorizontalAlign="Right" FooterStyle-HorizontalAlign="Right">
+                                                <ItemTemplate>
+                                                    <asp:Label ID="lblClosingPercentage" runat="server" Text='<%# Bind("ClosingPercentage") %>' ToolTip="Closing Percentage"></asp:Label>
+                                                </ItemTemplate>
+                                                <FooterTemplate>
+                                                    <asp:Label ID="lbltotClosingPercentage" runat="server" ToolTip="Total Closing Percentage"></asp:Label>
+                                                </FooterTemplate>
+                                            </asp:TemplateField>
+                                        </Columns>
+                                    </asp:GridView>
+                                </div>
+                            </asp:Panel>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td height="8px">
+                        </td>
+                    </tr>
+                   
+                   
+                    <tr class="styleButtonArea" style="padding-left: 4px">
+                        <td align="center">
+                            <asp:Button runat="server" ID="btnPrint" CssClass="styleSubmitButton" Text="Print" CausesValidation="false" ValidationGroup="Print" Visible="false" OnClick="btnPrint_Click" ToolTip="Export to Crystal Report" />
+                                                        <%--&nbsp;<asp:Button runat="server" ID="btnChart" CausesValidation="false" CssClass="styleSubmitButton" Text="View Chart" Visible="false" OnClick="btnChart_Click"  ToolTip="Export to Chart" />--%>
+
+                           <asp:Button runat="server" ID="btnExcel" CssClass="styleSubmitButton" Text="Excel" CausesValidation="false" ValidationGroup="Excel" Visible="false" OnClick="btnExcel_Click" ToolTip="Export to Excel" />
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td height="8px">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <asp:ValidationSummary ID="vsDemandCollection" runat="server" CssClass="styleMandatoryLabel" CausesValidation="true" HeaderText="Correct the following validation(s):" ValidationGroup="Ok" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <asp:CustomValidator ID="CVDemandCollection" runat="server" Display="None" ValidationGroup="btnPrint"></asp:CustomValidator>
+                            <asp:CustomValidator ID="CVAssetClass" runat="server" Display="None" ValidationGroup="Ok"></asp:CustomValidator>
+                            <asp:CustomValidator ID="CVFrequency" runat="server" Display="None" ValidationGroup="Ok"></asp:CustomValidator>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <%--</body>
+    </html>--%>
+    
+</asp:Content>
+

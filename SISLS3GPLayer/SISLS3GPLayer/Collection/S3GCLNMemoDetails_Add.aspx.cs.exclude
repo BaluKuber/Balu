@@ -1,0 +1,1017 @@
+﻿#region Page Header
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Collection
+/// Screen Name			: Memo Master
+/// Created By			: Kannan RC
+/// Created Date		: 05-oct-2010
+/// Modified By			: Chandra Sekhar BS
+/// Modified Date		: 18-Sep-2013
+/// Purpose             : SQL Performance
+
+/// <Program Summary>
+#endregion
+
+#region Namespace
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using S3GBusEntity.Origination;
+using System.ServiceModel;
+using System.Data;
+using System.IO;
+using System.Globalization;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using System.Web.Security;
+using System.Text;
+using S3GBusEntity.Collection;
+using System.Configuration;
+using ClnMemoMgtServicesReference;
+#endregion
+
+public partial class Collection_S3GCLNMemoDetails_Add : ApplyThemeForProject
+{
+    #region Intialization
+    Dictionary<string, string> Procparam = null;
+    int intErrCode;
+    int intMemoID = 0;
+    int intCompanyId;
+    int intUserId;
+    int intTLEWCID;
+    string strMode;
+    bool bCreate = false;
+    static string strPageName = "Memo Master";
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    bool bClearList = false;
+    string strKey = "Insert";
+    DataTable dtMemo = new DataTable();
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3GCLNMemoDetails_View.aspx";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GCLNMemoDetails_Add.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GCLNMemoDetails_View.aspx';";
+    SerializationMode SerMode = SerializationMode.Binary;
+
+    ClnMemoMgtServicesReference.ClnMemoMgtServicesClient ObjMemoMasterClient;
+    public static Collection_S3GCLNMemoDetails_Add obj_Page;
+
+    #endregion
+
+    #region Page Load
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        if (Request.QueryString["qsViewId"] != null)
+        {
+            FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            intMemoID = Convert.ToInt32(fromTicket.Name);
+            strMode = Request.QueryString["qsMode"];
+        }
+        UserInfo ObjUserInfo = new UserInfo();
+        intCompanyId = ObjUserInfo.ProCompanyIdRW;
+        intUserId = ObjUserInfo.ProUserIdRW;
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+        if (!IsPostBack)
+        {
+            if (Request.QueryString["qsMode"] != "Q" && Request.QueryString["qsMode"] != "M")
+            {
+                FunPriGetLookUpLOBList();
+                //FunPriGetLookUpBranchList();
+            }
+            //FunPriGetMemo();
+            setinitialRow();
+            if ((intMemoID > 0) && (strMode == "M"))
+            {
+                FunPriDisableControls(1);
+            }
+            else if ((intMemoID > 0) && (strMode == "Q"))
+            {
+                FunPriDisableControls(-1);
+            }
+            else
+            {
+                FunPriDisableControls(0);
+            }
+
+        }
+
+    }
+    protected void Page_LoadOLD(object sender, EventArgs e)
+    {
+        if (Request.QueryString["qsViewId"] != null)
+        {
+            FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            intMemoID = Convert.ToInt32(fromTicket.Name);
+            strMode = Request.QueryString["qsMode"];
+        }
+        UserInfo ObjUserInfo = new UserInfo();
+        intCompanyId = ObjUserInfo.ProCompanyIdRW;
+        intUserId = ObjUserInfo.ProUserIdRW;
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+        if (!IsPostBack)
+        {
+
+            if (Request.QueryString["qsMode"] != "Q")
+            {
+                FunPriGetLookUpLOBList();
+            }
+            if (Request.QueryString["qsMode"] != "C" && Request.QueryString["qsMode"] != "Q")
+            {
+                //FunPriGetLookUpBranchList();
+            }
+            //FunPriGetMemo();
+            setinitialRow();
+            if ((intMemoID > 0) && (strMode == "M"))
+            {
+                FunPriDisableControls(1);
+            }
+            else if ((intMemoID > 0) && (strMode == "Q"))
+            {
+                FunPriDisableControls(-1);
+            }
+            else
+            {
+                FunPriDisableControls(0);
+            }
+
+        }
+
+    }
+    #endregion
+
+    #region Grid Events
+
+    #region RowDataBound
+    protected void gvMemo_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+
+        if (e.Row.RowType == DataControlRowType.Footer)
+        {
+            if (gvMemo.FooterRow != null && strMode != "Q")
+            {
+
+                dtMemo = (DataTable)ViewState["currenttable"];
+
+                DropDownList ddlFType = e.Row.FindControl("ddlDesc") as DropDownList;
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyId.ToString());
+                Procparam.Add("@LookupType_Code", "36");
+                ddlFType.BindDataTable("S3G_LOANAD_GetLookUpValues", Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+                if ((intMemoID > 0) && (strMode == "Q"))
+                {
+                    Button btnAdd = e.Row.FindControl("btnAddrow") as Button;
+                    LinkButton Ltnbtn = e.Row.FindControl("btnRemove") as LinkButton;
+                    btnAdd.Enabled = false;
+                    ddlFType.Enabled = false;
+                }
+            }
+        }
+        if ((intMemoID > 0) && (strMode == "Q"))
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                LinkButton Ltnbtn = e.Row.FindControl("btnRemove") as LinkButton;
+                Ltnbtn.Enabled = false;
+            }
+        }
+    }
+    #endregion
+
+    #region RowCommand
+    protected void gvMemo_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+
+        DataRow dr;
+        if (e.CommandName == "AddNew")
+        {
+            DropDownList ddlDes = (DropDownList)gvMemo.FooterRow.FindControl("ddlDesc");
+            DropDownList ddlGL = (DropDownList)gvMemo.FooterRow.FindControl("ddlGL");
+            DropDownList ddlSL = (DropDownList)gvMemo.FooterRow.FindControl("ddlSL");
+
+            if (ddlDes.SelectedIndex == 0 && ddlGL.SelectedIndex == 0)
+            {
+                cvMemo.ErrorMessage = Resources.ValidationMsgs.CLN_MM_1;
+                cvMemo.IsValid = false;
+                return;
+            }
+
+            if (ddlDes.SelectedIndex == 0)
+            {
+                cvMemo.ErrorMessage = Resources.ValidationMsgs.CLN_MM_2; ;
+                cvMemo.IsValid = false;
+                return;
+            }
+            if (ddlGL.SelectedIndex == 0)
+            {
+                cvMemo.ErrorMessage = Resources.ValidationMsgs.CLN_MM_3;
+                cvMemo.IsValid = false;
+                return;
+            }
+            if (ddlSL.Items.Count > 1 && ddlSL.SelectedIndex == 0)
+            {
+                cvMemo.ErrorMessage = Resources.ValidationMsgs.CLN_MM_4;
+                cvMemo.IsValid = false;
+                return;
+            }
+
+            foreach (GridViewRow gr in gvMemo.Rows)
+            {
+                Label txtRowlob1 = (Label)gr.FindControl("txtDesc");
+                // Label txtRowlob2 = (Label)gr.FindControl("txtGLAC");
+                //   Label txtRowlob3 = (Label)gr.FindControl("txtSL");
+                if (ddlDes.SelectedItem.Text == txtRowlob1.Text)// && ddlGL.SelectedValue.ToString() == txtRowlob2.Text)// && ddlSL.SelectedValue == txtRowlob3.Text)
+                {
+                    cvMemo.ErrorMessage = Resources.ValidationMsgs.CLN_MM_5;
+                    cvMemo.IsValid = false;
+                    return;
+                }
+            }
+
+
+            dtMemo = (DataTable)ViewState["currenttable"];
+            dr = dtMemo.NewRow();
+            if (dtMemo.Rows.Count > 0)
+            {
+                if (dtMemo.Rows[0]["GL_Account"].ToString() == string.Empty)
+                {
+                    dtMemo.Rows[0].Delete();
+                }
+            }
+            //dr["GL_Account"] = ddlGL.SelectedValue ;//.SelectedItem.Text;
+            dr["GL_Account"] = ddlGL.SelectedItem.Text; //Added by saran to fix the bug
+            if (ddlSL.SelectedValue != "0")
+                dr["SL_Account"] = ddlSL.SelectedItem.Text;//Added by saran to fix the bug
+            else
+                dr["SL_Account"] = "";
+            dr["Lookup_Description"] = ddlDes.SelectedItem.Text;
+            dr["Lookup_Code"] = ddlDes.SelectedValue;
+            dtMemo.Rows.Add(dr);
+            gvMemo.DataSource = dtMemo;
+            gvMemo.DataBind();
+            ViewState["currenttable"] = dtMemo;
+
+        }
+
+    }
+    #endregion
+
+    #region RowDeleting
+    protected void gvMemo_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+
+        DataTable dtDelete;
+        dtDelete = (DataTable)ViewState["currenttable"];
+        dtDelete.Rows.RemoveAt(e.RowIndex);
+        if (dtDelete.Rows.Count <= 0)
+        {
+
+            dtDelete = null;
+            dtMemo.Clear();
+            ViewState["currenttable"] = null;
+            DataRow dr;
+            dtMemo.Columns.Add("GL_Account");
+            dtMemo.Columns.Add("SL_Account");
+            dtMemo.Columns.Add("Lookup_Code");
+            dtMemo.Columns.Add("Memo_ID");
+            dtMemo.Columns.Add("Lookup_Description");
+            dr = dtMemo.NewRow();
+            dtMemo.Rows.Add(dr);
+            ViewState["currenttable"] = dtMemo;
+            gvMemo.DataSource = dtMemo;
+            gvMemo.DataBind();
+            gvMemo.Rows[0].Visible = false;
+            ViewState["currenttable"] = dtMemo;
+            return;
+        }
+        gvMemo.DataSource = dtDelete;
+        gvMemo.DataBind();
+        ViewState["currenttable"] = dtDelete;
+
+    }
+    #endregion
+
+    #endregion
+
+    #region Dropdown events
+
+
+    #region "LOB/Branch"
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        setinitialRow();
+        //FunPriGetLookUpBranchList();
+    }
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        setinitialRow();
+    }
+    #endregion
+
+
+    #region ddlDesc
+    protected void ddlDesc_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string strFieldAtt = ((DropDownList)sender).ClientID;
+        string strVal = strFieldAtt.Substring(strFieldAtt.LastIndexOf("gvMemo")).Replace("gvMemo_ctl", "");
+        int gRowIndex = Convert.ToInt32(strVal.Substring(0, strVal.LastIndexOf("_")));
+        gRowIndex = gRowIndex - 2;
+        DropDownList ddlDesc = gvMemo.FooterRow.FindControl("ddlDesc") as DropDownList;
+        DropDownList ddlGLAC = gvMemo.FooterRow.FindControl("ddlGL") as DropDownList;
+        DropDownList ddlSLAC = gvMemo.FooterRow.FindControl("ddlSL") as DropDownList;
+        Dictionary<string, string> Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+        Procparam.Add("@Lookup_Description", ddlDesc.SelectedItem.Text);
+        if (Convert.ToInt32(ddlLOB.SelectedValue) > 0)
+            Procparam.Add("@Lob_Id", ddlLOB.SelectedValue);
+        if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+        ddlSLAC.Items.Clear();
+        ddlGLAC.Items.Clear();
+        ddlGLAC.BindDataTable("S3G_CLN_GetGLDetails", Procparam, new string[] { "Glac", "GLAccount" });
+
+    }
+    #endregion
+
+    #region ddlGL
+    protected void ddlGL_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string strFieldAtt = ((DropDownList)sender).ClientID;
+        string strVal = strFieldAtt.Substring(strFieldAtt.LastIndexOf("gvMemo")).Replace("gvMemo_ctl", "");
+        int gRowIndex = Convert.ToInt32(strVal.Substring(0, strVal.LastIndexOf("_")));
+        gRowIndex = gRowIndex - 2;
+        DropDownList ddlDesc = gvMemo.FooterRow.FindControl("ddlDesc") as DropDownList;
+        DropDownList ddlGLAC = gvMemo.FooterRow.FindControl("ddlGL") as DropDownList;
+        DropDownList ddlSL = gvMemo.FooterRow.FindControl("ddlSL") as DropDownList;
+        Dictionary<string, string> Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+        string[] str_GL = ddlGLAC.SelectedItem.Text.Split('-');
+        Procparam.Add("@GL_Code", str_GL[0].ToString().Trim());
+        //Procparam.Add("@GL_Code", ddlGLAC.SelectedItem.Text);    
+        Procparam.Add("@Lookup_Description", ddlDesc.SelectedItem.Text);
+        ddlSL.BindDataTable("S3G_CLN_GetSLDetails", Procparam, new string[] { "SLac", "SLAccount" });
+    }
+    #endregion
+    #endregion
+
+    #region Button Events
+
+    #region Cancel
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+    #endregion
+
+    #region Save
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        ObjMemoMasterClient = new ClnMemoMgtServicesReference.ClnMemoMgtServicesClient();
+
+        try
+        {
+
+            //string strAlert = "alert('__ALERT__');";
+            //string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CMM';";
+            //string strRedirectPageAdd = "window.location.href='../Collection/S3GCLNMemoDetails_Add.aspx';";
+            SerializationMode SerMode = SerializationMode.Binary;
+            ClnMemoMgtServices.S3G_CLN_MemoMasterDataTable ObjS3G_MemoInsDataTable = new ClnMemoMgtServices.S3G_CLN_MemoMasterDataTable();
+            ClnMemoMgtServices.S3G_CLN_MemoMasterRow ObjMemoInsRow;
+
+            foreach (GridViewRow grv in gvMemo.Rows)
+            {
+                Label txtDesc = grv.FindControl("txtDesc") as Label;
+                Label txGLAC = grv.FindControl("txtGLAC") as Label;
+
+                if (txtDesc.Text.Length == 0 & txGLAC.Text.Length == 0)
+                {
+                    cvMemo.ErrorMessage = Resources.ValidationMsgs.CLN_MM_1;
+                    cvMemo.IsValid = false;
+                    return;
+                }
+                if (txtDesc.Text.Length == 0)
+                {
+                    cvMemo.ErrorMessage = Resources.ValidationMsgs.CLN_MM_2;
+                    cvMemo.IsValid = false;
+                    return;
+                }
+                if (txGLAC.Text.Length == 0)
+                {
+                    cvMemo.ErrorMessage = Resources.ValidationMsgs.CLN_MM_3;
+                    cvMemo.IsValid = false;
+                    return;
+                }
+            }
+
+
+            ObjMemoInsRow = ObjS3G_MemoInsDataTable.NewS3G_CLN_MemoMasterRow();
+            //ObjMemoInsRow.Company_ID = intCompanyId;
+            //ObjMemoInsRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            //if (intMemoID > 0)
+            //{
+            //    ObjMemoInsRow.Memo_ID = intMemoID;
+            //}
+            //else
+            //{
+            //    ObjMemoInsRow.Memo_ID = 0;
+            //}
+            //ObjMemoInsRow.Txn_ID = 10;
+            //ObjMemoInsRow.Created_By = intUserId;
+            //ObjMemoInsRow.Created_On=DateTime.Now;
+            //ObjMemoInsRow.Modified_By = intUserId;
+            //ObjMemoInsRow.Modified_On = DateTime.Now;
+            //ObjMemoInsRow.Is_Active = CbxActive.Checked;
+            if (strMode != "M")
+            {
+                ObjMemoInsRow.Level = "C";
+            }
+            else
+            {
+                ObjMemoInsRow.Level = "U";
+            }
+            ObjMemoInsRow.XML_MemoDeltails = FunProFormXML();
+            ObjS3G_MemoInsDataTable.AddS3G_CLN_MemoMasterRow(ObjMemoInsRow);
+            byte[] ObjS3G_MemoDataTable = ClsPubSerialize.Serialize(ObjS3G_MemoInsDataTable, SerMode);
+
+            //if (intMemoID > 0)
+            //{
+            //    intErrCode = ObjMemoMasterClient.FunPubModifyMemoDetails(SerMode, ObjS3G_MemoDataTable);
+            //}
+            //else
+            //{
+            intErrCode = ObjMemoMasterClient.FunPubCreateMemoDetails(SerMode, ObjS3G_MemoDataTable);
+
+            //}
+            if (intErrCode == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                if (intMemoID > 0)
+                {
+                    strKey = "Modify";
+                    strAlert = strAlert.Replace("__ALERT__", Resources.ValidationMsgs.CLN_MM_Update);
+                }
+                else
+                {
+                    strAlert = Resources.ValidationMsgs.CLN_MM_Save;
+                    strAlert += @"\n " + Resources.ValidationMsgs.S3G_ValMsg_Next + " record?";
+                    strAlert = " if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPageView = "";
+
+                }
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            }
+            //else if (intErrCode == 1)
+            //{
+            //    strAlert = strAlert.Replace("__ALERT__", Resources.ValidationMsgs.CLN_MM_Exist);
+            //    strRedirectPageView = "";
+            //}
+            else
+            {
+                string strvalidationmsgname = "CLN_MM";
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, intErrCode);
+                return;
+            }
+
+            lblErrorMessage.Text = string.Empty;
+            //ObjMemoMasterClient.Close();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            //if (ObjMemoMasterClient != null)
+
+            ObjMemoMasterClient.Close();
+
+        }
+    }
+    #endregion
+    #endregion
+
+    #region User Defined Functions
+    /// <summary>
+    /// To Load LOB
+    /// </summary>
+    private void FunPriGetLookUpLOBList()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            //Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@User_Id", intUserId.ToString());
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@Program_ID", "91");
+            if (intMemoID == 0) Procparam.Add("@Is_Active", "1");
+            //ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, true, "All", new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            if (ddlLOB.Items.Count > 0)
+            {
+                ddlLOB.Items.RemoveAt(0);
+                //Thangam M on 21/Dec/2012 to load 'ALL' for No of LOB's = 1 also
+                //if (ddlLOB.Items.Count != 1)
+                ddlLOB.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--All--", "-1")));
+            }
+            ddlBranch.SelectedText = "--All--";
+            ddlBranch.SelectedValue = "0";
+            //DataTable dtLOBCount = Utility.GetDefaultData(SPNames.S3G_LOANAD_GetLOBCode, Procparam);
+            //ViewState["dtLOBCount"] = dtLOBCount;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+
+    /// <summary>
+    /// To Load Branch
+    /// </summary>
+    /// Added by M.Saran as Per the Requirement To Add Branch.
+    private void FunPriGetLookUpBranchList()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            //Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@User_Id", intUserId.ToString());
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            if (Convert.ToInt32(ddlLOB.SelectedValue) > 0)
+                Procparam.Add("@Lob_Id", ddlLOB.SelectedValue);
+            Procparam.Add("@Program_ID", "91");
+            if (intMemoID == 0) Procparam.Add("@Is_Active", "1");
+            // ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, true, "All", new string[] { "Location_ID", "Location_Code", "Location_Name" });
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    private void FunGetGetMemoDetails()
+    {
+        try
+        {
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Unique_no", intMemoID.ToString());
+            dictParam.Add("@Company_ID", intCompanyId.ToString());
+            //dictParam.Add("@Memo_Type_Code", "36");
+            DataTable dtMemoDetails = Utility.GetDefaultData("S3G_CLN_GetMemoMasterDetails", dictParam);
+            if (dtMemoDetails.Rows.Count > 0)
+            {
+                gvMemo.DataSource = dtMemoDetails;
+                gvMemo.DataBind();
+                DataRow dtRow = dtMemoDetails.Rows[0];
+
+                if (dtMemoDetails.Rows[0]["LOB_ID"].ToString() == "0" || dtMemoDetails.Rows[0]["LOB_ID"].ToString() == "")
+                {
+                    ddlLOB.SelectedValue = "0";
+                }
+                else
+                {
+                    ddlLOB.SelectedValue = dtMemoDetails.Rows[0]["LOB_ID"].ToString();
+                }
+                if (dtMemoDetails.Rows[0]["Location_Code"].ToString() == "0" || dtMemoDetails.Rows[0]["Location_Code"].ToString() == "")
+                {
+                    ddlBranch.SelectedValue = "0";
+                }
+                else
+                {
+                    ddlBranch.SelectedValue = dtMemoDetails.Rows[0]["Branch_ID"].ToString();
+                }
+                if (Convert.ToBoolean(dtMemoDetails.Rows[0]["Is_Active"]))
+                    CbxActive.Checked = true;
+                else
+                    CbxActive.Checked = false;
+
+                for (int i = 0; i < gvMemo.Rows.Count; i++)
+                {
+
+                    if (gvMemo.Rows[i].RowType == DataControlRowType.DataRow)
+                    {
+
+                        Label lblCode = (Label)gvMemo.Rows[i].FindControl("lblCode");
+                        Label lblMemoID = (Label)gvMemo.Rows[i].FindControl("lblMemoID");
+                        Label txtDesc = (Label)gvMemo.Rows[i].FindControl("txtDesc");
+                        Label txtGLAC = (Label)gvMemo.Rows[i].FindControl("txtGLAC");
+                        Label txtSLAC = (Label)gvMemo.Rows[i].FindControl("txtSL");
+
+
+                        if (Convert.ToInt32(lblCode.Text) == Convert.ToInt32(dtMemoDetails.Rows[i]["Lookup_Code"].ToString()))
+                        {
+                            txtDesc.Text = Convert.ToString(dtMemoDetails.Rows[i]["Lookup_Description"]).ToString();
+                            txtGLAC.Text = Convert.ToString(dtMemoDetails.Rows[i]["GL_Account"]).ToString();
+                            txtSLAC.Text = Convert.ToString(dtMemoDetails.Rows[i]["SL_Account"]).ToString();
+                        }
+                    }
+                }
+                ViewState["currenttable"] = dtMemoDetails;
+            }
+            //gvMemo.DataSource = dtMemoDetails;
+            //gvMemo.DataBind();
+
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        //catch (FaultException<CompanyMgtServicesReference.ClsPubFaultException> objFaultExp)
+        //{
+        //    lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        //}
+        //catch (Exception ex)
+        //{
+        //    lblErrorMessage.Text = ex.Message;
+        //}
+
+    }
+    private void FunGetGetMemoDetails_QueryMode()
+    {
+        try
+        {
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Unique_no", intMemoID.ToString());
+            dictParam.Add("@Company_ID", intCompanyId.ToString());
+            //dictParam.Add("@Memo_Type_Code", "36");
+            DataTable dtMemoDetails = Utility.GetDefaultData("S3G_CLN_GetMemoMasterDetails", dictParam);
+            if (dtMemoDetails.Rows.Count > 0)
+            {
+                gvMemo.DataSource = dtMemoDetails;
+                gvMemo.DataBind();
+                DataRow dtRow = dtMemoDetails.Rows[0];
+
+
+                if (dtMemoDetails.Rows[0]["LOB_ID"].ToString() == "0" || dtMemoDetails.Rows[0]["LOB_ID"].ToString() == "")
+                {
+                    System.Web.UI.WebControls.ListItem LiB = new System.Web.UI.WebControls.ListItem("--All--", "0");
+                    ddlLOB.Items.Add(LiB);
+                }
+                else
+                {
+                    System.Web.UI.WebControls.ListItem LiB = new System.Web.UI.WebControls.ListItem(dtMemoDetails.Rows[0]["LOB_Name"].ToString(), dtMemoDetails.Rows[0]["LOB_ID"].ToString());
+                    ddlLOB.Items.Add(LiB);
+                }
+
+                if (dtMemoDetails.Rows[0]["Location_Code"].ToString() == "0" || dtMemoDetails.Rows[0]["Location_Code"].ToString() == "")
+                {
+                    ddlBranch.SelectedText = "--All--";
+                    ddlBranch.SelectedValue = "0";
+                }
+                else
+                {
+                    ddlBranch.SelectedText = dtMemoDetails.Rows[0]["Location_Name"].ToString();
+                    ddlBranch.SelectedValue = dtMemoDetails.Rows[0]["Location_Code"].ToString();
+                }
+
+
+                if (Convert.ToBoolean(dtMemoDetails.Rows[0]["Is_Active"]))
+                    CbxActive.Checked = true;
+                else
+                    CbxActive.Checked = false;
+
+                for (int i = 0; i < gvMemo.Rows.Count; i++)
+                {
+
+                    if (gvMemo.Rows[i].RowType == DataControlRowType.DataRow)
+                    {
+
+                        Label lblCode = (Label)gvMemo.Rows[i].FindControl("lblCode");
+                        Label lblMemoID = (Label)gvMemo.Rows[i].FindControl("lblMemoID");
+                        Label txtDesc = (Label)gvMemo.Rows[i].FindControl("txtDesc");
+                        Label txtGLAC = (Label)gvMemo.Rows[i].FindControl("txtGLAC");
+                        Label txtSLAC = (Label)gvMemo.Rows[i].FindControl("txtSL");
+
+
+                        if (Convert.ToInt32(lblCode.Text) == Convert.ToInt32(dtMemoDetails.Rows[i]["Lookup_Code"].ToString()))
+                        {
+                            txtDesc.Text = Convert.ToString(dtMemoDetails.Rows[i]["Lookup_Description"]).ToString();
+                            txtGLAC.Text = Convert.ToString(dtMemoDetails.Rows[i]["GL_Account"]).ToString();
+                            txtSLAC.Text = Convert.ToString(dtMemoDetails.Rows[i]["SL_Account"]).ToString();
+                        }
+                    }
+                }
+                ViewState["currenttable"] = dtMemoDetails;
+            }
+            //gvMemo.DataSource = dtMemoDetails;
+            //gvMemo.DataBind();
+
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        //catch (FaultException<CompanyMgtServicesReference.ClsPubFaultException> objFaultExp)
+        //{
+        //    lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        //}
+        //catch (Exception ex)
+        //{
+        //    lblErrorMessage.Text = ex.Message;
+        //}
+
+    }
+    #region Role Access Setup
+    private void FunPriDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                if (!bCreate)
+                {
+                    //    btnSave.Enabled = false;
+                }
+                CbxActive.Enabled = false;
+                CbxActive.Checked = true;
+                break;
+
+            case 1: // Modify Mode                              
+                FunGetGetMemoDetails_QueryMode();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                ddlLOB.ClearDropDownList();
+                ddlBranch.Enabled = false;
+                //ddlBranch.ClearDropDownList();
+                //ddlBranch.SelectedIndex = -1;
+                if (!bModify)
+                {
+                    //btnSave.Enabled = false;
+                }
+                btnClear.Enabled = false;
+                CbxActive.Enabled = true;
+                break;
+
+            case -1:// Query Mode               
+
+                //  FunGetGetMemoDetails();
+                FunGetGetMemoDetails_QueryMode();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPageView);
+                }
+                if (bClearList)
+                {
+                    //if (ddlBranch.Items.Count > 0) {
+                    //    ddlBranch.ClearDropDownList();
+                    //}
+                    ddlBranch.Enabled = false;
+                    if (ddlLOB.Items.Count > 0)
+                    {
+                        ddlLOB.ClearDropDownList();
+                    }
+
+
+                }
+                gvMemo.FooterRow.Visible = false;
+                gvMemo.Columns[gvMemo.Columns.Count - 1].Visible = false;
+                btnClear.Enabled = false;
+                btnSave.Enabled = false;
+                CbxActive.Enabled = false;
+                break;
+        }
+    }
+    #endregion
+
+    /// <summary>
+    /// Intialize Grid
+    /// </summary>
+    private void setinitialRow()
+    {
+        DataTable dt = new DataTable();
+        DataRow dr;
+        dt.Columns.Add("Lookup_Code");
+        dt.Columns.Add("Memo_ID");
+        dt.Columns.Add("Lookup_Description");
+        dt.Columns.Add("GL_Account");
+        dt.Columns.Add("SL_Account");
+
+        dr = dt.NewRow();
+        dr["Lookup_Code"] = string.Empty;
+        dr["Memo_ID"] = string.Empty;
+        dr["Lookup_Description"] = string.Empty;
+        dr["GL_Account"] = string.Empty;
+        dr["SL_Account"] = string.Empty;
+
+        dt.Rows.Add(dr);
+        ViewState["currenttable"] = dt;
+        gvMemo.DataSource = dt;
+        gvMemo.DataBind();
+        gvMemo.Rows[0].Visible = false;
+
+    }
+
+    /// <summary>
+    /// To Clear
+    /// </summary>
+    private void FunPriClear()
+    {
+        ddlLOB.SelectedIndex = 0;
+        //ddlBranch.SelectedIndex = 0;
+        ddlBranch.Clear();
+        //CbxActive.Checked = false;
+        setinitialRow();
+
+    }
+
+
+
+    #region Load XML
+    protected string FunProFormXML()
+    {
+        StringBuilder strbuXML = new StringBuilder();
+        strbuXML.Append("<Root>");
+        foreach (GridViewRow grvData in gvMemo.Rows)
+        {
+
+            string strCompanyID = Convert.ToString(intCompanyId);
+            string strLOBIDs = Convert.ToString(ddlLOB.SelectedValue);
+            string strBranch = Convert.ToString(ddlBranch.SelectedValue);
+            string strLOBID = strLOBIDs;
+            string strMemoID = Convert.ToString(intMemoID);
+            string strTxnID = "10";
+            string strCreatedBy = Convert.ToString(intUserId);
+            string strCreatedOn = Convert.ToString(DateTime.Now);
+            string strModifiedBy = Convert.ToString(intUserId);
+            string strModifiedOn = Convert.ToString(DateTime.Now);
+            string strFieldType = ((Label)grvData.FindControl("lblCode")).Text;
+            string strGLAC = ((Label)grvData.FindControl("txtGLAC")).Text;
+            if (strGLAC.Length > 0)
+                strGLAC = strGLAC.Split('-')[0].ToString();
+            string strSLAC = ((Label)grvData.FindControl("txtSL")).Text;
+            if (strSLAC.Length > 0)
+                strSLAC = strSLAC.Split('-')[0].ToString();
+            string StrID = ((Label)grvData.FindControl("lblMemoID")).Text;
+            //if (StrID == string.Empty)
+            //    StrID = "0";
+            string strTypeCode = "36";
+            string strActive = Convert.ToString(CbxActive.Checked).ToString();
+            if (strActive == "False")
+            {
+                strActive = "0";
+            }
+            else
+            {
+                strActive = "1";
+            }
+
+            strbuXML.Append(" <Details  Company_ID='" + strCompanyID + "' Memo_Type_Code='" + strTypeCode +
+             "' Memo_Type='" + strFieldType + "' GL_Account='" + strGLAC + "' SL_Account ='" + strSLAC + "' Is_Active = '" + strActive +
+           "' LOB_ID ='" + strLOBID + "' Location_ID ='" + strBranch + "' Memo_ID= '" + StrID + "' Unique_ID= '" + strMemoID + "' Txn_ID ='" + strTxnID + "' Created_By='" + strCreatedBy + "'/>");
+
+
+        }
+
+
+        strbuXML.Append("</Root>");
+        return strbuXML.ToString();
+    }
+    #endregion
+
+    #endregion
+
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        FunPriClear();
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyId.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", obj_Page.intUserId.ToString());
+        Procparam.Add("@Program_Id", "91");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+
+}
+
+#region UNWANTED
+
+//private void FunPriGetMemoHeader()
+//{
+//    try
+//    {
+//        Dictionary<string, string> dictParam = new Dictionary<string, string>();
+//        dictParam.Add("@Memo_ID", intMemoID.ToString());
+//        dictParam.Add("@Company_ID", intCompanyId.ToString());
+//        DataTable dtMemoDetails = Utility.GetDefaultData("S3G_CLN_GetMemoMaster", dictParam);
+//        DataRow dtRow = dtMemoDetails.Rows[0];
+//        ddlLOB.SelectedValue = dtMemoDetails.Rows[0]["LOB_ID"].ToString();
+//        if (dtMemoDetails.Rows[0]["Is_Active"].ToString() == "True")
+//            CbxActive.Checked = true;
+//        else
+//            CbxActive.Checked = false;
+
+//    }
+//    catch (Exception ex)
+//    {
+//          ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+//        throw ex;
+//    }
+//    //catch (FaultException<CompanyMgtServicesReference.ClsPubFaultException> objFaultExp)
+//    //{
+//    //    lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+//    //}
+//    //catch (Exception ex)
+//    //{
+//    //    lblErrorMessage.Text = ex.Message;
+//    //}
+
+//}
+
+//LOAD XML////////////////////////////////////////////////
+//}
+// }
+//}
+//else
+//{
+
+//    foreach (GridViewRow grvData in gvMemo.Rows)
+//    {
+
+
+//        string strCompanyID = Convert.ToString(intCompanyId);
+//        string strLOBID = Convert.ToString(ddlLOB.SelectedValue);
+//        string strMemoID = Convert.ToString(intMemoID);
+//        string strTxnID = "10";
+//        string strCreatedBy = Convert.ToString(intUserId);
+//        string strCreatedOn = Convert.ToString(DateTime.Now);
+//        string strModifiedBy = Convert.ToString(intUserId);
+//        string strModifiedOn = Convert.ToString(DateTime.Now);
+
+//        string strFieldType = ((Label)grvData.FindControl("lblCode")).Text;
+//        string strGLAC = ((TextBox)grvData.FindControl("txtGLAC")).Text;
+//        string strSLAC = ((TextBox)grvData.FindControl("txtSL")).Text;
+//        string strTypeCode = "36";
+//        string strActive = Convert.ToString(CbxActive.Checked).ToString();
+//        if (strActive == "False")
+//        {
+//            strActive = "0";
+//        }
+//        else
+//        {
+//            strActive = "1";
+//        }
+
+//        if (intMemoID > 0)
+//        {
+//            strbuXML.Append(" <Details  Company_ID='" + strCompanyID.ToString() + "' Memo_Type_Code='" + strTypeCode.ToString() +
+//          "' Memo_Type='" + strFieldType.ToString() + "' GL_Account='" + strGLAC.ToString() + "' SL_Account ='" + strSLAC.ToString() + "' Is_Active = '" + strActive.ToString() +
+//          "' LOB_ID ='" + strLOBID.ToString() + "' Memo_ID= '" + strMemoID.ToString() + "' Txn_ID ='" + strTxnID.ToString() + "' Modified_By='" + strModifiedBy.ToString() + "' Modified_On ='" + strModifiedOn.ToString() + "'/>");
+//        }
+//        else
+//        {
+//            strbuXML.Append(" <Details  Company_ID='" + strCompanyID.ToString() + "' Memo_Type_Code='" + strTypeCode.ToString() +
+//             "' Memo_Type='" + strFieldType.ToString() + "' GL_Account='" + strGLAC.ToString() + "' SL_Account ='" + strSLAC.ToString() + "' Is_Active = '" + strActive.ToString() +
+//             "' LOB_ID ='" + strLOBID.ToString() + "' Memo_ID= '" + strMemoID.ToString() + "' Txn_ID ='" + strTxnID.ToString() + "' Created_By='" + strCreatedBy.ToString() +
+//             "' Created_On ='" + strCreatedOn.ToString() + "'/>");
+//        }
+
+//    }
+
+
+// }
+//LOAD XML////////////////////////////////////////////////
+#endregion

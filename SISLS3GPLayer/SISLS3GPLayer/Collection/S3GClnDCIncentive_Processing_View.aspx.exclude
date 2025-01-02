@@ -1,0 +1,310 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/Common/S3GMasterPageCollapse.master"
+    CodeFile="S3GClnDCIncentive_Processing_View.aspx.cs" Inherits="Collection_S3GClnDCIncentive_Processing_View" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register Src="../UserControls/PageNavigator.ascx" TagName="PageNavigator" TagPrefix="uc2" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td valign="top" class="stylePageHeading">
+                        <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">
+                        </asp:Label>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign="top" align="center">
+                        <table width="99%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td valign="top" align="left">
+                                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <table cellpadding="2" cellspacing="0" border="0" width="100%">
+                                                    <tr>
+                                                        <td colspan="5" valign="top">
+                                                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                                                <tr>
+                                                                    <td valign="top">
+                                                                        <div style="height: 1px;">
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="5">
+                                                            <%-- <asp:Panel ID="pnlCommissionDetails" runat="server" CssClass="stylePanel" GroupingText="Debt Collector Details"
+                                                                Width="99%">--%>
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:Label ID="lblLineOfBusiness" runat="server" Text="Line Of Business"></asp:Label>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:DropDownList ID="ddlLineofBusiness" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlLineofBusiness_SelectedIndexChanged">
+                                                                        </asp:DropDownList>
+                                                                        <%--<asp:RequiredFieldValidator ID="ReqDemandMonth0" runat="server" 
+                                                        ControlToValidate="ddlLineofBusiness" ErrorMessage="LOB Required" 
+                                                        InitialValue="0" SetFocusOnError="True" ValidationGroup=""></asp:RequiredFieldValidator>--%>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:Label ID="lblBranch" runat="server" Text="Location"></asp:Label>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:DropDownList ID="ddlBranch" runat="server" AutoPostBack="True" TabIndex="2"
+                                                                            OnSelectedIndexChanged="ddlBranch_SelectedIndexChanged">
+                                                                        </asp:DropDownList>
+                                                                        <%-- <asp:RequiredFieldValidator ID="ReqDemandMonth1" runat="server" 
+                                                        ControlToValidate="ddlBranch" ErrorMessage="Branch Required" InitialValue="0" 
+                                                        SetFocusOnError="True" ValidationGroup="">*</asp:RequiredFieldValidator>--%>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:Label ID="lblFinancialYear" runat="server" Text="Processing Period" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:DropDownList ID="ddlFinacialYear" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlFinacialYear_SelectedIndexChanged">
+                                                                        </asp:DropDownList>
+                                                                        <%--<asp:RegularExpressionValidator ID="RegularExpressionValidator1" runat="server" ControlToValidate="txtDemandMonth"
+                                                                                CssClass="styleMandatoryLabel" ErrorMessage="Only Numbers Allowed" SetFocusOnError="True"
+                                                                                ValidationExpression="\d{6}" ValidationGroup="btnSave">yyyymm/yyyy</asp:RegularExpressionValidator>--%>
+                                                                        <asp:RequiredFieldValidator Display="None" ID="RFVFinancialyear" runat="server" ErrorMessage="Select Processing Period"
+                                                                            SetFocusOnError="True" ControlToValidate="ddlFinacialYear" InitialValue="0" ValidationGroup=""></asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:Label ID="lblFrequency" runat="server" Text="Frequency" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:DropDownList ID="ddlFrequency" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlFrequency_SelectedIndexChanged">
+                                                                        </asp:DropDownList>
+                                                                        <asp:RequiredFieldValidator Display="None" ID="RFVFrequency" runat="server" ErrorMessage="Select Frequency"
+                                                                            SetFocusOnError="True" ControlToValidate="ddlFrequency" InitialValue="0" ValidationGroup=""></asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:Label ID="lblDemandMonth" runat="server" Text="Demand Month" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:DropDownList ID="ddlDemandMonth" runat="server" TabIndex="3" MaxLength="6">
+                                                                        </asp:DropDownList>
+                                                                        <asp:RequiredFieldValidator Display="None" ID="RFVDemandMonth" runat="server" ErrorMessage="Select Demand Month"
+                                                                            SetFocusOnError="True" ControlToValidate="ddlDemandMonth" InitialValue="0" ValidationGroup=""></asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                    <td colspan="2">
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <%--  </asp:Panel>--%>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="5">
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="5">
+                                                            <%-- <asp:UpdatePanel ID="UpdatePanel_pnlCommissions" runat="server">
+                                                                <ContentTemplate>--%>
+                                                            <%--<asp:Panel ID="pnlCommissions" runat="server" CssClass="stylePanel" GroupingText="DC Commission Details"
+                                                                        Width="99%">--%>
+                                                            <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                                                <tr align="center">
+                                                                    <td colspan="1">
+                                                                        <input type="hidden" id="hdnSortDirection" runat="server" />
+                                                                        <input type="hidden" id="hdnSortExpression" runat="server" />
+                                                                        <input type="hidden" id="hdnSearch" runat="server" />
+                                                                        <input type="hidden" id="hdnEdit_Status" runat="server" value="0" />
+                                                                        <input type="hidden" id="hdnOrderBy" runat="server" />
+                                                                        <asp:Label ID="lblgridErrorMessage" runat="server" />
+                                                                        <div id="Div1" style="overflow-x: hidden; overflow-y: auto;" runat="server">
+                                                                            <asp:GridView ID="gvDCIncentiveProcessing" runat="server" AutoGenerateColumns="false"
+                                                                                Width="100%">
+                                                                                <Columns>
+                                                                                    <asp:TemplateField HeaderText="Line of Business" ItemStyle-HorizontalAlign="Left">
+                                                                                        <HeaderTemplate>
+                                                                                            <table cellpadding="0" cellspacing="0" border="0">
+                                                                                                <tr align="center">
+                                                                                                    <td>
+                                                                                                        <asp:LinkButton ID="lnkbtnSort1" runat="server" Text="Line of Business" ToolTip="Sort By Line of Business"
+                                                                                                            CssClass="styleGridHeader" OnClick="FunProSortingColumn"> </asp:LinkButton>
+                                                                                                        <asp:ImageButton ID="imgbtnSort1" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                                <tr align="left">
+                                                                                                    <td>
+                                                                                                        <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch1" runat="server" AutoPostBack="true"
+                                                                                                            OnTextChanged="FunProHeaderSearch" CssClass="styleSearchBox" Visible="false"></asp:TextBox>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                            </table>
+                                                                                        </HeaderTemplate>
+                                                                                        <ItemTemplate>
+                                                                                            <asp:Label ID="lblLineOfBusiness" runat="server" Text='<%#Bind("LOB")%>'> </asp:Label>
+                                                                                            <asp:Label ID="lblLOBID" runat="server" Text='<%#Bind("LOB_ID")%>' Visible="false"> </asp:Label>
+                                                                                        </ItemTemplate>
+                                                                                    </asp:TemplateField>
+                                                                                    <asp:TemplateField HeaderText="Branch" ItemStyle-HorizontalAlign="Left">
+                                                                                        <HeaderTemplate>
+                                                                                            <table cellpadding="0" cellspacing="0" border="0">
+                                                                                                <tr align="center">
+                                                                                                    <td>
+                                                                                                        <asp:LinkButton ID="lnkbtnSort2" runat="server" Text="Branch" ToolTip="Sort By Branch"
+                                                                                                            CssClass="styleGridHeader" OnClick="FunProSortingColumn"> </asp:LinkButton>
+                                                                                                        <asp:ImageButton ID="imgbtnSort2" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                                <tr align="left">
+                                                                                                    <td>
+                                                                                                        <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch2" runat="server" AutoPostBack="true"
+                                                                                                            OnTextChanged="FunProHeaderSearch" CssClass="styleSearchBox" Visible="false"></asp:TextBox>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                            </table>
+                                                                                        </HeaderTemplate>
+                                                                                        <ItemTemplate>
+                                                                                            <%--<asp:Label ID="lblBranch" runat="server" Text='<%#Bind("Branch")%>'> </asp:Label>
+                                                                                            <asp:Label ID="lblBranchID" runat="server" Text='<%#Bind("Branch_ID")%>' Visible="false"> </asp:Label>--%>
+                                                                                            <asp:Label ID="lblBranch" runat="server" Text='<%#Bind("Location")%>'> </asp:Label>
+                                                                                            <asp:Label ID="lblBranchID" runat="server" Text='<%#Bind("Location_ID")%>' Visible="false"> </asp:Label>
+                                                                                        </ItemTemplate>
+                                                                                    </asp:TemplateField>
+                                                                                    <asp:TemplateField HeaderText="Debt Collector Code" ItemStyle-HorizontalAlign="Left">
+                                                                                        <HeaderTemplate>
+                                                                                            <table cellpadding="0" cellspacing="0" border="0">
+                                                                                                <tr align="center">
+                                                                                                    <td>
+                                                                                                        <asp:LinkButton ID="lnkbtnSort3" runat="server" Text="Debt Collector" ToolTip="Sort By Debt Collector"
+                                                                                                            CssClass="styleGridHeader" OnClick="FunProSortingColumn"> </asp:LinkButton>
+                                                                                                        <asp:ImageButton ID="imgbtnSort3" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                                <tr align="left">
+                                                                                                    <td>
+                                                                                                        <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch3" runat="server" AutoPostBack="true"
+                                                                                                            OnTextChanged="FunProHeaderSearch" CssClass="styleSearchBox" Visible="false"></asp:TextBox>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                            </table>
+                                                                                        </HeaderTemplate>
+                                                                                        <ItemTemplate>
+                                                                                            <asp:Label ID="lblDebtCollectorCode" runat="server" Text='<%#Bind("debtCollector_code")%>'> </asp:Label>
+                                                                                        </ItemTemplate>
+                                                                                    </asp:TemplateField>
+                                                                                    <asp:TemplateField HeaderText="Demand Month" ItemStyle-HorizontalAlign="Left">
+                                                                                        <ItemTemplate>
+                                                                                            <asp:Label ID="lblDemandMonth" runat="server" Text='<%#Bind("Demand_Month")%>'> </asp:Label>
+                                                                                        </ItemTemplate>
+                                                                                    </asp:TemplateField>
+                                                                                    <asp:TemplateField HeaderText="Target Amount" ItemStyle-HorizontalAlign="Left">
+                                                                                        <ItemTemplate>
+                                                                                            <asp:Label ID="lblTargetAmount" runat="server" Text='<%#Bind("TargetAmount")%>'> </asp:Label>
+                                                                                        </ItemTemplate>
+                                                                                    </asp:TemplateField>
+                                                                                    <asp:TemplateField HeaderText="Collection Amount" ItemStyle-HorizontalAlign="Left">
+                                                                                        <ItemTemplate>
+                                                                                            <asp:Label ID="lblCollectionAmount" runat="server" Text='<%#Bind("CollectionAmount")%>'> </asp:Label>
+                                                                                        </ItemTemplate>
+                                                                                    </asp:TemplateField>
+                                                                                    <asp:TemplateField HeaderText="Commission" ItemStyle-HorizontalAlign="Left">
+                                                                                        <ItemTemplate>
+                                                                                            <asp:Label ID="lblCommission" runat="server" Text='<%#Bind("Commission")%>'> </asp:Label>
+                                                                                        </ItemTemplate>
+                                                                                    </asp:TemplateField>
+                                                                                    <asp:TemplateField HeaderText="Special Commission" ItemStyle-HorizontalAlign="Left">
+                                                                                        <ItemTemplate>
+                                                                                            <asp:Label ID="lblSpecialCommission" runat="server" Text='<%#Bind("SpecialCommission")%>'> </asp:Label>
+                                                                                        </ItemTemplate>
+                                                                                    </asp:TemplateField>
+                                                                                </Columns>
+                                                                            </asp:GridView>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr align="center">
+                                                                    <td>
+                                                                        <uc2:PageNavigator ID="ucCustomPaging" runat="server" />
+                                                                    </td>
+                                                                </tr>
+                                                                <tr align="center">
+                                                                    <td style="display: none;">
+                                                                        <asp:GridView ID="grvDCIncentiveProcessingExcel" runat="server" AutoGenerateColumns="false"
+                                                                            Width="100%">
+                                                                            <Columns>
+                                                                                <asp:BoundField HeaderText="Line of Business" DataField="LOB" Visible="true" ItemStyle-HorizontalAlign="Center" />
+                                                                                <asp:BoundField HeaderText="Location" DataField="Location" Visible="true" ItemStyle-HorizontalAlign="Center" />
+                                                                                <asp:BoundField HeaderText="Debt Collector Code" DataField="debtCollector_code" Visible="true"
+                                                                                    ItemStyle-HorizontalAlign="Center" />
+                                                                                <asp:BoundField HeaderText="Target Amount" DataField="TargetAmount" Visible="true"
+                                                                                    ItemStyle-HorizontalAlign="right" />
+                                                                                <asp:BoundField HeaderText="Collection Amount" DataField="CollectionAmount" Visible="true"
+                                                                                    ItemStyle-HorizontalAlign="right" />
+                                                                                <asp:BoundField HeaderText="Commission" DataField="Commission" Visible="true" ItemStyle-HorizontalAlign="right" />
+                                                                                <asp:BoundField HeaderText="Special Commission" DataField="SpecialCommission" Visible="true"
+                                                                                    ItemStyle-HorizontalAlign="right" />
+                                                                            </Columns>
+                                                                        </asp:GridView>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <%-- </asp:Panel>--%>
+                                                            <%--</ContentTemplate>
+                                                            </asp:UpdatePanel>--%>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center">
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+        <Triggers>
+            <asp:AsyncPostBackTrigger ControlID="btnClear" EventName="Click" />
+            <asp:AsyncPostBackTrigger ControlID="btnSearch" EventName="Click" />
+        </Triggers>
+    </asp:UpdatePanel>
+    <table width="99%">
+        <tr align="center">
+            <td colspan="5" align="center">
+                <asp:Button ID="btnSearch" runat="server" CssClass="styleSubmitButton" Text="Search"
+                    ValidationGroup="" OnClick="btnSearch_Click" />
+                &nbsp;
+                <asp:Button ID="btnCreate" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                    Text="Create" OnClick="btnCreate_Click" />
+                &nbsp;
+                <asp:Button Text="Excel" ID="btnExcel" CausesValidation="true" runat="server" CssClass="styleSubmitButton"
+                    OnClick="btnExcel_Click" />
+                &nbsp;
+                <asp:Button ID="btnClear" runat="server" CausesValidation="False" OnClientClick="return fnConfirmClear();"
+                    CssClass="styleSubmitButton" Text="Clear" OnClick="btnClear_Click" />
+                &nbsp;
+            </td>
+        </tr>
+        <tr>
+            <td align="center">
+                <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                <asp:ValidationSummary ID="vsCVDCIncentiveProcessingView" runat="server" CssClass="styleMandatoryLabel"
+                    HeaderText="Correct the following validation(s):" ShowSummary="true" ValidationGroup="" />
+            </td>
+        </tr>
+        <tr>
+            <td colspan="5" align="center">
+                <asp:CustomValidator ID="CVDCIncentiveProcessingView" runat="server" Display="None"
+                    ValidationGroup=""></asp:CustomValidator>
+            </td>
+        </tr>
+    </table>
+</asp:Content>

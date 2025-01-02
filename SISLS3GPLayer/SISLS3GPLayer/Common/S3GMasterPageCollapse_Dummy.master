@@ -1,0 +1,467 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeFile="S3GMasterPageCollapse_Dummy.master.cs"
+    Inherits="SmartLend3G.S3GMasterPageCollapse_Dummy" EnableTheming="true" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head id="Head1" runat="server">
+
+    <script type="text/javascript" src="../Scripts/Common.js"></script>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>SMARTLEND 3G</title>
+
+    <script type="text/javascript" language="javascript">
+
+        function widowminimize() {
+
+            window.blur();
+        }
+        
+        function funUnload()
+        {
+            if(window.opener!=null)
+            {
+                window.opener.reload(true);
+            }
+        }
+        
+        function CancelF12() 
+
+        {
+
+             var KeyAscii = window.event.keyCode;
+
+             if (KeyAscii == 123)
+
+            {     
+
+                window.event.returnValue = false;
+
+                window.event.keyCode = 0;
+
+            }
+
+        }
+
+
+        function GetMenuVisibility() {
+
+            var all_Cookies = document.cookie.split(';');
+
+            var tmp_Cookie;
+            var Cookie_Value = 1;
+            var Cookie_Name;
+            //debugger;
+            for (var i = 0; i < all_Cookies.length; i++) {
+                tmp_Cookie = all_Cookies[i].split('=');
+                Cookie_Name = tmp_Cookie[0];
+                if (Cookie_Name == 'Menu') {
+                    Cookie_Value = tmp_Cookie[1];
+                    break;
+                }
+            }
+
+            if (Cookie_Value == 0) {
+                showMenu('F');
+            }
+            else {
+                showMenu('T');
+            }
+        }
+
+        function SetMenuVisibility(CanShow) {
+            document.cookie = "Menu=" + CanShow + ";";
+        }
+
+        function FloatMenu() {
+            $get('divMenu').style.position = 'Absolute';
+            $get('divMenu').style.background = 'White';
+            $get('divMenu').style.Height = '450px';
+            $get('divMenu').style.border = 1;
+        }
+
+        window.onload =window_onload;
+        var prm;
+        function window_onload()
+        {
+                prm=Sys.WebForms.PageRequestManager.getInstance();
+                prm.add_initializeRequest(InitializeRequest);
+                prm.add_endRequest(EndRequest);
+                prm.add_pageLoaded(PageLoaded);
+               //document.getElementById('divLoading').style.display='none';
+               //GetMenuVisibility();
+        }
+
+   
+        function InitializeRequest(sender, args)
+        {
+             $get('Container').style.cursor='wait';
+            //$get('Container').style.cursor='wait';
+            $get('Container').disabled=true;     
+            
+          //  document.getElementById('divLoading').style.display='Block';
+         
+            //$get('Container').className='Progress';
+            if(prm.get_isInAsyncPostBack())
+            {
+                args.set_cancel(true);
+                $get('Container').disabled=false;
+              //  $get('Container').className='';
+                 $get('Container').style.cursor='default';
+               // document.getElementById('divLoading').style.display='none';
+            }
+           
+        }
+        function PageLoaded(sender, args)
+        {
+           // alert(sender);
+            
+                $get('Container').style.cursor='auto';
+            //$get('Container').style.cursor='auto';
+            $get('Container').disabled=false;
+          //  document.getElementById('divLoading').style.display='none';
+           //  $get('Container').className='';
+        }
+        function EndRequest(sender, args)
+        {
+         if(args.get_error()!=undefined)
+            {
+                 $get('Container').style.cursor='auto';
+                $get('Container').disabled=false;
+               // document.getElementById('divLoading').style.display='none';
+                args.set_errorHandled(true);
+            }
+         
+        }
+           function abort(){        
+           alert(prm.get_isInAsyncPostBack());
+        if(prm.get_isInAsyncPostBack()){
+            //  abort the postback
+            prm.abortPostBack();
+            //  get the reference to the animation for the gridview
+                 $get('Container').style.cursor='auto';
+                $get('Container').disabled=false;
+             //  document.getElementById('divLoading').style.visible='none';
+          
+        }
+    }
+
+    </script>
+    <script type ="text/jscript"  language="javascript"> 
+ 
+    function shouldCancelbackspace(e) { 
+    var key; 
+    if(e){ 
+    key = e.which? e.which : e.keyCode; 
+    if(key == null || ( key != 8 && key != 13)){ // return when the key is not backspace key. 
+    return false; 
+    } 
+    }else{ 
+    return false; 
+    } 
+ 
+    if (e.srcElement) { // in IE 
+        tag = e.srcElement.tagName.toUpperCase(); 
+        type = e.srcElement.type; 
+        readOnly =e.srcElement.readOnly; 
+        if( type == null){ // Type is null means the mouse focus on a non-form field. disable backspace button 
+        return true; 
+        }else{ 
+        type = e.srcElement.type.toUpperCase(); 
+    } 
+ 
+    } else { // in FF 
+        tag = e.target.nodeName.toUpperCase(); 
+        type = (e.target.type) ? e.target.type.toUpperCase() : ""; 
+} 
+ 
+// we don't want to cancel the keypress (ever) if we are in an input/text area 
+if ( tag == 'INPUT' || type == 'TEXT' ||type == 'TEXTAREA') 
+{ 
+    if(readOnly == true ) // if the field has been dsabled, disbale the back space button 
+    return true; 
+    if( ((tag == 'INPUT' && type == 'RADIO') || (tag == 'INPUT' && type == 'CHECKBOX')) 
+    && (key == 8 || key == 13) ){ 
+    return true; // the mouse is on the radio button/checkbox, disbale the backspace button 
+} 
+    return false; 
+} 
+ 
+// if we are not in one of the above things, then we want to cancel (true) if backspace 
+return (key == 8 || key == 13); 
+} 
+ 
+    // check the browser type 
+    function whichBrs() { 
+    var agt=navigator.userAgent.toLowerCase(); 
+    if (agt.indexOf("opera") != -1) return 'Opera'; 
+    if (agt.indexOf("staroffice") != -1) return 'Star Office'; 
+    if (agt.indexOf("webtv") != -1) return 'WebTV'; 
+    if (agt.indexOf("beonex") != -1) return 'Beonex'; 
+    if (agt.indexOf("chimera") != -1) return 'Chimera'; 
+    if (agt.indexOf("netpositive") != -1) return 'NetPositive'; 
+    if (agt.indexOf("phoenix") != -1) return 'Phoenix'; 
+    if (agt.indexOf("firefox") != -1) return 'Firefox'; 
+    if (agt.indexOf("safari") != -1) return 'Safari'; 
+    if (agt.indexOf("skipstone") != -1) return 'SkipStone'; 
+    if (agt.indexOf("msie") != -1) return 'Internet Explorer'; 
+    if (agt.indexOf("netscape") != -1) return 'Netscape'; 
+    if (agt.indexOf("mozilla/5.0") != -1) return 'Mozilla'; 
+ 
+    if (agt.indexOf('\/') != -1) { 
+    if (agt.substr(0,agt.indexOf('\/')) != 'mozilla') { 
+    return navigator.userAgent.substr(0,agt.indexOf('\/')); 
+    }else 
+    return 'Netscape'; 
+    }else if (agt.indexOf(' ') != -1) 
+    return navigator.userAgent.substr(0,agt.indexOf(' ')); 
+    else 
+    return navigator.userAgent; 
+    } 
+ 
+    // Global events (every key press) 
+ 
+    var browser = whichBrs(); 
+    if(browser == 'Internet Explorer'){ 
+    document.onkeydown = function() { return !shouldCancelbackspace(event); } 
+    }else if(browser == 'Firefox'){ 
+    document.onkeypress = function(e) { return !shouldCancelbackspace(e); } 
+    } 
+window.history.forward(-1);    
+</script>
+  <style type="text/css">
+    .gvFixedHeader
+    {
+      font-weight:bold;
+      position:relative;
+      background-color:White;
+    }
+  </style>
+</head>
+<body id="bodyMaster"  runat="server" style="margin-right: 0px; margin-left: 1px; margin-bottom: 0px; margin-top: 2px"  >
+
+    <form  id="form1" method="post" enctype="multipart/form-data" style="margin: 0px;" runat="server" >
+     <asp:ScriptManager ID="ScriptManager1" runat="server" AsyncPostBackTimeout="1800" EnablePageMethods="true">
+     </asp:ScriptManager>
+    
+   
+    <input id="hdnMenuLoad" type="hidden" runat="server" />
+    <div id="up_container">
+        <table style="width: 100%" cellpadding="0" class="styleMainTable" cellspacing="0">
+            <tr>
+                <td>
+                    <table cellpadding="0" cellspacing="0" width="100%">
+                        <%--<tr>
+                            <td >
+                                &nbsp;</td>
+                            <td valign="top" align="right" >
+                            <asp:Image ID="Image2" runat="server" onclick="widowminimize()" ImageUrl="~/Images/arrow-down.gif" />
+                            <asp:Image ID="Image1" runat="server" onclick="widowclose()" ToolTip="Close" ImageUrl="~/Images/delete.png" />
+                            </td>
+                        </tr>--%>
+                        <tr>
+                            <%--<td width="2%" class="headerBg"></td>--%>
+                            <td class="styleHeaderBg">
+                                <asp:Image ID="imgLogo" runat="server" ImageUrl="~/Images/smartlend-logo_gray.jpg" />
+                            </td>
+                            <td valign="top" align="right" class="styleHeaderBg">
+                                <table cellpadding="0" border="0" cellspacing="0" id="tblHeaderControls">
+                                    <tr>
+                                        <td>
+                                            <asp:LinkButton CausesValidation="false" runat="server" CssClass="styleHeaderLinks"
+                                                ID="lnkHome" Text="Home" OnClick="lnkHome_Click"></asp:LinkButton>
+                                        </td>
+                                        <td>
+                                            <span class="styleSpanLine">| </span>
+                                            <asp:LinkButton CausesValidation="false" runat="server" CssClass="styleHeaderLinks"
+                                                ID="lnkAbout" Text="About"></asp:LinkButton>
+                                        </td>
+                                        <td>
+                                            <span class="styleSpanLine">| </span>
+                                            <asp:LinkButton CausesValidation="false" runat="server" CssClass="styleHeaderLinks"
+                                                ID="lnkMore" Text="More.."></asp:LinkButton>
+                                        </td>
+                                        <td>
+                                            <span class="styleSpanLine">|</span>
+                                            <%--<asp:LinkButton CausesValidation="false" runat="server" CssClass="styleHeaderLinks"
+                                                ID="lnkSettings" Text="Settings"></asp:LinkButton>--%>
+                                            <asp:LinkButton CausesValidation="false" runat="server" CssClass="styleHeaderLinks"
+                                                ID="lnkChangePassword" Text="Settings" onclick="lnkChangePassword_Click"></asp:LinkButton>
+                                        </td>
+                                        <td>
+                                            <span class="styleSpanLine">|</span>
+                                            <asp:LinkButton CausesValidation="false" runat="server" CssClass="styleHeaderLinks"
+                                                ID="lnkHelp" Text="Help" onclick="lnkHelp_Click"></asp:LinkButton>
+                                        </td>
+                                        <td style="padding-right: 3px">
+                                            <span class="styleSpanLine">|</span>
+                                            <asp:LinkButton CausesValidation="false" runat="server" CssClass="styleHeaderLinks"
+                                                ID="lnkSignOut" Text="Log Out" OnClick="lnkSignOut_Click"></asp:LinkButton>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="6" valign="top" align="right">
+                                            <table>
+                                                <tr>
+                                                    <td>
+                                                        <!--CssClass="styleInfoLabel"!-->
+                                                        <span class="styleHeaderLinks" runat="server" id="lblApplyTheme"></span>
+                                                    </td>
+                                                    <td>
+                                                        <asp:DropDownList ID="ddlTheme" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlTheme_SelectedIndexChanged">
+                                                            <asp:ListItem Value="S3GTheme_Blue">Blistering Blue</asp:ListItem>
+                                                            <asp:ListItem Value="S3GTheme_Silver">Sizzling Silver</asp:ListItem>
+                                                            <asp:ListItem Value="S3GTheme_Blue2" Selected="True" >Blue</asp:ListItem>
+                                                            <asp:ListItem Value="S3GTheme_Orange">Orange</asp:ListItem>
+                                                        </asp:DropDownList>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td valign="middle" class="styleTopTd">
+                    <table cellpadding="0" cellspacing="0" width="100%;">
+                        <tr>
+                            <td style="width: 60%" align="left;">
+                                <table cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding-right: 20px">
+                                            <span class="styleHeaderInfo" style="padding-left: 3px" runat="server" id="lblCompanyName">
+                                                Company Name : </span>&nbsp;<asp:Label ID="lblCompany" runat="server" class="styleHeaderInfo"></asp:Label>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td style="width: 40%" align="right">
+                                <table align="right" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding-right: 20px">
+                                            <span class="styleHeaderInfo" runat="server" id="lblWelcome">Welcome&nbsp; </span>
+                                            <asp:Label ID="lblUser" runat="server" class="styleHeaderInfo"></asp:Label>
+                                        </td>
+                                        <td style="padding-right: 3px">
+                                            <span class="styleHeaderInfo" runat="server" id="lblLastLogin">Last Login : </span>
+                                            <asp:Label ID="lblLastLoginDate" runat="server" class="styleHeaderInfo"></asp:Label>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td class="styleMarquee">
+                    <marquee ID="marquee1" scrollamount="2" scrolldelay="15">                    
+                      <span runat="server" id="lblMarquee" onmouseover="document.getElementById('marquee1').stop();" onmouseout="document.getElementById('marquee1').start();" class="styleHeaderInfo">  Sundaram Finance offers you easy interest rate loans...</span>                      
+                        </marquee>
+                </td>
+            </tr>
+            <tr>
+                <td class="styleContentBG">
+                    <table class="styleContentTable" cellpadding="0"
+                        cellspacing="0" width="100%" >
+                        <tr>
+                            <td id="tdMenu" valign="top" class="styleMenuTd">
+                                <table cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td >
+                                            <asp:Image ID="imgHideMenu" runat="server" ImageUrl="~/Images/layout_button_left.gif"
+                                                CssClass="styleMenuImage" Style="clear: left; position: absolute; top: 107px;
+                                                left: 215px; width: 15px;" />
+                                            <asp:Image ID="imgShowMenu" runat="server" ImageUrl="~/Images/layout_button_right.gif"
+                                                Style="display: none; position: absolute; top: 107px; left: 6px;" CssClass="styleMenuImage" />
+                                            <div id="div1" style="display: none;" class="styleToolTip">
+                                                Expand Menu
+                                            </div>
+                                            <div id="div2" class="styleToolTip" style="position: absolute; top: 95px; left: 207px;
+                                                display: none;">
+                                                Minimize Menu
+                                            </div>
+                                            <div id="divMenu" title="Menu" style="overflow: auto; height: 467px" >
+                                                <asp:UpdatePanel ID="Uppanel1" runat="server">
+                                                    <ContentTemplate>
+                                                        <cc1:Accordion ID="Accordion1" runat="server" SelectedIndex="0" HeaderCssClass="accordionHeader"
+                                                            HeaderSelectedCssClass="accordionHeaderSelected" ContentCssClass="accordionContent"
+                                                            FadeTransitions="false" FramesPerSecond="40" TransitionDuration="300" AutoSize="None"
+                                                            RequireOpenedPane="false" SuppressHeaderPostbacks="true" EnableViewState="true"
+                                                            Width="210px">
+                                                        </cc1:Accordion>
+                                                    </ContentTemplate>
+                                                </asp:UpdatePanel>
+                                                <asp:SiteMapDataSource ID="SiteMapDataSource1" runat="server" ShowStartingNode="False" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td valign="top" align="left" width="100%"  >
+                                <table width="100%" cellpadding="0" cellspacing="0" >
+                                    <tr id="trSiteMapPath" runat="server">
+                                        <td>
+                                            <table cellpadding="0" width="100%">
+                                                <tr>
+                                                    <td>
+                                                        <asp:SiteMapPath ID="SiteMapPath1" runat="server" PathSeparator=" > " EnableTheming="True"
+                                                            CssClass="styleSitepath">
+                                                            <PathSeparatorStyle CssClass="stylePathsep" />
+                                                            <CurrentNodeStyle CssClass="styleCurrentNode" />
+                                                            <NodeStyle CssClass="styleNode" />
+                                                            <RootNodeStyle CssClass="styleRootNode" />
+                                                        </asp:SiteMapPath>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                        <div id="Container" style="min-height:450px;">
+                                                    <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server" >
+                                                    </asp:ContentPlaceHolder>
+                                                  
+                                   </div>
+                                          
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td class="styleTopTd">
+                    <span class="styleFooterInfo" style="padding-left: 3px"><a href="#" runat="server"
+                        id="lnkSiteMap">Site Mapite Map</a> </span><span class="styleFooterSpanLine">|
+                    </span><span class="styleFooterInfo"><a href="#" runat="server" id="lnkAboutUs">About
+                        Us</a> </span><span class="styleFooterSpanLine">| </span><span class="styleFooterInfo">
+                            <a href="#" runat="server" runat="server" id="lnkTerms">Terms of Service</a>                                       
+                    </span><span class="styleFooterSpanLine">| </span><span class="styleFooterInfo"><a
+                        href="#" runat="server" id="lnkContact">Contact</a></span> <span class="styleFooterSpanLine">
+                            | </span><span class="styleFooterInfo"><a href="#" runat="server" id="lnkDisclaimer">
+                                Disclaimer</a></span> <span class="styleFooterSpanLine">| </span><span class="styleFooterInfo">
+                                    <a href="#" runat="server" id="lnkPrivacy">Privacy Status</a> </span>
+                    <span class="styleFooterSpanLine">| </span><span class="styleFooterInfo"><a href="#"
+                        runat="server" id="lnkFooterMore">More..</a> </span><span class="styleFooterSpanLine">
+                                 </span>  <span style="text-align: right; padding-left: 20%" class="styleFooterInfo" runat="server" id="lblCopyRights">Release Version 1.0 | Sundaram Infotech Solutions © 2010 Copyrights </span>
+                                 
+                            <input type="hidden" id="hdnSelectedIndex" enableviewstate="true" runat="server" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <%--<div id="divLoading" style="display: none;">
+            <input type="button" value="Cancel" onclick="abort()"; />
+    </div>--%>
+    </form>
+</body>
+</html>

@@ -1,0 +1,357 @@
+﻿#region Header
+
+//Module Name      :   Dashboard
+//Screen Name      :   S3G_DB_ActivePipelinePercent.aspx
+//Created By       :   Shibu 
+//Created Date     :   24-Mar-2014
+//Purpose          :   
+
+#endregion
+
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using System.Globalization;
+using System.Web.UI.WebControls;
+using System.Web.UI.DataVisualization.Charting;
+using System.Web.UI.DataVisualization.Charting.Utilities;
+using System.Web;
+using System.Text;
+using System.Net;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+#endregion
+
+
+public partial class Dashbord_S3G_DB_ActivePipelinePercent : ApplyThemeForProject
+{
+    #region Declaration
+
+    int intCompanyID, intUserID = 0, intErrCode = 0;
+    public Dictionary<string, string> Procparam = null;
+    string intAssetVerificationNo = string.Empty;
+    int ProgCode = 262;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Dashboard/S3G_DB_ActivePipelinePercent.aspx";
+    string sSeriesValue = string.Empty;
+    int Company_ID = 0;
+    
+    #endregion
+
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        UserInfo ObjUserInfo = new UserInfo();
+        Company_ID = ObjUserInfo.ProCompanyIdRW;
+        if (!IsPostBack)
+        {
+            
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Company_ID.ToString());
+           ViewState["GetDataset"] = Utility.GetDataset("S3G_GPH_PORTFOLIO", Procparam);
+           dlList.DataSource = ((DataSet)ViewState["GetDataset"]).Tables[0];
+           dlList.DataBind();
+            LoadChart(false);
+        }
+    }
+    protected void LoadChart(bool GetPDF)
+    {
+        dlList.SelectedIndex = Convert.ToInt32(hdnClick.Value)-1;
+        DataSet ds = new DataSet();
+        ds = (DataSet)ViewState["GetDataset"];
+      
+        S3GDrillChart.setChartSeries1 = "Test";
+        if (GetPDF)
+            S3GDrillChart.setChartWidth = 600;
+        else
+            S3GDrillChart.setChartWidth = 500;
+        S3GDrillChart.setChartHeight = 400;
+        S3GDrillChart.setChart3DCustomesRotate = true;
+        S3GDrillChart.showChart3DRotateAngle=0;
+        S3GDrillChart.setChartLableInPercent = true;
+        S3GDrillChart.showChartType = SeriesChartType.Pie;
+        S3GDrillChart.setChartFontSize = 9;
+        S3GDrillChart.setLableValue = true;
+        S3GDrillChart.setLegendsValue = true;
+        S3GDrillChart.setChartMultipleSeries = false;
+        S3GDrillChart.setChartLableInPercent = true;
+        S3GDrillChart.setCustomePalette = true;
+        S3GDrillChart.showCustomesPaletteColor = "#00A0B1~#2E8DEF~#A700AE~#643EBF~#BF1E4B~#DC572E~#00A600~#0A5BC4";
+        if (Convert.ToInt32(hdnClick.Value) == 2)
+        {
+            S3GDrillChart.setPieLabelStyle = true;
+            S3GDrillChart.showPieLabelStyle = "Outside";
+        }
+        S3GDrillChart.setToolTipValues = true;
+        S3GDrillChart.setClickDrillChartDetails = false;
+        if(Convert.ToInt32(hdnClick.Value)==1)
+             S3GDrillChart.setDataTableSeries1 = ds.Tables[1];
+        else
+             S3GDrillChart.setDataTableSeries1 = ds.Tables[3];
+        S3GDrillChart.setChart3D = true;
+        if (GetPDF)
+            S3GDrillChart.setSaveChartImage = true;
+        S3GDrillChart.BindChart();
+        if (GetPDF)
+        {
+            hdnFilePath.Value = S3GDrillChart.returnSaveImagePath;
+        }
+        else
+        {
+            if (Convert.ToInt32(hdnClick.Value) == 1)
+                gvDetails.DataSource = ds.Tables[2];
+            else
+                gvDetails.DataSource = ds.Tables[4];
+            gvDetails.DataBind();
+
+        }
+        
+    }
+
+    protected void GeneratePDF()
+    {
+        LoadChart(true);
+        Document doc = new Document();
+        doc.SetPageSize(iTextSharp.text.PageSize.A4);
+        doc.SetMargins(25, 25, 25, 25);
+        iTextSharp.text.Font contentHeaderFont = iTextSharp.text.FontFactory.GetFont("Segoe UI", 8, iTextSharp.text.Font.BOLD, new BaseColor(System.Drawing.ColorTranslator.FromHtml("#003d9e")));
+        iTextSharp.text.Font contentFont = iTextSharp.text.FontFactory.GetFont("Segoe UI", 8, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.DARK_GRAY);
+
+        string sFileName = ((DataSet)ViewState["GetDataset"]).Tables[0].Rows[0][0].ToString().Replace(" ","") + "_" + DateTime.Now.ToString("yyyyMMddhhmmss") + ".PDF";
+        string sFilePath = (Server.MapPath(".") + "\\PDFFiles\\" + sFileName);
+        PdfWriter writer = PdfWriter.GetInstance(doc, new FileStream(sFilePath, FileMode.Create));
+
+        PDFPageSetup page = new PDFPageSetup(ObjUserInfo.ProCompanyNameRW, true);
+        writer.PageEvent = page;
+        doc.AddCreator("Sundaram Infotech Solutions");
+        doc.AddTitle(lblHeader.Text);
+        doc.AddSubject(lblHeader.Text);
+
+        doc.Open();
+        doc.Add(new Phrase(Environment.NewLine));
+        doc.AddAuthor("Sundaram Infotech Solutions");
+        PdfPTable otable = new PdfPTable(1);
+        Single[] sWidth = { 15.0f };
+        otable.WidthPercentage = 95;
+        otable.SetTotalWidth(sWidth);
+
+        PdfPCell sCellE11 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCellE11.Border = 0;
+        sCellE11.BorderWidth = 0;
+        sCellE11.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCellE11);
+        PdfPCell sCellE1 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCellE1.Border = 0;
+        sCellE1.BorderWidth = 0;
+        sCellE1.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCellE1);
+        string sTitle;
+        if (Convert.ToInt32(hdnClick.Value) == 1)
+            sTitle= ((DataSet)ViewState["GetDataset"]).Tables[0].Rows[0][0].ToString();
+        else
+            sTitle = ((DataSet)ViewState["GetDataset"]).Tables[0].Rows[1][0].ToString();
+        PdfPCell sCellE2 = new PdfPCell(new Phrase(sTitle,contentHeaderFont));
+        sCellE2.Border = 0;
+        sCellE2.BorderWidth = 0;
+        sCellE2.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        sCellE2.HorizontalAlignment = iTextSharp.text.Element.ALIGN_LEFT;
+        otable.AddCell(sCellE2);
+        PdfPCell sCellE3 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCellE3.Border = 0;
+        sCellE3.BorderWidth = 0;
+        sCellE3.Colspan = 4;
+        sCellE3.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCellE3);
+        PdfPCell sCell2 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCell2.Border = 0;
+        sCell2.BorderWidth = 0;
+        sCell2.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell2);
+        iTextSharp.text.Image iImages = iTextSharp.text.Image.GetInstance(HttpContext.Current.Request.PhysicalApplicationPath + "Dashboard\\Image\\" + hdnFilePath.Value);
+        iImages.Alignment = iTextSharp.text.Element.ALIGN_CENTER;
+        iImages.ScalePercent(60.0F);
+        PdfPCell sCell3 = new PdfPCell(iImages);
+        sCell3.Border = 0;
+        sCell3.BorderWidth = 0;
+        sCell3.HorizontalAlignment = iTextSharp.text.Element.ALIGN_CENTER;
+        sCell3.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell3);
+        PdfPCell sCell22 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCell22.Border = 0;
+        sCell22.BorderWidth = 0;
+        sCell22.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell22);
+        PdfPCell sCell23 = new PdfPCell(GetGriddata());
+        sCell23.Border = 0;
+        sCell23.BorderWidth = 0;
+        sCell23.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell23);
+        doc.Add(otable);
+        doc.Close();
+
+        //openPdf(sFilePath, sFileName);
+        string strScipt = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + sFilePath.Replace(@"\", "/") + "&qsNeedPrint=yes', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "Open", strScipt, true);
+
+   
+    }
+
+    protected PdfPTable GetGriddata()
+    {
+        iTextSharp.text.Font contentHeaderFont = iTextSharp.text.FontFactory.GetFont("Segoe UI", 8, iTextSharp.text.Font.BOLD, iTextSharp.text.BaseColor.WHITE);
+        iTextSharp.text.Font contentFont = iTextSharp.text.FontFactory.GetFont("Segoe UI", 8, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.DARK_GRAY);
+
+        DataTable dt ;
+        if(Convert.ToInt32(hdnClick.Value)==1)
+            dt= ((DataSet)ViewState["GetDataset"]).Tables[2];
+        else
+            dt = ((DataSet)ViewState["GetDataset"]).Tables[4];
+        PdfPTable oTable = new PdfPTable(dt.Columns.Count);
+        Single[] sWidth = new Single[dt.Columns.Count];
+        for (int i = 0; i < dt.Columns.Count; i++)
+            sWidth[i] = 4.0f;
+
+        oTable.WidthPercentage = 95;
+        oTable.SetTotalWidth(sWidth);
+        for (int i = 0; i < dt.Columns.Count; i++)
+        {
+            PdfPCell cell = new PdfPCell(new Phrase(dt.Columns[i].Caption.ToString(), contentHeaderFont));
+            cell.BorderWidth = 0.5f;
+            cell.BorderColorBottom = iTextSharp.text.BaseColor.BLUE;
+            cell.BackgroundColor = new BaseColor(System.Drawing.ColorTranslator.FromHtml("#4E80BB"));
+
+            oTable.AddCell(cell);
+        }
+        foreach (DataRow drow in dt.Rows)
+        {
+            //for (int i = 0; i < dt.Columns.Count; i++)
+            //{
+            //    for (int j = 0; j < dt.Rows.Count - 1; j++)dt.Rows[j][i].ToString()
+            //    {
+            for (int i = 0; i < dt.Columns.Count; i++)
+            {
+                PdfPCell cell = new PdfPCell(new Phrase(drow[i].ToString(), contentFont));
+                cell.BorderWidth = 0.5f;
+                cell.BorderColorBottom = iTextSharp.text.BaseColor.BLUE;
+                oTable.AddCell(cell);
+            }
+            //    }
+            //}
+        }
+        return oTable;
+    }
+    //Open the Attachment PDF
+    protected void openPdf(string sFilePath, string sFileName)
+    {
+        try
+        {
+            string strFileName = string.Empty;
+            strFileName = sFileName;
+            System.Threading.Thread.Sleep(1500);
+            string virtualPath = "http://" + Request.ServerVariables["HTTP_HOST"].ToString() + "\\Dashboard\\PDFFiles\\" + strFileName;
+            //Response.Redirect(virtualPath);
+
+            //Newly Added
+            string strFilePath = Server.MapPath(".") + "\\PDFFiles\\" + strFileName;
+
+            var outputStream = new MemoryStream();
+            //var pdfReader = new PdfReader(strFilePath);
+            //var pdfStamper = new PdfStamper(pdfReader, outputStream);
+            //Add the auto-print javascript
+            //var writer = pdfStamper.Writer;
+            //writer.AddJavaScript(GetAutoPrintJs());
+            //pdfStamper.Close();
+            var content = outputStream.ToArray();
+            outputStream.Close();
+            Response.ContentType = "application/pdf";
+            Response.BinaryWrite(content);
+            Response.End();
+            outputStream.Close();
+            outputStream.Dispose(); //Upto This
+
+        }
+        catch (Exception ex)
+        {
+            //lblErrorMsg.Text = ex.Message;
+        }
+    }
+
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        GeneratePDF();
+    }
+    protected void btnExport_Click(object sender, EventArgs e)
+    {
+        //FunForExportExcel();
+    }
+
+    //protected void FunLoadDrillChart()
+    //{
+
+    //   dlList.SelectedIndex = Convert.ToInt32(hdnClick.Value) - 2;
+  
+
+    //    ds = (DataSet)ViewState["GetDataset"];
+    //    if (ds.Tables[0].Rows.Count <= 0)
+    //        return;
+    //   // S3GDrillChart.showChartTitle = "Hierachy - " + Request.QueryString["HName"].ToString();
+    //    S3GDrillChart.setChartWidth = 500;
+    //    S3GDrillChart.setChartHeight = 400;
+
+    //    if (hdnClick.Value == "2")
+    //    {
+    //        S3GDrillChart.showChartType = SeriesChartType.Column;
+    //    }
+    //    else if (hdnClick.Value == "3")
+    //    { S3GDrillChart.showChartType = SeriesChartType.Bar; }
+    //    else if (hdnClick.Value == "4")
+    //    {
+    //        S3GDrillChart.showChartType = SeriesChartType.Column;
+    //        //S3GDrillChart.setChart3D = true;
+    //    }
+    //    else if (hdnClick.Value == "5")
+    //    { S3GDrillChart.showChartType = SeriesChartType.Bar; }
+
+    //    S3GDrillChart.setChartFontSize = 9;
+    //    S3GDrillChart.setLableValue = true;
+    //    S3GDrillChart.setLegendsValue = true;
+    //    S3GDrillChart.setChartMultipleSeries = true;
+    //    S3GDrillChart.setCustomePalette = true;
+    //    S3GDrillChart.showCustomesPaletteColor = "#00A0B1~#2E8DEF~#A700AE~#643EBF~#BF1E4B~#DC572E~#00A600~#0A5BC4";
+    //    //S3GDrillChart.setMaximumChartColor = true;
+    //    //S3GDrillChart.showMaximumChartColor = "#1e7145";
+    //    S3GDrillChart.setToolTipValues = true;
+    //    S3GDrillChart.setClickDrillChartDetails = false;
+    //    S3GDrillChart.setDataTableSeries1 = ds.Tables[0];
+    //    S3GDrillChart.setSaveChartImage = true;
+    //    S3GDrillChart.BindChart();
+    //    //DataSet ds = new DataSet();
+    //    //Procparam = new Dictionary<string, string>();
+    //    //Procparam.Add("@Location_Id", Request.QueryString["region_ID"].ToString());
+    //    //Procparam.Add("@Month", Request.QueryString["Month"].ToString());
+    //    //ds = Utility.GetDataset("s3g_GetDrillChartGVValue", Procparam);
+    //    gvDetails.DataSource = ds.Tables[1];
+    //    gvDetails.DataBind();
+    //}
+    protected void btnClick_Click(object sender, EventArgs e)
+    {
+        LoadChart(false);
+    }
+
+}

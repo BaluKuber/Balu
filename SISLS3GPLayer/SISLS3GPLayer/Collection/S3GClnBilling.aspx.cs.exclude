@@ -1,0 +1,588 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+
+/// <Program Summary>
+/// Module Name               : Loan Admin 
+/// Screen Name               : Bill Generation
+/// Created By                : Prabhu.K
+/// Created Date              : 23-Dec-2010
+/// Purpose                   : 
+/// Last Updated By           : 
+/// Last Updated Date         : 
+/// Reason                    :
+
+/// <Program Summary>
+ 
+
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+#endregion
+
+public partial class Collection_S3GClnBilling : ApplyThemeForProject
+{
+    #region Variable declaration
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> objProcedureParameter = null;
+    int intErrorCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerializationMode = SerializationMode.Binary;
+    string strDateFormat = string.Empty;
+    static string strPageName = "Bill Generation";
+    int intBillingId;
+    string strErrorMessagePrefix = @"Please correct the following validation(s): </br></br>   ";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Common/HomePage.aspx";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnBilling.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnBilling.aspx?Code=CLNBLN';";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+    #endregion
+
+    #region Events
+
+    #region Page Events
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPrilLoadPage();
+        }
+        catch (Exception ex)
+        {
+            cvBilling.ErrorMessage = strErrorMessagePrefix + " Due to Data Problem,Unable to Load Billing Details";
+            cvBilling.IsValid = false;
+        }
+    }
+
+  
+
+
+
+
+    #endregion
+
+    #region Button Events
+
+    #region Common Control
+
+    protected void btnClear_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearPage();
+        }
+        catch (Exception ex)
+        {
+            cvBilling.ErrorMessage = "Unable to Clear the data";
+            cvBilling.IsValid = false;
+        }
+    }
+
+   
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnSave_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+           FunPriSaveRecord();
+        }
+        catch (Exception ex)
+        {
+            cvBilling.ErrorMessage = ex.Message;
+            cvBilling.IsValid = false;
+        }
+
+    }
+
+    
+
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClosePage();
+        }
+        catch (Exception ex)
+        {
+            cvBilling.ErrorMessage = ex.Message;
+            cvBilling.IsValid = false;
+        }
+    }
+
+    
+    #endregion
+
+    #region Page Specific
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (txtMonthYear.Text !="")
+            {
+                objProcedureParameter = new Dictionary<string, string>();
+                objProcedureParameter.Add("", intCompanyID.ToString());
+            }
+            FunPriLoadBranchDetails();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvBilling.ErrorMessage = strErrorMessagePrefix + " Due to Data Problem,Unable to Load Branch Details";
+            cvBilling.IsValid = false;
+        }
+
+    }
+
+    protected void rbtnSchedule_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        txtScheduleDate.Text = txtScheduleTime.Text = "";
+        if (rbtnSchedule.SelectedValue == "0")
+        {
+            txtScheduleDate.Enabled = txtScheduleTime.Enabled = calScheduleDate.Enabled = true;
+            // REVScheduleTime.Enabled = RFVScheduleDate.Enabled = RFVScheduleTime.Enabled = true;
+        }
+        else
+        {
+            txtScheduleDate.Enabled = txtScheduleTime.Enabled = calScheduleDate.Enabled = false;
+           // REVScheduleTime.Enabled = RFVScheduleDate.Enabled = RFVScheduleTime.Enabled = false;
+        }
+
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Grid Events
+    protected void gvBranchWise_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        
+
+    }
+    #endregion
+
+    #endregion
+
+    #region Methods
+
+    #region Local Methods
+
+    private void FunPrilLoadPage()
+    {
+        S3GSession ObjS3GSession = new S3GSession();
+        try
+        {
+            txtBillMonthYear.Text = txtMonthYear.Text =
+            txtDataMonthYear.Text = DateTime.Today.ToString("MMM") + "-" + DateTime.Today.Year;
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            txtStartDate.Attributes.Add("readonly", "true");
+            txtEndDate.Attributes.Add("readonly", "true");
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            calEndDate.Format = strDateFormat;
+            calStartDate.Format = strDateFormat;
+            calScheduleDate.Format = strDateFormat;
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                intBillingId = Convert.ToInt32(fromTicket.Name);
+            }
+            if (!IsPostBack)
+            {
+                FunPriLoadLOV();
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunPriDisableControls(-1);
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load Billing Related Details");
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+
+    private void FunPriSaveRecord()
+    {
+        LoanAdminMgtServicesReference.LoanAdminMgtServicesClient objServiceClient = new LoanAdminMgtServicesReference.LoanAdminMgtServicesClient();
+
+//        ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient objServiceClient = new ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient();
+        BillingEntity objBillingEntity = new BillingEntity();
+        try
+        {
+            CheckBox chkSelectAll = gvBranchWise.HeaderRow.FindControl("chkSelectAllBranch") as CheckBox;
+            int intSelectedBranchCount = 0;
+            if (!chkSelectAll.Checked)
+            {
+                foreach (GridViewRow grBranch in gvBranchWise.Rows)
+                {
+                    if (grBranch.RowType == DataControlRowType.DataRow)
+                    {
+                        CheckBox chkSelect = grBranch.FindControl("chkSelectBranch") as CheckBox;
+                        if (chkSelect.Checked)
+                        {
+                            intSelectedBranchCount += 1;
+                        }
+                    }
+                }
+                if (intSelectedBranchCount == 0)
+                {
+                    Utility.FunShowAlertMsg(this, "Select atleast one Branch for Bill Generation");
+                    return;
+                }
+            }
+           
+            string strBillingDetails = "";
+            if (ViewState["BranchBillingDetails"] != null)
+            {
+                strBillingDetails = ((DataTable)ViewState["BranchBillingDetails"]).FunPubFormXml(true);
+            }
+            objBillingEntity.intCompanyId = intCompanyID;
+            objBillingEntity.intLobId = Convert.ToInt32(ddlLOB.SelectedValue);
+            objBillingEntity.intFrequency = Convert.ToInt32(ddlFrequency.SelectedValue);
+            objBillingEntity.intBranchId = Convert.ToInt32(ddlFrequency.SelectedValue);
+            objBillingEntity.lngMonthYear = Convert.ToInt64("201102");
+            objBillingEntity.intUserId = intUserID;
+            objBillingEntity.dtStartDate = Utility.StringToDate(txtStartDate.Text);
+            objBillingEntity.dtEndDate = Utility.StringToDate(txtEndDate.Text);
+            objBillingEntity.dtBillingDate = Utility.StringToDate(DateTime.Now.ToString());
+            if (rbtnSchedule.SelectedValue == "0")
+            {
+                objBillingEntity.strScheduleTime = txtScheduleTime.Text;
+            }
+            else
+            {
+                txtScheduleDate.Text = DateTime.Parse(DateTime.Now.ToShortDateString(), CultureInfo.CurrentCulture).ToString(strDateFormat);
+                objBillingEntity.strScheduleTime = DateTime.Now.AddMinutes(5.0).ToShortTimeString();
+                
+            }
+            objBillingEntity.dtScheduleDate = Utility.StringToDate(txtScheduleDate.Text);
+            objBillingEntity.strXmlBranchDetails = gvBranchWise.FunPubFormXml(true);
+            string strJournalMessage = "";
+            intErrorCode = objServiceClient.FunPubCreateBillingInt(out strJournalMessage, objBillingEntity);
+            //intErrorCode = objServiceClient.FunPubCreateBillingInt(out strJournalMessage, objBillingEntity);
+            if (intErrorCode == 0)
+            {
+                strAlert = "Billing Generated sucessfully";
+                strAlert += @"\n\nWould you like to generate one more Bill ?";
+                strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                strRedirectPageView = "";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            }
+            else
+            {
+                if (intErrorCode == 50)
+                    Utility.FunShowValidationMsg(this.Page, "", intErrorCode);
+                else
+                    Utility.FunShowValidationMsg(this.Page, "CLN_BILL", intErrorCode, strJournalMessage, false);
+                return;
+            }
+            
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Due to Data Problem,Unable to Insert Billing Details");
+        }
+        finally
+        {
+            objServiceClient.Close();
+            objBillingEntity = null;
+        }
+    }
+
+    private void FunPriClosePage()
+    {
+        try
+        {
+            Response.Redirect(strRedirectPage,false);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Cancel this process");
+        }
+    }
+
+    private void FunPriClearPage()
+    {
+        try
+        {
+            ddlLOB.SelectedIndex = ddlFrequency.SelectedIndex = 0;
+            txtStartDate.Text = txtEndDate.Text = txtScheduleDate.Text = txtScheduleTime.Text = 
+            txtBillFrequency.Text = txtBillLOB.Text = txtDataFrequency.Text = "";
+            gvBranchWise.DataSource = null;
+            gvBranchWise.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Clear the Data");
+        }
+    }
+
+    private void FunPriLoadLOV()
+    {
+        try
+        {
+            if (objProcedureParameter != null)
+                objProcedureParameter.Clear();
+            else
+                objProcedureParameter = new Dictionary<string, string>();
+
+            objProcedureParameter.Add("@OPTION", "1");
+            objProcedureParameter.Add("@COMPANYID", Convert.ToString(intCompanyID));
+            objProcedureParameter.Add("@USERID", Convert.ToString(intUserID));
+            ddlLOB.BindDataTable("S3G_CLN_LOADLOV", objProcedureParameter, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            objProcedureParameter.Clear();
+            objProcedureParameter.Add("@OPTION", "2");
+            objProcedureParameter.Add("@TYPE", S3G_Statu_Lookup.ORG_ROI_RULES_FREQUENCY.ToString());
+            ddlFrequency.BindDataTable("S3G_CLN_LOADLOV", objProcedureParameter, new string[] { "FREQUENCY_ID", "FREQUENCY_CODE" });
+
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Due to Data Problem,Unable to Load Line of Business / Frequency");
+        }
+    }
+    
+    private void FunPriGeneratePDF()
+    {
+        String htmlText = FunPriGetPDFBilling();
+        string strnewFile = (Server.MapPath(".") + "\\PDF Files\\BillGenaration.pdf");
+        Document doc = new Document();
+        PdfWriter writer = PdfWriter.GetInstance(doc, new FileStream(strnewFile, FileMode.Create));
+        doc.AddCreator("Sundaram Infotech Solutions");
+        doc.AddTitle("New PDF Document");
+        doc.Open();
+        List<IElement> htmlarraylist = iTextSharp.text.html.simpleparser.HTMLWorker.ParseToList(new StringReader(htmlText), null);
+        for (int k = 0; k < htmlarraylist.Count; k++)
+        { doc.Add((IElement)htmlarraylist[k]); }
+        doc.AddAuthor("S3G Team");
+        doc.Close();
+        System.Diagnostics.Process.Start(strnewFile);
+    }
+
+    private string FunPriGetPDFBilling()
+    {
+        string strHTMLText;
+        DataSet dsBillingDetails;
+        FunPriGetBranchDetails(out strHTMLText, out dsBillingDetails);
+        for (int intIndex = 1; intIndex <= dsBillingDetails.Tables[0].Rows.Count; intIndex++)
+        {
+            string strCompanyName = dsBillingDetails.Tables[0].Rows[intIndex]["COMPANY_NAME"].ToString();
+            string strCompanyAddress = dsBillingDetails.Tables[0].Rows[intIndex]["ADDRESS1"].ToString() + "-" + dsBillingDetails.Tables[0].Rows[0]["ZIP_CODE"].ToString();
+            string strBranchName = dsBillingDetails.Tables[0].Rows[intIndex]["BRANCH_NAME"].ToString();
+            string strReferencNo = dsBillingDetails.Tables[0].Rows[intIndex]["APPLICATION_NUMBER"].ToString();
+            string strCustomerName = dsBillingDetails.Tables[0].Rows[intIndex]["CUSTOMER_NAME"].ToString();
+            string strCustomerCode = dsBillingDetails.Tables[0].Rows[intIndex]["CUSTOMER_CODE"].ToString();
+            string strCustomerAddress = dsBillingDetails.Tables[0].Rows[intIndex]["COMM_ADDRESS1"].ToString();
+            string strCustomerCity = dsBillingDetails.Tables[0].Rows[intIndex]["COMM_CITY"].ToString();
+            string strCustomerCountry = dsBillingDetails.Tables[0].Rows[intIndex]["COMM_COUNTRY"].ToString();
+            string strAcccountNo = dsBillingDetails.Tables[0].Rows[intIndex]["ACCOUNT_NO"].ToString();
+            string strDueAmount = dsBillingDetails.Tables[0].Rows[intIndex]["INSTALLMENT_AMOUNT"].ToString();
+            string strDueDate = DateTime.Parse(dsBillingDetails.Tables[0].Rows[intIndex]["INSTALLMENT_DATE"].ToString(), CultureInfo.CurrentCulture).ToString(strDateFormat);
+            string strBillNo = intIndex.ToString();
+            string strBillDate = DateTime.Today.ToString(strDateFormat);
+            strHTMLText = strHTMLText + "<font size=\"2\"  color=\"black\" face=\"verdana\">" +
+                "<head>" + strCompanyName + "<br/>" + strCompanyAddress + "</head>" +
+                "<div align=\"center\"><h4><br/><br/><u><b><center>BILLING ADVICE</u></center></b></h4></div>" +
+            "<table width=\"100%\" align=\"center\"> " +
+                "<tr align=\"left\"> " +
+                    "<td>Line of Business  :</td>" +
+                    "<td align=\"left\">" + ddlLOB.SelectedItem.Text + "</td>" +
+                    "<td width=\"16%\"></td>" +
+                    "<td>Branch  :</td>" +
+                    "<td align=\"left\">" + strBranchName + "</td>" +
+                "</tr>" +
+                "<tr align=\"left\">" +
+                    "<td>Reference Number  :</td>" +
+                    "<td align=\"left\">" + strReferencNo + "</td>" +
+                    "<td width=\"16%\"></td>" +
+                    "<td>Bill Number   :</td>" +
+                    "<td align=\"left\">" + strBillNo + "</td>" +
+                "</tr>" +
+                 "<tr align=\"left\">" +
+                    "<td>Bill Date  :</td>" +
+                    "<td align=\"left\">" + strBillDate + "</td>" +
+                    "<td width=\"16%\"></td>" +
+                    "<td>Billing Frequency  :</td>" +
+                    "<td align=\"left\">" + ddlFrequency.SelectedItem.Text + "</td>" +
+                "</tr>" +
+            "</table>" +
+            "<table width=\"100%\" align=\"center\">" +
+                "<tr align=\"left\">" +
+                    "<td>Customer Name  :</td>" +
+                    "<td align=\"left\">" + strCustomerName + "</td>" +
+                    "<td width=\"30%\"></td>" +
+                    "<td width=\"25%\"></td>" +
+                    "<td width=\"26%\"></td>" +
+                "</tr>" +
+                "<tr align=\"left\">" +
+                    "<td>Customer Code  :</td>" +
+                    "<td align=\"left\">" + strCustomerCode + "</td><td></td><td></td><td></td>" +
+                "</tr>" +
+                "<tr align=\"left\">" +
+                    "<td valign=\"top\">Customer Address  :</td> " +
+                    "<td align=\"left\">" + strCustomerAddress + "<br />" + strCustomerCity + "<br />" + strCustomerCountry + "<br /></td><td></td><td></td>" +
+                    "<td></td>" +
+                "</tr>" +
+            "</table>" +
+            "<div>" +
+            "<br /> <u>Your Account Reference : " + strAcccountNo + "</u>" +
+            "<br /><br /> Sir / Madam," +
+            "<br /><br /> <u>Sub : Due of Rs." + strDueAmount + "falling due on " + strDueDate + "</u>" +
+            "<br /><br />" +
+            "We duly inform you that your accounts are being debited for the above amount on account of dues<br /><br />" +
+            "repayable by you as per above the details given in the annexure.<br /><br /><br /> " +
+            "Please arrange to make the payment on the due date,if you have not already paid.<br /><br /><br />" +
+            "Please find annexure attached for all your dues.<br /><br /><br /> " +
+            "Yours Truly<br />" + strCompanyName + "<br /><br /><br /><br /><br />" +
+            "AUTHORIZED SIGNATORY" +
+            "</div></font><br /><br /><br /><br /><br /><br /><br /><br/>";
+        }
+        return strHTMLText;
+
+    }
+
+    private void FunPriGetBranchDetails(out string strHTMLText, out DataSet dsBillingDetails)
+    {
+        try
+        {
+            objProcedureParameter = new Dictionary<string, string>();
+            objProcedureParameter.Add("@COMPANYID", intCompanyID.ToString());
+            objProcedureParameter.Add("@LOBID", ddlLOB.SelectedValue);
+            objProcedureParameter.Add("@BRANCHID", "1");
+            strHTMLText = "";
+            dsBillingDetails = Utility.GetDataset("S3G_CLN_GETBILLINGDETAILS", objProcedureParameter);
+            ViewState["BranchBillingDetails"] = dsBillingDetails.Tables[0];
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Due to Data Problem,Unable to Fetch Branch Details");
+        }
+    }
+
+    private void FunPriLoadBranchDetails()
+    {
+        try
+        {
+            DataTable dtBranchwise = new DataTable();
+            objProcedureParameter = new Dictionary<string, string>();
+            objProcedureParameter.Add("@USERID", intUserID.ToString());
+            objProcedureParameter.Add("@OPTION", "1");
+            objProcedureParameter.Add("@COMPANY_ID", intCompanyID.ToString());
+            objProcedureParameter.Add("@LOBID", ddlLOB.SelectedValue);
+            objProcedureParameter.Add("@STARTDATE", txtStartDate.Text);
+            objProcedureParameter.Add("@ENDDATE", txtEndDate.Text);
+            DataSet dsBranchwise = Utility.GetDataset("S3G_CLN_LOADBILLINGBRANCH", objProcedureParameter);
+            gvBranchWise.DataSource = dsBranchwise.Tables[0];
+            gvBranchWise.DataBind();
+            pnlBranch.Visible = true;
+            if (gvBranchWise.Rows.Count > 0)
+            {
+                btnSave.Enabled = true;
+            }
+            else
+            {
+                btnSave.Enabled = false;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load Branch Details");
+        }
+    }
+
+    #endregion
+
+    #region Common Methods
+        
+        #region "User Authorization"
+    
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    if (!bCreate)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    break;
+                case -1:// Query Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    btnSave.Enabled = false;
+                    if (!bQuery)
+                    {
+                        Response.Redirect(strRedirectPage,false);
+                    }
+
+
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Toggling the Controls based on Mode");
+        }
+    }
+    ////Code end
+    #endregion
+
+    #endregion
+    #endregion
+
+}

@@ -1,0 +1,367 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnBucketParameter.aspx.cs" Inherits="Collection_S3GClnBucketParameter"
+    Title="Bucket Parameter" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="99%" align="center" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td class="stylePageHeading" colspan="2">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr> 
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="styleFieldAlign">
+                        <asp:Panel ID="pnlBucketParameter" runat="server" CssClass="stylePanel" GroupingText="Bucket Parameter Details"
+                            Width="98%">
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <%-- LOB --%>
+                                    <td class="styleFieldLabel" width="17%">
+                                        <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" width="20%">
+                                        <asp:DropDownList ID="ddlLOB" runat="server" ToolTip="Line of Business" AutoPostBack="true"
+                                            OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged">
+                                        </asp:DropDownList>
+                                    </td>
+                                    <td class="styleFieldLabel" width="10%">
+                                        <asp:Label runat="server" Text="Active" ID="lblActive" CssClass="styleDisplayLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" width="20%">
+                                        <asp:CheckBox ID="chkActive" runat="server" Checked="true" TabIndex="3" AutoPostBack="True"
+                                            ToolTip="Active" />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4">
+                                        &nbsp;
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr align="center">
+                    <td colspan="2" class="styleFieldAlign">
+                        <asp:Panel ID="PnlCategory" runat="server" CssClass="stylePanel" GroupingText="Category"
+                            Width="40%">
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td align="left">
+                                        <asp:GridView runat="server" ID="GrvCategory" AutoGenerateColumns="False" ShowFooter="false"
+                                            ToolTip="Category" Width="100%">
+                                            <Columns>
+                                                <asp:TemplateField HeaderText="Category">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblcategoryId" runat="server" Text='<%# bind("Category_ID") %>' Visible="false" />
+                                                        <asp:Label ID="lblcategoryName" runat="server" Text='<%# bind("Category_Name") %>' />
+                                                    </ItemTemplate>
+                                                </asp:TemplateField>
+                                                <asp:TemplateField ItemStyle-HorizontalAlign="Center">
+                                                    <ItemTemplate>
+                                                        <asp:CheckBox ID="chkCategory" runat="server" />
+                                                    </ItemTemplate>
+                                                </asp:TemplateField>
+                                            </Columns>
+                                        </asp:GridView>
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <%--Gridview for Days--%>
+                    <td colspan="2" class="styleFieldAlign">
+                        <asp:Panel ID="PNLDays" runat="server" CssClass="stylePanel" GroupingText="Days"
+                            Width="98%">
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td>
+                                        <asp:GridView runat="server" ID="GRVDays" AutoGenerateColumns="False" ShowFooter="true"
+                                            OnRowDeleting="GRVDays_RowDeleting" OnRowCommand="GRVDays_RowCommand1" ToolTip="Days"
+                                            Width="100%" OnRowCancelingEdit="GRVDays_RowCancelingEdit" OnRowEditing="GRVDays_RowEditing"
+                                            OnRowUpdating="GRVDays_RowUpdating" EmptyDataText="No Records Found" OnRowCreated="GRVDays_RowCreated"
+                                            OnRowDataBound="GRVDays_RowDataBound">
+                                            <Columns>
+                                                <%--S.no--%>
+                                                <asp:TemplateField HeaderText="Sl.No." HeaderStyle-Width="10%">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblsno" runat="server" Text='<%#Container.DataItemIndex+1  %>'></asp:Label>
+                                                    </ItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:Label ID="lblsnoF" runat="server"></asp:Label>
+                                                    </FooterTemplate>
+                                                    <ItemStyle Width="10%" HorizontalAlign="Center" />
+                                                </asp:TemplateField>
+                                                <%--From Days--%>
+                                                <asp:TemplateField HeaderText="From" HeaderStyle-Width="20%">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblFromDays" runat="server" Text='<%# Bind("Fromdays")%>' Style="text-align: right;"></asp:Label>
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        <asp:TextBox ID="txtFromDaysEdit" runat="server" MaxLength="4" Width="97%" Text='<%# Bind("Fromdays")%>'
+                                                            Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEtxtFromDaysEdit" runat="server" TargetControlID="txtFromDaysEdit"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:TextBox ID="txtFromDaysF" runat="server" MaxLength="4" Width="97%" Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEFromDaysF" runat="server" TargetControlID="txtFromDaysF"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </FooterTemplate>
+                                                    <ItemStyle HorizontalAlign="Right" Width="20%" />
+                                                </asp:TemplateField>
+                                                <%--To days--%>
+                                                <asp:TemplateField HeaderText="To" HeaderStyle-Width="20%">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblToDays" runat="server" Text='<%# Bind("ToDays")%>' Style="text-align: right;"></asp:Label>
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        <asp:TextBox ID="txtToDaysEdit" runat="server" MaxLength="4" Width="97%" Text='<%# Bind("ToDays")%>'
+                                                            Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEtxtToDaysEdit" runat="server" TargetControlID="txtToDaysEdit"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:TextBox ID="txtToDaysF" runat="server" MaxLength="4" Width="97%" Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEToDaysF" runat="server" TargetControlID="txtToDaysF"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </FooterTemplate>
+                                                    <ItemStyle HorizontalAlign="Right" Width="20%" />
+                                                </asp:TemplateField>
+                                                <%-- Description (Days)--%>
+                                                <asp:TemplateField HeaderText="Description" HeaderStyle-Width="20%">
+                                                    <ItemTemplate>
+                                                        <asp:Label runat="server" Text='<%#Eval("Descvalue")%>' ID="lblDescriptionDaysVal"
+                                                            Visible="false"></asp:Label>
+                                                        <asp:Label runat="server" Text='<%#Eval("DescriptionDays")%>' ID="lblDescriptionDays"></asp:Label>
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        <asp:DropDownList ID="ddlDescriptionDaysEdit" Width="97%" runat="server" ValidationGroup="VGDays">
+                                                        </asp:DropDownList>
+                                                        <asp:HiddenField ID="hdnDescDays" runat="server" Value='<%#Eval("Descvalue") %>' />
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:DropDownList ID="ddlDescriptionDaysF" Width="97%" runat="server" ValidationGroup="VGDays">
+                                                        </asp:DropDownList>
+                                                    </FooterTemplate>
+                                                    <ItemStyle Width="20%" />
+                                                </asp:TemplateField>
+                                               <asp:TemplateField HeaderText="Credit Weightage" HeaderStyle-Width="20%">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblCreditWeightage" runat="server" Text='<%# Bind("CreditWeightage")%>' Style="text-align: right;"></asp:Label>
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        <asp:TextBox ID="txtCreditWeightageEdit" runat="server" MaxLength="2" Width="97%" Text='<%# Bind("CreditWeightage")%>'
+                                                            Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEtxtCreditWeightageEdit" runat="server" TargetControlID="txtCreditWeightageEdit"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:TextBox ID="txtCreditWeightageF" runat="server" MaxLength="2" Width="97%" Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTtxtCreditWeightageF" runat="server" TargetControlID="txtCreditWeightageF"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </FooterTemplate>
+                                                    <ItemStyle HorizontalAlign="Right" Width="20%" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderStyle-Width="25%">
+                                                    <ItemTemplate>
+                                                        &nbsp;
+                                                        <asp:LinkButton ID="lnkEdit" runat="server" Text="Edit" CommandName="Edit" CausesValidation="false"></asp:LinkButton>
+                                                        &nbsp;
+                                                        <asp:LinkButton ID="btnRemoveDays" Text="Delete" CommandName="Delete" runat="server"
+                                                            CausesValidation="false" OnClientClick="return confirm('Do you want to delete this record?');" />
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        &nbsp;
+                                                        <asp:LinkButton ID="lnkUpdate" runat="server" Text="Update" CommandName="Update"
+                                                            CausesValidation="false"></asp:LinkButton>
+                                                        &nbsp;
+                                                        <asp:LinkButton ID="lnkCancel" runat="server" Text="Cancel" CommandName="Cancel"
+                                                            CausesValidation="false"></asp:LinkButton>
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:LinkButton ID="btnAddrowDays" runat="server" Text="Add" CommandName="Addnew"
+                                                            CausesValidation="false"></asp:LinkButton>
+                                                    </FooterTemplate>
+                                                    <ItemStyle Width="20%" HorizontalAlign="Center" />
+                                                    <FooterStyle HorizontalAlign="Center" />
+                                                </asp:TemplateField>
+                                                
+                                            </Columns>
+                                        </asp:GridView>
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <%--Gridview for value--%>
+                    <td colspan="2" class="styleFieldAlign">
+                        <asp:Panel ID="PNLValue" runat="server" CssClass="stylePanel" GroupingText="Value"
+                            Width="98%">
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td>
+                                        <asp:GridView runat="server" ID="GRDValue" AutoGenerateColumns="False" ShowFooter="true"
+                                            OnRowCommand="GRDValue_RowCommand" OnRowDeleting="GRDValue_RowDeleting" ToolTip="Values"
+                                            Width="100%" OnRowCancelingEdit="GRDValue_RowCancelingEdit" OnRowEditing="GRDValue_RowEditing"
+                                            OnRowUpdating="GRDValue_RowUpdating" EmptyDataText="No Records Found" OnRowCreated="GRDValue_RowCreated"
+                                            OnRowDataBound="GRDValue_RowDataBound">
+                                            <Columns>
+                                                <%--S.no--%>
+                                                <asp:TemplateField HeaderStyle-Width="10%" HeaderText="Sl.No.">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblsno" runat="server" Text='<%# Container.DataItemIndex+1%>'></asp:Label>
+                                                    </ItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:Label ID="lblsnoF" runat="server"></asp:Label>
+                                                    </FooterTemplate>
+                                                    <ItemStyle Width="10%" HorizontalAlign="Center" />
+                                                </asp:TemplateField>
+                                                <%--From Value--%>
+                                                <asp:TemplateField HeaderText="From" HeaderStyle-Width="20%">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblFromValue" runat="server" Text='<%# Bind("FromValue")%>' Style="text-align: right;"></asp:Label>
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        <asp:TextBox ID="txtFromValueEdit" runat="server" MaxLength="10" Width="97%" Text='<%# Bind("FromValue")%>'
+                                                            Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEtxtFromValueEdit" runat="server" TargetControlID="txtFromValueEdit"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:TextBox ID="txtFromValueF" runat="server" MaxLength="10" Width="97%" Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEFromValueF" runat="server" TargetControlID="txtFromValueF"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </FooterTemplate>
+                                                    <ItemStyle HorizontalAlign="Right" Width="20%" />
+                                                </asp:TemplateField>
+                                                <%--To Value--%>
+                                                <asp:TemplateField HeaderText="To" HeaderStyle-Width="20%">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblToValue" runat="server" Text='<%# Bind("ToValue")%>' Style="text-align: right;"></asp:Label>
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        <asp:TextBox ID="txtToValueEdit" runat="server" MaxLength="10" Width="97%" Text='<%# Bind("ToValue")%>'
+                                                            Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEtxtToValueEdit" runat="server" TargetControlID="txtToValueEdit"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:TextBox ID="txtToValueF" runat="server" Width="97%" MaxLength="10" Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="FTEToValueF" runat="server" TargetControlID="txtToValueF"
+                                                            FilterType="Numbers" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </FooterTemplate>
+                                                    <ItemStyle HorizontalAlign="Right" Width="20%" />
+                                                </asp:TemplateField>
+                                                <%--Description  (Value)--%>
+                                                <asp:TemplateField HeaderText="Description" HeaderStyle-Width="20%">
+                                                    <ItemTemplate>
+                                                        <asp:Label runat="server" Text='<%#Eval("Descvalue")%>' ID="lblDescriptionValueVal"
+                                                            Visible="false"></asp:Label>
+                                                        <asp:Label runat="server" Text='<%#Eval("Descriptionvalue")%>' ID="lblDescriptionValue"></asp:Label>
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        <asp:DropDownList ID="ddlDescriptionValueEdit" runat="server" Width="97%" ValidationGroup="VGDays">
+                                                        </asp:DropDownList>
+                                                        <asp:HiddenField ID="hdnDescValue" runat="server" Value='<%#Eval("Descvalue") %>' />
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:DropDownList ID="ddlDescriptionValueF" Width="97%" runat="server" ValidationGroup="VGValue">
+                                                        </asp:DropDownList>
+                                                    </FooterTemplate>
+                                                    <ItemStyle Width="20%" />
+                                                </asp:TemplateField>
+                                                <%--Action  (Value)--%>
+                                                <asp:TemplateField HeaderStyle-Width="25%">
+                                                    <ItemTemplate>
+                                                        &nbsp;
+                                                        <asp:LinkButton ID="lnkEdit" runat="server" Text="Edit" CommandName="Edit" CausesValidation="false"></asp:LinkButton>
+                                                        &nbsp;
+                                                        <asp:LinkButton ID="btnRemovevalue" Text="Delete" CommandName="Delete" runat="server"
+                                                            CausesValidation="false" OnClientClick="return confirm('Do you want to delete this record?');" />
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        &nbsp;
+                                                        <asp:LinkButton ID="lnkUpdate" runat="server" Text="Update" CommandName="Update"
+                                                            CausesValidation="false"></asp:LinkButton>
+                                                        &nbsp;
+                                                        <asp:LinkButton ID="lnkCancel" runat="server" Text="Cancel" CommandName="Cancel"
+                                                            CausesValidation="false"></asp:LinkButton>
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:LinkButton ID="btnAddrowvalue" runat="server" Text="Add" CommandName="AddNew"
+                                                            CausesValidation="false"></asp:LinkButton>
+                                                    </FooterTemplate>
+                                                    <ItemStyle Width="25%" HorizontalAlign="Center" />
+                                                    <FooterStyle HorizontalAlign="Center" />
+                                                </asp:TemplateField>
+                                            </Columns>
+                                        </asp:GridView>
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr class="styleButtonArea" align="center" style="padding-left: 4px">
+                    <td colspan="2">
+                        <asp:Button runat="server" ID="btnSave" OnClientClick="return fnCheckPageValidators('VGBuck');"
+                            CssClass="styleSubmitButton" Text="Save" ValidationGroup="VGBuck" OnClick="btnSave_Click"
+                            ToolTip="Save" />
+                        &nbsp;<asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton"
+                            Text="Clear" OnClientClick="return fnConfirmClear();" OnClick="btnClear_Click"
+                            ToolTip="Clear" />
+                        &nbsp;<asp:Button runat="server" ID="btnCancel" Text="Cancel" ValidationGroup="PRDDC"
+                            CausesValidation="false" CssClass="styleSubmitButton" OnClick="btnCancel_Click"
+                            ToolTip="Cancel" />
+                    </td>
+                </tr>
+                <tr class="styleButtonArea">
+                    <td colspan="2">
+                        <asp:ValidationSummary runat="server" ID="vsFactoringInvoiceLoadinf" HeaderText="Correct the following validation(s):"
+                            Height="177px" CssClass="styleMandatoryLabel" Width="500px" ShowMessageBox="false"
+                            ShowSummary="true" ValidationGroup="VGBuck" />
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleButtonArea" colspan="2">
+                        <asp:CustomValidator ID="CVBucketParameter" runat="server" CssClass="styleMandatoryLabel"
+                            Enabled="true" Width="98%" />
+                    </td>
+                </tr>
+                <tr class="styleButtonArea">
+                    <td colspan="2">
+                        <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                        <input type="hidden" runat="server" value="0" id="hdnRowID" />
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

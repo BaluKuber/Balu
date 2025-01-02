@@ -1,0 +1,3258 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Collection
+/// Screen Name         :   S3GClnDebtCollectorRuleCard
+/// Created By          :   Suresh P
+/// Created Date        :   06-Oct-2010
+/// Purpose             :   Debt Collector RuleCard
+/// Last Updated By		:   Chandra Sekhar BS
+/// Last Updated Date   :   18-Sep-2013
+/// Reason              :   SQL performance
+/// <Program Summary>
+#endregion
+
+#region Namespaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Text;
+using System.Web.Security;
+using System.Web.UI.WebControls;
+using ClnDebtMgtServicesReference;
+using S3GBusEntity;
+using S3GBusEntity.Collection;
+using System.Collections;
+using System.Web.UI;
+using System.Globalization;
+#endregion
+
+public partial class S3GClnDebtCollectorRuleCard : ApplyThemeForProject
+{
+    public static S3GClnDebtCollectorRuleCard obj_Page;
+    Dictionary<string, string> ObjDictParams = null;
+    UserInfo ObjUserInfo = new UserInfo();
+    S3GSession ObjS3GSession = new S3GSession();
+    SerializationMode SerMode = SerializationMode.Binary;
+    string strDateFormat;
+
+    DataTable dtsequences = null;
+    DataTable dtSequenceType = null;
+    int intSelectedValue1, intSelectedValue2, intSelectedValue3, intSelectedValue4, intSelectedValue5, intSelectedValue6;
+    //int pro_id;
+
+    string intROIRuleMasterID;
+    int intErrCode = 0;
+
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+
+    //Code end
+
+    string strRedirectPage = "../Collection/S3GClnDebtCollectorRuleCard_Add.aspx";
+    string strRedirectPageView = "../Collection/S3GClnDebtCollectorRuleCard_View.aspx";
+
+    //string strRedirectPageView = "S3GClnTransLander.aspx?Code=CLNDCR";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+
+    string strXMLAssetAcquisitionDet = "<Root><Details Desc='0' /></Root>";
+
+
+    StringBuilder strbAssetAcquisitionDet = new StringBuilder();
+    StringBuilder strbAssetAcquisitionModDet = new StringBuilder();
+    ClnDebtMgtServicesClient ObjLoanAdminAccMgtServicesClient = null;
+    ClnDebtMgtServices.S3G_CLN_DebtCollectorRuleCardDataTable ObjS3G_LOANAD_AssetAcquisitionDataTable = null;
+    ClnDebtMgtServices.S3G_CLN_DebtCollectorRuleCardRow ObjS3G_LOANAD_AssetAcquisitionRow = null;
+
+    DataTable dtAssetAcquisition = null;
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+        S3GSession ObjS3GSession = new S3GSession();
+        strDateFormat = ObjS3GSession.ProDateFormatRW;
+        txtEffectiveFrom.Text = DateTime.Now.ToString(strDateFormat);
+
+
+        if (Request.QueryString["qsViewId"] != null)
+        {
+            FormsAuthenticationTicket formTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            strMode = Request.QueryString.Get("qsMode");
+            if (formTicket != null)
+            {
+                intROIRuleMasterID = formTicket.Name;
+            }
+        }
+        if (!ddlSequenceType1.SelectedValue.ToString().Equals(""))
+        {
+            btnNext.Enabled = Convert.ToInt32(ddlSequenceType1.SelectedValue) > 0;
+        }
+        else
+        {
+            btnNext.Enabled = false;
+        }
+        //User Authorization
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        //Code end
+
+        if (!IsPostBack)
+        {
+            if (strMode == "") {
+                FunProLoadLineOfBusiness();
+                FunProLoadBranch();
+            }
+            FunProLoadSequence();
+            if ((intROIRuleMasterID != "") && (strMode == "M"))
+            {
+                FunPriDisableControls(1);
+            }
+            else if ((intROIRuleMasterID != "") && (strMode == "Q")) // Query // Modify
+            {
+                FunPriDisableControls(-1);
+            }
+            else
+            {
+                FunPriDisableControls(0);
+            }
+        }
+
+        //txtpincode.MaxLength = ObjS3GSession.ProPINCodeDigitsRW;
+    }
+    protected void Page_LoadOlD(object sender, EventArgs e)
+    {
+        this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+        S3GSession ObjS3GSession = new S3GSession();
+        strDateFormat = ObjS3GSession.ProDateFormatRW;
+        txtEffectiveFrom.Text = DateTime.Now.ToString(strDateFormat);
+
+
+        if (Request.QueryString["qsViewId"] != null)
+        {
+            FormsAuthenticationTicket formTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            strMode = Request.QueryString.Get("qsMode");
+            if (formTicket != null)
+            {
+                intROIRuleMasterID = formTicket.Name;
+            }
+        }
+        if (!ddlSequenceType1.SelectedValue.ToString().Equals(""))
+        {
+            btnNext.Enabled = Convert.ToInt32(ddlSequenceType1.SelectedValue) > 0;
+        }
+        else
+        {
+            btnNext.Enabled = false;
+        }
+        //User Authorization
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        //Code end
+
+        if (!IsPostBack)
+        {
+            FunProLoadLineOfBusiness();
+            //  FunProLoadRegion();
+            if (strMode == "M" && strMode == "Q")
+            {
+                FunProLoadBranch();
+            }
+            FunProLoadSequence();
+            if ((intROIRuleMasterID != "") && (strMode == "M"))
+            {
+                FunProLoadBranch();
+                FunPriDisableControls(1);
+            }
+            else if ((intROIRuleMasterID != "") && (strMode == "Q")) // Query // Modify
+            {
+                FunProLoadBranch();
+                FunPriDisableControls(-1);
+            }
+            else
+            {
+                FunPriDisableControls(0);
+            }
+        }
+
+        //txtpincode.MaxLength = ObjS3GSession.ProPINCodeDigitsRW;
+    }
+    protected void btnNext_Click(object sender, EventArgs e)
+    {
+
+        pnlMappingdtls.Visible = true;
+        //ddlSequenceType1.Enabled = false;
+        //ddlSequenceType2.Enabled = false;
+        //ddlSequenceType3.Enabled = false;
+        //ddlSequenceType4.Enabled = false;
+        //ddlSequenceType5.Enabled = false;
+        //ddlSequenceType6.Enabled = false;
+
+        ArrayList Dummy = (ArrayList)ViewState["AL_AssetAcquisition"];
+        ViewState["DT_AssetAcquisition"] = null;
+        if (Dummy.Count > 0)
+        {
+            if (Dummy.Contains("Sales Person") && Dummy.Contains("DebtCollector"))
+            {
+                Dummy.RemoveAt(Dummy.IndexOf("DebtCollector"));
+            }
+            FunPriInsertDebtCollectorRuleCardDataTable("-1", Dummy);
+            RptControls.DataSource = Dummy;
+            RptControls.DataBind();
+        }
+
+    }
+
+    protected void RptControls_ItemDataBound(object sender, RepeaterItemEventArgs e)
+    {
+        if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
+        {
+            DataRow row = e.Item.DataItem as DataRow;
+            Label lblHeading = e.Item.FindControl("lblHeading") as Label;
+            DropDownList ddl = e.Item.FindControl("row") as DropDownList;
+            AjaxControlToolkit.ComboBox rowTextbox = e.Item.FindControl("rowTextbox") as AjaxControlToolkit.ComboBox;
+            rowTextbox.Visible = false;
+            ddl.Visible = false;
+            if (ddlSequenceType1.SelectedItem.Text == "Sales Person")
+            {
+
+            }
+            if (lblHeading.Text.Trim().Equals("DebtCollector"))
+            {
+                FunPriLoadDebtCollector(ddl);
+                ddl.Visible = true;
+            }
+            else
+            {
+                if (lblHeading.Text == "Pincode")
+                {
+
+
+                    rowTextbox.Visible = true;
+                    rowTextbox.MaxLength = ObjS3GSession.ProPINCodeDigitsRW;
+                    Dictionary<string, string> Procparam = new Dictionary<string, string>();
+                    Procparam.Add("@Company_ID", Convert.ToString(ObjUserInfo.ProCompanyIdRW.ToString()));
+                    DataTable dtPIN = Utility.GetDefaultData("S3G_CLN_GetPINCODE", Procparam);
+                    rowTextbox.FillDataTable(dtPIN, "PIN", "PIN", true);
+
+
+
+                }
+                else
+                {
+                    if (lblHeading.Text.Contains("_ID"))
+                    {
+                        lblHeading.Visible = false;
+                    }
+                    if (lblHeading.Text == "Product")
+                    {
+                        FunPriLoadProduct(ddl);
+                        ObjDictParams = null;
+                        //pro_id = Convert.ToInt32(ddl.SelectedIndex.ToString());
+                        ddl.Visible = true;
+
+                    }
+                    else if (lblHeading.Text == "Category")
+                    {
+                        FunPriLoadCategory(ddl);
+                        ddl.Visible = true;
+                    }
+                    else if (lblHeading.Text == "Period")
+                    {
+                        FunPriLoadPeriod(ddl);
+
+                        ddl.Visible = true;
+                    }
+                    else if (lblHeading.Text == "Value")
+                    {
+                        FunPriLoadValue(ddl);
+                        ddl.Visible = true;
+                    }
+                    else if (lblHeading.Text == "Sales Person")
+                    {
+                        FunPriLoadSalesPerson(ddl);
+                        ddl.Visible = true;
+                    }
+                }
+            }
+        }
+    }
+
+    private void FunPriLoadPincode()
+    {
+        Dictionary<string, string> Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(ObjUserInfo.ProCompanyIdRW.ToString()));
+
+        //txtpincode.FillDataTable(dtPIN,"PIN", "PIN", true);
+        txtpincode.BindDataTable("S3G_CLN_GetPINCODE", Procparam, false, new string[] { "PIN", "PIN" });
+
+
+    }
+
+    private void FunPriLoadSalesPerson(DropDownList ddl)
+    {
+        ObjDictParams = new Dictionary<string, string>();
+        ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        if (Convert.ToInt32(ddlLineofBusiness.SelectedIndex) > 0)
+        {
+            ObjDictParams.Add("@LOB_ID", ddlLineofBusiness.SelectedValue.ToString());
+        }
+        else
+        {
+            ObjDictParams.Add("@LOB_ID", "");
+        }
+        if (Convert.ToInt32(ddlBranch.SelectedValue) != 0 && ddlBranch.SelectedValue == "")
+        {
+            ObjDictParams.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+        }
+        else
+        {
+            ObjDictParams.Add("@Location_ID", "");
+        }
+        if (PageMode == PageModes.Modify)
+        {
+            ObjDictParams.Add("@IS_ActiveRec", Convert.ToInt32(1).ToString());
+            ddl.BindDataTable("S3G_CLN_GetSalesPerson", ObjDictParams, false, new string[] { "Sales_Person_ID", "User_Name" });
+        }
+        else if (PageMode == PageModes.Create)
+        {
+            ddl.BindDataTable("S3G_CLN_GetSalesPerson", ObjDictParams, new string[] { "Sales_Person_ID", "User_Name" });
+        }
+        ObjDictParams = null;
+    }
+
+
+
+
+    private void FunPriLoadValue(DropDownList ddl)
+    {
+        ObjDictParams = new Dictionary<string, string>();
+        ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        if (Convert.ToInt32(ddlLineofBusiness.SelectedIndex) > 0)
+        {
+            ObjDictParams.Add("@LOB_ID", ddlLineofBusiness.SelectedValue.ToString());
+        }
+        if (PageMode == PageModes.Modify)
+        {
+            ObjDictParams.Add("@DebtCollectorRuleCard_ID", intROIRuleMasterID);
+            ObjDictParams.Add("@IS_ActiveRec", Convert.ToInt32(1).ToString());
+        }
+        ObjDictParams.Add("@Bucket_Value_Type", "'V'");
+        if (PageMode == PageModes.Modify)
+        {
+            ddl.BindDataTable("S3G_CLN_GetBucketParameter_Value", ObjDictParams, false, new string[] { "Value_ID", "Bucket_Value" });
+        }
+        else if (PageMode == PageModes.Create)
+        {
+            ddl.BindDataTable("S3G_CLN_GetBucketParameter_Value", ObjDictParams, new string[] { "Value_ID", "Bucket_Value" });
+        }
+        ObjDictParams = null;
+    }
+
+    private void FunPriLoadPeriod(DropDownList ddl)
+    {
+        ObjDictParams = new Dictionary<string, string>();
+        ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        if (Convert.ToInt32(ddlLineofBusiness.SelectedValue) > 0)
+        {
+            ObjDictParams.Add("@LOB_ID", ddlLineofBusiness.SelectedValue.ToString());
+        }
+        if (PageMode == PageModes.Modify)
+        {
+            ObjDictParams.Add("@IS_ActiveRec", Convert.ToInt32(1).ToString());
+            ObjDictParams.Add("@DebtCollectorRuleCard_ID", intROIRuleMasterID);
+        }
+
+
+
+
+        ObjDictParams.Add("@Bucket_Value_Type", "'D'");
+        if (PageMode == PageModes.Modify)
+        {
+            ddl.BindDataTable("S3G_CLN_GetBucketParameter_Period", ObjDictParams, false, new string[] { "Period_ID", "Bucket_Value" });
+        }
+        else if (PageMode == PageModes.Create)
+        {
+            ddl.BindDataTable("S3G_CLN_GetBucketParameter_Period", ObjDictParams, new string[] { "Period_ID", "Bucket_Value" });
+        }
+
+        ObjDictParams = null;
+    }
+
+    private void FunPriLoadCategory(DropDownList ddl)
+    {
+        ObjDictParams = new Dictionary<string, string>();
+        ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        if (Convert.ToInt32(ddlLineofBusiness.SelectedValue) > 0)
+        {
+            ObjDictParams.Add("@LOB_ID", ddlLineofBusiness.SelectedValue.ToString());
+        }
+        else
+        {
+            ObjDictParams.Add("@LOB_ID", "");
+        }
+        if (PageMode == PageModes.Modify)
+        {
+            ObjDictParams.Add("@IS_ActiveRec", Convert.ToInt32(1).ToString());
+            ObjDictParams.Add("@DebtCollectorRuleCard_ID", intROIRuleMasterID);
+        }
+
+        ObjDictParams.Add("@Category_Type_Code", "40");
+        if (PageMode == PageModes.Modify)
+        {
+            ddl.BindDataTable("S3G_CLN_GetDebtCollectorRuleCardSequenceType_Category", ObjDictParams, false, new string[] { "Category_ID", "Category" });
+        }
+        else if (PageMode == PageModes.Create)
+        {
+            ddl.BindDataTable("S3G_CLN_GetDebtCollectorRuleCardSequenceType_Category", ObjDictParams, new string[] { "Category_ID", "Category" });
+        }
+        ObjDictParams = null;
+    }
+
+    private void FunPriLoadProduct(DropDownList ddl)
+    {
+        ObjDictParams = new Dictionary<string, string>();
+        if (Convert.ToInt32(ddlLineofBusiness.SelectedValue) > 0)
+        {
+            ObjDictParams.Add("@LOB_ID", ddlLineofBusiness.SelectedValue.ToString());
+        }
+
+        if (PageMode == PageModes.Modify)
+        {
+            ObjDictParams.Add("@IS_ActiveRec", Convert.ToInt32(1).ToString());
+            ddl.BindDataTable("S3G_ORG_GetLOBProductList", ObjDictParams, false, new string[] { "Product_ID", "Product_Code" });
+        }
+        else if (PageMode == PageModes.Create)
+        {
+            ObjDictParams.Add("@Is_Active", Convert.ToInt32(1).ToString());
+            ddl.BindDataTable("S3G_ORG_GetLOBProductList", ObjDictParams, new string[] { "Product_ID", "Product_Code" });
+        }
+
+    }
+
+    private void FunPriLoadDebtCollector(DropDownList ddl)
+    {
+        ObjDictParams = new Dictionary<string, string>();
+        ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        if (Convert.ToInt32(ddlLineofBusiness.SelectedValue) > 0)
+        {
+            ObjDictParams.Add("@LOB_ID", ddlLineofBusiness.SelectedValue.ToString());
+        }
+        else
+            ObjDictParams.Add("@LOB_ID", "");
+        //if (Convert.ToInt32(ddlRegion.SelectedIndex) > 0)
+        //{
+        //    ObjDictParams.Add("@Region_ID", ddlRegion.SelectedValue.ToString());
+        //}
+        //else
+        //    ObjDictParams.Add("@Region_ID", "");
+
+        if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+        {
+            ObjDictParams.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+        }
+        else
+            ObjDictParams.Add("@Location_ID", "");
+        if (PageMode == PageModes.Modify)
+        {
+            ObjDictParams.Add("@IS_ActiveRec", Convert.ToInt32(1).ToString());
+            ObjDictParams.Add("@DebtCollectorRuleCard_ID", intROIRuleMasterID);
+        }
+        if (PageMode == PageModes.Modify)
+        {
+            ddl.BindDataTable("S3G_CLN_GetDebtCollectorCode", ObjDictParams, false, new string[] { "DebtCollector", "DebtCollector" });
+        }
+        else if (PageMode == PageModes.Create)
+        {
+            ddl.BindDataTable("S3G_CLN_GetDebtCollectorCode", ObjDictParams, new string[] { "DebtCollector", "DebtCollector" });
+        }
+        ObjDictParams = null;
+    }
+    protected void btnCancelModal_Click(object sender, EventArgs e)
+    {
+        ModalPopupExtenderPassword.Hide();
+        btnNext.Enabled = false;
+        if (strMode == "M")
+            gvAssetAcquisition.FooterRow.Visible = true;
+        else
+            gvAssetAcquisition.FooterRow.Visible = false;
+    }
+
+    protected void btnAddModal_Click(object sender, EventArgs e)
+    {
+
+        //btnCancelModal.Visible = false;
+        btnModifyModal.Visible = false;
+        //if (ViewState["growIndex"] != null)
+        //    rowindex = Convert.ToInt32(ViewState["growIndex"].ToString());
+        dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+        int rowindex = dtAssetAcquisition.Rows.Count;
+        string strFilter = "";
+
+        if (txtpincode.Visible)
+        {
+            strFilter = " Pincode = '" + txtpincode.SelectedItem.Text + "'";
+        }
+        if (ddlProduct.Visible)
+        {
+
+            strFilter = strFilter + " and Product_ID = " + ddlProduct.SelectedItem.Value;
+        }
+        if (ddlPeriod.Visible)
+        {
+
+            strFilter = strFilter + " and Period_ID = " + ddlPeriod.SelectedItem.Value;
+        }
+        if (ddlcategory.Visible)
+        {
+
+            strFilter = strFilter + " and Category_ID = " + ddlcategory.SelectedItem.Value;
+        }
+        if (ddlvalue.Visible)
+        {
+            strFilter = strFilter + " and Value_ID = " + ddlvalue.SelectedItem.Value;
+        }
+        if (ddlsalesperson.Visible)
+        {
+
+            strFilter = strFilter + " and [Sales Person_ID] = " + ddlsalesperson.SelectedItem.Value;
+        }
+        //if (ddlDebtCollector.Visible)
+        //{
+
+        //    strFilter = strFilter + " and DebtCollector = '" + ddlDebtCollector.SelectedItem.Value + "'";
+        //}
+
+        if (strFilter.Trim().Substring(0, 3) == "and")
+        {
+
+            strFilter = strFilter.Trim().Substring(3);
+        }
+        DataRow[] drArr = dtAssetAcquisition.Select(strFilter);
+
+        if ((drArr.Length) > 0)
+        {
+            Utility.FunShowAlertMsg(this, "Combination already exists");
+            return;
+        }
+        //else if (drArr.Length == 0)
+        //{
+        //    Utility.FunShowAlertMsg(this, "Combination already exists");
+        //    return;
+        //}
+
+
+        DataRow dr = dtAssetAcquisition.NewRow();
+
+        if (txtpincode.Visible)
+        {
+            if (txtpincode.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Enter Pincode");
+                return;
+            }
+            else if (txtpincode.SelectedItem.Text == "")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Enter Pincode");
+                return;
+            }
+            else
+                dr["Pincode"] = txtpincode.Text;
+        }
+        if (ddlProduct.Visible)
+        {
+            if (ddlProduct.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Product");
+                return;
+            }
+            else
+            {
+                dr["Product"] = ddlProduct.SelectedItem.Text;
+                dr["Product_ID"] = ddlProduct.SelectedItem.Value;
+            }
+        }
+        if (ddlPeriod.Visible)
+        {
+            if (ddlPeriod.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Period");
+                return;
+            }
+            else
+            {
+                dr["Period"] = ddlPeriod.SelectedItem.Text;
+                dr["Period_ID"] = ddlPeriod.SelectedItem.Value;
+            }
+        }
+        if (ddlcategory.Visible)
+        {
+            if (ddlcategory.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Category");
+                return;
+            }
+            else
+            {
+                dr["Category"] = ddlcategory.SelectedItem.Text;
+                dr["Category_ID"] = ddlcategory.SelectedItem.Value;
+            }
+        }
+        if (ddlvalue.Visible)
+        {
+            if (ddlvalue.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Value");
+                return;
+            }
+            else
+            {
+                dr["Value"] = ddlvalue.SelectedItem.Text;
+                dr["Value_ID"] = ddlvalue.SelectedItem.Value;
+            }
+        }
+        if (ddlsalesperson.Visible)
+        {
+            if (ddlsalesperson.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Sales Person");
+                return;
+            }
+            else
+            {
+                dr["Sales Person"] = ddlsalesperson.SelectedItem.Text;
+                dr["Sales Person_ID"] = ddlsalesperson.SelectedValue;
+            }
+        }
+        if (ddlDebtCollector.Visible)
+        {
+            if (ddlDebtCollector.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select DebtCollector");
+                return;
+            }
+            else
+                dr["DebtCollector"] = ddlDebtCollector.SelectedItem.Text;
+        }
+
+        dtAssetAcquisition.Rows.Add(dr);
+
+        if ((ddlProduct.Visible) && (ddlProduct.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Product");
+            return;
+        }
+        else if ((txtpincode.Visible) && ((txtpincode.SelectedItem.Text == "") || (txtpincode.SelectedItem.Text == "--Select--")))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Pincode");
+            return;
+        }
+        else if ((ddlPeriod.Visible) && (ddlPeriod.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Period");
+            return;
+        }
+        else if ((ddlcategory.Visible) && (ddlcategory.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Category");
+            return;
+        }
+        else if ((ddlvalue.Visible) && (ddlvalue.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Value");
+            return;
+        }
+        else if ((ddlsalesperson.Visible) && (ddlsalesperson.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Sales Person");
+            return;
+        }
+        else if ((ddlDebtCollector.Visible) && (ddlDebtCollector.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select DebtCollector");
+            return;
+        }
+        else
+        {
+            FunPubBindAssetAcquisition(dtAssetAcquisition);
+            ViewState["AssetAcquisition"] = dtAssetAcquisition;
+            if (strMode == "M")
+                gvAssetAcquisition.FooterRow.Visible = true;
+            else
+                gvAssetAcquisition.FooterRow.Visible = false;
+            ModalPopupExtenderPassword.Hide();
+        }
+    }
+
+
+    protected void btnModifyModal_Click(object sender, EventArgs e)
+    {
+        //ModalPopupExtenderPassword.FindControl("btnAddModal").Visible = false;
+
+        int rowindex = 0;
+        if (ViewState["growIndex"] != null)
+            rowindex = Convert.ToInt32(ViewState["growIndex"].ToString());
+        dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+
+        string strFilter = "";
+
+        if (txtpincode.Visible)
+        {
+            strFilter = " Pincode = '" + txtpincode.SelectedItem.Text + "'";
+        }
+        if (ddlProduct.Visible)
+        {
+
+            strFilter = strFilter + " and Product_ID = " + ddlProduct.SelectedItem.Value;
+        }
+        if (ddlPeriod.Visible)
+        {
+
+            strFilter = strFilter + " and Period_ID = " + ddlPeriod.SelectedItem.Value;
+        }
+        if (ddlcategory.Visible)
+        {
+
+            strFilter = strFilter + " and Category_ID = " + ddlcategory.SelectedItem.Value;
+        }
+        if (ddlvalue.Visible)
+        {
+            strFilter = strFilter + " and Value_ID = " + ddlvalue.SelectedItem.Value;
+        }
+        //Changed by Thangam M on 15/May/2012 for UAT
+        //if (ddlsalesperson.Visible)
+        //{
+
+        //    strFilter = strFilter + " and [Sales Person_ID] = " + ddlsalesperson.SelectedItem.Value;
+        //}
+
+        //End here
+
+        //if (ddlDebtCollector.Visible)
+        //{
+
+        //    strFilter = strFilter + " and DebtCollector = '" + ddlDebtCollector.SelectedItem.Value + "'";
+        //}
+
+        if (strFilter.Trim().Substring(0, 3) == "and")
+        {
+
+            strFilter = strFilter.Trim().Substring(3);
+        }
+        DataRow[] drArr = dtAssetAcquisition.Select(strFilter);
+
+        if ((drArr.Length) > 0)
+        {
+            Utility.FunShowAlertMsg(this, "Combination already exists");
+            return;
+        }
+
+
+        if (txtpincode.Visible)
+        {
+            if (txtpincode.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Enter Pincode");
+                return;
+            }
+            else if (txtpincode.SelectedItem.Text == "")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Enter Pincode");
+                return;
+            }
+            else
+                dtAssetAcquisition.Rows[rowindex]["Pincode"] = txtpincode.Text;
+        }
+        if (ddlProduct.Visible)
+        {
+            if (ddlProduct.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Product");
+                return;
+            }
+            else
+            {
+                dtAssetAcquisition.Rows[rowindex]["Product"] = ddlProduct.SelectedItem.Text;
+                dtAssetAcquisition.Rows[rowindex]["Product_ID"] = ddlProduct.SelectedItem.Value;
+            }
+        }
+        if (ddlPeriod.Visible)
+        {
+            if (ddlPeriod.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Period");
+                return;
+            }
+            else
+            {
+                dtAssetAcquisition.Rows[rowindex]["Period"] = ddlPeriod.SelectedItem.Text;
+                dtAssetAcquisition.Rows[rowindex]["Period_ID"] = ddlPeriod.SelectedItem.Value;
+            }
+        }
+        if (ddlcategory.Visible)
+        {
+            if (ddlcategory.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Category");
+                return;
+            }
+            else
+            {
+                dtAssetAcquisition.Rows[rowindex]["Category"] = ddlcategory.SelectedItem.Text;
+                dtAssetAcquisition.Rows[rowindex]["Category_ID"] = ddlcategory.SelectedItem.Value;
+            }
+        }
+        if (ddlvalue.Visible)
+        {
+            if (ddlvalue.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Value");
+                return;
+            }
+            else
+            {
+                dtAssetAcquisition.Rows[rowindex]["Value"] = ddlvalue.SelectedItem.Text;
+                dtAssetAcquisition.Rows[rowindex]["Value_ID"] = ddlvalue.SelectedItem.Value;
+            }
+        }
+        if (ddlsalesperson.Visible)
+        {
+            if (ddlsalesperson.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Sales Person");
+                return;
+            }
+            else
+            {
+                dtAssetAcquisition.Rows[rowindex]["Sales Person"] = ddlsalesperson.SelectedItem.Text;
+                dtAssetAcquisition.Rows[rowindex]["Sales Person_ID"] = ddlsalesperson.SelectedValue;
+            }
+        }
+        if (ddlDebtCollector.Visible)
+        {
+            if (ddlDebtCollector.SelectedItem.Text == "--Select--")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select DebtCollector");
+                return;
+            }
+            else
+                dtAssetAcquisition.Rows[rowindex]["DebtCollector"] = ddlDebtCollector.SelectedItem.Text;
+        }
+
+
+        if ((ddlProduct.Visible) && (ddlProduct.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Product");
+            return;
+        }
+        else if ((txtpincode.Visible) && ((txtpincode.SelectedItem.Text == "") || (txtpincode.SelectedItem.Text == "--Select--")))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Pincode");
+            return;
+        }
+        else if ((ddlPeriod.Visible) && (ddlPeriod.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Period");
+            return;
+        }
+        else if ((ddlcategory.Visible) && (ddlcategory.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Category");
+            return;
+        }
+        else if ((ddlvalue.Visible) && (ddlvalue.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Value");
+            return;
+        }
+        else if ((ddlsalesperson.Visible) && (ddlsalesperson.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select Sales Person");
+            return;
+        }
+        else if ((ddlDebtCollector.Visible) && (ddlDebtCollector.SelectedItem.Text == "--Select--"))
+        {
+            Utility.FunShowAlertMsg(this.Page, "Select DebtCollector");
+            return;
+        }
+        else
+        {
+            FunPubBindAssetAcquisition(dtAssetAcquisition);
+            ViewState["AssetAcquisition"] = dtAssetAcquisition;
+            if (strMode == "M")
+                gvAssetAcquisition.FooterRow.Visible = true;
+            else
+                gvAssetAcquisition.FooterRow.Visible = false;
+            ModalPopupExtenderPassword.Hide();
+        }
+
+    }
+    protected void btnAdd_Click(object sender, EventArgs e)
+    {
+        ArrayList alistValues = new ArrayList();
+        foreach (RepeaterItem rptITem in RptControls.Items)
+        {
+            if (rptITem.ItemType == ListItemType.Item || rptITem.ItemType == ListItemType.AlternatingItem)
+            {
+                Label lblHeading = rptITem.FindControl("lblHeading") as Label;
+                DropDownList ddl = rptITem.FindControl("row") as DropDownList;
+                AjaxControlToolkit.ComboBox rowTextbox = rptITem.FindControl("rowTextbox") as AjaxControlToolkit.ComboBox;
+
+                if (lblHeading.Text == "Pincode")
+                {
+                    //if (rowTextbox.Text.Trim().Equals(""))
+                    //{
+                    //    Utility.FunShowAlertMsg(Page, "Enter " + lblHeading.Text);
+                    //    rowTextbox.Focus();
+                    //    return;
+                    //}
+                    if (rowTextbox.Text.Trim() == "0")
+                    {
+                        Utility.FunShowAlertMsg(Page, "Enter " + lblHeading.Text);
+                        rowTextbox.Focus();
+                        return;
+                    }
+                    if (rowTextbox.Text == "--Select--")
+                    {
+                        Utility.FunShowAlertMsg(Page, "Enter " + lblHeading.Text);
+                        rowTextbox.Focus();
+                        return;
+                    }
+
+
+                    alistValues.Add(rowTextbox.Text.ToString());
+                }
+                else if (!lblHeading.Text.Contains("_ID"))
+                {
+                    if (!(lblHeading.Text == "DebtCollector"))
+                    {
+                        if (Convert.ToInt32(ddl.SelectedIndex) == 0)
+                        {
+                            Utility.FunShowAlertMsg(Page, "Select " + lblHeading.Text);
+                            ddl.Focus();
+                            return;
+                        }
+
+                        alistValues.Add(ddl.SelectedItem.Text.ToString());
+                        alistValues.Add(ddl.SelectedValue.ToString());
+
+                    }
+                    if (lblHeading.Text == "DebtCollector")
+                    {
+                        if (ddl.SelectedIndex == -1)
+                        {
+                            Utility.FunShowAlertMsg(Page, "Select " + lblHeading.Text);
+                            ddl.Focus();
+                            return;
+                        }
+                        if (ddl.SelectedItem.Text.Equals("--Select--"))
+                        {
+                            Utility.FunShowAlertMsg(Page, "Select " + lblHeading.Text);
+                            ddl.Focus();
+                            return;
+                        }
+
+                        alistValues.Add(ddl.SelectedItem.Text.ToString());
+
+
+                    }
+
+                }
+            }
+
+        }
+        FunPriInsertDebtCollectorRuleCardDataTable("", alistValues);
+
+
+
+        // --------- Clear the Drop Down values--------------------
+        // ---*******Begin * ********-------------- added by Irsath
+
+        pnlMappingdtls.Visible = true;
+        ArrayList Dummy = (ArrayList)ViewState["AL_AssetAcquisition"];
+        if (Dummy.Contains("Sales Person") && Dummy.Contains("DebtCollector"))
+        { Dummy.RemoveAt(Dummy.IndexOf("DebtCollector")); }
+        FunPriInsertDebtCollectorRuleCardDataTable("-1", Dummy);
+        RptControls.DataSource = Dummy;
+        RptControls.DataBind();
+
+        //---*******  End *********--------------
+
+
+        //alistValues.Clear();
+        //alistValues.Remove();
+
+    }
+
+    #region Load DropdownList
+    protected void FunProLoadLineOfBusiness()
+    {
+        ObjDictParams = new Dictionary<string, string>();
+        ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        ObjDictParams.Add("@User_ID", ObjUserInfo.ProUserIdRW.ToString());
+        if (PageMode == PageModes.Create)
+            ObjDictParams.Add("@Is_Active", "1");
+        ObjDictParams.Add("@Program_ID", "94");
+        if (PageMode == PageModes.Create)
+            ObjDictParams.Add("@Is_UserLobActive", "1");
+
+        ddlLineofBusiness.BindDataTable(SPNames.LOBMaster, ObjDictParams, false, new string[] { "LOB_ID", "LOB_CODE", "LOB_NAME" });
+        ddlLineofBusiness.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--ALL--", "0")));
+        if ((ddlLineofBusiness.Items.Count == 2) && (PageMode == PageModes.Create))
+        {
+            ddlLineofBusiness.Items.RemoveAt(0);
+            ddlLineofBusiness.SelectedIndex = 0;
+        }
+
+        ObjDictParams = null;
+    }
+    //protected void FunProLoadRegion()
+    //{
+    //    ObjDictParams = new Dictionary<string, string>();
+    //    ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+    //    ObjDictParams.Add("@User_ID", ObjUserInfo.ProUserIdRW.ToString());
+    //    if (PageMode == PageModes.Create)
+    //    ObjDictParams.Add("@Is_Active", "1");
+    //    ddlRegion.BindDataTable("S3G_Get_Region_Code", ObjDictParams, false ,new string[] { "Region_Id", "Region" });
+    //    ddlRegion.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--ALL--", "0")));
+    //    ObjDictParams = null;
+
+    //}
+    protected void FunProLoadBranch()
+    {
+        //ObjDictParams = new Dictionary<string, string>();
+        //ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        //ObjDictParams.Add("@User_ID", ObjUserInfo.ProUserIdRW.ToString());
+        //ObjDictParams.Add("@Program_ID", "94");
+        ////if (ddlRegion.SelectedIndex > 0)
+        ////    ObjDictParams.Add("@Region_id", Convert.ToString(ddlRegion.SelectedValue));
+        //if (ddlLineofBusiness.SelectedIndex > 0)
+        //    ObjDictParams.Add("@LOB_ID", Convert.ToString(ddlLineofBusiness.SelectedValue));
+
+        //if (PageMode == PageModes.Create)
+        //    ObjDictParams.Add("@Is_Active", "1");
+        //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, ObjDictParams, false, new string[] { "Location_ID", "Location_CODE", "Location_NAME" });
+        //ddlBranch.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--ALL--", "0")));
+        //if ((ddlBranch.Items.Count == 2) && (PageMode == PageModes.Create))
+        //{
+        //    ddlBranch.Items.RemoveAt(0);
+        //    ddlBranch.SelectedIndex = 0;
+        //}
+        ObjDictParams = null;
+    }
+    protected DataTable GetSequenceType(string intRemoveValue)
+    {
+        DataTable dtSequenceTypeDummy = null;
+        DataTable dtReturnTable = null;
+        DataView dvSearchView = null;
+
+        ObjDictParams = new Dictionary<string, string>();
+        ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        ObjDictParams.Add("@LookupType_Description", "DC_SEQUENCE_TYPE");
+        //dtSequenceTypeDummy = Utility.GetDefaultData(SPNames.LOBMaster, ObjDictParams);
+        dtSequenceTypeDummy = Utility.GetDefaultData("S3G_CLN_GetDebtCollectorRuleCardSequenceType", ObjDictParams);
+
+        // dvSearchView = new DataView(dtSequenceTypeDummy);
+        //dvSearchView.RowFilter = "[Branch_ID] NOT IN (" + intRemoveValue.ToString() + ")";
+        //dtReturnTable = dvSearchView.ToTable();      
+
+        return dtSequenceTypeDummy;
+
+    }
+    protected void FunProLoadSequence()
+    {
+        dtSequenceType = null;
+        dtSequenceType = GetSequenceType("0");
+        ddlSequenceType1.FillDataTable(dtSequenceType, "Lookup_Code", "Lookup_Description");
+        ddlSequenceType1.Items.Remove(ddlSequenceType1.Items.FindByValue("6"));
+
+        ddlSequenceType2.FillDataTable(dtSequenceType, "Lookup_Code", "Lookup_Description");
+        ddlSequenceType3.FillDataTable(dtSequenceType, "Lookup_Code", "Lookup_Description");
+        ddlSequenceType4.FillDataTable(dtSequenceType, "Lookup_Code", "Lookup_Description");
+        ddlSequenceType5.FillDataTable(dtSequenceType, "Lookup_Code", "Lookup_Description");
+        ddlSequenceType6.FillDataTable(dtSequenceType, "Lookup_Code", "Lookup_Description");
+        ////AssetAcquisition.Tabs[1].Enabled = false;
+        pnlMappingdtls.Visible = false;
+    }
+    protected void ddlLineofBusiness_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            pnlMappingdtls.Visible = false;
+            btnNext.Enabled = false;
+            //ddlRegion.ClearDropDownList();
+            //ddlBranch.ClearDropDownList();
+            // FunProLoadRegion();
+            FunProLoadBranch();
+            // ddlBranch.Enabled = false;
+            ddlSequenceType1.SelectedIndex = -1;
+            ddlSequenceType2.SelectedIndex = -1;
+            ddlSequenceType3.SelectedIndex = -1;
+            ddlSequenceType4.SelectedIndex = -1;
+            ddlSequenceType5.SelectedIndex = -1;
+            ddlSequenceType6.SelectedIndex = -1;
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = false;
+            ddlSequenceType3.Enabled = false;
+            ddlSequenceType4.Enabled = false;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+
+
+
+
+    //protected void ddlRegion_SelectedIndexChanged(object sender, EventArgs e)
+    //{
+    //    try
+    //    {
+
+    //        ddlBranch.Enabled = false;
+    //        pnlMappingdtls.Visible = false;
+    //        btnNext.Enabled = false;
+    //        ddlBranch.ClearDropDownList();
+    //        FunProLoadBranch();
+    //        ddlBranch.Enabled = true;
+    //        ddlSequenceType1.SelectedIndex = -1;
+    //        ddlSequenceType1.SelectedIndex = -1;
+    //        ddlSequenceType2.SelectedIndex = -1;
+    //        ddlSequenceType3.SelectedIndex = -1;
+    //        ddlSequenceType4.SelectedIndex = -1;
+    //        ddlSequenceType5.SelectedIndex = -1;
+    //        ddlSequenceType6.SelectedIndex = -1;
+    //        ddlSequenceType1.Enabled = true;
+    //        ddlSequenceType2.Enabled = false;
+    //        ddlSequenceType3.Enabled = false;
+    //        ddlSequenceType4.Enabled = false;
+    //        ddlSequenceType5.Enabled = false;
+    //        ddlSequenceType6.Enabled = false;
+    //        if (ddlRegion.SelectedItem.Text == "--ALL--")
+    //        {
+    //            ddlBranch.Enabled = false;
+    //        }
+
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        lblErrorMessage.Text = ex.Message;
+    //    }
+    //}
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+
+            pnlMappingdtls.Visible = false;
+            btnNext.Enabled = false;
+            ddlSequenceType1.SelectedIndex = -1;
+            ddlSequenceType1.SelectedIndex = -1;
+            ddlSequenceType2.SelectedIndex = -1;
+            ddlSequenceType3.SelectedIndex = -1;
+            ddlSequenceType4.SelectedIndex = -1;
+            ddlSequenceType5.SelectedIndex = -1;
+            ddlSequenceType6.SelectedIndex = -1;
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = false;
+            ddlSequenceType3.Enabled = false;
+            ddlSequenceType4.Enabled = false;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+
+    protected void ddlSequenceType1_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        intSelectedValue1 = Convert.ToInt32(ddlSequenceType1.SelectedValue);
+        ////AssetAcquisition.Tabs[1].Enabled = false;
+        pnlMappingdtls.Visible = false;
+        gvAssetAcquisition.DataSource = "";
+        gvAssetAcquisition.DataBind();
+        if (intSelectedValue1 == 0)
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = false;
+            ddlSequenceType3.Enabled = false;
+            ddlSequenceType4.Enabled = false;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+        }
+        else
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = false;
+            ddlSequenceType4.Enabled = false;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+
+        }
+
+        ddlSequenceType2.SelectedValue = "0";
+        ddlSequenceType3.SelectedValue = "0";
+        ddlSequenceType4.SelectedValue = "0";
+        ddlSequenceType5.SelectedValue = "0";
+        ddlSequenceType6.SelectedValue = "0";
+
+        FunPriCreateDebtCollectorRuleCardDataTable(1, intSelectedValue1);
+
+    }
+    protected void ddlSequenceType2_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        intSelectedValue2 = Convert.ToInt32(ddlSequenceType2.SelectedValue);
+        //AssetAcquisition.Tabs[1].Enabled = false;
+        pnlMappingdtls.Visible = false;
+        gvAssetAcquisition.DataSource = "";
+        gvAssetAcquisition.DataBind();
+        if (Convert.ToInt32(ddlSequenceType1.SelectedValue) == intSelectedValue2)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType2.SelectedValue = "0";
+            intSelectedValue2 = 0;
+        }
+        if (intSelectedValue2 == 0 || intSelectedValue2 == 6)  // Added By Thangam m on 15/May/2012 to fix UAT - DCR_105
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = false;
+            ddlSequenceType4.Enabled = false;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+        }
+        else
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = true;
+            ddlSequenceType4.Enabled = false;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+        }
+        ddlSequenceType3.SelectedValue = "0";
+        ddlSequenceType4.SelectedValue = "0";
+        ddlSequenceType5.SelectedValue = "0";
+        ddlSequenceType6.SelectedValue = "0";
+        FunPriCreateDebtCollectorRuleCardDataTable(2, intSelectedValue2);
+    }
+    protected void ddlSequenceType3_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        intSelectedValue3 = Convert.ToInt32(ddlSequenceType3.SelectedValue);
+        //AssetAcquisition.Tabs[1].Enabled = false;
+        pnlMappingdtls.Visible = false;
+        gvAssetAcquisition.DataSource = "";
+        gvAssetAcquisition.DataBind();
+        if (Convert.ToInt32(ddlSequenceType1.SelectedValue) == intSelectedValue3)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType3.SelectedValue = "0";
+            intSelectedValue3 = 0;
+        }
+        if (Convert.ToInt32(ddlSequenceType2.SelectedValue) == intSelectedValue3)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType3.SelectedValue = "0";
+            intSelectedValue3 = 0;
+        }
+
+        if (intSelectedValue3 == 0 || intSelectedValue3 == 6)  // Added By Thangam m on 15/May/2012 to fix UAT - DCR_105
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = true;
+            ddlSequenceType4.Enabled = false;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+        }
+        else
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = true;
+            ddlSequenceType4.Enabled = true;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+        }
+        ddlSequenceType4.SelectedValue = "0";
+        ddlSequenceType5.SelectedValue = "0";
+        ddlSequenceType6.SelectedValue = "0";
+        FunPriCreateDebtCollectorRuleCardDataTable(3, intSelectedValue3);
+    }
+    protected void ddlSequenceType4_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        intSelectedValue4 = Convert.ToInt32(ddlSequenceType4.SelectedValue);
+        gvAssetAcquisition.DataSource = "";
+        gvAssetAcquisition.DataBind();
+        //AssetAcquisition.Tabs[1].Enabled = false;
+        pnlMappingdtls.Visible = false;
+        if (Convert.ToInt32(ddlSequenceType1.SelectedValue) == intSelectedValue4)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType4.SelectedValue = "0";
+            intSelectedValue4 = 0;
+        }
+        if (Convert.ToInt32(ddlSequenceType2.SelectedValue) == intSelectedValue4)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType4.SelectedValue = "0";
+            intSelectedValue4 = 0;
+        }
+        if (Convert.ToInt32(ddlSequenceType3.SelectedValue) == intSelectedValue4)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType4.SelectedValue = "0";
+            intSelectedValue4 = 0;
+        }
+
+        if (intSelectedValue4 == 0 || intSelectedValue4 == 6)  // Added By Thangam m on 15/May/2012 to fix UAT - DCR_105
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = true;
+            ddlSequenceType4.Enabled = true;
+            ddlSequenceType5.Enabled = false;
+            ddlSequenceType6.Enabled = false;
+        }
+        else
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = true;
+            ddlSequenceType4.Enabled = true;
+            ddlSequenceType5.Enabled = true;
+            ddlSequenceType6.Enabled = false;
+        }
+        ddlSequenceType5.SelectedValue = "0";
+        ddlSequenceType6.SelectedValue = "0";
+        FunPriCreateDebtCollectorRuleCardDataTable(4, intSelectedValue4);
+    }
+    protected void ddlSequenceType5_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        intSelectedValue5 = Convert.ToInt32(ddlSequenceType5.SelectedValue);
+        gvAssetAcquisition.DataSource = "";
+        gvAssetAcquisition.DataBind();
+        //AssetAcquisition.Tabs[1].Enabled = false;
+        pnlMappingdtls.Visible = false;
+        if (Convert.ToInt32(ddlSequenceType1.SelectedValue) == intSelectedValue5)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType5.SelectedValue = "0";
+            intSelectedValue5 = 0;
+        }
+
+        if (Convert.ToInt32(ddlSequenceType2.SelectedValue) == intSelectedValue5)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType5.SelectedValue = "0";
+            intSelectedValue5 = 0;
+        }
+        if (Convert.ToInt32(ddlSequenceType3.SelectedValue) == intSelectedValue5)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType5.SelectedValue = "0";
+            intSelectedValue5 = 0;
+        }
+
+        if (Convert.ToInt32(ddlSequenceType4.SelectedValue) == intSelectedValue5)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType5.SelectedValue = "0";
+            intSelectedValue5 = 0;
+        }
+
+        if (intSelectedValue5 == 0 || intSelectedValue5 == 6)  // Added By Thangam m on 15/May/2012 to fix UAT - DCR_105
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = true;
+            ddlSequenceType4.Enabled = true;
+            ddlSequenceType5.Enabled = true;
+            ddlSequenceType6.Enabled = false;
+        }
+        else
+        {
+            ddlSequenceType1.Enabled = true;
+            ddlSequenceType2.Enabled = true;
+            ddlSequenceType3.Enabled = true;
+            ddlSequenceType4.Enabled = true;
+            ddlSequenceType5.Enabled = true;
+            ddlSequenceType6.Enabled = true;
+        }
+        ddlSequenceType6.SelectedValue = "0";
+        FunPriCreateDebtCollectorRuleCardDataTable(5, intSelectedValue5);
+    }
+    protected void ddlSequenceType6_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        intSelectedValue6 = Convert.ToInt32(ddlSequenceType6.SelectedValue);
+        //AssetAcquisition.Tabs[1].Enabled = false;
+        pnlMappingdtls.Visible = false;
+        gvAssetAcquisition.DataSource = "";
+        gvAssetAcquisition.DataBind();
+        if (Convert.ToInt32(ddlSequenceType1.SelectedValue) == intSelectedValue6)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType6.SelectedValue = "0";
+            intSelectedValue6 = 0;
+        }
+
+        if (Convert.ToInt32(ddlSequenceType2.SelectedValue) == intSelectedValue6)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType6.SelectedValue = "0";
+            intSelectedValue6 = 0;
+        }
+        if (Convert.ToInt32(ddlSequenceType3.SelectedValue) == intSelectedValue6)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType6.SelectedValue = "0";
+            intSelectedValue6 = 0;
+        }
+        if (Convert.ToInt32(ddlSequenceType4.SelectedValue) == intSelectedValue6)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType6.SelectedValue = "0";
+            intSelectedValue6 = 0;
+        }
+        if (Convert.ToInt32(ddlSequenceType5.SelectedValue) == intSelectedValue6)
+        {
+            Utility.FunShowAlertMsg(Page, "Sequence Type already Selected");
+            ddlSequenceType6.SelectedValue = "0";
+            intSelectedValue6 = 0;
+        }
+        FunPriCreateDebtCollectorRuleCardDataTable(6, intSelectedValue6);
+    }
+
+    private void FunGetAssetAcquisitionDetails()
+    {
+        //AssetAcquisition_Create.Focus();
+        ObjLoanAdminAccMgtServicesClient = new ClnDebtMgtServicesClient();
+        try
+        {
+            ObjS3G_LOANAD_AssetAcquisitionDataTable = new ClnDebtMgtServices.S3G_CLN_DebtCollectorRuleCardDataTable();
+            ObjS3G_LOANAD_AssetAcquisitionRow = ObjS3G_LOANAD_AssetAcquisitionDataTable.NewS3G_CLN_DebtCollectorRuleCardRow();
+            ObjS3G_LOANAD_AssetAcquisitionRow.DebtCollectorRuleCard_ID = intROIRuleMasterID;
+            ObjS3G_LOANAD_AssetAcquisitionDataTable.AddS3G_CLN_DebtCollectorRuleCardRow(ObjS3G_LOANAD_AssetAcquisitionRow);
+
+            byte[] byteAssetAcquisition = ObjLoanAdminAccMgtServicesClient.FunPubQueryDebtCollectorRuleCard(SerMode, ClsPubSerialize.Serialize(ObjS3G_LOANAD_AssetAcquisitionDataTable, SerMode));
+
+            ObjS3G_LOANAD_AssetAcquisitionDataTable = new ClnDebtMgtServices.S3G_CLN_DebtCollectorRuleCardDataTable();
+            ObjS3G_LOANAD_AssetAcquisitionDataTable = (ClnDebtMgtServices.S3G_CLN_DebtCollectorRuleCardDataTable)ClsPubSerialize.DeSerialize(byteAssetAcquisition, SerMode, typeof(ClnDebtMgtServices.S3G_CLN_DebtCollectorRuleCardDataTable));
+
+
+
+            txtPaymentRuleNumber.Text = ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["DebtCollectorRuleCard_ID"].ToString();
+            ddlLineofBusiness.SelectedValue = ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["LOB_ID"].ToString();
+            //  ddlRegion.SelectedValue = ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["Region_ID"].ToString();
+            ddlBranch.SelectedValue = ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["Location_ID"].ToString();
+            txtEffectiveFrom.Text = DateTime.Parse(ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["RuleCardEffective_From"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+
+            string strsqnc = ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["Sequence_String"].ToString();
+
+            //strsqnc = strsqnc.Replace("DebtCollector", "DebtCollector Code");
+
+            string[] strSequenceTypes = strsqnc.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+
+            //string[] strSequenceTypes = ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["Sequence_String"].ToString().Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+
+
+            if (strSequenceTypes.Length >= 1)
+            {
+                if (strSequenceTypes[0] != null && !strSequenceTypes[0].Equals("DebtCollector"))
+                {
+                    ddlSequenceType1.Items.FindByText(strSequenceTypes[0]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 2)
+            {
+                if (strSequenceTypes[1] != null && !strSequenceTypes[1].Equals("DebtCollector"))
+                {
+                    ddlSequenceType2.Items.FindByText(strSequenceTypes[1]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 3)
+            {
+                if (strSequenceTypes[2] != null && !strSequenceTypes[2].Equals("DebtCollector"))
+                {
+                    ddlSequenceType3.Items.FindByText(strSequenceTypes[2]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 4)
+            {
+                if (strSequenceTypes[3] != null && !strSequenceTypes[3].Equals("DebtCollector"))
+                {
+                    ddlSequenceType4.Items.FindByText(strSequenceTypes[3]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 5)
+            {
+                if (strSequenceTypes[4] != null && !strSequenceTypes[4].Equals("DebtCollector"))
+                {
+                    ddlSequenceType5.Items.FindByText(strSequenceTypes[4]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 6)
+            {
+                if (strSequenceTypes[5] != null && !strSequenceTypes[5].Equals("DebtCollector"))
+                {
+                    ddlSequenceType6.Items.FindByText(strSequenceTypes[5]).Selected = true;
+                }
+            }
+
+            strsqnc = ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["Sequence_String"].ToString();
+
+            strsqnc = strsqnc.Replace("Product*", "Product*Product_ID*");
+            strsqnc = strsqnc.Replace("Category*", "Category*Category_ID*");
+            strsqnc = strsqnc.Replace("Period*", "Period*Period_ID*");
+
+            strsqnc = strsqnc.Replace("Value*", "Value*Value_ID*");
+
+            if ((PageMode == PageModes.Modify) || (PageMode == PageModes.Query))
+            {
+                strsqnc = strsqnc.Replace("Sales Person*", "Sales Person*Sales Person_ID*");
+            }
+            else
+                strsqnc = strsqnc.Replace("Sales_Person", "Sales Person");
+
+            strSequenceTypes = strsqnc.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+
+            ChkActive.Checked = Convert.ToBoolean(ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows[0]["Is_Active"]);
+            dtAssetAcquisition = new DataTable();
+            DataTable dt = new DataTable();
+            dtAssetAcquisition.Columns.Add("Asset_Serial_Number");
+            foreach (string strColumn in strSequenceTypes)
+            {
+                dtAssetAcquisition.Columns.Add(strColumn);
+                dt.Columns.Add(strColumn);
+            }
+
+
+            foreach (ClnDebtMgtServices.S3G_CLN_DebtCollectorRuleCardRow RuleCardRow in ObjS3G_LOANAD_AssetAcquisitionDataTable.Rows)
+            {
+
+                string[] strSequenceTypeValues = RuleCardRow["XMLParamtDCRuleCardDet"].ToString().Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+                //for(int i=0;i<=strSequenceTypeValues.Length;i++)
+                //{
+
+                //}
+                //strSequenceTypeValues = strSequenceTypeValues.ToString().Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+                DataRow drEmptyRow = dtAssetAcquisition.NewRow();
+                //drEmptyRow["Asset_Serial_Number"] = Convert.ToInt32(dtAssetAcquisition.Rows[dtAssetAcquisition.Rows.Count - 1]["Asset_Serial_Number"]) + 1;
+
+                for (int intColumn = 0; intColumn < strSequenceTypeValues.Length; intColumn++)
+                {
+                    //drEmptyRow[intColumn + 1] = strSequenceTypeValues[intColumn].ToString();
+                    drEmptyRow[intColumn + 1] = Convert.ToString(strSequenceTypeValues[intColumn]);
+                }
+                dtAssetAcquisition.Rows.Add(drEmptyRow);
+
+            }
+
+
+
+            gvAssetAcquisition.Visible = true;
+            FunPubBindAssetAcquisition(dtAssetAcquisition);
+            //gvAssetAcquisition.DataSource = dtAssetAcquisition;
+            //gvAssetAcquisition.DataBind();
+            ViewState["AssetAcquisition"] = dtAssetAcquisition;
+            //gvAssetAcquisition.FooterRow.Visible = false;
+            ViewState["sequencestrings"] = strSequenceTypes;
+
+
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            ObjLoanAdminAccMgtServicesClient.Close();
+        }
+    }
+    private void FunGetAssetAcquisitionDetails_QueryMode()
+    {
+        try
+        {
+            
+            Dictionary<String,String> DictParam = new Dictionary<String,String>();
+            DictParam.Clear();
+            DataTable dtR = new DataTable();
+            
+            DictParam.Add("@DebtCollectorRuleCard_ID", intROIRuleMasterID.ToString());
+           
+            dtR = Utility.GetDefaultData("S3G_CLN_GetDebtCollectorRuleCardDetails", DictParam);
+
+
+            txtPaymentRuleNumber.Text = dtR.Rows[0]["DebtCollectorRuleCard_ID"].ToString();
+
+            if (dtR.Rows[0]["LOB_ID"].ToString() != "")
+            {
+                ListItem LiB = new ListItem(dtR.Rows[0]["LOB_Name"].ToString(), dtR.Rows[0]["LOB_ID"].ToString());
+                ddlLineofBusiness.Items.Add(LiB);
+            }
+            else {
+                ListItem LiB = new ListItem("--ALL--", "0");
+                ddlLineofBusiness.Items.Add(LiB);
+            }
+            ddlLineofBusiness.SelectedValue = dtR.Rows[0]["LOB_ID"].ToString();
+
+            if (dtR.Rows[0]["Location_ID"].ToString() != "")
+            {
+                ddlBranch.SelectedValue=dtR.Rows[0]["Location_ID"].ToString();
+                ddlBranch.SelectedText=dtR.Rows[0]["Location_Name"].ToString();
+            }
+            else
+            {
+                ddlBranch.SelectedText = "--All--";
+                ddlBranch.SelectedValue = "0";
+            }
+            
+            txtEffectiveFrom.Text = DateTime.Parse(dtR.Rows[0]["RuleCardEffective_From"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+
+            string strsqnc = dtR.Rows[0]["Sequence_String"].ToString();
+
+            //strsqnc = strsqnc.Replace("DebtCollector", "DebtCollector Code");
+
+            string[] strSequenceTypes = strsqnc.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+
+            //string[] strSequenceTypes = dtR.Rows[0]["Sequence_String"].ToString().Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+
+
+            if (strSequenceTypes.Length >= 1)
+            {
+                if (strSequenceTypes[0] != null && !strSequenceTypes[0].Equals("DebtCollector"))
+                {
+                    ddlSequenceType1.Items.FindByText(strSequenceTypes[0]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 2)
+            {
+                if (strSequenceTypes[1] != null && !strSequenceTypes[1].Equals("DebtCollector"))
+                {
+                    ddlSequenceType2.Items.FindByText(strSequenceTypes[1]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 3)
+            {
+                if (strSequenceTypes[2] != null && !strSequenceTypes[2].Equals("DebtCollector"))
+                {
+                    ddlSequenceType3.Items.FindByText(strSequenceTypes[2]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 4)
+            {
+                if (strSequenceTypes[3] != null && !strSequenceTypes[3].Equals("DebtCollector"))
+                {
+                    ddlSequenceType4.Items.FindByText(strSequenceTypes[3]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 5)
+            {
+                if (strSequenceTypes[4] != null && !strSequenceTypes[4].Equals("DebtCollector"))
+                {
+                    ddlSequenceType5.Items.FindByText(strSequenceTypes[4]).Selected = true;
+                }
+            }
+
+            if (strSequenceTypes.Length >= 6)
+            {
+                if (strSequenceTypes[5] != null && !strSequenceTypes[5].Equals("DebtCollector"))
+                {
+                    ddlSequenceType6.Items.FindByText(strSequenceTypes[5]).Selected = true;
+                }
+            }
+
+            strsqnc = dtR.Rows[0]["Sequence_String"].ToString();
+
+            strsqnc = strsqnc.Replace("Product*", "Product*Product_ID*");
+            strsqnc = strsqnc.Replace("Category*", "Category*Category_ID*");
+            strsqnc = strsqnc.Replace("Period*", "Period*Period_ID*");
+
+            strsqnc = strsqnc.Replace("Value*", "Value*Value_ID*");
+
+            if ((PageMode == PageModes.Modify) || (PageMode == PageModes.Query))
+            {
+                strsqnc = strsqnc.Replace("Sales Person*", "Sales Person*Sales Person_ID*");
+            }
+            else
+                strsqnc = strsqnc.Replace("Sales_Person", "Sales Person");
+
+            strSequenceTypes = strsqnc.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+
+            ChkActive.Checked = Convert.ToBoolean(dtR.Rows[0]["Is_Active"]);
+            dtAssetAcquisition = new DataTable();
+            DataTable dt = new DataTable();
+            dtAssetAcquisition.Columns.Add("Asset_Serial_Number");
+            foreach (string strColumn in strSequenceTypes)
+            {
+                dtAssetAcquisition.Columns.Add(strColumn);
+                dt.Columns.Add(strColumn);
+            }
+
+
+            foreach (DataRow RuleCardRow in dtR.Rows)
+            {
+
+                string[] strSequenceTypeValues = RuleCardRow["XMLParamtDCRuleCardDet"].ToString().Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+                //for(int i=0;i<=strSequenceTypeValues.Length;i++)
+                //{
+
+                //}
+                //strSequenceTypeValues = strSequenceTypeValues.ToString().Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+                DataRow drEmptyRow = dtAssetAcquisition.NewRow();
+                //drEmptyRow["Asset_Serial_Number"] = Convert.ToInt32(dtAssetAcquisition.Rows[dtAssetAcquisition.Rows.Count - 1]["Asset_Serial_Number"]) + 1;
+
+                for (int intColumn = 0; intColumn < strSequenceTypeValues.Length; intColumn++)
+                {
+                    //drEmptyRow[intColumn + 1] = strSequenceTypeValues[intColumn].ToString();
+                    drEmptyRow[intColumn + 1] = Convert.ToString(strSequenceTypeValues[intColumn]);
+                }
+                dtAssetAcquisition.Rows.Add(drEmptyRow);
+
+            }
+
+
+
+            gvAssetAcquisition.Visible = true;
+            FunPubBindAssetAcquisition(dtAssetAcquisition);
+            //gvAssetAcquisition.DataSource = dtAssetAcquisition;
+            //gvAssetAcquisition.DataBind();
+            ViewState["AssetAcquisition"] = dtAssetAcquisition;
+            //gvAssetAcquisition.FooterRow.Visible = false;
+            ViewState["sequencestrings"] = strSequenceTypes;
+
+
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+    #endregion
+
+    #region UserRights
+    private void FunPriDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+                {
+                    FunPriValidationDefault(true, intModeID);
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    btnClear.Enabled = true;
+                    // ddlBranch.Enabled = false;
+                    ddlSequenceType1.Enabled = true;
+                    ddlSequenceType2.Enabled = false;
+                    ddlSequenceType3.Enabled = false;
+                    ddlSequenceType4.Enabled = false;
+                    ddlSequenceType5.Enabled = false;
+                    ddlSequenceType6.Enabled = false;
+                    ChkActive.Enabled = false;
+                    ddlLineofBusiness.Focus();
+                    txtPaymentRuleNumber.Enabled = false;
+                    if (!bCreate)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    break;
+                }
+            case 1: // Modify Mode
+                {
+                    FunPriValidationDefault(false, intModeID);
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    ChkActive.Enabled = true;
+                    btnNext.Enabled = false;
+                    btnClear.Enabled = false;
+                    pnlMappingdtls.Visible = true;
+                    gvAssetAcquisition.ShowFooter = true;
+                    if (!bModify)
+                    {
+                        btnSave.Enabled = false;
+                    }
+
+                    break;
+                }
+            case -1:// Query Mode
+                {
+                    if (!bQuery)
+                    {
+                        Response.Redirect(strRedirectPage,false);
+                    }
+                    FunPriValidationDefault(false, intModeID);
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    btnNext.Enabled = false;
+                    ChkActive.Enabled = false;
+                    btnClear.Enabled = false;
+                    btnSave.Enabled = false;
+                    ddlBranch.Enabled = false;
+                    pnlMappingdtls.Visible = true;
+                    gvAssetAcquisition.ShowFooter = false;
+                    break;
+                }
+        }
+    }
+    private void FunPriValidationDefault(bool blnFlag, int intModeID)
+    {
+        if ((intModeID == 1) || (intModeID == -1))
+        {
+            FunGetAssetAcquisitionDetails_QueryMode();        // Get Asset Acquisition Details
+        }
+        bool blnIsReadOnly = (intModeID == -1) ? true : false;
+        FunPriControlEnable(intModeID, blnIsReadOnly);
+    }
+    private void FunPriControlEnable(int intModeID, bool blnIsReadOnly)
+    {
+
+        string strProperty = "readonly";
+        ///Set readonly property to the controls
+        if (blnIsReadOnly)
+        {
+            ddlLineofBusiness.ClearDropDownList();
+            ddlBranch.Enabled = false;
+            //  ddlRegion.ClearDropDownList();
+
+            ddlSequenceType1.ClearDropDownList();
+            ddlSequenceType2.ClearDropDownList();
+            ddlSequenceType3.ClearDropDownList();
+            ddlSequenceType4.ClearDropDownList();
+            ddlSequenceType5.ClearDropDownList();
+            ddlSequenceType6.ClearDropDownList();
+        }
+        else
+        {
+        }
+        bool blnFlag = (intModeID > 0) ? false : true;
+        ///Set Enable or disable to the controls
+        txtPaymentRuleNumber.Enabled = blnFlag;
+        ddlLineofBusiness.Enabled = blnFlag;
+        ddlBranch.Enabled = blnFlag;
+        //ddlRegion.Enabled = blnFlag;
+        txtEffectiveFrom.Enabled = blnFlag;
+        ddlSequenceType1.Enabled = blnFlag;
+        ddlSequenceType2.Enabled = blnFlag;
+        ddlSequenceType3.Enabled = blnFlag;
+        ddlSequenceType4.Enabled = blnFlag;
+        ddlSequenceType5.Enabled = blnFlag;
+        ddlSequenceType6.Enabled = blnFlag;
+    }
+    #endregion
+
+    #region AcqDataTable
+    private ArrayList GetViewState()
+    {
+        return (ArrayList)ViewState["DT_AssetAcquisition"];
+    }
+    private ArrayList GetViewModState()
+    {
+        return (ArrayList)ViewState["AssetAcquisition"];
+    }
+    private void SetToViewState(ArrayList aListSequenceType)
+    {
+        ViewState["AL_AssetAcquisition"] = aListSequenceType;
+    }
+    private void FunPriCreateDebtCollectorRuleCardDataTable(int intTypeID, int intValue)
+    {
+        ArrayList alist = null;
+
+        if (intTypeID == 1)
+        {
+            if (intValue == 0)
+                SetToViewState(null);
+            else if (intValue > 0)
+            {
+                alist = new ArrayList();
+                alist.Add(ddlSequenceType1.SelectedItem.Text);
+                alist.Add(ddlSequenceType1.SelectedItem.Text + "_ID");
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+        }
+        else if (intTypeID == 2)
+        {
+            alist = new ArrayList();
+            alist.Add(ddlSequenceType1.SelectedItem.Text);
+            alist.Add(ddlSequenceType1.SelectedItem.Text + "_ID");
+            if (intValue == 0)
+            {
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+            else if (intValue > 0)
+            {
+                alist.Add(ddlSequenceType2.SelectedItem.Text);
+                alist.Add(ddlSequenceType2.SelectedItem.Text + "_ID");
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+        }
+        else if (intTypeID == 3)
+        {
+            alist = new ArrayList();
+            alist.Add(ddlSequenceType1.SelectedItem.Text);
+            alist.Add(ddlSequenceType1.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType2.SelectedItem.Text);
+            alist.Add(ddlSequenceType2.SelectedItem.Text + "_ID");
+            if (intValue == 0)
+            {
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+            else if (intValue > 0)
+            {
+                alist.Add(ddlSequenceType3.SelectedItem.Text);
+                alist.Add(ddlSequenceType3.SelectedItem.Text + "_ID");
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+        }
+
+        else if (intTypeID == 4)
+        {
+            alist = new ArrayList();
+            alist.Add(ddlSequenceType1.SelectedItem.Text);
+            alist.Add(ddlSequenceType1.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType2.SelectedItem.Text);
+            alist.Add(ddlSequenceType2.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType3.SelectedItem.Text);
+            alist.Add(ddlSequenceType3.SelectedItem.Text + "_ID");
+            if (intValue == 0)
+            {
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+            else if (intValue > 0)
+            {
+                alist.Add(ddlSequenceType4.SelectedItem.Text);
+                alist.Add(ddlSequenceType4.SelectedItem.Text + "_ID");
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+        }
+        else if (intTypeID == 5)
+        {
+            alist = new ArrayList();
+            alist.Add(ddlSequenceType1.SelectedItem.Text);
+            alist.Add(ddlSequenceType1.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType2.SelectedItem.Text);
+            alist.Add(ddlSequenceType2.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType3.SelectedItem.Text);
+            alist.Add(ddlSequenceType3.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType4.SelectedItem.Text);
+            alist.Add(ddlSequenceType4.SelectedItem.Text + "_ID");
+            if (intValue == 0)
+            {
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+            else if (intValue > 0)
+            {
+                alist.Add(ddlSequenceType5.SelectedItem.Text);
+                alist.Add(ddlSequenceType5.SelectedItem.Text + "_ID");
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+
+        }
+        else if (intTypeID == 6)
+        {
+            alist = new ArrayList();
+            alist.Add(ddlSequenceType1.SelectedItem.Text);
+            alist.Add(ddlSequenceType1.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType2.SelectedItem.Text);
+            alist.Add(ddlSequenceType2.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType3.SelectedItem.Text);
+            alist.Add(ddlSequenceType3.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType4.SelectedItem.Text);
+            alist.Add(ddlSequenceType4.SelectedItem.Text + "_ID");
+            alist.Add(ddlSequenceType5.SelectedItem.Text);
+            alist.Add(ddlSequenceType5.SelectedItem.Text + "_ID");
+            if (intValue == 0)
+            {
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+            else if (intValue > 0)
+            {
+                alist.Add(ddlSequenceType6.SelectedItem.Text);
+                alist.Add(ddlSequenceType6.SelectedItem.Text + "_ID");
+                alist.Add("DebtCollector");
+                SetToViewState(alist);
+            }
+        }
+        if (alist != null)
+        {
+            if (alist.Contains("Pincode_ID"))
+            {
+                alist.Remove("Pincode_ID");
+            }
+        }
+
+        //for (int i = 0; i <= alist.Count - 1; i++)
+        //{
+        //    alist[i] = alist[i].ToString().Replace(" ", "_");
+        //}
+        // alist.Clear();
+    }
+    private DataTable FunPriGetAssetAcquisitionDataTable()
+    {
+        if (PageMode == PageModes.Create)
+        {
+            DataRow drEmptyRow;
+            if (ViewState["DT_AssetAcquisition"] == null)
+            {
+                dtAssetAcquisition = new DataTable();
+                dtAssetAcquisition.Columns.Add("Asset_Serial_Number");
+                ViewState["DT_AssetAcquisition"] = dtAssetAcquisition;
+
+            }
+            dtAssetAcquisition = (DataTable)ViewState["DT_AssetAcquisition"];
+            return dtAssetAcquisition;
+        }
+        else
+        {
+            DataRow drEmptyRow;
+            if (ViewState["AssetAcquisition"] == null)
+            {
+                dtAssetAcquisition = new DataTable();
+                dtAssetAcquisition.Columns.Add("Asset_Serial_Number");
+                ViewState["AssetAcquisition"] = dtAssetAcquisition;
+
+            }
+            dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+            return dtAssetAcquisition;
+        }
+
+
+    }
+    private DataTable FunPriGetDebtCollectorRuleCardDataTable(ArrayList alistColumns)
+    {
+
+        DataRow drEmptyRow;
+        if (ViewState["DT_AssetAcquisition"] == null)
+        {
+            dtAssetAcquisition = new DataTable();
+            dtAssetAcquisition.Columns.Add("Asset_Serial_Number");
+            foreach (string strColumn in alistColumns)
+            {
+                dtAssetAcquisition.Columns.Add(strColumn);
+            }
+            ViewState["DT_AssetAcquisition"] = dtAssetAcquisition;
+        }
+        dtAssetAcquisition = (DataTable)ViewState["DT_AssetAcquisition"];
+
+        return dtAssetAcquisition;
+    }
+
+    private void FunPriInsertDebtCollectorRuleCardDataTable(string strSequenceType_ID, ArrayList alistColumns)
+    {
+        DataRow drEmptyRow;
+        dtAssetAcquisition = FunPriGetDebtCollectorRuleCardDataTable(alistColumns);
+
+        dtsequences = FunPriGetDebtCollectorRuleCardDataTable(alistColumns);
+        if (strSequenceType_ID.Equals("-1"))
+        {
+            if (dtAssetAcquisition.Rows.Count == 0)
+            {
+                drEmptyRow = dtAssetAcquisition.NewRow();
+                drEmptyRow["Asset_Serial_Number"] = "0";
+                dtAssetAcquisition.Rows.Add(drEmptyRow);
+            }
+
+        }
+        else
+        {
+            string filterExpression = "";
+
+            if (dtAssetAcquisition.Columns.Contains("DebtCollector"))
+            {
+                for (int intColumn = 1; intColumn < (dtAssetAcquisition.Columns.Count - 1); intColumn++)
+                {
+                    filterExpression += "[" + dtAssetAcquisition.Columns[intColumn].Caption.ToString() + "] = '" + alistColumns[intColumn - 1].ToString() + "' and ";
+                }
+            }
+            else
+            {
+                for (int intColumn = 1; intColumn < (dtAssetAcquisition.Columns.Count - 2); intColumn++)
+                {
+                    filterExpression += "[" + dtAssetAcquisition.Columns[intColumn].Caption.ToString() + "] = '" + alistColumns[intColumn - 1].ToString() + "' and ";
+                }
+            }
+
+            filterExpression = filterExpression.Substring(0, filterExpression.Length - 4);
+            DataRow[] dtSuggestions = dtAssetAcquisition.Select(filterExpression);
+
+
+            if (dtSuggestions.Length > 0)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Record already exists.");
+                btnNext.Enabled = false;
+                return;
+            }
+
+
+            drEmptyRow = dtAssetAcquisition.NewRow();
+            drEmptyRow["Asset_Serial_Number"] = Convert.ToInt32(dtAssetAcquisition.Rows[dtAssetAcquisition.Rows.Count - 1]["Asset_Serial_Number"]) + 1;
+
+            for (int intColumn = 0; intColumn < alistColumns.Count; intColumn++)
+            {
+                drEmptyRow[intColumn + 1] = alistColumns[intColumn].ToString();
+            }
+            dtAssetAcquisition.Rows.Add(drEmptyRow);
+
+        }
+        if (dtAssetAcquisition.Rows.Count > 1)
+        {
+            if (dtAssetAcquisition.Rows[0]["Asset_Serial_Number"].Equals("0"))
+            {
+                dtAssetAcquisition.Rows[0].Delete();
+            }
+        }
+        ViewState["DT_AssetAcquisition"] = dtAssetAcquisition;
+        dtAssetAcquisition = FunPriGetAssetAcquisitionDataTable();
+        FunPubBindAssetAcquisition(dtAssetAcquisition);
+
+    }
+    private void FunPubBindAssetAcquisition(DataTable dtWorkflow)
+    {
+        DataTable DtBind = new DataTable();
+        DtBind = dtWorkflow.Copy();
+        for (int i = 0; i <= DtBind.Columns.Count - 1; i++)
+        {
+            if (DtBind.Columns[i].ColumnName.Contains("_ID"))
+            {
+                DtBind.Columns.RemoveAt(i);
+            }
+        }
+
+        gvAssetAcquisition.Visible = true;
+        if (PageMode == PageModes.Create)
+        {
+            gvAssetAcquisition.Columns[0].HeaderText = "Delete";
+        }
+        gvAssetAcquisition.DataSource = DtBind;
+        gvAssetAcquisition.DataBind();
+        btnNext.Enabled = false;
+
+        if (dtWorkflow.Rows[0]["Asset_Serial_Number"].Equals("0"))
+        {
+            gvAssetAcquisition.Rows[0].Visible = false;
+
+        }
+    }
+
+    protected void gvAssetAcquisition_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (PageMode == PageModes.Modify)
+        {
+            gvAssetAcquisition.ShowFooter = true;
+        }
+
+        gvAssetAcquisition.Visible = true;
+        e.Row.Cells[1].Visible = false;
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            LinkButton lnkRemove = e.Row.FindControl("lnkRemove") as LinkButton;
+            LinkButton lnkEdit = e.Row.FindControl("lnkEdit") as LinkButton;
+            // LinkButton lnkAdd = e.Row.FindControl("lnkEdit") as LinkButton;
+
+            if (PageMode == PageModes.Query)
+            {
+                //lnkRemove.Visible = false;
+                lnkRemove.Enabled = false;
+                lnkRemove.OnClientClick = null;
+                lnkEdit.Enabled = false;
+
+                //gvAssetAcquisition.FooterRow.Visible = false;
+
+            }
+            if (PageMode == PageModes.Create)
+            {
+                // lnkEdit.Enabled = false;
+                lnkEdit.Visible = false;
+
+
+            }
+        }
+    }
+
+    protected void gvAssetAcquisition_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        gvAssetAcquisition.Visible = true;
+
+
+        if (e.CommandName == "Add")
+        {
+            //Dictionary<string, object> alValues = ViewState["AL_FooterControl"] as Dictionary<string, object>;
+            for (int intCellsCount = 2; intCellsCount < gvAssetAcquisition.FooterRow.Cells.Count; intCellsCount++)
+            {
+                LinkButton lnkAdd = gvAssetAcquisition.FooterRow.FindControl("lnkAdd") as LinkButton;
+                string mm = lnkAdd.ClientID.ToString().Substring(0, lnkAdd.ClientID.LastIndexOf('_') + 1) + "ctl0" + (intCellsCount - 1).ToString();
+                DropDownList ddlCellCount = gvAssetAcquisition.FooterRow.FindControl(mm) as DropDownList;
+
+            }
+
+
+        }
+
+    }
+    protected void gvAssetAcquisition_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        if (PageMode == PageModes.Create)
+        {
+            dtAssetAcquisition = (DataTable)ViewState["DT_AssetAcquisition"];
+        }
+        else
+        {
+            dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+            if (dtAssetAcquisition.Rows.Count == 1)
+            {
+                Utility.FunShowAlertMsg(this, "Atleast one mapping details should be available");
+                btnNext.Enabled = false;
+                return;
+            }
+        }
+
+        //dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+        //dtAssetAcquisition = FunPriGetAssetAcquisitionDataTable();
+        dtAssetAcquisition.Rows.RemoveAt(e.RowIndex);
+
+        if (PageMode == PageModes.Create)
+        {
+            ViewState["DT_AssetAcquisition"] = dtAssetAcquisition;
+
+        }
+        else
+        {
+            ViewState["AssetAcquisition"] = dtAssetAcquisition;
+        }
+
+        dtAssetAcquisition = FunPriGetAssetAcquisitionDataTable();
+
+        if (dtAssetAcquisition.Rows.Count == 0)
+        {
+            ArrayList Dummy = new ArrayList();
+            //ArrayList Dummy = GetViewState();
+            Dummy = (ArrayList)ViewState["AL_AssetAcquisition"];
+            FunPriInsertDebtCollectorRuleCardDataTable("-1", Dummy);
+
+        }
+        else
+        {
+            FunPubBindAssetAcquisition(dtAssetAcquisition);
+        }
+        btnNext.Enabled = false;
+    }
+
+    protected void lnk_add_Click(object sender, EventArgs e)
+    {
+        // ModalPopupExtenderPassword.FindControl("btnModifyModal").Visible = false;
+        LinkButton lnk = (LinkButton)sender;
+        GridViewRow gvRow = (GridViewRow)lnk.Parent.Parent;
+        ViewState["growIndex"] = gvRow.RowIndex;
+        string[] arrtemp = (string[])ViewState["sequencestrings"];
+        int intcount = 0;
+        dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+        txtpincode.Visible = false;
+        ddlPeriod.Visible = false;
+        ddlProduct.Visible = false;
+        ddlcategory.Visible = false;
+        ddlvalue.Visible = false;
+        ddlsalesperson.Visible = false;
+        ddlDebtCollector.Visible = false;
+        lblpincode.Visible = false;
+        lblProduct.Visible = false;
+        lblPeriod.Visible = false;
+        lblcategory.Visible = false;
+        lblvalue.Visible = false;
+        lblsalesperson.Visible = false;
+        lblDebtCollector.Visible = false;
+        while (intcount < arrtemp.Length)
+        {
+            switch ((arrtemp[intcount].ToString()).ToLower())
+            {
+                case "pincode":
+                    txtpincode.Visible = true;
+                    lblpincode.Visible = true;
+                    FunPriLoadPincode();
+                    txtpincode.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--Select--", "0")));
+                    txtpincode.SelectedIndex = 0;
+                    //txtpincode.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Pincode"].ToString();
+                    break;
+                case "period":
+                    ddlPeriod.Visible = true;
+                    lblPeriod.Visible = true;
+                    ddlPeriod.Items.Clear();
+                    FunPriLoadPeriod(ddlPeriod);
+                    ddlPeriod.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--Select--", "0")));
+                    ddlPeriod.SelectedIndex = 0;
+                    //if (ddlPeriod.Items.Count == 0 || ddlPeriod.Items.Count == 1)
+                    //{
+                    //    ddlPeriod.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["Period"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["Period_ID"].ToString()));
+                    //}
+                    //ddlPeriod.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Period_ID"].ToString();
+
+                    break;
+                case "product":
+                    ddlProduct.Visible = true;
+                    lblProduct.Visible = true;
+                    FunPriLoadProduct(ddlProduct);
+                    ddlProduct.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--Select--", "0")));
+                    ddlProduct.SelectedIndex = 0;
+
+                    //ddlProduct.SelectedItem.Text= dtAssetAcquisition.Rows[gvRow.RowIndex]["Product"].ToString();
+                    //ddlProduct.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Product_ID"].ToString();
+
+                    break;
+                case "category":
+                    ddlcategory.Visible = true;
+                    lblcategory.Visible = true;
+                    FunPriLoadCategory(ddlcategory);
+                    ddlcategory.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--Select--", "0")));
+                    ddlcategory.SelectedIndex = 0;
+                    //if (ddlcategory.Items.Count == 0 || ddlcategory.Items.Count == 1)
+                    //{
+                    //    ddlcategory.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["Category"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["Category_ID"].ToString()));
+                    //}
+
+                    //ddlcategory.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Category_ID"].ToString();
+
+                    break;
+                case "value":
+                    ddlvalue.Visible = true;
+                    lblvalue.Visible = true;
+                    FunPriLoadValue(ddlvalue);
+                    ddlvalue.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--Select--", "0")));
+                    ddlvalue.SelectedIndex = 0;
+                    //if (ddlvalue.Items.Count == 0 || ddlvalue.Items.Count == 1)
+                    //{
+                    //    ddlvalue.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["Value"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["Value_ID"].ToString()));
+                    //}
+                    //ddlvalue.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Value_ID"].ToString();
+                    break;
+                case "sales person":
+                    ddlsalesperson.Visible = true;
+                    lblsalesperson.Visible = true;
+                    FunPriLoadSalesPerson(ddlsalesperson);
+                    ddlsalesperson.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--Select--", "0")));
+                    ddlsalesperson.SelectedIndex = 0;
+                    //if (ddlsalesperson.Items.Count == 0 || ddlsalesperson.Items.Count == 1)
+                    //{
+                    //    ddlsalesperson.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["Sales Person"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["Sales Person_ID"].ToString()));
+                    //}
+                    //ddlsalesperson.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Sales Person_ID"].ToString();
+                    break;
+                case "debtcollector":
+                    ddlDebtCollector.Visible = true;
+                    lblDebtCollector.Visible = true;
+                    ddlDebtCollector.Items.Clear();
+                    FunPriLoadDebtCollector(ddlDebtCollector);
+                    ddlDebtCollector.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--Select--", "0")));
+                    ddlDebtCollector.SelectedIndex = 0;
+                    //if (ddlDebtCollector.Items.Count == 0 || ddlDebtCollector.Items.Count == 1)
+                    //{
+                    //    ddlDebtCollector.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["DebtCollector"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["DebtCollector"].ToString()));
+                    //}
+                    //ddlDebtCollector.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["DebtCollector"].ToString();
+                    break;
+            }
+            intcount++;
+        }
+        if (ModalPopupExtenderPassword.Enabled == false)
+        {
+            ModalPopupExtenderPassword.Enabled = true;
+            ModalPopupExtenderPassword.FindControl("btnModifyModal").Visible = false;
+        }
+
+
+        ModalPopupExtenderPassword.Show();
+        btnModifyModal.Visible = false;
+        btnAddModal.Visible = true;
+        ViewState["DT_AssetModAcquisition"] = dtAssetAcquisition;
+        btnNext.Enabled = false;
+        //return dtAssetAcquisition;
+
+
+    }
+
+    protected void lnk_edit_Click(object sender, EventArgs e)
+    {
+        //ModalPopupExtenderPassword.FindControl("btnAddModal").Visible = false;
+        LinkButton lnk = (LinkButton)sender;
+        GridViewRow gvRow = (GridViewRow)lnk.Parent.Parent;
+        ViewState["growIndex"] = gvRow.RowIndex;
+        string[] arrtemp = (string[])ViewState["sequencestrings"];
+        int intcount = 0;
+        dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+        txtpincode.Visible = false;
+        ddlPeriod.Visible = false;
+        ddlProduct.Visible = false;
+        ddlcategory.Visible = false;
+        ddlvalue.Visible = false;
+        ddlsalesperson.Visible = false;
+        ddlDebtCollector.Visible = false;
+        lblpincode.Visible = false;
+        lblProduct.Visible = false;
+        lblPeriod.Visible = false;
+        lblcategory.Visible = false;
+        lblvalue.Visible = false;
+        lblsalesperson.Visible = false;
+        lblDebtCollector.Visible = false;
+        while (intcount < arrtemp.Length)
+        {
+            switch ((arrtemp[intcount].ToString()).ToLower())
+            {
+                case "pincode":
+                    txtpincode.Visible = true;
+                    lblpincode.Visible = true;
+                    FunPriLoadPincode();
+                    txtpincode.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Pincode"].ToString();
+
+                    break;
+                case "period":
+                    ddlPeriod.Visible = true;
+                    lblPeriod.Visible = true;
+                    ddlPeriod.Items.Clear();
+                    FunPriLoadPeriod(ddlPeriod);
+                    //if (ddlPeriod.Items.Count == 0 || ddlPeriod.Items.Count == 1)
+                    //{
+                    //    ddlPeriod.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["Period"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["Period_ID"].ToString()));
+                    //}
+                    if (PageMode == PageModes.Modify)
+                    {
+                        ddlPeriod.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--Select--", "0")));
+                        ddlPeriod.SelectedIndex = 0;
+                    }
+                    if (dtAssetAcquisition.Rows[gvRow.RowIndex]["Period_ID"].ToString() !="")
+                        ddlPeriod.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Period_ID"].ToString();
+
+                    break;
+                case "product":
+                    ddlProduct.Visible = true;
+                    lblProduct.Visible = true;
+                    FunPriLoadProduct(ddlProduct);
+                    //ddlProduct.SelectedItem.Text= dtAssetAcquisition.Rows[gvRow.RowIndex]["Product"].ToString();
+                    if (dtAssetAcquisition.Rows[gvRow.RowIndex]["Product_ID"].ToString() !="")
+                        ddlProduct.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Product_ID"].ToString();
+
+                    break;
+                case "category":
+                    ddlcategory.Visible = true;
+                    lblcategory.Visible = true;
+                    FunPriLoadCategory(ddlcategory);
+                    //if (ddlcategory.Items.Count == 0 || ddlcategory.Items.Count == 1)
+                    //{
+                    //    ddlcategory.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["Category"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["Category_ID"].ToString()));
+                    //}
+
+                    if (dtAssetAcquisition.Rows[gvRow.RowIndex]["Category_ID"].ToString() !="")
+                        ddlcategory.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Category_ID"].ToString();
+
+                    break;
+                case "value":
+                    ddlvalue.Visible = true;
+                    lblvalue.Visible = true;
+                    FunPriLoadValue(ddlvalue);
+                    //if (ddlvalue.Items.Count == 0 || ddlvalue.Items.Count == 1)
+                    //{
+                    //    ddlvalue.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["Value"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["Value_ID"].ToString()));
+                    //}
+                    if (dtAssetAcquisition.Rows[gvRow.RowIndex]["Value_ID"].ToString() !="")
+                        ddlvalue.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Value_ID"].ToString();
+                    break;
+                case "sales person":
+                    ddlsalesperson.Visible = true;
+                    lblsalesperson.Visible = true;
+                    FunPriLoadSalesPerson(ddlsalesperson);
+                    //if (ddlsalesperson.Items.Count == 0 || ddlsalesperson.Items.Count == 1)
+                    //{
+                    //    ddlsalesperson.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["Sales Person"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["Sales Person_ID"].ToString()));
+                    //}
+                    if(dtAssetAcquisition.Rows[gvRow.RowIndex]["Sales Person_ID"].ToString() !="")
+                        ddlsalesperson.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["Sales Person_ID"].ToString();
+                    break;
+                case "debtcollector":
+                    ddlDebtCollector.Visible = true;
+                    lblDebtCollector.Visible = true;
+                    ddlDebtCollector.Items.Clear();
+                    FunPriLoadDebtCollector(ddlDebtCollector);
+                    //if (ddlDebtCollector.Items.Count == 0 || ddlDebtCollector.Items.Count == 1)
+                    //{
+                    //    ddlDebtCollector.Items.Add(new ListItem(dtAssetAcquisition.Rows[gvRow.RowIndex]["DebtCollector"].ToString(), dtAssetAcquisition.Rows[gvRow.RowIndex]["DebtCollector"].ToString()));
+                    //}
+                    ddlDebtCollector.SelectedValue = dtAssetAcquisition.Rows[gvRow.RowIndex]["DebtCollector"].ToString();
+                    break;
+            }
+            intcount++;
+        }
+        if (ModalPopupExtenderPassword.Enabled == false)
+        {
+            ModalPopupExtenderPassword.Enabled = true;
+            //Button btnAddModal = ModalPopupExtenderPassword.FindControl("btnAddModal");
+            //btnAddModal.Visible = false;
+
+
+        }
+
+
+        ModalPopupExtenderPassword.Show();
+        ViewState["DT_AssetModAcquisition"] = dtAssetAcquisition;
+        btnNext.Enabled = false;
+        btnModifyModal.Visible = true;
+        btnAddModal.Visible = false;
+        //return dtAssetAcquisition;
+
+
+    }
+
+    #endregion
+
+    #region Button (Save / Clear / Cancel)
+    /// <summary>
+    /// Save
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        lblErrorMessage.Text = "";
+        ObjLoanAdminAccMgtServicesClient = new ClnDebtMgtServicesClient();
+        try
+        {
+            if (intROIRuleMasterID == null || intROIRuleMasterID == "")
+            {
+                if (!FunPriGenerateAssetAcquisitionXMLDet())
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Please fill mapping details.");
+                    return;
+                }
+            }
+
+            ObjS3G_LOANAD_AssetAcquisitionDataTable = new ClnDebtMgtServices.S3G_CLN_DebtCollectorRuleCardDataTable();
+            ObjS3G_LOANAD_AssetAcquisitionRow = null;
+            ObjS3G_LOANAD_AssetAcquisitionRow = ObjS3G_LOANAD_AssetAcquisitionDataTable.NewS3G_CLN_DebtCollectorRuleCardRow();
+            ObjS3G_LOANAD_AssetAcquisitionRow.DebtCollectorRuleCard_ID = txtPaymentRuleNumber.Text.ToString();
+            ObjS3G_LOANAD_AssetAcquisitionRow.Company_ID = ObjUserInfo.ProCompanyIdRW;
+            ObjS3G_LOANAD_AssetAcquisitionRow.LOB_ID = Convert.ToInt32(ddlLineofBusiness.SelectedValue);
+            //ObjS3G_LOANAD_AssetAcquisitionRow.Region_ID = Convert.ToInt32(Null);
+            ObjS3G_LOANAD_AssetAcquisitionRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            //ObjS3G_LOANAD_AssetAcquisitionRow.RuleCardEffective_From = Utility.StringToDate(txtEffectiveFrom.Text);
+            ObjS3G_LOANAD_AssetAcquisitionRow.RuleCardEffective_From = DateTime.Now;
+
+            ArrayList Dummy = new ArrayList();
+            //if (PageMode == PageModes.Create)
+            //Dummy = GetViewState();            
+            Dummy = (ArrayList)ViewState["AL_AssetAcquisition"];
+            string strSequenceString = "";
+            if (intROIRuleMasterID == null || intROIRuleMasterID == "")
+            {
+                foreach (string strItem in Dummy)
+                {
+                    if (strItem.Contains("_ID"))
+                    {
+                        strSequenceString = strSequenceString;
+                    }
+                    else
+                        strSequenceString += strItem + "*";
+                }
+            }
+            ObjS3G_LOANAD_AssetAcquisitionRow.Sequence_String = strSequenceString;
+            ObjS3G_LOANAD_AssetAcquisitionRow.RuleCardActive_Flag = ChkActive.Checked;
+            ObjS3G_LOANAD_AssetAcquisitionRow.Created_By = ObjUserInfo.ProUserIdRW;
+            ObjS3G_LOANAD_AssetAcquisitionRow.Modified_By = ObjUserInfo.ProUserIdRW;
+            if (PageMode == PageModes.Create)
+            {
+                ObjS3G_LOANAD_AssetAcquisitionRow.XMLParamtDebtCollectorRuleCardDet = strXMLAssetAcquisitionDet;
+            }
+            else
+            {
+                FunPriGenerateAssetAcquisitionXMLDet();
+                ObjS3G_LOANAD_AssetAcquisitionRow.XMLParamtDebtCollectorRuleCardDet = strXMLAssetAcquisitionDet;
+            }
+            ObjS3G_LOANAD_AssetAcquisitionRow.Txn_ID = 1;
+            ObjS3G_LOANAD_AssetAcquisitionDataTable.AddS3G_CLN_DebtCollectorRuleCardRow(ObjS3G_LOANAD_AssetAcquisitionRow);
+
+
+            if (intROIRuleMasterID == null || intROIRuleMasterID == "")
+            {
+                intErrCode = ObjLoanAdminAccMgtServicesClient.FunPubCreateDebtCollectorRuleCard(SerMode, ClsPubSerialize.Serialize(ObjS3G_LOANAD_AssetAcquisitionDataTable, SerMode));
+            }
+
+            else if (intROIRuleMasterID != null || intROIRuleMasterID != "")
+            {
+                intErrCode = ObjLoanAdminAccMgtServicesClient.FunPubModifyDebtCollectorRuleCard(SerMode, ClsPubSerialize.Serialize(ObjS3G_LOANAD_AssetAcquisitionDataTable, SerMode));
+                //string strXMLAssetAcquisitionAvailabilityDet = gvAssetAcquisitionAvailability.FunPubFormXml().Replace("%", "");
+            }
+            if (intErrCode == -1)
+            {
+                strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoNotDefined);
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                return;
+            }
+            else if (intErrCode == -2)
+            {
+                strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoExceeds);
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                return;
+            }
+
+
+            else if (intErrCode == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                if (intROIRuleMasterID == null || intROIRuleMasterID == "")
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card added successfully", strRedirectPageView);
+                }
+                else if (intROIRuleMasterID != null || intROIRuleMasterID != "")
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card updated successfully", strRedirectPageView);
+                }
+            }
+            switch (intErrCode)
+            {
+                case 8:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card for selected combination is already exists", strRedirectPageView);
+                        return;
+
+                    }
+                case 9:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card exists at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 10:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card cannot created at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 11:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Record already exist for the Same Line of Business", strRedirectPageView);
+                        return;
+
+                    }
+                case 12:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Company Level so it cannot created at Line of Business Level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 13:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard cannot created at Line of Business Level already exist with region level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 14:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Record already available at Line of Business and Location level", strRedirectPageView);
+                        return;
+
+                    }
+                case 15:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Record already exist for the Same Location", strRedirectPageView);
+                        return;
+
+                    }
+                // case 16:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard cannot created at Region Level already exist at Branch level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 17:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card cannot created at Location Level already exist at Line of Business level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 18:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard cannot created at Region Level already exist with Line of Business level", strRedirectPageView);
+                //    return;
+
+                //}
+                // case 19:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard cannot created at Region Level already exist with Line of Business level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 20:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Record already exist for the same Location  and Line of Business", strRedirectPageView);
+                        return;
+
+                    }
+                case 21:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Record already availabe at Company level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 22:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "Record already exist for the same Region and Line of Business", strRedirectPageView);
+                //    return;
+
+                //}
+                case 23:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Already available at Line of Buisness Level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 24:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already exist for Same Branch And Region Level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 25:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already defiend at company level", strRedirectPageView);
+                        return;
+
+                    }
+                case 26:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Record already defined at Location level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 27:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already available at Region Level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 28:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Line of Business Level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 29:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already exist for same Branch, Region and Line of Business Level ", strRedirectPageView);
+                //    return;
+
+                //}
+                case 30:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already defined at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 31:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard cannot be defined, already available at Region level", strRedirectPageView);
+                //    return;
+
+                //}
+                // case 32:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already available at Region and Branch Level", strRedirectPageView);
+                //    return;
+
+                //}
+                // case 33:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector already available at Region and Branch Level", strRedirectPageView);
+                //    return;
+
+                //}
+                // case 34:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already available at Region level", strRedirectPageView);
+                //    return;
+
+                //}
+                // case 35:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already available at Line of Business and Region Level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 36:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 37:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Location Level", strRedirectPageView);
+                        return;
+                    }
+                case 38:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Line of Busieness Level", strRedirectPageView);
+                        return;
+                    }
+                case 39:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Line of Busieness and Location Level", strRedirectPageView);
+                        return;
+                    }
+
+                case 40:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Location Level", strRedirectPageView);
+                        return;
+                    }
+                case 41:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Line of Business Level", strRedirectPageView);
+                        return;
+                    }
+                case 42:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already available at Line of Business Level", strRedirectPageView);
+                        return;
+                    }
+
+
+
+                // Modification  Mode
+                case 101:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card cannot be activated at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 102:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Active Debt Collector Rule Card already available at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 103:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card cannot be activated at Line of Business Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 104:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at same Location Level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 105:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already active at Branch Level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 106:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Line of Buisness Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 107:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Location Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 108:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 109:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already Active for the selected Combination", strRedirectPageView);
+                        return;
+
+                    }
+                case 110:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already Active at Line of Business", strRedirectPageView);
+                        return;
+
+                    }
+                case 111:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 112:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Line of Business Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 113:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Line of Business Level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 114:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already active at Region Level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 115:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Location Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 116:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active for the selected Combination", strRedirectPageView);
+                        return;
+
+                    }
+                case 117:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active for the same combination", strRedirectPageView);
+                        return;
+
+                    }
+                case 118:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 119:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already Active at Line of Business Level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 120:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already Active at Region Level", strRedirectPageView);
+                //    return;
+
+                //}
+                // case 121:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already active at Region and Branch Level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 122:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active for the selected Combination", strRedirectPageView);
+                        return;
+
+                    }
+                // case 123:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already active at Branch and Region Level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 124:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Company Level", strRedirectPageView);
+                        return;
+
+                    }
+                case 125:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card already active at Line of Business Level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 126:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "DebtCollector RuleCard already active at Region Level", strRedirectPageView);
+                //    return;
+
+                //}
+                case 127:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card cannot be activated at Line of Business already Active at Company level", strRedirectPageView);
+                        return;
+
+                    }
+                case 128:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card cannot be activated at Line of Business already active at Location level", strRedirectPageView);
+                        return;
+
+                    }
+                // case 130:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "The DebtCollector RuleCard cannot be activated at Line of Business already Active at Region or Branch level", strRedirectPageView);
+                //    return;
+                //}
+                case 131:
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Debt Collector Rule Card cannot be activated already available at Line of Business level", strRedirectPageView);
+                        return;
+                    }
+                // case 132:
+                //{
+                //    Utility.FunShowAlertMsg(this.Page, "The DebtCollector RuleCard cannot be activated at Region Level or Branch level, already Active at Line of Business level", strRedirectPageView);
+                //    return;
+                //}
+
+
+            }
+
+
+        }
+        catch (FaultException<AssetMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            ObjLoanAdminAccMgtServicesClient.Close();
+        }
+    }
+    /// <summary>
+    /// Clear
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+
+        /*  AssetAcquisition.ActiveTabIndex = 1;
+          AssetAcquisition.ActiveTab.Enabled = false;
+          AssetAcquisition.ActiveTabIndex = 0;*/
+
+        ddlLineofBusiness.SelectedIndex = -1;
+        //    ddlRegion.SelectedIndex = -1;
+        //ddlBranch.SelectedIndex = -1;
+        ddlBranch.Clear();
+        ddlSequenceType1.SelectedIndex = -1;
+        ddlSequenceType1.Enabled = true;
+        ddlSequenceType2.SelectedIndex = -1;
+        ddlSequenceType2.Enabled = false;
+        ddlSequenceType3.SelectedIndex = -1;
+        ddlSequenceType3.Enabled = false;
+        ddlSequenceType4.SelectedIndex = -1;
+        ddlSequenceType4.Enabled = false;
+        ddlSequenceType5.SelectedIndex = -1;
+        ddlSequenceType5.Enabled = false;
+        ddlSequenceType6.SelectedIndex = -1;
+        ddlSequenceType6.Enabled = false;
+        RptControls.Controls.Clear();
+        btnNext.Enabled = false;
+        pnlMappingdtls.Visible = false;
+        //ViewState["DT_AssetAcquisition"] = null;
+        //dtAssetAcquisition.Rows.Clear();
+        gvAssetAcquisition.Visible = false;
+
+    }
+    /// <summary>
+    /// Cancel
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPageView);
+
+    }
+    private bool FunPriGenerateAssetAcquisitionXMLDet()
+    {
+        ArrayList columnsname;
+
+        if (PageMode == PageModes.Create)
+        {
+            dtAssetAcquisition = (DataTable)ViewState["DT_AssetAcquisition"];
+            //columnsname = GetViewState();
+        }
+        else
+        {
+            dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+            //columnsname = GetViewModState();
+        }
+        if (dtAssetAcquisition == null)
+        {
+            return false;
+        }
+        if (dtAssetAcquisition.Rows.Count == 1)
+        {
+            if (dtAssetAcquisition.Rows[0]["Asset_Serial_Number"].ToString().Equals("0"))
+            {
+                return false;
+            }
+        }
+
+        strbAssetAcquisitionDet.Append("<Root>");
+        foreach (DataRow drow in dtAssetAcquisition.Rows)
+        {
+            strbAssetAcquisitionDet.Append("<Details ");
+
+
+            //for (int columnindex = 0; columnindex < columnsname.Count; columnindex++)
+            for (int columnindex = 0; columnindex < dtAssetAcquisition.Columns.Count; columnindex++)
+            {
+                //switch (columnsname[columnindex].ToString())
+                switch (dtAssetAcquisition.Columns[columnindex].Caption.ToString())
+                {
+                    case "DebtCollector":
+                        strbAssetAcquisitionDet.Append(" DebtCollector = '" + drow["DebtCollector"] + "'");
+                        break;
+                    case "Pincode":
+                        strbAssetAcquisitionDet.Append(" Pin_code = '" + drow["Pincode"] + "'");
+                        break;
+                    case "Product":
+                        strbAssetAcquisitionDet.Append(" Product_ID = '" + drow["Product_ID"] + "'");
+                        break;
+                    case "Period":
+                        strbAssetAcquisitionDet.Append(" Rule_Period = '" + drow["Period_ID"] + "'");
+                        break;
+                    case "Value":
+                        strbAssetAcquisitionDet.Append(" Rule_Value = '" + drow["VALUE_ID"] + "'");
+                        break;
+                    case "Category":
+                        strbAssetAcquisitionDet.Append(" Category_Type_Code = '" + "40" + "'");
+                        strbAssetAcquisitionDet.Append(" Category_Type = '" + drow["Category_ID"] + "'");
+                        break;
+                    case "Sales Person":
+                        strbAssetAcquisitionDet.Append(" Sale_Person_ID = '" + drow["Sales Person_ID"] + "'");
+                        break;
+
+                }
+            }
+            strbAssetAcquisitionDet.Append(" />");
+        }
+        strbAssetAcquisitionDet.Append("</Root>");
+        strXMLAssetAcquisitionDet = strbAssetAcquisitionDet.ToString();
+        return true;
+    }
+    //private bool FunPriGenerateAssetAcquisitionXMLModDet()
+    //{
+
+    //    dtAssetAcquisition = (DataTable)ViewState["AssetAcquisition"];
+
+    //    if (dtAssetAcquisition == null)
+    //    {
+    //        return false;
+    //    }
+
+    //    if (dtAssetAcquisition.Rows.Count == 1)
+    //    {
+    //        if (dtAssetAcquisition.Rows[0]["Asset_Serial_Number"].ToString().Equals("0"))
+    //        {
+    //            return false;
+    //        }
+    //    }
+
+
+    //    ArrayList columnsname = GetViewModState();
+    //    strbAssetAcquisitionModDet.Append("<Root>");
+
+
+    //    foreach (DataRow drow in dtAssetAcquisition.Rows)
+    //    {
+    //        strbAssetAcquisitionModDet.Append("<Details ");
+
+
+    //        for (int columnindex = 0; columnindex < columnsname.Count; columnindex++)
+    //        {
+    //            switch (columnsname[columnindex].ToString())
+    //            {
+    //                case "DebtCollector":
+    //                    strbAssetAcquisitionModDet.Append(" DebtCollector = '" + drow["DebtCollector"] + "'");
+    //                    break;
+    //                case "Pincode":
+    //                    strbAssetAcquisitionModDet.Append(" Pin_code = '" + drow["Pincode"] + "'");
+    //                    break;
+    //                case "Product":
+    //                    strbAssetAcquisitionModDet.Append(" Product_ID = '" + drow["Product_ID"] + "'");
+    //                    break;
+    //                case "Period":
+    //                    strbAssetAcquisitionModDet.Append(" Rule_Period = '" + drow["Period_ID"] + "'");
+    //                    break;
+    //                case "Value":
+    //                    strbAssetAcquisitionModDet.Append(" Rule_Value = '" + drow["VALUE_ID"] + "'");
+    //                    break;
+    //                case "Category":
+    //                    strbAssetAcquisitionModDet.Append(" Category_Type_Code = '" + "40" + "'");
+    //                    strbAssetAcquisitionModDet.Append(" Category_Type = '" + drow["Category_ID"] + "'");
+    //                    break;
+    //                case "Sales Person":
+    //                    strbAssetAcquisitionModDet.Append(" Sale_Person_ID = '" + drow["Sales Person_ID"] + "'");
+    //                    break;
+
+    //            }
+    //        }
+    //        strbAssetAcquisitionModDet.Append(" />");
+    //    }
+    //    strbAssetAcquisitionModDet.Append("</Root>");
+    //    strXMLAssetAcquisitionModDet = strbAssetAcquisitionModDet.ToString();
+    //    return true;
+    //}
+    #endregion
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "94");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLineofBusiness.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+
+}

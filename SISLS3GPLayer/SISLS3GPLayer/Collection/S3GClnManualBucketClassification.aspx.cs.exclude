@@ -1,0 +1,1328 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Collection
+/// Screen Name         :   Manual Bucket Classification
+/// Created By          :   M.Saran
+/// Created Date        :   NULL
+/// Purpose             :   To transfer the dues of a contract from one Debt Collector to another or from one category to another category.
+/// Last Updated By		:   NULL 
+/// Last Updated Date   :   NULL
+/// Reason              :   NULL
+/// <Program Summary>
+#endregion
+
+#region Namespaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Text;
+using System.Web.Security;
+using System.Web.UI.WebControls;
+using ClnReceivableMgtServicesReference;
+using S3GBusEntity;
+using S3GBusEntity.Collection;
+using System.Collections;
+using System.Web.UI;
+using System.Globalization;
+#endregion
+
+public partial class S3GClnManualBucketClassification : ApplyThemeForProject
+{
+
+    #region Variable Declaration Region
+    Dictionary<string, string> ObjDictParams = null;
+    UserInfo ObjUserInfo = new UserInfo();
+    S3GSession ObjS3GSession = new S3GSession();
+    SerializationMode SerMode = SerializationMode.Binary;
+    string strDateFormat;
+    StringBuilder strXMLBucketClassificationDet = new StringBuilder();
+    DataTable dtSequenceType = null;
+    DataSet DS = new DataSet();
+    int intSelectedValue1, intSelectedValue2, intSelectedValue3, intSelectedValue4, intSelectedValue5, intSelectedValue6;
+
+    string strDebtCollectorID;
+
+    string strLob = string.Empty;
+    string strLoc = string.Empty;
+
+    int intErrCode = 0;
+    decimal dectotalamount = 0;
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    int intCompanyID = 0;
+    //Code end
+
+    const string strvalidationmsgname = "CBC";
+
+    string strRedirectPage = "~/Collection/S3GClnManualBucketClassification.aspx";
+    string strRedirectPageView = "S3GClnManualBucketClassification_View.aspx";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    static string strPageName = "Manual Bucket Classification";
+    string strXMLBucketClassificationdetails = "<Root><Details Desc='0' /></Root>";
+    StringBuilder strBucketClassificationdetails = new StringBuilder();
+
+
+    ClnReceivableMgtServicesClient ObjClnReceivableMgtServicesClient = null;
+    ClnReceivableMgtServices.S3G_CLN_ManualBucketClassifcationDataTable ObjS3G_CLN_ManualBucketClassifcationDataTable = null;
+    ClnReceivableMgtServices.S3G_CLN_ManualBucketClassifcationRow ObjS3G_CLN_ManualBucketClassifcationRow = null;
+    ClnReceivableMgtServices.S3G_CLN_ManualBucketClassificationCategoryDataTable ObjS3G_CLN_ManualBucketClassificationCategoryDataTable = null;
+    ClnReceivableMgtServices.S3G_CLN_ManualBucketClassificationCategoryRow ObjS3G_CLN_ManualBucketClassificationCategoryRow = null;
+
+
+
+    DataTable dtContractdetails = null;
+    #endregion
+
+    #region Page Load
+
+    protected new void Page_PreInit(object sender, EventArgs e)
+    {
+        try
+        {
+            if (Request.QueryString["Popup"] != null)
+            {
+                this.Page.MasterPageFile = "~/Common/MasterPage.master";
+                UserInfo ObjUserInfo = new UserInfo();
+                this.Page.Theme = ObjUserInfo.ProUserThemeRW;
+            }
+            else
+            {
+                this.Page.MasterPageFile = "~/Common/S3GMasterPageCollapse.master";
+                UserInfo ObjUserInfo = new UserInfo();
+                this.Page.Theme = ObjUserInfo.ProUserThemeRW;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+        }
+    }
+    /// <summary>
+    /// This event is handled for load the page
+    /// </summary>
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Due to Data Problem, Unable to Load.";
+            CVBucketClassification.IsValid = false;
+        }
+
+    }
+    #endregion
+
+    #region Page Events
+
+    #region DropdownList and RadiobuttonList Events
+    /// <summary>
+    /// To get the LOB
+    /// </summary>
+
+    protected void ddlLob_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            /* DS = FunPriGetContracts();
+             if (DS.Tables[0].Rows.Count > 0)
+             {
+                 gvbucketclassification.DataSource = DS.Tables[0];
+                 gvbucketclassification.DataBind();
+                 UpdatePanel_ManualBucketgrid.Visible = true;
+                 ViewState["Bucketclassificationdetails"] = DS.Tables[0];
+             }
+             else
+             {
+                 gvbucketclassification.DataSource = null;
+                 gvbucketclassification.DataBind();
+                 UpdatePanel_ManualBucketgrid.Visible = false;
+                 Utility.FunShowAlertMsg(this, "No records found for the selected Line of Business");
+                 return;
+             }*/
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Due to Data Problem, Unable to Load the Grid.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+    private DataSet FunPriGetContracts()
+    {
+        ObjDictParams = new Dictionary<string, string>();
+        ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        ObjDictParams.Add("@Is_Category", rdnlChangeType.SelectedValue);
+        if (ddlLob.Visible && ddlLob.SelectedIndex > 0)
+            ObjDictParams.Add("@LOB_ID", ddlLob.SelectedValue);
+        if (ddlcategory.SelectedIndex > 0)
+            ObjDictParams.Add("@Lookup_Code", ddlcategory.SelectedValue);
+        if (ddlChangeCategory.SelectedIndex > 0)
+            ObjDictParams.Add("@Change_Category", ddlChangeCategory.SelectedValue);
+        ObjDictParams.Add("@DebtCollector_Code", strDebtCollectorID.ToString());
+        DS = Utility.GetDataset("S3G_CLN_GetDueDetailsCategory", ObjDictParams);
+        return DS;
+    }
+    /// <summary>
+    /// To get the Debtcollector details
+    /// </summary>
+
+    protected void ddlDebtCollector_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriGetDebitCollector();
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Due to Data Problem, Unable to Load the Grid.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+    /// <summary>
+    /// //Condition to enable LOB based on delinquent records
+    /// </summary>
+    protected void ddlChangeCategory_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriSetLOBVisibility();
+            FunPriloadFilterCategory();
+            FunPriResetGrid();
+            /* DS = FunPriGetContracts();
+             if (DS.Tables[0].Rows.Count > 0)
+             {
+                 gvbucketclassification.DataSource = DS.Tables[0];
+                 gvbucketclassification.DataBind();
+                 UpdatePanel_ManualBucketgrid.Visible = true;
+                 ViewState["Bucketclassificationdetails"] = DS.Tables[0];
+             }
+             else
+             {
+                 gvbucketclassification.DataSource = null;
+                 gvbucketclassification.DataBind();
+                 UpdatePanel_ManualBucketgrid.Visible = false;
+             }*/
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Due to Data Problem, Unable to Load.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+
+    /// <summary>
+    /// To get the category 
+    /// </summary>
+    protected void ddlcategory_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+
+            FunPriGetCategory();
+            //Condition to enable LOB based on delinquent records
+
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Due to Data Problem, Unable to Load the Grid.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// To change the type in modify mode
+    /// </summary>
+    protected void rdnlChangeType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriChangeType();
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Unable to Change.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// To change the type in query mode
+    /// </summary>
+    protected void rbltype_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriType();
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Unable to View.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+
+    #endregion
+
+    #region Grid Events
+
+    /// <summary>
+    /// To fix the GPS date format for Due_Date in Modify Mode.
+    /// </summary>
+
+    protected void gvbucketclassification_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblDue_Date = (Label)e.Row.FindControl("lblDue_Date");
+                if (lblDue_Date != null)
+                {
+                    if (lblDue_Date.Text != "")
+                    {
+                        lblDue_Date.Text = Convert.ToDateTime(lblDue_Date.Text).ToString(strDateFormat);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Unable to Change the GPS date format.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// To fix the GPS date format for Transfer_Date in Query Mode.
+    /// </summary>
+    protected void gvbucketclassificationQuery_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblTransfer_Date = (Label)e.Row.FindControl("lblTransfer_Date");
+                if (lblTransfer_Date != null)
+                {
+                    if (lblTransfer_Date.Text != "")
+                    {
+                        lblTransfer_Date.Text = Convert.ToDateTime(lblTransfer_Date.Text).ToString(strDateFormat);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            CVBucketClassification.ErrorMessage = "Unable to Change the GPS date format.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Button (Save / Clear / Cancel)
+
+    /// <summary>
+    /// Save
+    /// To reassign the Debtcollector and Category
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// 
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubManualBucketSave();
+
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassification.ErrorMessage = "Error in Saving.";
+            CVBucketClassification.IsValid = false;
+        }
+        finally
+        {
+            if (ObjClnReceivableMgtServicesClient != null)
+            {
+                ObjClnReceivableMgtServicesClient.Close();
+                //ObjS3G_CLN_ManualBucketClassifcationDataTable.Dispose();
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// To get the Grid Details
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// 
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+
+        try
+        {
+            if (rdnlChangeType.SelectedIndex >= 0)
+            {
+                DS = FunPriGetContracts();
+                if (DS.Tables[0].Rows.Count > 0)
+                {
+
+                    if (rdnlChangeType.SelectedValue == "1")//For category
+                    {
+                        gvbucketclassificationCategory.DataSource = DS.Tables[0];
+                        gvbucketclassificationCategory.DataBind();
+                        gvbucketclassificationCategory.Visible = true;
+                        gvbucketclassificationDebtcollector.DataSource = null;
+                        gvbucketclassificationDebtcollector.DataBind();
+                        gvbucketclassificationDebtcollector.Visible = false;
+                    }
+                    else if (rdnlChangeType.SelectedValue == "0")//For Debt Collector
+                    {
+                        gvbucketclassificationDebtcollector.DataSource = DS.Tables[0];
+                        gvbucketclassificationDebtcollector.DataBind();
+                        gvbucketclassificationDebtcollector.Visible = true;
+                        gvbucketclassificationCategory.DataSource = null;
+                        gvbucketclassificationCategory.DataBind();
+                        gvbucketclassificationCategory.Visible = false;
+                    }
+                    UpdatePanel_ManualBucketgrid.Visible = true;
+                    ViewState["Bucketclassificationdetails"] = DS.Tables[0];
+
+                }
+                else
+                {
+                    if (rdnlChangeType.SelectedValue == "1")//For category
+                    {
+                        gvbucketclassificationCategory.DataSource = null;
+                        gvbucketclassificationCategory.DataBind();
+                        gvbucketclassificationCategory.Visible = true;
+                        gvbucketclassificationDebtcollector.DataSource = null;
+                        gvbucketclassificationDebtcollector.DataBind();
+                        gvbucketclassificationDebtcollector.Visible = false;
+                    }
+                    else if (rdnlChangeType.SelectedValue == "0")//For Debt Collector
+                    {
+                        gvbucketclassificationDebtcollector.DataSource = null;
+                        gvbucketclassificationDebtcollector.DataBind();
+                        gvbucketclassificationDebtcollector.Visible = true;
+                        gvbucketclassificationCategory.DataSource = null;
+                        gvbucketclassificationCategory.DataBind();
+                        gvbucketclassificationCategory.Visible = false;
+                    }
+                    UpdatePanel_ManualBucketgrid.Visible = false;
+                    Utility.FunShowAlertMsg(this, "No records found for the selected combination");
+                    return;
+                }
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(this, "Select the \"Change To\" option");
+                return;
+            }
+
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassification.ErrorMessage = "Error in Clear.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+
+
+    /// <summary>
+    /// To Clear the Details
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// 
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+
+        try
+        {
+            //FunPriClearDetails();
+            FormsAuthenticationTicket formTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            //Response.Redirect(strRedirectPage + "?qsViewId=" + FormsAuthentication.Encrypt(formTicket) + "&qsMode=M");
+            strRedirectPage = strRedirectPage + "?qsViewId=" + FormsAuthentication.Encrypt(formTicket) + "&qsMode=M";
+            if (!string.IsNullOrEmpty(txtLOB.Text))
+                strRedirectPage += "&qsLob=" + txtLOB.Text;
+            if (!string.IsNullOrEmpty(txtBranch.Text))
+                strRedirectPage += "&qsLoc=" + txtBranch.Text;
+            Response.Redirect(strRedirectPage,false);
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassification.ErrorMessage = "Error in Clear.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// Cancel
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect(strRedirectPageView);
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassification.ErrorMessage = "Error in Saving.";
+            CVBucketClassification.IsValid = false;
+        }
+    }
+
+
+
+    #endregion
+
+    #endregion
+
+    # region Page Methods
+
+    /// <summary>
+    /// This Method is called when page is Loding
+    /// </summary>
+
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket formTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                strMode = Request.QueryString.Get("qsMode");
+                if (formTicket != null)
+                {
+                    strDebtCollectorID = formTicket.Name;
+                }
+            }
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            //Code end
+
+            if (!IsPostBack)
+            {
+
+                FunPriSetLOBLOC();
+                FunPriLoadDetails();
+                if ((strDebtCollectorID != "") && (strMode == "M")) // Modify
+                {
+                    FunPriDisableControls(1);
+                }
+                else                                            //((strDebtCollectorID != "") && (strMode == "Q")) // Query 
+                {
+                    FunPriDisableControls(-1);
+                }
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriSetLOBLOC()
+    {
+        try
+        {
+
+            if (Request.QueryString.Get("qsLob") != null)
+                txtLOB.Text = Request.QueryString.Get("qsLob");
+            if (Request.QueryString.Get("qsLoc") != null)
+                txtBranch.Text = Request.QueryString.Get("qsLoc");
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+
+    /// <summary>
+    /// This Method is used to load the Header/Grid/Dropdown Details
+    /// </summary>
+    private void FunPriLoadDetails()
+    {
+
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@DebtCollector_Code", strDebtCollectorID);
+            ObjDictParams.Add("@Company_ID", intCompanyID.ToString());
+            DS = Utility.GetDataset("S3G_CLN_GetManualBucketClassificationDueDetails", ObjDictParams);
+            if (DS.Tables[0].Rows.Count > 0)         //To Load Header Part
+            {
+                txtCurrentDebtCollector.Text = DS.Tables[0].Rows[0]["Code"].ToString();
+
+            }
+            if (DS.Tables[1].Rows.Count > 0)         //To Load Header Part
+            {
+                //txtBranch.Text = DS.Tables[1].Rows[0]["Branch"].ToString();
+                //txtBranch.Text = DS.Tables[1].Rows[0]["Location"].ToString();
+                //txtLOB.Text = DS.Tables[1].Rows[0]["LOB"].ToString();
+                txtDemandMonth.Text = DS.Tables[1].Rows[0]["Demand_Month"].ToString();
+                ViewState["lobid"] = DS.Tables[1].Rows[0]["LOB_ID"].ToString();
+                ViewState["branchid"] = DS.Tables[1].Rows[0]["Location_ID"].ToString();
+                ViewState["FromdemandDebitamt"] = Convert.ToDecimal(DS.Tables[1].Rows[0]["Demand_Month_Debit"]);
+                ViewState["FromdemandCreditamt"] = Convert.ToDecimal(DS.Tables[1].Rows[0]["Demand_Month_Credit"]);
+            }
+            if (DS.Tables[2].Rows.Count > 0)        // To Load DebitCollector dropdown
+            {
+                ddlDebtCollector.FillDataTable(DS.Tables[2], "Code", "Name");
+
+            }
+            if (DS.Tables[3].Rows.Count > 0)        //To Load Category dropdown
+            {
+                ddlcategory.FillDataTable(DS.Tables[3], "Lookup_Code", "Lookup_Description");
+                ddlChangeCategory.FillDataTable(DS.Tables[3], "Lookup_Code", "Lookup_Description");
+            }
+            /* if (strMode == "M")
+             {
+                 if (DS.Tables[4].Rows.Count > 0)
+                 {
+                     gvbucketclassification.DataSource = DS.Tables[4];
+                     gvbucketclassification.DataBind();
+                     ViewState["Bucketclassificationdetails"] = DS.Tables[4];
+                 }
+             }*/
+            //commented on 31-oct-2011 for changes raised in UAT bugs.
+            if (strMode == "Q")
+            {
+                txtDemandMonth.Text = "";
+                if (DS.Tables[4].Rows.Count > 0)
+                {
+                    gvbucketclassificationQuery.Columns[8].Visible = false;
+                    gvbucketclassificationQuery.Columns[9].Visible = false;
+                    ViewState["BucketclassificationQuerydetailsdebtcollector"] = DS.Tables[4];
+                    gvbucketclassificationQuery.DataSource = DS.Tables[4];
+                    gvbucketclassificationQuery.DataBind();
+                }
+                if (DS.Tables[5].Rows.Count > 0)
+                {
+                    ViewState["BucketclassificationQuerydetailscategory"] = DS.Tables[5];
+
+                }
+            }
+            ObjDictParams = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriGetDebitCollector()
+    {
+        try
+        {
+            if (ddlDebtCollector.SelectedIndex > 0)
+            {
+                ObjDictParams = new Dictionary<string, string>();
+                ObjDictParams.Add("@DebtCollector_Code", ddlDebtCollector.SelectedValue);
+                ObjDictParams.Add("@Company_ID", intCompanyID.ToString());
+                DS = Utility.GetDataset("S3G_CLN_GetManualBucketClassificationDueDetails", ObjDictParams);
+                if (DS.Tables[1].Rows.Count > 0)         //To get To Debtcollector details
+                {
+
+                    ViewState["TodemandDebitamt"] = Convert.ToDecimal(DS.Tables[1].Rows[0]["Demand_Month_Debit"]);
+                    ViewState["TodemandCreditamt"] = Convert.ToDecimal(DS.Tables[1].Rows[0]["Demand_Month_Credit"]);
+                }
+                else
+                {
+                    ViewState["TodemandDebitamt"] = 0;
+                    ViewState["TodemandCreditamt"] = 0;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriGetCategory()
+    {
+        try
+        {
+            /* gvbucketclassification.DataSource = null;
+             gvbucketclassification.DataBind();
+             DS = FunPriGetContracts();
+             if (DS.Tables[0].Rows.Count > 0)
+             {
+                 UpdatePanel_ManualBucketgrid.Visible = true;
+                 gvbucketclassification.DataSource = DS.Tables[0];
+                 gvbucketclassification.DataBind();
+             }
+             else
+             {
+
+                 if (ddlChangeCategory.SelectedIndex != -1)
+                 {
+                     //CBC_1
+                     //Utility.FunShowAlertMsg(this, "No records found for the selected category");
+                     UpdatePanel_ManualBucketgrid.Visible = false;
+                     Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 1);
+                     return;
+                 }
+             }*/
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriChangeType()
+    {
+        try
+        {
+            FunPriSetChangeType();
+            FunPriSetLOBVisibility();
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriSetChangeType()
+    {
+        if (rdnlChangeType.SelectedValue == "0")
+        {
+            lblDebtcollectorlist.Enabled = true;
+            ddlDebtCollector.Enabled = true;
+            RFVddlDebtCollector.Enabled = true;
+            RFVddlDebtCollector1.Enabled = true;
+            lblDebtcollectorlist.Attributes.Add("class", "styleReqFieldLabel");
+            RFVddlChangeCategory.Enabled = false;
+            RFVddlChangeCategory1.Enabled = false;
+            lblChangetocategory.Attributes.Add("class", "");
+            ddlDebtCollector.SelectedValue = "0";
+            ddlChangeCategory.SelectedValue = "0";//s3g to sfl - kuppu
+            ddlcategory.SelectedValue = "0";//s3g to sfl - kuppu
+            lblChangetocategory.Enabled = false;
+            ddlChangeCategory.Enabled = false;
+            ddlChangeCategory.Visible = false;
+            lblChangetocategory.Visible = false;
+            ddlDebtCollector.Visible = true;
+            lblDebtcollectorlist.Visible = true;
+
+        }
+        else
+        {
+            lblDebtcollectorlist.Enabled = false;
+            ddlDebtCollector.Enabled = false;
+            RFVddlDebtCollector.Enabled = false;
+            RFVddlDebtCollector1.Enabled = false;
+            lblDebtcollectorlist.Attributes.Add("class", "");
+            RFVddlChangeCategory.Enabled = true;
+            RFVddlChangeCategory1.Enabled = true;
+            lblChangetocategory.Enabled = true;
+            ddlChangeCategory.Enabled = true;
+            ddlChangeCategory.Visible = true;
+            lblChangetocategory.Visible = true;
+            ddlDebtCollector.Visible = false;
+            lblDebtcollectorlist.Visible = false;
+            lblChangetocategory.Attributes.Add("class", "styleReqFieldLabel");
+            ddlChangeCategory.SelectedValue = "0";
+            ddlcategory.SelectedValue = "0";//s3g to sfl - kuppu
+        }
+        FunPriResetGrid();
+    }
+
+    private void FunPriResetGrid()
+    {
+        try
+        {
+            gvbucketclassificationDebtcollector.DataSource = null;
+            gvbucketclassificationDebtcollector.DataBind();
+            gvbucketclassificationDebtcollector.Visible = false;
+            gvbucketclassificationCategory.DataSource = null;
+            gvbucketclassificationCategory.DataBind();
+            gvbucketclassificationCategory.Visible = false;
+            UpdatePanel_ManualBucketgrid.Visible = false;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriType()
+    {
+        try
+        {
+            if (rbltype.SelectedValue == "0")
+            {
+                gvbucketclassificationQuery.Columns[0].Visible = true;//s3g to sfl - kuppu - Aug-09
+                gvbucketclassificationQuery.Columns[3].Visible = true;
+                gvbucketclassificationQuery.Columns[4].Visible = true;
+                gvbucketclassificationQuery.Columns[6].Visible = true;//s3g to sfl - kuppu - Aug-09
+                gvbucketclassificationQuery.Columns[8].Visible = false;
+                gvbucketclassificationQuery.Columns[9].Visible = false;
+                if (ViewState["BucketclassificationQuerydetailsdebtcollector"] != null)
+                {
+                    DataTable dt = new DataTable();
+                    dt = (DataTable)ViewState["BucketclassificationQuerydetailsdebtcollector"];
+                    if (dt.Rows.Count > 0)
+                    {
+                        gvbucketclassificationQuery.DataSource = dt;
+                        gvbucketclassificationQuery.DataBind();
+                    }
+                    else
+                    {
+                        gvbucketclassificationQuery.DataSource = null;
+                        gvbucketclassificationQuery.DataBind();
+                    }
+                }
+                else
+                {
+                    gvbucketclassificationQuery.DataSource = null;
+                    gvbucketclassificationQuery.DataBind();
+                }
+
+            }
+            else
+            {
+                gvbucketclassificationQuery.Columns[0].Visible = false;//s3g to sfl - kuppu - Aug-09
+                gvbucketclassificationQuery.Columns[3].Visible = false;
+                gvbucketclassificationQuery.Columns[4].Visible = false;//s3g to sfl - kuppu - Aug-09
+                gvbucketclassificationQuery.Columns[6].Visible = false;
+                gvbucketclassificationQuery.Columns[8].Visible = true;
+                gvbucketclassificationQuery.Columns[9].Visible = true;
+                if (ViewState["BucketclassificationQuerydetailscategory"] != null)
+                {
+                    DataTable dt = new DataTable();
+                    dt = (DataTable)ViewState["BucketclassificationQuerydetailscategory"];
+                    if (dt.Rows.Count > 0)
+                    {
+                        gvbucketclassificationQuery.DataSource = dt;
+                        gvbucketclassificationQuery.DataBind();
+                    }
+                    else
+                    {
+                        gvbucketclassificationQuery.DataSource = null;
+                        gvbucketclassificationQuery.DataBind();
+                    }
+                }
+                else
+                {
+                    gvbucketclassificationQuery.DataSource = null;
+                    gvbucketclassificationQuery.DataBind();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    private void FunPriClearDetails()
+    {
+        try
+        {
+            ddlDebtCollector.SelectedIndex = -1;
+            ddlcategory.SelectedIndex = -1;
+            ddlChangeCategory.SelectedIndex = -1;
+            if (gvbucketclassificationDebtcollector != null && gvbucketclassificationDebtcollector.Rows.Count > 0)
+            {
+                foreach (GridViewRow grvContracts in gvbucketclassificationDebtcollector.Rows)
+                {
+                    CheckBox chkcontract = ((CheckBox)grvContracts.FindControl("chkselect"));
+                    chkcontract.Checked = false;
+                }
+            }
+            if (gvbucketclassificationCategory != null && gvbucketclassificationCategory.Rows.Count > 0)
+            {
+                foreach (GridViewRow grvContracts in gvbucketclassificationCategory.Rows)
+                {
+                    CheckBox chkcontract = ((CheckBox)grvContracts.FindControl("chkselect"));
+                    chkcontract.Checked = false;
+                }
+            }
+            //ddlcategory_SelectedIndexChanged(null, null);
+            FunPriSetLOBVisibility();
+            rdnlChangeType.SelectedIndex = -1;
+            ddlChangeCategory.Visible =
+            lblChangetocategory.Visible = false;
+            ddlDebtCollector.Visible =
+            lblDebtcollectorlist.Visible = true;
+            RFVddlDebtCollector.Enabled =
+            RFVddlDebtCollector1.Enabled =
+            RFVddlChangeCategory.Enabled =
+            RFVddlChangeCategory1.Enabled =
+            ddlDebtCollector.Enabled =
+            lblDebtcollectorlist.Enabled = false;
+
+            FunPriResetGrid();
+
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    private void FunPriGenerateXMLBucketClassificationDetails()
+    {
+        try
+        {
+            string strDue_Serial_Number = string.Empty;
+            string strPANum = string.Empty;
+            string strSANum = string.Empty;
+            string strDueDate = DateTime.Now.ToString();
+            string strDueAmount = string.Empty;
+            string strDueFlag = string.Empty;
+            string strDueFlagID = string.Empty;
+            string strCollection = string.Empty;
+            string strCategoryTypeCode = string.Empty;
+            string strCategoryType = string.Empty;
+            string strCategory = string.Empty;
+            string strDemandProcessID = string.Empty;
+            string strDueLinkKey = string.Empty;
+            CheckBox chkcontract = null;
+            int Rowcount = 0;
+            strXMLBucketClassificationDet.Append("<Root>");
+
+            GridView gvbucketclassification = new GridView();
+            if (gvbucketclassificationCategory.Visible)
+                gvbucketclassification = gvbucketclassificationCategory;
+            else if (gvbucketclassificationDebtcollector.Visible)
+                gvbucketclassification = gvbucketclassificationDebtcollector;
+
+            foreach (GridViewRow grvContracts in gvbucketclassification.Rows)
+            {
+                chkcontract = ((CheckBox)grvContracts.FindControl("chkselect"));
+                if (chkcontract.Checked)
+                {
+                    Rowcount = Rowcount + 1;
+                    strPANum = ((Label)grvContracts.FindControl("lblPANum")).Text;
+                    strSANum = ((Label)grvContracts.FindControl("lblSANum")).Text;
+
+                    //strCurrentInstallmentDue = ((Label)grvContracts.FindControl("lblCurrent_Installment_Due")).Text;
+                    //strArrearInstallmentDue = ((Label)grvContracts.FindControl("lblArrear_Installment_Due")).Text;
+                    strCollection = ((Label)grvContracts.FindControl("lblCollection")).Text;
+                    strCategoryTypeCode = ((Label)grvContracts.FindControl("lblCategory_Type_Code")).Text;
+                    strCategoryType = ((Label)grvContracts.FindControl("lblCategory_Type")).Text;
+                    strCategory = ((Label)grvContracts.FindControl("lblCategory")).Text;
+                    strDemandProcessID = ((Label)grvContracts.FindControl("lblDemand_Process_ID")).Text;
+                    strDueAmount = ((Label)grvContracts.FindControl("lblDue_Amount")).Text;
+                    if (gvbucketclassificationDebtcollector.Visible)
+                    {
+                        strDue_Serial_Number = ((Label)grvContracts.FindControl("lblDue_Serial_Number")).Text;
+                        strDueLinkKey = ((Label)grvContracts.FindControl("lblDue_Link_Key")).Text;
+                        strDueDate = ((Label)grvContracts.FindControl("lblDue_Date")).Text;
+                        strDueFlag = ((Label)grvContracts.FindControl("lblDue_Flag")).Text;
+                        strDueFlagID = ((Label)grvContracts.FindControl("lblDue_Flag_ID")).Text;
+                    }
+
+                    strXMLBucketClassificationDet.Append(" <Details Due_Serial_Number='" + strDue_Serial_Number +
+                                                                    "' PANum='" + strPANum +
+                                                                    "' SANum='" + strSANum +
+                                                                    "' Due_Date='" + Utility.StringToDate(strDueDate) +
+                                                                    "' Due_Amount='" + strDueAmount +
+                        //"' Current_Installment_Due='" + strCurrentInstallmentDue +
+                        //"' Arrear_Installment_Due='" + strArrearInstallmentDue +
+                                                                    "' Due_Flag_ID='" + strDueFlagID +
+                                                                    "' Due_Flag='" + strDueFlag +
+                                                                    "' Collection='" + strCollection +
+                                                                    "' Category_Type_Code='" + strCategoryTypeCode +
+                                                                    "' Category_Type='" + strCategoryType +
+                                                                    "' Category='" + strCategory +
+                                                                    "' Demand_Process_ID='" + strDemandProcessID +
+                                                                    "' Due_Link_Key='" + strDueLinkKey +
+                                                                    "' /> ");
+                    dectotalamount = dectotalamount + Convert.ToDecimal(strDueAmount);
+                }
+            }
+            strXMLBucketClassificationDet.Append("</Root>");
+            if (Rowcount == 0)
+            {
+                //CBC_2
+                //Utility.FunShowAlertMsg(this, "Select atleast one row to Reassign");
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 2);
+                return;
+            }
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    public void FunPubManualBucketSave()
+    {
+        try
+        {
+            ObjClnReceivableMgtServicesClient = new ClnReceivableMgtServicesClient();
+            if (ddlDebtCollector.Enabled)
+            {
+                if (ddlDebtCollector.SelectedIndex > 0)
+                {
+                    try
+                    {
+                        if (gvbucketclassificationDebtcollector.Rows.Count == 0)
+                        {
+                            //CBC_2
+                            //Utility.FunShowAlertMsg(this, "Select atleast one row to Reassign");
+                            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 2);
+                            return;
+                        }
+                        FunPriGenerateXMLBucketClassificationDetails();
+                        ObjS3G_CLN_ManualBucketClassifcationDataTable = new ClnReceivableMgtServices.S3G_CLN_ManualBucketClassifcationDataTable();
+                        ObjS3G_CLN_ManualBucketClassifcationRow = null;
+                        ObjS3G_CLN_ManualBucketClassifcationRow = ObjS3G_CLN_ManualBucketClassifcationDataTable.NewS3G_CLN_ManualBucketClassifcationRow();
+                        ObjS3G_CLN_ManualBucketClassifcationRow.Company_ID = ObjUserInfo.ProCompanyIdRW;
+                        ObjS3G_CLN_ManualBucketClassifcationRow.From_DebtCollector_Code = strDebtCollectorID.ToString();
+                        ObjS3G_CLN_ManualBucketClassifcationRow.To_DebtCollector_Code = ddlDebtCollector.SelectedValue.ToString();
+                        ObjS3G_CLN_ManualBucketClassifcationRow.Demand_Month = Convert.ToDecimal(txtDemandMonth.Text.ToString());
+                        ObjS3G_CLN_ManualBucketClassifcationRow.Transfer_Amount = dectotalamount;
+                        ObjS3G_CLN_ManualBucketClassifcationRow.Transfer_Date = System.DateTime.Now;
+                        ObjS3G_CLN_ManualBucketClassifcationRow.XMLDues = strXMLBucketClassificationDet.ToString();
+                        ObjS3G_CLN_ManualBucketClassifcationRow.DebtCollector_Code = strDebtCollectorID.ToString();
+                        decimal demandToDebitamount = 0;
+                        decimal demandFromDebitamount = 0;
+                        if (ViewState["TodemandDebitamt"] != null)
+                        {
+                            demandToDebitamount = dectotalamount + Convert.ToDecimal(ViewState["TodemandDebitamt"]);
+                        }
+                        if (ViewState["FromdemandDebitamt"] != null)
+                        {
+                            demandFromDebitamount = Convert.ToDecimal(ViewState["FromdemandDebitamt"]) - dectotalamount;
+                        }
+                        ObjS3G_CLN_ManualBucketClassifcationRow.OLD_Demand_Month_Debit = demandFromDebitamount;
+                        ObjS3G_CLN_ManualBucketClassifcationRow.OLD_Demand_Month_Credit = Convert.ToDecimal(ViewState["FromdemandCreditamt"]);
+                        ObjS3G_CLN_ManualBucketClassifcationRow.NEW_Demand_Month_Debit = demandToDebitamount;
+                        ObjS3G_CLN_ManualBucketClassifcationRow.NEW_Demand_Month_Credit = Convert.ToDecimal(ViewState["TodemandCreditamt"]);
+                        ObjS3G_CLN_ManualBucketClassifcationDataTable.AddS3G_CLN_ManualBucketClassifcationRow(ObjS3G_CLN_ManualBucketClassifcationRow);
+                        intErrCode = ObjClnReceivableMgtServicesClient.FunPubCreateManualBucketClassifcation(SerMode, ClsPubSerialize.Serialize(ObjS3G_CLN_ManualBucketClassifcationDataTable, SerMode));
+                        //intErrCode = 99;
+                        if (intErrCode == 0)
+                        {
+                            //To avoid double save click
+                            btnSave.Enabled = false;
+                            //End here
+
+                            //CBC_3
+                            //Utility.FunShowAlertMsg(this.Page, "DebtCollector Reassigned Successfully.", strRedirectPageView);
+                            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 3, strRedirectPageView);
+
+                        }
+                        else
+                        {
+                            //CBC_4
+                            //Utility.FunShowAlertMsg(this.Page, "Error in Reassigning DebtCollector.", strRedirectPageView);
+                            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 4);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+
+                        CVBucketClassification.ErrorMessage = "Error in Saving.";
+                        CVBucketClassification.IsValid = false;
+                    }
+                }
+                else
+                {
+                    //CBC_5
+                    // Utility.FunShowAlertMsg(this.Page, "Select the Change To Debit Collector.");
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 5);
+                    return;
+                }
+            }
+            else if (ddlChangeCategory.Enabled)
+            {
+                if (ddlChangeCategory.SelectedIndex > 0)
+                {
+                    if (ddlcategory.SelectedIndex == ddlChangeCategory.SelectedIndex)
+                    {
+                        //CBC_6
+                        //Utility.FunShowAlertMsg(this.Page, "Selected Category is already assigned for the Contract.");
+                        Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 6);
+                        return;
+                    }
+                    if (ddlChangeCategory.SelectedValue == "5")
+                    {
+                        if (!(ddlLob.Visible && ddlLob.SelectedIndex > 0))
+                        {
+                            Utility.FunShowAlertMsg(this.Page, "Select Line of business.");
+                            //Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 6);
+                            return;
+                        }
+                    }
+                    try
+                    {
+                        FunPriGenerateXMLBucketClassificationDetails();
+                        ObjS3G_CLN_ManualBucketClassificationCategoryDataTable = new ClnReceivableMgtServices.S3G_CLN_ManualBucketClassificationCategoryDataTable();
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow = null;
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow = ObjS3G_CLN_ManualBucketClassificationCategoryDataTable.NewS3G_CLN_ManualBucketClassificationCategoryRow();
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow.Company_ID = ObjUserInfo.ProCompanyIdRW;
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow.XMLDues = strXMLBucketClassificationDet.ToString();
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow.DebtCollector_Code = strDebtCollectorID.ToString();
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow.Demand_Month = Convert.ToDecimal(txtDemandMonth.Text.ToString());
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow.Category_Type = 40;
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow.User_Id = ObjUserInfo.ProUserIdRW;
+                        if (ddlLob.Visible && ddlLob.SelectedIndex > 0)
+                            ObjS3G_CLN_ManualBucketClassificationCategoryRow.Lob_Id = Convert.ToInt32(ddlLob.SelectedValue);
+                        ObjS3G_CLN_ManualBucketClassificationCategoryRow.Category_Code = Convert.ToInt32(ddlChangeCategory.SelectedValue);
+                        ObjS3G_CLN_ManualBucketClassificationCategoryDataTable.AddS3G_CLN_ManualBucketClassificationCategoryRow(ObjS3G_CLN_ManualBucketClassificationCategoryRow);
+                        intErrCode = ObjClnReceivableMgtServicesClient.FunPubModifyManualBucketClassifcationcategory(SerMode, ClsPubSerialize.Serialize(ObjS3G_CLN_ManualBucketClassificationCategoryDataTable, SerMode));
+
+                        if (intErrCode == 0)
+                        {
+                            //To avoid double save click
+                            btnSave.Enabled = false;
+                            //End here
+
+                            //CBC_7
+                            //Utility.FunShowAlertMsg(this.Page, "Category Reassigned Successfully.", strRedirectPageView);
+                            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 7, strRedirectPageView);
+
+                        }
+                        else
+                        {
+                            //CBC_8
+                            // Utility.FunShowAlertMsg(this.Page, "Error in Reassigning Category.", strRedirectPageView);
+                            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 8);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+
+                        CVBucketClassification.ErrorMessage = "Error in Saving.";
+                        CVBucketClassification.IsValid = false;
+                    }
+                }
+
+                else
+                {
+                    //CBC_9
+                    //Utility.FunShowAlertMsg(this.Page, "Select the Change To Category.");
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 9);
+                    return;
+                }
+            }
+            else
+            {
+                if (!((rdnlChangeType.Items[0].Selected) && (rdnlChangeType.Items[0].Selected)))
+                {
+                    //CBC_10
+                    //Utility.FunShowAlertMsg(this, "Select the change to option");
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 10);
+                    return;
+                }
+                else
+                {
+                    //CBC_11
+                    //Utility.FunShowAlertMsg(this, "You have not made any changes");
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 11);
+                    return;
+                }
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 1: // Modify Mode
+                    {
+                        if (!bModify)
+                        {
+                            btnSave.Enabled = false;
+                        }
+                        lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                        btnClear.Enabled = true;
+                        if (gvbucketclassificationQuery != null)
+                        {
+                            gvbucketclassificationQuery.Visible = false;
+                            ManualBucketgridPanelQuery.Visible = false;
+                        }
+                        break;
+                    }
+                case -1:// Query Mode
+                    {
+                        if (!bQuery)
+                        {
+                            Response.Redirect(strRedirectPage,false);
+                        }
+                        lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                        btnClear.Enabled = false;
+                        btnSave.Enabled = false;
+                        ChangetoPanel.Visible = false;
+                        lblfiltercategory.Visible = false;
+                        ddlcategory.Visible = false;
+                        lblDemandMonth.Visible = txtDemandMonth.Visible = false;
+                        if (gvbucketclassificationDebtcollector != null)
+                        {
+                            gvbucketclassificationDebtcollector.Visible = false;
+                            ManualBucketgridPanelModify.Visible = false;
+                        }
+                        if (gvbucketclassificationCategory != null)
+                        {
+                            gvbucketclassificationCategory.Visible = false;
+                            ManualBucketgridPanelModify.Visible = false;
+                        }
+                        break;
+                    }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    protected void FunProLoadLOB()
+    {
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            ObjDictParams.Add("@User_Id", Convert.ToString(ObjUserInfo.ProUserIdRW));
+            ObjDictParams.Add("@Program_Id", "102");
+            ObjDictParams.Add("@Is_Active", "1");
+            ddlLob.BindDataTable(SPNames.LOBMaster, ObjDictParams, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            ddlLob.SelectedValue = "3";
+            ObjDictParams = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+
+    private void FunPriloadFilterCategory()
+    {
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            ObjDictParams.Add("@Option", "3");
+            if (ddlChangeCategory.SelectedIndex > 0)
+                ObjDictParams.Add("@Change_Category", ddlChangeCategory.SelectedValue);
+            ddlcategory.BindDataTable("S3G_CLN_GetManualBucketClassificationDebtCollectorLists", ObjDictParams, new string[] { "Lookup_Code", "Lookup_Description" });
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriSetLOBVisibility()//Condition to check the delinq
+    {
+        try
+        {
+            if (ddlChangeCategory.SelectedIndex > 0)
+            {
+                if (ddlChangeCategory.SelectedValue == "5")
+                {
+                    ddlLob.Visible =
+                    lblLOB.Visible =
+                    RFVddlLOB1.Enabled =
+                    RFVddlLOB.Enabled = true;
+                    lblLOB.Attributes.Add("class", "styleReqFieldLabel");
+                    FunProLoadLOB();
+                }
+                else
+                {
+                    ddlLob.Visible =
+                    lblLOB.Visible =
+                    RFVddlLOB1.Enabled =
+                    RFVddlLOB.Enabled = false;
+                    lblLOB.Attributes.Add("class", "");
+                }
+            }
+            else
+            {
+
+                ddlLob.Visible =
+                lblLOB.Visible =
+                RFVddlLOB1.Enabled =
+                RFVddlLOB.Enabled = false;
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+
+    #endregion
+
+}

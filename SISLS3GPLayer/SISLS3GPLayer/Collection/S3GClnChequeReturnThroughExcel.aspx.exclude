@@ -1,0 +1,325 @@
+﻿<%@ Page Title="Cheque Return Through Excel Upload" Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true" CodeFile="S3GClnChequeReturnThroughExcel.aspx.cs" Inherits="Collection_S3GClnChequeReturnThroughExcel" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register Src="../UserControls/S3GCustomerAddress.ascx" TagName="S3GCustomerAddress"
+    TagPrefix="uc1" %>
+<%@ Register TagPrefix="uc2" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script language="javascript" type="text/javascript">
+        function fnCheckPageValidators_Extn(strValGrp, blnConfirm) {
+            if (Page_ClientValidate() == false) {
+                var iResult = "1";
+                for (i = 0; i < Page_Validators.length; i++) {
+                    val = Page_Validators[i];
+                    controlToValidate = val.getAttribute("controltovalidate");
+                    if (controlToValidate != undefined) {
+                        if (document.getElementById(controlToValidate) != null) {
+                            document.getElementById(controlToValidate).border = "1";
+                        }
+                    }
+                }
+
+                for (i = 0; i < Page_Validators.length; i++) { //For loop1
+                    val = Page_Validators[i];
+                    var isValidAttribute = val.getAttribute("isvalid");
+                    var controlToValidate = val.getAttribute("controltovalidate");
+                    if (controlToValidate != undefined) {
+                        if (strValGrp == undefined) {
+                            if (document.getElementById(controlToValidate) != null) {
+                                if (isValidAttribute == false) {
+
+                                    document.getElementById(controlToValidate).className = 'styleReqFieldFocus';
+                                    //This is to avoid not to validate control which is already in false state (valid attribute)
+                                    document.getElementById(controlToValidate).border = "0";
+                                    iResult = "0";
+                                }
+                                else if (document.getElementById(controlToValidate).border != "0") {
+                                    document.getElementById(controlToValidate).className = 'styleReqFieldDefalut';
+                                }
+                            }
+                        }
+
+                    }  //Undefined loop condition
+
+                } //For loop1 End
+                Page_BlockSubmit = false; ////Added by Kali on 12-Jun-2010 This function is used to solve issues
+                // Need twice click of cancel and clear button after validation summary is visible
+            } //
+            if (Page_ClientValidate(strValGrp)) {
+
+                if (blnConfirm == undefined) {
+                    if (confirm('Do you want to Revoke?')) {
+                        Page_BlockSubmit = false;
+                        //Added by Thangam M on 18/Oct/2012 to avoid double save click
+                        var a = event.srcElement;
+                        if (a.type == "submit") {
+                            a.style.display = 'none';
+                        }
+                        //End here
+                        return true;
+                    }
+                    else
+                        return false;
+                }
+                else {
+                    Page_BlockSubmit = false;
+                    //Added by Thangam M on 18/Oct/2012 to avoid double save click
+                    var a = event.srcElement;
+                    if (a.type == "submit") {
+                        a.style.display = 'none';
+                    }
+                    //End here
+                    return true;
+                }
+
+            }
+            else {
+                Page_BlockSubmit = false;
+
+                return false;
+            }
+
+        }
+        function fnLoadPath(btnBrowse) {
+            if (btnBrowse != null)
+                document.getElementById(btnBrowse).click();
+        }
+
+        function fnAssignPath(btnBrowse, hdnPath) {
+            if (btnBrowse != null)
+                document.getElementById(hdnPath).value = document.getElementById(btnBrowse).value;
+        }
+    </script>
+    <asp:UpdatePanel ID="UpdatePanel6" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td valign="top" class="stylePageHeading">
+                        <asp:Label runat="server" Text="Cheque Return Through Excel" ID="lblHeading" CssClass="styleDisplayLabel">
+                        </asp:Label>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign="top" align="center">
+                        <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td valign="top">
+                                    <table cellpadding="0" cellspacing="0" border=".5" width="100%">
+                                        <tr>
+                                            <td class="styleFieldLabel" colspan="2">
+                                                <table cellpadding="2" cellspacing="0" border="0" width="100%">
+                                                    <tr>
+                                                        <td>
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td width="100%">
+                                                                        <asp:Panel GroupingText="Upload Details" ID="pnlUploadDetails" runat="server"
+                                                                            CssClass="stylePanel">
+                                                                            <table width="100%">
+                                                                                <tr>
+                                                                                    <td class="styleFieldLabel" style="width: 297px">
+                                                                                        <asp:Label runat="server" Text="Upload Cheque Return Through Excel" ID="Label2">
+                                                                                        </asp:Label>
+
+                                                                                    </td>
+                                                                                    <td class="styleFieldAlign">
+                                                                                        <asp:Label ID="lblActualPath" runat="server" Visible="false"></asp:Label>
+                                                                                        <asp:Label ID="lblCurrentPath" runat="server" Visible="false" Text="" />
+                                                                                        <asp:HiddenField ID="hdnSelectedPath" runat="server" />
+                                                                                        <asp:Button ID="btnBrowse" runat="server" OnClick="btnBrowse_OnClick" CssClass="styleSubmitButton" Style="display: none"></asp:Button>
+                                                                                        <asp:CheckBox ID="chkSelect" runat="server" Text="" Enabled="false" />
+                                                                                        <asp:FileUpload runat="server" ID="flUpload" ToolTip="Upload File" />
+                                                                                        <asp:Button CssClass="styleSubmitButton" ID="btnDlg" runat="server" Text="Browse"
+                                                                                            Style="display: none" CausesValidation="false"></asp:Button>
+                                                                                        <asp:ImageButton ID="hyplnkView" OnClick="hyplnkView_Click" ImageUrl="~/Images/spacer.gif" CommandArgument=""
+                                                                                            CssClass="styleGridEditDisabled" runat="server" Enabled="false" />
+                                                                                        <asp:Label runat="server" ID="lblPath" Text="" Visible="false"></asp:Label>
+                                                                                        &nbsp;&nbsp;&nbsp;<asp:Button ID="btnGo" CssClass="styleSubmitShortButton" runat="server" Text="Show"
+                                                                                            OnClick="btnGo_Click" />
+                                                                                        &nbsp;&nbsp;&nbsp;
+                                                                                        <asp:Label ID="lblExcelCurrentPath" runat="server" Visible="true" Text="" ForeColor="Red" />
+                                                                                    </td>
+                                                                                </tr>
+                                                                                <tr align="center">
+                                                                                    <td align="center" colspan="3"></td>
+                                                                                </tr>
+                                                                            </table>
+
+                                                                        </asp:Panel>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <asp:Panel GroupingText="Receipt Status Level" ID="pnlUpload" runat="server" CssClass="stylePanel">
+                                                    <table>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="Label1" runat="server" Text="Receipt No. Status"></asp:Label>
+                                                            </td>
+                                                            <td colspan="2" class="styleFieldAlign">
+                                                                <asp:CheckBox ID="chkSuccess" AutoPostBack="true" Text="Valid" runat="server"
+                                                                    OnCheckedChanged="chkSuccess_CheckedChanged" />
+                                                                <%--<cc1:MutuallyExclusiveCheckBoxExtender ID="MutuallyExclusiveCheckBoxExtender2" TargetControlID="chkSuccess"
+                                                                    Key="1" runat="server">
+                                                                </cc1:MutuallyExclusiveCheckBoxExtender>--%>
+                                                                &nbsp;&nbsp;&nbsp;<asp:CheckBox ID="chkFail" Text="Invalid" runat="server" OnCheckedChanged="chkFail_CheckedChanged"
+                                                                    AutoPostBack="true" />
+                                                               <%-- <cc1:MutuallyExclusiveCheckBoxExtender ID="MutuallyExclusiveCheckBoxExtender1" TargetControlID="chkFail"
+                                                                    Key="1" runat="server">
+                                                                </cc1:MutuallyExclusiveCheckBoxExtender>--%>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </asp:Panel>
+
+                                            </td>
+
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <table style="width: 100%">
+                                                    <tr>
+                                                        <td >
+
+                                                            <asp:Panel ID="pnlGRDChqRtn" runat="server" GroupingText="Cheque Return Through Excel Information"
+                                                                Width="100%" Visible="false" CssClass="stylePanel" Style="height: 300px;" BorderColor="#77B6E9" BorderWidth="0">
+                                                                <div id="autoScroll" style="height: 280px; overflow: scroll; direction: inherit;"
+                                                                    runat="server">
+                                                                    <asp:GridView ID="grvUploadDetails" runat="server" AutoGenerateColumns="false"
+                                                                       Width="100%" HeaderStyle-CssClass="styleGridHeader" OnRowDataBound="grvUploadDetails_RowDataBound">
+                                                                        <Columns>
+                                                                            <asp:TemplateField HeaderText="Sl No." ItemStyle-Width="8%" ItemStyle-HorizontalAlign="Center">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblSNO" Text='<%# Bind("RowNumber")%>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Line Of Business" ItemStyle-Width="13%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblLobName" Text='<%# Bind("LOB_Name") %>' runat="server"></asp:Label>
+                                                                                    <asp:Label ID="lblLobId" Visible="false" Text='<%# Bind("LOB_ID") %>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Location" ItemStyle-Width="15%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblLocationName" Text='<%# Bind("LocationName") %>' runat="server"></asp:Label>
+                                                                                    <asp:Label ID="lblLocationId" Visible="false" Text='<%# Bind("Location_ID") %>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Receipt No" ItemStyle-Width="10%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblReceiptNo" Text='<%# Bind("Receipt_No") %>' runat="server"></asp:Label>
+                                                                                    <asp:Label ID="lblReceipt_ID" Visible="false" Text='<%# Bind("Receipt_ID")%>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Customer Code" ItemStyle-Width="10%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblCustCode" Text='<%# Bind("CUSTOMER_CODE") %>' runat="server"></asp:Label>
+                                                                                    <asp:Label ID="lblCustCode_ID" Visible="false" Text='<%# Bind("Customer_ID")%>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+
+                                                                            <asp:TemplateField HeaderText="Prime Account No" ItemStyle-Width="12%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblPanum" Text='<%# Bind("PANUM") %>' runat="server"></asp:Label>
+                                                                                    <asp:Label ID="lblPanum_ID" Visible="false" Text='<%# Bind("PANUM")%>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <%-- <asp:TemplateField HeaderText="Sub Account No" ItemStyle-Width="12%">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblSanum" Text='<%# Bind("SANUM") %>' runat="server"></asp:Label>
+                                                                               <asp:Label ID="lblSanum_ID" Visible="false" Text='<%# Bind("SANUM")%>' runat="server"></asp:Label>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>--%>
+
+                                                                            <asp:TemplateField HeaderText="Cheque Return Date" ItemStyle-Width="13%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblreturnDate" Text='<%# Bind("Return_Date") %>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Bank Charges" ItemStyle-Width="15%" ItemStyle-HorizontalAlign="Right">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblBankCharges" Text='<%# Bind("Bank_Charges") %>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Bank Advice No" ItemStyle-Width="15%" ItemStyle-HorizontalAlign="Right">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblBankAdviseNo" Text='<%# Bind("Bank_Advise_No") %>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Reason" ItemStyle-Width="45%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:TextBox ID="txtReason" runat="server" Text='<%# Bind("Reason") %>' TextMode="MultiLine" ReadOnly="true"
+                                                                                        Height="100%" Width="200px" onkeyDown="maxlengthfortxt(1000)" Columns="1000"></asp:TextBox>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Status" ItemStyle-Width="15%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:Label ID="lblStatus" Text='<%# Bind("ExStatus") %>' runat="server"></asp:Label>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+                                                                            <asp:TemplateField HeaderText="Invalid Reason" ItemStyle-Width="15%">
+                                                                                <ItemTemplate>
+                                                                                    <asp:TextBox ID="txtInvalidReason" runat="server" Text='<%# Bind("Invalid_Reason") %>' TextMode="MultiLine" ReadOnly="true"
+                                                                                        Height="100%" Width="200px" onkeyDown="maxlengthfortxt(1000)" Columns="1000"></asp:TextBox>
+                                                                                </ItemTemplate>
+                                                                            </asp:TemplateField>
+
+                                                                        </Columns>
+                                                                    </asp:GridView>
+                                                                </div>
+                                                            </asp:Panel>
+
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <caption>
+                    <br />
+                    <tr>
+                        <td align="center" colspan="5">
+                            <asp:Button ID="btnSave" runat="server" CssClass="styleSubmitButton" OnClick="btnSave_Click" OnClientClick="return fnCheckPageValidators();" Text="Process" ValidationGroup="btnSave" />
+                            <asp:Button ID="btnClear" runat="server" CausesValidation="False" CssClass="styleSubmitButton" OnClick="btnClear_Click" OnClientClick="return fnConfirmClear();" Text="Clear" />
+                            <asp:Button ID="btnCancel" runat="server" CausesValidation="False" CssClass="styleSubmitButton" OnClick="btnCancel_Click" Text="Cancel" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center">
+                            <asp:ValidationSummary ID="vsUTPA" runat="server" CssClass="styleMandatoryLabel" HeaderText="Please correct the following validation(s):" ShowSummary="true" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" colspan="4">
+                            <asp:CustomValidator ID="cvChequeReturn" runat="server" CssClass="styleMandatoryLabel" Enabled="true" Width="98%" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <asp:Button ID="Button1" runat="server" CausesValidation="false" CssClass="styleSubmitButton" Style="display: none;" Text="Print" />
+                        </td>
+                    </tr>
+                </caption>
+            </table>
+            </td> </tr> </table>
+        </ContentTemplate>
+        <Triggers>
+            <asp:PostBackTrigger ControlID="Button1" />
+            <asp:PostBackTrigger ControlID="btnSave" />
+            <asp:PostBackTrigger ControlID="btnBrowse" />
+        </Triggers>
+    </asp:UpdatePanel>
+
+</asp:Content>
+

@@ -1,0 +1,81 @@
+﻿using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Text;
+using org.jfree.data.time;
+using System.Data.SqlClient;
+
+public partial class CustomerDetails_Bar :ApplyThemeForProject
+{
+    public SqlConnection SqlConn;
+    public SqlCommand SqlComnd;
+    public SqlDataAdapter SqlDaAdp;
+    public DataSet DSQuery;
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        SqlConn = new SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["s3gconnectionstring"].ConnectionString);
+
+        string category = Request.Params["category"];
+        string series = Request.Params["series"];
+        string item = Request.Params["item"];
+        string pieIndex = Request.Params["pieIndex"];
+
+       
+        //TimeSeriesCollection TSC = (TimeSeriesCollection)Session["DS"];
+        //TimeSeriesDataItem ts = TSC.getSeries(Convert.ToInt32(series)).getDataItem(Convert.ToInt32(item));
+        //string Type = TSC.getSeries(Convert.ToInt32(series)).getKey().ToString();
+        //string MonthYear = ts.getPeriod().ToString();
+        //int Month = Convert.ToInt32(Convert.ToDateTime(MonthYear).Month);
+        //int year = Convert.ToInt32(Convert.ToDateTime(MonthYear).Year);
+        //int Days = Convert.ToInt32(DateTime.DaysInMonth(Convert.ToDateTime(MonthYear).Year, Convert.ToDateTime(MonthYear).Month));
+        //StartDate = Convert.ToDateTime(Month + "/" + "1" + "/" + year);
+        //EndDate = Convert.ToDateTime(Month + "/" + Days + "/" + year);
+        StringBuilder sb = new StringBuilder();
+        if (category != null)
+            sb.Append("Category='").Append(category).Append("' ");
+        if (series != null)
+            sb.Append("Series='").Append(series).Append("' ");
+        if (item != null)
+            sb.Append("Item='").Append(item).Append("' ");
+        if (pieIndex != null)
+            sb.Append("Pie Index='").Append(pieIndex).Append("' ");
+        pnlCustDetails.Visible = true;
+        SqlComnd = new SqlCommand("S3G_RPT_DemandCollectionCustDeails_ForBarChart", SqlConn);
+        SqlComnd.CommandType = CommandType.StoredProcedure;
+        SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+        SqlComnd.Parameters.Add("@USER_ID", SqlDbType.Int).Value = 3;
+        SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(Session["LOB"].ToString());
+        SqlComnd.Parameters.Add("@PROGRAM_ID", SqlDbType.Int).Value = 175;
+        SqlComnd.Parameters.Add("@LOCATION_CODE", SqlDbType.VarChar).Value = category;
+        SqlComnd.Parameters.Add("@STARTDATE", SqlDbType.DateTime).Value = Convert.ToDateTime(Session["StartDate"].ToString());
+        SqlComnd.Parameters.Add("@ENDDATE", SqlDbType.DateTime).Value = Convert.ToDateTime(Session["EndDate"].ToString());
+        SqlComnd.Parameters.Add("@TYPE", SqlDbType.VarChar).Value = series;
+        SqlDaAdp = new SqlDataAdapter(SqlComnd);
+        DSQuery = new DataSet();
+        SqlDaAdp.Fill(DSQuery);
+
+        
+
+        GrvDetails.DataSource = DSQuery.Tables[0];
+        GrvDetails.DataBind();
+    }
+
+    protected new void Page_PreInit(object sender, EventArgs e)
+    {
+
+        this.Page.MasterPageFile = "~/Common/MasterPage.master";
+        UserInfo ObjUserInfo = new UserInfo();
+        this.Page.Theme = ObjUserInfo.ProUserThemeRW;
+            
+     }
+
+}

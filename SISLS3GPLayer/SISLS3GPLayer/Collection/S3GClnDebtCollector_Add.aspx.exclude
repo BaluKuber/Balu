@@ -1,0 +1,487 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeFile="S3GClnDebtCollector_Add.aspx.cs"
+    Inherits="S3GClnDebtCollector" MasterPageFile="~/Common/S3GMasterPageCollapse.master" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register Assembly="iCONWebComponents" Namespace="iCON.Web.Components" TagPrefix="cc2" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script language="javascript" type="text/javascript">
+        function Trim(strInput) {
+            var FieldValue = document.getElementById(strInput).value;
+            document.getElementById(strInput).value = FieldValue.trim();
+        }
+
+
+        function fnClearGrid() {
+            var Prevval;
+            var Dropdown;
+
+            Prevval = document.getElementById('<%=hdnFT.ClientID %>').value;
+            Dropdown = document.getElementById('<%=ddlFrequencyType.ClientID %>')
+            if (confirm('Do you want to Reset values in Grid?')) {
+                document.getElementById('<%=btnFreqChange.ClientID%>').click();
+                return true;
+            }
+            else {
+                Dropdown.value = Prevval;
+                return false;
+            }
+        }
+
+        
+     
+    </script>
+
+    <table width="100%" align="center" cellpadding="0" cellspacing="0">
+        <tr>
+            <td valign="top" class="stylePageHeading">
+                <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">
+                </asp:Label>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top">
+                <asp:UpdatePanel ID="upnlRegion" runat="server" UpdateMode="Conditional" ChildrenAsTriggers="true"
+                    RenderMode="Block">
+                    <ContentTemplate>
+                        <table cellpadding="2" cellspacing="0" border="0" width="100%" style="height: auto;">
+                            <tr>
+                                <td colspan="5">
+                                    <asp:Panel runat="server" ID="pnlLegendGroup" CssClass="stylePanel" GroupingText="Debt Collector">
+                                        <table cellpadding="2" cellspacing="0" border="0" width="100%">
+                                            <tr>
+                                                <td>
+                                                    <table>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblLineOfBusiness" runat="server" Text="Line of Business"></asp:Label>
+                                                                <span class="styleMandatory">*</span>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlLineofBusiness" AutoPostBack="true" OnSelectedIndexChanged="ddlLineofBusiness_SelectedIndexChanged"
+                                                                    runat="server" Width="165px" ToolTip="Line Of Business">
+                                                                </asp:DropDownList>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lbRegion" runat="server" Text="Region" Visible="false"></asp:Label>
+                                                                <%-- <span class="styleMandatory">*</span>--%>
+                                                                <asp:Label ID="lblBranch" runat="server" Text="Location"></asp:Label>
+                                                                <span class="styleMandatory">*</span>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlRegion" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlRegion_SelectedIndexChanged"
+                                                                    Width="165px" ToolTip="Region" Visible="false">
+                                                                </asp:DropDownList>
+                                                                <uc:Suggest ID="ddlBranch" ToolTip="Location" runat="server" AutoPostBack="True"
+                                                                    ServiceMethod="GetBranchList" WatermarkText="--All--" />
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblDebtCollectorType" runat="server" Text="Debt Collector Type"></asp:Label>
+                                                                <span class="styleMandatory">*</span>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlDebtCollectorType" runat="server" OnSelectedIndexChanged="ddlDebtCollectorType_SelectedIndexChanged"
+                                                                    AutoPostBack="true" Width="165px" ToolTip="Debt Collector Type">
+                                                                    <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
+                                                                    <asp:ListItem Text="Employee" Value="E"></asp:ListItem>
+                                                                    <asp:ListItem Text="Third Party User" Value="T"></asp:ListItem>
+                                                                </asp:DropDownList>
+                                                                <asp:RequiredFieldValidator ID="rfvddlDebtCollectorType" runat="server" Display="None"
+                                                                    InitialValue="0" ValidationGroup="btnSave" ControlToValidate="ddlDebtCollectorType"
+                                                                    ErrorMessage="Select Debt Collector Type" SetFocusOnError="true"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblEmployeeName" runat="server" Text="Employee/Third Party Name"></asp:Label>
+                                                                <span class="styleMandatory">*</span>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlEmployeeName" runat="server" OnSelectedIndexChanged="ddlEmployeeName_SelectedIndexChanged"
+                                                                    AutoPostBack="true" Width="165px" ToolTip="Employee/Third Party Name">
+                                                                    <asp:ListItem Value="0">--Select--</asp:ListItem>
+                                                                </asp:DropDownList>
+                                                                <asp:RequiredFieldValidator ID="rfvddlEmployeeName" runat="server" Display="None"
+                                                                    InitialValue="0" ValidationGroup="btnSave" ControlToValidate="ddlEmployeeName"
+                                                                    ErrorMessage="Select Employee/Third Party Name" SetFocusOnError="true"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblFrequencyType" runat="server" Text="Frequency Type"></asp:Label>
+                                                                <span class="styleMandatory">*</span>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlFrequencyType" runat="server" Width="165px" AutoPostBack="true"
+                                                                    ToolTip="Frequency Type" OnSelectedIndexChanged="ddlFrequencyType_SelectedIndexChanged">
+                                                                    <%--<asp:ListItem Value="0">--Select--</asp:ListItem>--%>
+                                                                </asp:DropDownList>
+                                                                <asp:HiddenField ID="hdnFT" runat="server" />
+                                                                <asp:Button ID="btnFreqChange" Text="" runat="server" Style="display: none" OnClick="btnFreqChange_Click" />
+                                                                <%--<asp:Button ID="btnGo" Text ="Go" runat ="server"  ValidationGroup="btnSave" CssClass="styleSubmitShortButton" />--%>
+                                                                <asp:RequiredFieldValidator ID="rfvFrequencyType" runat="server" Display="None" InitialValue="0"
+                                                                    ValidationGroup="btnSave" ControlToValidate="ddlFrequencyType" ErrorMessage="Select Frequency Type"
+                                                                    SetFocusOnError="true"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblActive" runat="server" Text="Active"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:CheckBox ID="ChkActive" runat="server" Enabled="false" Checked="true" />
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                                <td>
+                                                    <table>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblDbtCode" Text="Debt Collector Code" runat="server" />
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:TextBox ID="txtDbtCode" Width="165px" runat="server" ReadOnly="true" />
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <%-- <td>
+                                                </td>--%>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblName" runat="server" Text="Name"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:TextBox ID="txtName" runat="server" ReadOnly="true" Width="165px" ToolTip="Name"></asp:TextBox>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <%--     <td class="styleFieldLabel">
+                                                    <asp:Label ID="lblBranch" runat="server" Text="Branch"></asp:Label>
+                                                    <span class="styleMandatory">*</span>
+                                                </td>
+                                                 <td  class="styleFieldAlign">
+                                                    <asp:DropDownList ID="ddlBranch" runat="server" Width="165px" ToolTip="Branch">
+                                                      
+                                                    </asp:DropDownList>
+                                                </td>--%>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblAddress" runat="server" Text="Address"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:TextBox ID="txtAddress" runat="server" TextMode="MultiLine" ReadOnly="true"
+                                                                    Width="165px" ToolTip="Address"></asp:TextBox>
+                                                            </td>
+                                                            <%-- <td>
+                                                    &nbsp;
+                                                </td>--%>
+                                                        </tr>
+                                                        <tr>
+                                                            <%--<td class="styleFieldLabel">
+                                                    <asp:Label ID="lblName" runat="server" Text="Name"></asp:Label>  
+                                                </td>
+                                                <td  class="styleFieldAlign">
+                                                    <asp:TextBox ID="txtName" runat="server"  ReadOnly ="true"  Width="165px" ToolTip="Name"></asp:TextBox>
+                                                </td>--%>
+                                                            <%-- <td>
+                                                    &nbsp;
+                                                </td>--%>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblNxtlevel" runat="server" Text="Next Level"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlReportingLevel" runat="server" Width="165px" ToolTip="Next Level">
+                                                                    <asp:ListItem Value="0">--Select--</asp:ListItem>
+                                                                </asp:DropDownList>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <%-- <td class="styleFieldLabel">
+                                                  <asp:Label ID="lblAddress" runat="server" Text="Address"></asp:Label>  
+                                                </td>
+                                                 <td  class="styleFieldAlign">
+                                                    <asp:TextBox ID="txtAddress" runat="server"  ReadOnly ="true"  Width="165px" ToolTip="Address"></asp:TextBox>
+                                                </td>--%>
+                                                            <%--<td>
+                                                    &nbsp;
+                                                </td>--%>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblSuplevel" runat="server" Text="Super Level"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlHigherLevel" runat="server" Width="165px" ToolTip="Super Level">
+                                                                    <asp:ListItem Value="0">--Select--</asp:ListItem>
+                                                                </asp:DropDownList>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="styleFieldLabel">
+                                                    &nbsp;
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </asp:Panel>
+                                </td>
+                            </tr>
+                            <%--  </table>
+                        <table align="center" cellpadding="2" cellspacing="0" border="0" width="80%" style="height: auto;">--%>
+                            <tr>
+                                <td colspan="5" align="center">
+                                    <div style="height: auto; width: 75%; margin-bottom: 10px; margin-top: 10px; overflow-x: hidden;
+                                        overflow-y: auto;">
+                                        <asp:UpdatePanel ID="UpdatePanel_AssetAcquisition" runat="server">
+                                            <ContentTemplate>
+                                                <div style="height: auto; margin-bottom: 10px; margin-top: 10px; overflow-x: hidden;
+                                                    overflow-y: auto;">
+                                                    <asp:Panel runat="server" ID="pnlLegendDetails" CssClass="stylePanel" GroupingText="Debt Collector Details"
+                                                        Width="93%">
+                                                        &nbsp;
+                                                        <asp:GridView ID="gvDebtCollectorDetails" runat="server" AutoGenerateColumns="false"
+                                                            Width="99%" ShowFooter="true" OnRowDataBound="gvDebtCollectorDetails_RowDataBound"
+                                                            OnRowCommand="gvDebtCollectorDetails_RowCommand" OnRowDeleting="gvDebtCollectorDetails_RowDeleting"
+                                                            OnRowEditing="gvDebtCollectorDetails_RowEditing" OnRowCancelingEdit="gvDebtCollectorDetails_RowCancelingEdit"
+                                                            OnRowUpdating="gvDebtCollectorDetails_RowUpdating">
+                                                            <Columns>
+                                                                <asp:TemplateField HeaderText="Sl.No." Visible="true">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lblSerialNo" runat="server" Text='<%#Bind("Serial_Number") %>'></asp:Label>
+                                                                    </ItemTemplate>
+                                                                    <EditItemTemplate>
+                                                                        <asp:Label ID="lblSerialNo" runat="server" Text='<%#Bind("Serial_Number") %>'></asp:Label>
+                                                                    </EditItemTemplate>
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Period" HeaderStyle-HorizontalAlign="Center" HeaderStyle-VerticalAlign="Middle">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lblPeriod" runat="server" Text='<%#Bind("Period") %>' Style="text-align: left;"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                    <EditItemTemplate>
+                                                                        <asp:Label ID="lblPeriod" runat="server" Text='<%#Bind("Period") %>' Style="text-align: left;" />
+                                                                        <%--<asp:TextBox ID="txtPeriod1" runat="server" Text='<%#Bind("Period") %>' MaxLength="6" Width ="60px"
+                                                                           Style="text-align: right;" onblur="ChkIsZero(this,'Period');"></asp:TextBox>--%>
+                                                                        <%--<asp:RequiredFieldValidator ID="rfvtxtPeriod1" runat="server" Display="None" ErrorMessage="Enter the Period."
+                                                                            ControlToValidate="txtPeriod1" SetFocusOnError="True" ValidationGroup="vgAdd"></asp:RequiredFieldValidator>--%>
+                                                                        <%--<asp:RangeValidator ID="rvtxtPeriod" runat="server" ControlToValidate="txtPeriod"
+                                                                            SetFocusOnError="True" ErrorMessage="Period should be valid like 201101" Display="None"
+                                                                            ValidationGroup="vgAdd" CssClass="styleMandatoryLabel" Type="Integer" MinimumValue="0"
+                                                                            MaximumValue="999999"></asp:RangeValidator>--%>
+                                                                        <%-- <cc1:FilteredTextBoxExtender ID="FtexPeriod" runat="server" TargetControlID="txtPeriod"
+                                                                            FilterType="Numbers" Enabled="True" ValidChars="">
+                                                                        </cc1:FilteredTextBoxExtender>--%>
+                                                                        <%--<cc1:MaskedEditExtender ID="MEErvtxtPeriod" runat="server" InputDirection="LeftToRight"
+                                                                                                Mask="999999" MaskType="Number" TargetControlID="txtPeriod">
+                                                                                            </cc1:MaskedEditExtender>--%>
+                                                                    </EditItemTemplate>
+                                                                    <FooterTemplate>
+                                                                        <asp:Label ID="lblPeriodFoot" runat="server" Text='<%#Bind("Period") %>' Style="text-align: right;" />
+                                                                        <%--<asp:TextBox ID="txtPeriod" runat="server" MaxLength="6" onblur="ChkIsZero(this,'Period');"
+                                                                         Width ="60px"   Style="text-align: right;"></asp:TextBox>--%>
+                                                                        <%--<asp:RequiredFieldValidator ID="rfvtxtPeriod" runat="server" Display="None" ErrorMessage="Enter the Period."
+                                                                            ControlToValidate="txtPeriod" SetFocusOnError="True" ValidationGroup="vgAdd"></asp:RequiredFieldValidator>--%>
+                                                                        <%--<asp:RangeValidator ID="rvtxtPeriod" runat="server" ControlToValidate="txtPeriod"
+                                                                            SetFocusOnError="True" ErrorMessage="Period should be valid like 201101 or 2011"
+                                                                            Display="None" ValidationGroup="vgAdd" CssClass="styleMandatoryLabel" Type="Integer"
+                                                                            MinimumValue="0" MaximumValue="999999"></asp:RangeValidator>--%>
+                                                                        <%-- <cc1:FilteredTextBoxExtender ID="FtexPeriod" runat="server" TargetControlID="txtPeriod"
+                                                                            FilterType="Numbers" Enabled="True" ValidChars="">
+                                                                        </cc1:FilteredTextBoxExtender>--%>
+                                                                    </FooterTemplate>
+                                                                    <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" />
+                                                                    <ItemStyle HorizontalAlign="Left" Width="11%" />
+                                                                    <FooterStyle HorizontalAlign="Left" />
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Target Amount">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lblTargetAmount" runat="server" Text='<%#Bind("Target_Amount") %>'
+                                                                            Width="100%" Style="text-align: right;"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                    <EditItemTemplate>
+                                                                        <asp:TextBox ID="txtTargetAmount" Text='<%#Bind("Target_Amount") %>' MaxLength="15"
+                                                                            ToolTip="Target Amount" Width="120px" onkeypress="fnAllowNumbersOnly(true,false,this)"
+                                                                            Style="text-align: right;" runat="server"></asp:TextBox>
+                                                                        <%--   <asp:RequiredFieldValidator ID="rfvtxtTargetAmount1" runat="server" Display="None"
+                                                                            ValidationGroup="vgAdd" ErrorMessage="Enter Target Amount." ControlToValidate="txtTargetAmount"
+                                                                            SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                                        <%--<asp:RangeValidator runat="server" ID="rvtxtTargetAmount" ControlToValidate="txtTargetAmount"
+                                                                            SetFocusOnError="True" ErrorMessage="Target Amount should be less than 1000000"
+                                                                            Type="Double" MinimumValue="0" MaximumValue="999999.9999" Display="None" ValidationGroup="vgAdd"
+                                                                            CssClass="styleMandatoryLabel"></asp:RangeValidator>--%>
+                                                                        <cc1:FilteredTextBoxExtender ID="FtexTargetAmount" runat="server" TargetControlID="txtTargetAmount"
+                                                                            FilterType="Custom,Numbers" Enabled="True" ValidChars=".">
+                                                                        </cc1:FilteredTextBoxExtender>
+                                                                    </EditItemTemplate>
+                                                                    <FooterTemplate>
+                                                                        <asp:TextBox ID="txtTargetAmount" runat="server" MaxLength="15" Style="text-align: right;"
+                                                                            ToolTip="Target Amount" Width="120px" onkeypress="fnAllowNumbersOnly(true,false,this)"></asp:TextBox>
+                                                                        <%--    onblur="funChkDecimial(this,6,4,'Target Amount');ChkIsZero(this,'Target Amount');"--%>
+                                                                        <%--<asp:RequiredFieldValidator ID="rfvtxtTargetAmount" runat="server" Display="None"
+                                                                            ValidationGroup="vgAdd" ErrorMessage="Enter Target Amount." ControlToValidate="txtTargetAmount"
+                                                                            SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                                        <%-- <asp:RangeValidator runat="server" ID="rvtxtTargetAmount" ControlToValidate="txtTargetAmount"
+                                                                            SetFocusOnError="True" ErrorMessage="Target Amount should be less than 1000000"
+                                                                            Type="Double" MinimumValue="0" MaximumValue="999999.9999" Display="None" ValidationGroup="vgAdd"
+                                                                            CssClass="styleMandatoryLabel"></asp:RangeValidator>--%>
+                                                                        <cc1:FilteredTextBoxExtender ID="FtexTargetAmount" runat="server" TargetControlID="txtTargetAmount"
+                                                                            FilterType="Custom,Numbers" Enabled="True" ValidChars=".">
+                                                                        </cc1:FilteredTextBoxExtender>
+                                                                    </FooterTemplate>
+                                                                    <ItemStyle HorizontalAlign="Center" />
+                                                                    <FooterStyle HorizontalAlign="Center" />
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Commission %">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lblCommissionPercentage" runat="server" Text='<%#Bind("Commission_Percentage") %>'
+                                                                            Width="100%" Style="text-align: right;"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                    <EditItemTemplate>
+                                                                        <asp:TextBox ID="txtCommissionPercentage" runat="server" Text='<%#Bind("Commission_Percentage") %>'
+                                                                            ToolTip="Commission %" onkeypress="fnAllowNumbersOnly(true,false,this)" Width="60px"
+                                                                            Style="text-align: right;" MaxLength="5"></asp:TextBox>
+                                                                        <%--
+                                                                        onblur="funChkDecimial(this,2,2,'Special Commission Percentage');" 
+                                                                        <asp:RequiredFieldValidator ID="rfvtxtCommissionPercentage1" runat="server" Display="None"
+                                                                            ValidationGroup="vgAdd" ErrorMessage="Enter Commission %." ControlToValidate="txtCommissionPercentage"
+                                                                            SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                                        <%--<asp:RangeValidator runat="server" ID="rvtxtCommissionPercentage" ControlToValidate="txtCommissionPercentage"
+                                                                            SetFocusOnError="True" ErrorMessage="Commission Percentage should be less than 100"
+                                                                            Type="Double" MinimumValue="0" MaximumValue="99.99" Display="None" ValidationGroup="vgAdd"
+                                                                            CssClass="styleMandatoryLabel"></asp:RangeValidator>--%>
+                                                                        <cc1:FilteredTextBoxExtender ID="FtexCommissionPercentage" runat="server" TargetControlID="txtCommissionPercentage"
+                                                                            FilterType="Custom,Numbers" Enabled="True" ValidChars=".">
+                                                                        </cc1:FilteredTextBoxExtender>
+                                                                    </EditItemTemplate>
+                                                                    <FooterTemplate>
+                                                                        <asp:TextBox ID="txtCommissionPercentage" runat="server" onblur="funChkDecimial(this,2,2,'Commission %');"
+                                                                            MaxLength="5" Style="text-align: right;" ToolTip="Commission %" onkeypress="fnAllowNumbersOnly(true,false,this)"
+                                                                            Width="60px"></asp:TextBox>
+                                                                        <%--    
+                                                                            onblur="funChkDecimial(this,2,2,'Commission Percentage');"
+                                                                        <asp:RequiredFieldValidator ID="rfvtxtCommissionPercentage" runat="server" Display="None"
+                                                                            ValidationGroup="vgAdd" ErrorMessage="Enter Commission %." ControlToValidate="txtCommissionPercentage"
+                                                                            SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                                        <%-- <asp:RangeValidator runat="server" ID="rvtxtCommissionPercentage" ControlToValidate="txtCommissionPercentage"
+                                                                            SetFocusOnError="True" ErrorMessage="Commission Percentage should be less than 100"
+                                                                            Type="Double" MinimumValue="0" MaximumValue="99.99" Display="None" ValidationGroup="vgAdd"
+                                                                            CssClass="styleMandatoryLabel"></asp:RangeValidator>--%>
+                                                                        <cc1:FilteredTextBoxExtender ID="FtexCommissionPercentage" runat="server" TargetControlID="txtCommissionPercentage"
+                                                                            FilterType="Custom,Numbers" Enabled="True" ValidChars=".">
+                                                                        </cc1:FilteredTextBoxExtender>
+                                                                    </FooterTemplate>
+                                                                    <FooterStyle HorizontalAlign="Center" />
+                                                                    <ItemStyle HorizontalAlign="Center" />
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="Special Commision %">
+                                                                    <ItemTemplate>
+                                                                        <asp:Label ID="lblSplCommissionPercentage" runat="server" Text='<%#Bind("SplCommision_Percentage") %>'
+                                                                            Width="100%" Style="text-align: right;"></asp:Label>
+                                                                    </ItemTemplate>
+                                                                    <EditItemTemplate>
+                                                                        <asp:TextBox ID="txtSplCommissionPercentage" runat="server" Text='<%#Bind("SplCommision_Percentage") %>'
+                                                                            ToolTip="Special Commision %" onkeypress="fnAllowNumbersOnly(true,false,this)"
+                                                                            Width="60px" Style="text-align: right;" MaxLength="5"></asp:TextBox>
+                                                                        <%--
+                                                                        onblur="funChkDecimial(this,2,2,'Special Commission Percentage');"
+                                                                        <asp:RequiredFieldValidator ID="rfvtxtSplCommissionPercentage" runat="server" Display="None"
+                                                                        ValidationGroup="vgAdd" ErrorMessage="Please enter Spl Commission %." ControlToValidate="txtSplCommissionPercentage"
+                                                                        SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                                        <%-- <asp:RangeValidator runat="server" ID="rvtxtSplCommissionPercentage" ControlToValidate="txtSplCommissionPercentage"
+                                                                            SetFocusOnError="True" ErrorMessage="Special Commision Percentage should be less than 100"
+                                                                            Type="Double" MinimumValue="0" MaximumValue="99.99" Display="None" ValidationGroup="vgAdd"
+                                                                            CssClass="styleMandatoryLabel">
+                                                                        </asp:RangeValidator>--%>
+                                                                        <cc1:FilteredTextBoxExtender ID="FtexSplCommissionPercentage" runat="server" TargetControlID="txtSplCommissionPercentage"
+                                                                            FilterType="Custom,Numbers" Enabled="True" ValidChars=".">
+                                                                        </cc1:FilteredTextBoxExtender>
+                                                                    </EditItemTemplate>
+                                                                    <FooterTemplate>
+                                                                        <asp:TextBox ID="txtSplCommissionPercentage" Style="text-align: right;" runat="server"
+                                                                            ToolTip="Special Commision %" onkeypress="fnAllowNumbersOnly(true,false,this)"
+                                                                            Width="60px" onblur="funChkDecimial(this,2,2,'Special Commission %');" MaxLength="5"></asp:TextBox>
+                                                                        <%-- onblur="funChkDecimial(this,2,2,'Special Commission Percentage');ChkIsZero(this,'Special Commission Percentage');"--%>
+                                                                        <%--<asp:RequiredFieldValidator ID="rfvtxtSplCommissionPercentage" runat="server" Display="None"
+                                                                        ValidationGroup="vgAdd" ErrorMessage="Please enter Spl Commission %." ControlToValidate="txtSplCommissionPercentage"
+                                                                        SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                                        <%--<asp:RangeValidator runat="server" ID="rvtxtSplCommissionPercentage" ControlToValidate="txtSplCommissionPercentage"
+                                                                            SetFocusOnError="True" ErrorMessage="Special Commision Percentage should be less than 100"
+                                                                            Type="Double" MinimumValue="0" MaximumValue="99.99" Display="None" ValidationGroup="vgAdd"
+                                                                            CssClass="styleMandatoryLabel"></asp:RangeValidator>--%>
+                                                                        <cc1:FilteredTextBoxExtender ID="FtexSplCommissionPercentage" runat="server" TargetControlID="txtSplCommissionPercentage"
+                                                                            FilterType="Custom,Numbers" Enabled="True" ValidChars=".">
+                                                                        </cc1:FilteredTextBoxExtender>
+                                                                    </FooterTemplate>
+                                                                    <ItemStyle HorizontalAlign="Center" />
+                                                                    <FooterStyle HorizontalAlign="Center" />
+                                                                </asp:TemplateField>
+                                                                <asp:TemplateField HeaderText="">
+                                                                    <ItemTemplate>
+                                                                        <asp:LinkButton ID="lnkEdit" runat="server" Text="Edit" CommandName="Edit" CausesValidation="false"></asp:LinkButton>
+                                                                        <asp:LinkButton ID="lnkRemove" runat="server" Text="Delete" CommandName="Delete"
+                                                                            OnClientClick="return confirm('Do you want to delete?');" CausesValidation="false"></asp:LinkButton>
+                                                                    </ItemTemplate>
+                                                                    <EditItemTemplate>
+                                                                        <asp:LinkButton ID="lnkUpdate" runat="server" Text="Update" CommandName="Update"
+                                                                            CausesValidation="false" />
+                                                                        <asp:LinkButton ID="lnkCancel" runat="server" Text="Cancel" CommandName="Cancel"
+                                                                            CausesValidation="false" />
+                                                                    </EditItemTemplate>
+                                                                    <FooterTemplate>
+                                                                        <asp:LinkButton ID="lnkAdd" runat="server" Text="Add" CommandName="Add" CausesValidation="true" />
+                                                                        <%-- <asp:Button ID="lnkAdd" runat="server" Text="Add" CommandName="Add" 
+                                                                            CausesValidation="true"  CssClass="styleSubmitShortButton" />--%>
+                                                                    </FooterTemplate>
+                                                                    <ItemStyle HorizontalAlign="Center" />
+                                                                    <FooterStyle HorizontalAlign="Center" />
+                                                                </asp:TemplateField>
+                                                            </Columns>
+                                                            <FooterStyle HorizontalAlign="Center" />
+                                                            <RowStyle HorizontalAlign="Center" />
+                                                        </asp:GridView>
+                                                    </asp:Panel>
+                                                </div>
+                                            </ContentTemplate>
+                                        </asp:UpdatePanel>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="5" align="center">
+                                    <asp:Button runat="server" ID="btnSave" ValidationGroup="btnSave" CssClass="styleSubmitButton"
+                                        OnClick="btnSave_Click" Text="Save" OnClientClick="return fnCheckPageValidators('btnSave');" />
+                                    &nbsp;
+                                    <%--    OnClientClick="fnCheckPageValidators('btnSave');"--%>
+                                    <asp:Button ID="btnClear" runat="server" CausesValidation="False" OnClientClick="return fnConfirmClear();"
+                                        CssClass="styleSubmitButton" Text="Clear" OnClick="btnClear_Click" />
+                                    &nbsp;
+                                    <asp:Button runat="server" ID="btnCancel" Text="Cancel" CausesValidation="False"
+                                        CssClass="styleSubmitButton" OnClick="btnCancel_Click" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="5" align="center">
+                                    <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center">
+                                    <asp:CustomValidator ID="cvDebtCollectorDetails" runat="server" CssClass="styleMandatoryLabel"
+                                        Enabled="true" Width="98%" />
+                                    <%--   <asp:ValidationSummary ID="vsUTPA" runat="server" CssClass="styleMandatoryLabel"
+                                        HeaderText="Correct the following validation(s):" ShowSummary="true" ValidationGroup="vgAdd" />--%>
+                                    <asp:ValidationSummary ID="vsDebtMaster" runat="server" CssClass="styleMandatoryLabel"
+                                        HeaderText="Correct the following validation(s):" ShowSummary="true" ValidationGroup="btnSave" />
+                                    <%-- ValidationGroup="btnSave"--%>
+                                </td>
+                            </tr>
+                        </table>
+                    </ContentTemplate>
+                </asp:UpdatePanel>
+            </td>
+        </tr>
+    </table>
+</asp:Content>

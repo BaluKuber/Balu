@@ -1,0 +1,88 @@
+﻿#region Header
+
+//Module Name      :   Graphs
+//Screen Name      :   S3G_GPH_BusinessReport.aspx
+//Created By       :   Shibu 
+//Created Date     :   24-Mar-2014
+//Purpose          :   
+
+#endregion
+
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using System.Globalization;
+using System.Web.UI.WebControls;
+using System.Web.UI.DataVisualization.Charting;
+using System.Web.UI.DataVisualization.Charting.Utilities;
+using System.Web;
+using System.Text;
+using System.Net;
+
+
+#endregion
+
+public partial class Graphs_S3G_GPH_BusinessReport : ApplyThemeForProject
+{ 
+    #region Declaration
+
+    int intCompanyID, intUserID = 0, intErrCode = 0;
+    public Dictionary<string, string> Procparam = null;
+    string intAssetVerificationNo = string.Empty;
+    int ProgCode = 262;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Graphs/S3G_GPH_BusinessReport.aspx";
+    string sSeriesValue = string.Empty;
+    int Company_ID = 0;
+    
+    #endregion
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        UserInfo ObjUserInfo = new UserInfo();
+        Company_ID = ObjUserInfo.ProCompanyIdRW;
+        if (!IsPostBack)
+        {
+             LoadChart();
+        }
+    }
+    protected void LoadChart()
+    {
+       
+        DataSet ds1 = new DataSet();
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Company_ID.ToString());
+        ds1 = Utility.GetDataset("S3G_GPH_Prjt_Portfolio", Procparam);
+
+        S3GChart1.setChartWidth = 700;
+        S3GChart1.setChartHeight = 400;
+        S3GChart1.showChartType = SeriesChartType.Column;
+        S3GChart1.setChartFontSize = 8;
+        S3GChart1.setChart3D = false;
+        S3GChart1.setLableValue = true;
+        S3GChart1.setLegendsValue = true;
+        S3GChart1.setChartMultipleSeries = true;
+        S3GChart1.setCustomePalette = true;
+        S3GChart1.showCustomesPaletteColor = "#BD4E4C~#99B958~#4E80BB~#DC572E~#00A600~#0A5BC4";
+        S3GChart1.setToolTipValues = true;
+        S3GChart1.setClickDrillChartDetails = false;
+        S3GChart1.setDataTableSeries1 = ds1.Tables[0];
+        S3GChart1.BindChart();
+        grData.DataSource = ds1.Tables[1];
+        grData.DataBind();
+    }
+}

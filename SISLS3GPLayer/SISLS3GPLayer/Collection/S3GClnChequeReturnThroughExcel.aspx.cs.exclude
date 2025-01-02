@@ -1,0 +1,1208 @@
+﻿#region Page Header
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Collection 
+/// Screen Name			: Cheque Returns Through Excel
+/// Created By			: Palani Kumar.A 
+/// Created Date		: 07/12/2013
+/// Purpose	            : Excel Upload for Cheque Returns
+
+#endregion
+using System;
+using S3GBusEntity;
+using System.Collections.Generic;
+using System.ServiceModel;
+using System.Data;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Globalization;
+using System.Text;
+using System.Web.Security;
+using System.Configuration;
+using System.IO;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using System.Diagnostics;
+using System.Data.OleDb;
+using System.Web;
+
+
+public partial class Collection_S3GClnChequeReturnThroughExcel : ApplyThemeForProject
+{
+    #region [Intialization]
+
+    StringBuilder strbMemo = new StringBuilder();
+    StringBuilder strAuthorize = new StringBuilder();
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objClnChequeExcel_Client;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeReturnProcessExcelDataTable objChequeExcelDateTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeReturnProcessExcelRow objChequeExcelRow = null;
+    //S3GBusEntity.Collection.ClnMemoMgtServices.S3G_CLN_MemorandumBookingDataTable ObjMemorandumDataTable;
+    ClnMemoMgtServicesReference.ClnMemoMgtServicesClient ObjClnMemoMgtServicesClient;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeAuthorizationDataTable objAuthorizeDataTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeAuthorizationRow objAuthorizeRow = null;
+    S3GAdminServicesReference.S3GAdminServicesClient ObjS3GAdminClient;
+    public static Collection_S3GClnChequeReturnThroughExcel obj_Page;
+    public string strErrorMsgExcel = string.Empty;
+
+    Dictionary<string, string> Procparam = null;
+    string StrXMLChequeRtn;
+    #endregion [Intialization]
+
+    #region [Local Fields]
+
+    int intReturn = 0;
+    int intCompanyID, intUserID = 0;
+    int intErrCode = 0;
+    int intMemoErrCode = 0;
+    string strDateFormat = string.Empty;
+    string strChequeReturn = string.Empty;
+    bool bolMonthLock = false;
+    string MemorandumBookingNo = "0";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    //Code end
+    public static int intLOBIDs = 0;
+    public static int intLocationIDs = 0;
+    public static int intCompanyIDs = 0;
+    DataTable dtChequeRtn = new DataTable();
+    string path = string.Empty;
+    string XmlChequeRtn = string.Empty;
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnChequeReturnThroughExcel.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CHQE';";
+    string strRedirectPage = "~/Collection/S3GClnTransLander.aspx?Code=CHQE";
+    static string strPageName = "Cheque Returns Through Excel";
+    string strErrorMsg = @"Correct the following validation(s):</br><ul><li>";
+    string strErrMsgLast = "</li></ul>";
+
+    #endregion [Local Fields]
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            obj_Page = this;
+            flUpload.Attributes.Add("onchange", "fnAssignPath('" + flUpload.ClientID + "','" + hdnSelectedPath.ClientID + "'); fnLoadPath('" + btnBrowse.ClientID + "');");
+            btnDlg.OnClientClick = "fnLoadPath('" + flUpload.ClientID + "');";
+            intCompanyIDs = intCompanyID;
+            FunPriPageLoad();
+            if (!IsPostBack)            
+                FunDocPath();           
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+    private void FunDocPath()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@Program_ID", "260");//262
+            DataTable dt = Utility.GetDefaultData("S3G_Get_DocumentationPath", Procparam);
+            if (dt != null)
+            {
+                if (dt.Rows.Count > 0)
+                    ViewState["Docpath"] = dt.Rows[0]["Document_Path"].ToString();
+                else
+                {
+                    Utility.FunShowAlertMsg(this, "Document Path Not Defined");
+                    return;
+                }
+            }
+            else
+                Utility.FunShowAlertMsg(this, "Document Path Not Defined");
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+            throw ex;
+        }
+               
+    }
+    private bool FunCallChequeReturnExcelLoad()
+    {
+        try
+        {
+            DataSet ds = new DataSet();
+            DataTable dt = new DataTable();
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@XMLChequeRtn", XmlChequeRtn.ToString());
+            Procparam.Add("@ExcelFilePath", path.ToString());
+            Procparam.Add("@ErrorCode", string.Empty);
+            Procparam.Add("@CreatedBy", Convert.ToString(intUserID));
+
+            ds = Utility.GetDataset("S3G_CLN_ChequeReturnThroughExcel", Procparam);
+            dt = ds.Tables[0];
+            if (ds.Tables.Count > 1 && ds.Tables[1].Rows[0]["Error"].ToString() == "1") //For Oracle DB returned rows
+            {
+                FunPubErrorMsg();
+                return false;
+            }
+            else
+            {
+                if (ds.Tables[0].Rows.Count > 0 && ds.Tables[0] != null)
+                {
+                    if (ds.Tables[1].Rows[0]["Error"].ToString() == "0") //For SQL DB returned rows
+                    {
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = true;
+                        ViewState["dtChqreturn"] = ds.Tables[0];
+                        grvUploadDetails.DataSource = ds.Tables[0];
+                        grvUploadDetails.DataBind();
+                    }
+                    else
+                    {
+                        FunPubErrorMsg();
+                        return false;
+                    }
+                }
+                else
+                {
+                    FunPubErrorMsg();
+                    return false;
+                }
+            }
+        }
+        catch (FaultException ex)
+        {
+            Utility.FunShowAlertMsg(obj_Page, "Unable to Show the record, Unexpected error found..");
+            lblExcelCurrentPath.Text = string.Empty;
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+            throw ex;
+        }
+        return true;
+    }
+    private bool FunPubErrorMsg()
+    {
+        Utility.FunShowAlertMsg(obj_Page, "Unexpected error found, Check and then proceed..");
+        lblExcelCurrentPath.Text = string.Empty;
+        FunPubClear();
+        return false;
+    }
+    public bool ValidateExcelData(DataTable dtChequeRtn) // Validate excel data before inserting staging table...
+    {
+
+        //int returnValue = 0;
+        int intDTRowCount = 0;
+        int intDTColCount = 0;
+        int intXLCheckList = 0;
+        string strValue = string.Empty;
+        string strfilter = string.Empty;
+        string strErrMsg = string.Empty;
+        DataTable dtXLCheckList = new DataTable();
+        try
+        {
+            if (dtChequeRtn.Rows.Count > 0)
+            {
+                string Msg = string.Empty;
+                dtXLCheckList = FunGetXLCheckList();
+                intXLCheckList = dtXLCheckList.Rows.Count;
+                intDTRowCount = dtChequeRtn.Rows.Count;
+                intDTColCount = dtChequeRtn.Columns.Count;
+                if (intXLCheckList != intDTColCount)              
+                    return false;
+                
+                dtChequeRtn.Columns.Add("EXCELERROR", typeof(String));
+                dtChequeRtn.Columns.Add("EXSTATUS", typeof(String));
+
+                dtChequeRtn.Columns[0].ColumnName = "CUSTOMER CODE";
+                dtChequeRtn.Columns[1].ColumnName = "INSTRUMENT NO";
+                dtChequeRtn.Columns[2].ColumnName = "RECEIPT NUMBER";
+                dtChequeRtn.Columns[3].ColumnName = "RETURN DATE";
+                dtChequeRtn.Columns[4].ColumnName = "REASON";
+                dtChequeRtn.Columns[5].ColumnName = "RETURN CHARGES";
+                dtChequeRtn.Columns[6].ColumnName = "BANK ADVICE NO";
+
+                for (int j = 0; j < intDTRowCount; j++)  // Rows Loop
+                {
+                    for (int k = 0; k < intDTColCount; k++)   // Column Loop...
+                    {
+                        Msg = string.Empty;
+                        strfilter = " XL_Col_Name = '" + dtChequeRtn.Columns[k].ColumnName + "'";
+                        DataRow[] dr = dtXLCheckList.Select(strfilter);  // XL Format Data....
+                        strValue = dtChequeRtn.Rows[j][k].ToString();
+                        if (!FunBoolCheckDataType(strValue, dr[0]["XL_COL_TYPE"].ToString()))
+                            Msg = Msg + "INVALID DATATYPE.";
+                        if (!FunBoolCheckLength(strValue, int.Parse(dr[0]["COL_SIZE"].ToString())))
+                            Msg = Msg + "LENGTH EXCEEDED.";
+                        if (dr[0]["MANDATORY"].ToString() == "TRUE" && !FunBoolCheckMandatory(strValue))
+                            Msg = Msg + "MANDATORY.";
+                        if (Msg != string.Empty)
+                        {
+                            dtChequeRtn.Rows[j]["EXCELERROR"] = Msg;
+                            dtChequeRtn.Rows[j]["EXSTATUS"] = 0; //1 Error in row                            
+                        }
+                        dtChequeRtn.AcceptChanges();
+                        //strErrMsg = strErrMsg + "Row Number : " + (j + 1) + " - Column Name : " + dtChequeRtn.Columns[k].ColumnName + " - " + Msg + " \n ";
+                    }
+                }
+                DataRow[] drChequeRtn = dtChequeRtn.Select("EXCELERROR is null");
+                foreach (DataRow drCredit in drChequeRtn)
+                {
+                    drCredit["EXSTATUS"] = "1";
+                    drCredit.AcceptChanges();
+                }
+                dtChequeRtn.AcceptChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex, strErrMsg);
+            return false;
+        }
+        return true;
+    }
+    private bool FunBoolCheckMandatory(string strValue)
+    {
+        if (strValue == string.Empty)
+            return false;
+        else
+            return true;
+    }
+    public DataTable FunGetXLCheckList() // GETS THE COL SIZE, MANDATORY AND DATATYPE OF THE COLUMN.
+    {
+        try
+        {
+            DataSet ObjDS = new DataSet();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_id", obj_Page.intCompanyID.ToString());
+            Procparam.Add("@Program_id", "260");
+            ObjDS = Utility.GetDataset("[S3G_CLN_CHQRTN_XL_GETCOLNAMES]", Procparam);
+            return (System.Data.DataTable)ObjDS.Tables[0];
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    private bool FunBoolCheckDataType(string strValue, string DataType)
+    {
+        switch (DataType)
+        {
+            case "VARCHAR2":
+                {
+                    return true;
+                }
+            case "DATETIME":
+                {
+                    try
+                    {
+                        if (strValue != string.Empty)
+                            Convert.ToDateTime(strValue);
+                        return true;
+                    }
+                    catch (Exception)
+                    {
+                        return false;
+                    }
+                }
+            case "NUMERIC":
+                {
+                    try
+                    {
+                        if (strValue != string.Empty)
+                            Convert.ToDecimal(strValue);
+                        return true;
+                    }
+                    catch (Exception)
+                    { return false; }
+                }
+            default:
+                return true;
+        }
+    }
+    private bool FunBoolCheckLength(string strValue, int intLength)
+    {
+        if (strValue.Length <= intLength)
+            return true;
+        else
+            return false;
+    }
+    public bool FunCallChequeReturn()
+    {
+        try
+        {
+            DataSet dsChequeRtn = new DataSet();
+            string strFile = string.Empty;
+            string strErrorLog = string.Empty;
+            string strPathName = ViewState["FilePath"].ToString();
+            path = System.IO.Path.GetFullPath(strPathName);
+
+            if (!((Path.GetExtension(path) == ".xls") || (Path.GetExtension(path) == ".xlsx")))
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Upload Excel File and Extension should be .xls or .xslx')", true);
+                FunPubClear();
+                lblExcelCurrentPath.Text = string.Empty;
+                return false;
+            }
+            if (Path.GetExtension(path) == ".xls")
+            {
+                dsChequeRtn = ImportExcelXLS(path, true);
+                if (dsChequeRtn.Tables.Count > 0 && dsChequeRtn.Tables != null)
+                    dtChequeRtn = dsChequeRtn.Tables[0];
+                else
+                {
+                    Utility.FunShowAlertMsg(obj_Page, "Unable to Show the details, No records found");
+                    FunPubClear();
+                    lblExcelCurrentPath.Text = string.Empty;
+                    return false;
+                }
+            }
+            else if (Path.GetExtension(path) == ".xlsx")
+            {
+
+                dsChequeRtn = ImportExcelXLS(path, true);
+                if (dsChequeRtn.Tables.Count > 0 && dsChequeRtn.Tables != null)
+                {
+                    dtChequeRtn = dsChequeRtn.Tables[0];
+                }
+                else
+                {
+                    Utility.FunShowAlertMsg(obj_Page, "Unable to Show the details, No records found");
+                    FunPubClear();
+                    lblExcelCurrentPath.Text = string.Empty;
+                    return false;
+                }
+            }
+            if (dtChequeRtn.Rows.Count > 0 && dtChequeRtn != null)
+            {
+                if (ValidateExcelData(dtChequeRtn))
+                {
+                    XmlChequeRtn = (((((((((((dtChequeRtn.Rows.Count > 0) ? FunPubFormXml(dtChequeRtn) : "<Root></Root>").Replace("SlNo", "SNo")).Replace("CUSTOMER CODE", "CUSTCODE")).Replace("INSTRUMENT NO", "INSTRUMENT")).Replace("RECEIPT NUMBER", "RPNO")).Replace("RETURN DATE", "RETDT")).Replace("REASON", "REASON")).Replace("RETURN CHARGES", "RETCHGS")).Replace("BANK ADVICE NO", "BNK_ADNO")).Replace("EXCELERROR", "EXCELERROR")).Replace("EXSTATUS", "EXSTATUS");
+                    if (XmlChequeRtn != string.Empty && path != string.Empty)
+                    {
+                        if (!FunCallChequeReturnExcelLoad())                        
+                            return false;                        
+                    }
+                    else
+                    {
+                        FunPubErrorMsg();                       
+                        return false;
+                    }
+                }
+                else
+                {
+                    Utility.FunShowAlertMsg(obj_Page, " Number of Columns Mismatch, Check and then Proceed");
+                    lblExcelCurrentPath.Text = string.Empty;
+                    FunPubClear();
+                    return false;
+                }
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(obj_Page, "No Records Found in Excel..");
+                lblExcelCurrentPath.Text = string.Empty;
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex, lblHeading.Text);
+            return false;
+        }
+        return true;
+    }
+    public string FunPubFormXml(DataTable DtXml)
+    {
+        int intcolcount = 0;
+        string strColValue = string.Empty;
+        StringBuilder strbXml = new StringBuilder();
+
+        strbXml.Append("<Root>");
+        foreach (DataRow grvRow in DtXml.Rows)
+        {
+            intcolcount = 0;
+            strbXml.Append(" <Details ");
+            foreach (DataColumn dtCols in DtXml.Columns)
+            {
+                strColValue = grvRow.ItemArray[intcolcount].ToString();
+                strColValue = strColValue.Replace("&", "").Replace("<", "").Replace(">", "");
+                strColValue = strColValue.Replace("'", "\"");
+                if (!string.IsNullOrEmpty(strColValue))
+                {
+                    if (grvRow.ItemArray[intcolcount].ToString() != "" || dtCols.ColumnName != string.Empty)
+                    {
+                        DateTime dateValue;
+                        Decimal charges = 0.00M;
+                        Int32 intNo = 0;
+                        if (dtCols.ColumnName.ToUpper().Contains("DATE"))
+                        {
+                            if (DateTime.TryParse(strColValue, out dateValue))
+                                strbXml.Append(dtCols.ColumnName + "='" + Utility.StringToDate(strColValue).ToString() + "' ");
+                            else
+                                strbXml.Append(dtCols.ColumnName + "='" + string.Empty + "' ");
+                        }
+                        else if (dtCols.ColumnName.ToUpper().Contains("RETURN CHARGES"))
+                        {
+                            if (Decimal.TryParse(strColValue, out charges))
+                                strbXml.Append(dtCols.ColumnName + "='" + strColValue + "' ");
+                            else
+                                strbXml.Append(dtCols.ColumnName + "='" + charges + "' ");
+                        }
+                        else if (dtCols.ColumnName.ToUpper().Contains("BANK ADVICE NO"))
+                        {
+                            if (Int32.TryParse(strColValue, out intNo))
+                                strbXml.Append(dtCols.ColumnName + "='" + strColValue + "' ");
+                            else
+                                strbXml.Append(dtCols.ColumnName + "='" + intNo + "' ");
+                        }
+                        else
+                            strbXml.Append(dtCols.ColumnName + "='" + strColValue + "' ");
+                    }
+                }
+                intcolcount++;
+            }
+            strColValue = "";
+            strbXml.Append(" /> ");
+        }
+        strbXml.Append("</Root>");
+        return strbXml.ToString();
+    }
+    private static string _strColName;
+
+    public static string ColName
+    {
+        get { return _strColName; }
+        set { _strColName = value; }
+    }
+
+    private static string _strErrMsg;
+
+    public static string ErrorMsg
+    {
+        get { return _strErrMsg; }
+        set { _strErrMsg = value; }
+    }
+    public static DataSet ImportExcelXLS(string FileName, bool hasHeaders)
+    {
+        string HDR = hasHeaders ? "Yes" : "No";
+        string strConn;
+        if (FileName.Substring(FileName.LastIndexOf('.')).ToLower() == ".xlsx")
+            strConn = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + FileName + ";Extended Properties=\"Excel 12.0;HDR=Yes;IMEX=2\"";
+        else
+        {
+            strConn = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + FileName + ";Extended Properties=\"Excel 8.0;HDR=Yes;IMEX=1\"";
+        }
+        DataSet Dtoutput = new DataSet();
+        DataSet output = new DataSet();
+        DataTable dtExcel = new DataTable();
+        try
+        {
+            using (OleDbConnection conn = new OleDbConnection(strConn))
+            {
+                conn.Open();
+                DataTable schemaTable = conn.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, new object[] { null, null, null, "TABLE" });
+                foreach (DataRow schemaRow in schemaTable.Rows)
+                {
+                    string sheet = schemaRow["TABLE_NAME"].ToString();
+                    if (!sheet.EndsWith("_"))
+                    {
+                        OleDbCommand cmd = new OleDbCommand("SELECT * FROM [" + sheet + "]", conn);
+                        cmd.CommandType = CommandType.Text;
+                        DataTable outputTable = new DataTable(sheet);
+                        output.Tables.Add(outputTable);
+                        new OleDbDataAdapter(cmd).Fill(outputTable);
+                    }
+                }
+                conn.Close();
+
+                output.Tables[0].Columns[0].ColumnName = "CUSTOMERCODE";
+                output.Tables[0].Columns[1].ColumnName = "INSTRUMENTNO";
+                output.Tables[0].Columns[2].ColumnName = "RECEIPTNUMBER";
+                output.Tables[0].Columns[3].ColumnName = "RETURNDATE";
+                output.Tables[0].Columns[4].ColumnName = "REASON";
+                output.Tables[0].Columns[5].ColumnName = "RETURNCHARGES";
+                output.Tables[0].Columns[6].ColumnName = "BANKADVICENO";
+
+                DataRow[] drChequeRtn = output.Tables[0].Select("(CUSTOMERCODE = ' ' OR CUSTOMERCODE IS NULL) AND (INSTRUMENTNO = ' ' OR INSTRUMENT IS NULL) AND (RECEIPTNUMBER = ' ' OR RECEIPTNUMBER IS NULL) AND (RETURNDATE = ' ' OR RETURNDATE IS NULL) AND (REASON = ' ' OR REASON IS NULL) AND (RETURNCHARGES = ' ' OR RETURNCHARGES IS NULL) AND (BANKADVICENO = ' ' OR BANKADVICENO IS NULL)");
+
+                foreach (DataRow drCredit in drChequeRtn)
+                    drCredit.Delete();
+                output.Tables[0].AcceptChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+            //Not a legal OleAut date.           
+            if (ex.Message == "Not a legal OleAut date.")
+            {
+                Utility.FunShowAlertMsg(obj_Page, "Return Date is Invalid Format, Check and then Proceed");
+                obj_Page.FunPubClear();
+            }
+        }
+        return output;
+    }
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ViewState["FilePath"] != null)
+            {
+                if (FunCallChequeReturn())
+                {
+                    if (ViewState["dtChqreturn"] != null)
+                    {
+                        DataTable dt = new DataTable();
+                        dt = ViewState["dtChqreturn"] as DataTable;
+                        DataRow[] drchq = dt.Select("ExStatus='" + Convert.ToString("Valid") + "'");
+
+                        if (drchq != null && drchq.Length > 0)
+                        {
+                            btnSave.Enabled = true;
+                        }
+                        else
+                        {
+                            btnSave.Enabled = false;
+                        }
+                    }
+                    btnCancel.Enabled =
+                    btnClear.Enabled =
+                    autoScroll.Visible =
+                    pnlGRDChqRtn.Visible =
+                    pnlUpload.Visible = true;
+                    flUpload.Enabled =
+                    btnGo.Enabled = false;
+                }
+                else
+                {
+                    btnSave.Enabled =
+                    autoScroll.Visible =
+                    pnlGRDChqRtn.Visible =
+                    pnlUpload.Visible = false;
+                    btnGo.Enabled = true;
+                    FunPubClear();
+                }
+            }
+            else
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Upload Excel file and Extension should be .xls or .xslx');", true);
+                FunPubClear();
+                return;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+        }
+    }
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriSaveChequeReturnExce_ChequeCancellation();
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    private void FunPriSaveChequeReturnExce_ChequeCancellation()
+    {
+        try
+        {
+            string strChequeReturnNo = string.Empty;
+            if (Page.IsValid)
+            {
+
+                objClnChequeExcel_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+                if (strChequeReturn == string.Empty)
+                {
+                    ObjClnMemoMgtServicesClient = new ClnMemoMgtServicesReference.ClnMemoMgtServicesClient();
+                    objChequeExcelDateTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeReturnProcessExcelDataTable();
+                    objChequeExcelRow = objChequeExcelDateTable.NewS3G_CLN_ChequeReturnProcessExcelRow();
+                    FunPriGenerateXMLChequeRtn();
+                    if (StrXMLChequeRtn != null && StrXMLChequeRtn != string.Empty)
+                    {
+                        objChequeExcelRow.XMLChequeRtnExcel = StrXMLChequeRtn;
+                    }
+                    else
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('No Records Found,Unable to Save..');", true);
+                        lblExcelCurrentPath.Text = string.Empty;
+                        return;
+                    }
+                    objChequeExcelRow.Created_By = Convert.ToString(intUserID);
+                    objChequeExcelRow.File_Path = lblCurrentPath.Text;
+                    objChequeExcelRow.Modified_By = Convert.ToString(intUserID);
+                    objChequeExcelDateTable.AddS3G_CLN_ChequeReturnProcessExcelRow(objChequeExcelRow);
+                    intErrCode = objClnChequeExcel_Client.OL_CreateChequeReturns_Excel(out strChequeReturnNo, ObjSerMode, ClsPubSerialize.Serialize(objChequeExcelDateTable, ObjSerMode));
+                }
+                if (intErrCode == 0 && strChequeReturn == string.Empty)
+                {
+                    //To avoid double save click
+                    btnSave.Enabled = false;
+                    //End here
+                    strAlert = "Cheque Returns Through Excel (Number : " + strChequeReturnNo + ") details processed successfully";
+                    strAlert += @"\n\nWould you like to process one more Cheque Return Through Excel?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+
+                    //strAlert = "if(confirm('" + strAlert + "')){ document.getElementById('" + Button1.ClientID + "').click();}else {if(confirm('" + (@"Would you like to process one more Cheque Return Through Excel?").Replace("\\n", "") + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}" + "}";
+
+                    btnSave.Enabled = btnClear.Enabled = false;
+                    strChequeReturn = strChequeReturnNo;
+                    strRedirectPageView = "";
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                }
+                else if (intErrCode == -1)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs._1 + " for " + strPageName + "');", true);  //   Document Sequence Number not set for processing Cheque Return ');", true);
+                    return;
+                }
+                else if (intErrCode == -2)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs._2 + " for " + strPageName + "');", true);  //   Document Sequence Number not set for processing Cheque Return ');", true);
+                    return;
+                }
+                else if (intErrCode == -3)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs._1 + " for " + strPageName + "');", true);  //   Document Sequence Number not set for processing Cheque Return ');", true);
+                    return;
+                }
+                else if (intErrCode == 0 && strChequeReturn != string.Empty)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs.S3G_SucMsg_CLN_ChequeRetCancel + "');" + strRedirectPageView, true);    //Cheque Return Cancelled sucessfully
+                    return;
+                }
+                else if (intErrCode == 15)
+                {
+                    //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Memo master not defined');", true);    //Cheque Return Cancelled sucessfully
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Memo Master not defined for Cheque Return charges');", true);
+                    return;
+                }
+                else if (intErrCode == 11)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('No ECS Receipt..');" + strRedirectPageView, true);    //Cheque Return Cancelled sucessfully
+                    return;
+                }
+                else if (intErrCode == 12)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('No challan based receipt');" + strRedirectPageView, true);    //Cheque Return Cancelled sucessfully
+                    return;
+                }
+                else if ((intErrCode == 13) || (intErrCode == 14))
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Unexpected Error, Unable to Save');" + strRedirectPageView, true);    //Cheque Return Cancelled sucessfully
+                    return;
+                }
+                //else if (intErrCode == 14)
+                //{
+                //    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Unexpected Error, Unable to Save');" + strRedirectPageView, true);    //Cheque Return Cancelled sucessfully
+                //    return;
+                //}
+                else
+                {
+                    if ((intErrCode == 50) || (intErrCode == 51) || (intErrCode == 52) || (intErrCode == 53) || (intErrCode == 120) || (intErrCode == 141) || (intErrCode >= 8000))
+                    {
+                        Utility.FunShowValidationMsg(this.Page, "", intErrCode);
+                    }
+                    else
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Error occured in cheque return Through Excel processing');", true);
+                    }
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_Save.Replace(" save ", " Save / Cheque Return Through Excel Cancelled ");     // "Due to Data Problem, Unable to Save /Cheque Return Cancelled";
+            cvChequeReturn.IsValid = false;
+        }
+    }
+    private void FunPriGenerateXMLChequeRtn()
+    {
+        try
+        {
+            DataTable dt = new DataTable();
+            if (ViewState["dtChqreturn"] != null)
+            {
+                dt = ViewState["dtChqreturn"] as DataTable;
+                if (dt.Rows.Count > 0)
+                {
+                    if (grvUploadDetails.Rows.Count > 0)
+                    {
+                        StrXMLChequeRtn = dt.FunPubFormXml(true);
+                        //DataRow[] drchq = dt.Select("ExStatus='" + Convert.ToString("Valid") + "'");
+                        //if (drchq != null && drchq.Length > 0)
+                        //{
+                        //    StrXMLChequeRtn = drchq.CopyToDataTable().FunPubFormXml(true);
+                        //}
+                        //else
+                        //{
+                        //    ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('No Valid Records Found,Unable to Save...');", true);
+                        //    btnSave.Enabled = false;
+                        //    return;
+                        //}
+                    }
+                    else
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('No Records Found,Unable to Save...');", true);
+                        btnSave.Enabled = false;
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+        }
+    }
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClear();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+        }
+    }
+    private void FunPubClear()
+    {
+        ViewState["dtChqreturn"] = 
+        ViewState["FilePath"] = null;
+        pnlGRDChqRtn.Visible = 
+        pnlUpload.Visible = 
+        chkSelect.Checked =
+        btnSave.Enabled = 
+        hyplnkView.Enabled = 
+        chkSelect.Enabled = false;
+        hdnSelectedPath.Dispose();
+        chkSelect.Dispose();       
+        dtChequeRtn.Clear();
+        XmlChequeRtn = path = 
+        lblExcelCurrentPath.Text =       
+        flUpload.ToolTip = string.Empty;
+        flUpload.Enabled = true;
+    }
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect(strRedirectPage);
+            flUpload.Enabled = true;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text); throw;
+        }
+    }
+    protected void chkSuccess_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            chkFail.Checked = false;
+            DataTable dt = new DataTable();
+            DataTable dtBind = new DataTable();
+
+            if (ViewState["dtChqreturn"] != null)
+            {
+                dt = ViewState["dtChqreturn"] as DataTable;
+                if (chkSuccess.Checked)
+                {
+                    DataRow[] drchq = dt.Select("ExStatus='" + Convert.ToString("Valid") + "'");
+                    if (drchq != null && drchq.Length > 0)
+                    {
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = true;
+                        dtBind = drchq.CopyToDataTable();
+                        grvUploadDetails.DataSource = dtBind;
+                        grvUploadDetails.DataBind();
+                    }
+                    else
+                    {
+                        grvUploadDetails.DataSource = null;
+                        grvUploadDetails.DataBind();
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('No valid records Found..');", true);
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = false;
+                        return;
+                    }
+                }
+                else
+                {
+                    if (dt.Rows.Count > 0)
+                    {
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = true;
+                        grvUploadDetails.DataSource = dt;
+                        grvUploadDetails.DataBind();
+                    }
+                    else
+                    {
+                        grvUploadDetails.DataSource = null;
+                        grvUploadDetails.DataBind();
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('No Records Found..');", true);
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = false;
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+        }
+    }
+    protected void chkFail_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            chkSuccess.Checked = false;
+            DataTable dt = new DataTable();
+            DataTable dtBind = new DataTable();
+            if (ViewState["dtChqreturn"] != null)
+            {
+                dt = ViewState["dtChqreturn"] as DataTable;
+                if (chkFail.Checked)
+                {
+                    DataRow[] drchq = dt.Select("ExStatus='" + Convert.ToString("InValid") + "'");
+                    if (drchq != null && drchq.Length > 0)
+                    {
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = true;
+                        dtBind = drchq.CopyToDataTable();
+                        grvUploadDetails.DataSource = dtBind;
+                        grvUploadDetails.DataBind();
+                    }
+                    else
+                    {
+                        grvUploadDetails.DataSource = null;
+                        grvUploadDetails.DataBind();
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('No Invalid records Found..');", true);
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = false;
+                        return;
+                    }
+                }
+                else
+                {
+                    if (dt.Rows.Count > 0)
+                    {
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = true;
+                        grvUploadDetails.DataSource = dt;
+                        grvUploadDetails.DataBind();
+                    }
+                    else
+                    {
+                        grvUploadDetails.DataSource = null;
+                        grvUploadDetails.DataBind();
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('No Records Found..');", true);
+                        pnlGRDChqRtn.Visible =
+                        autoScroll.Visible = false;
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+        }
+    }
+    protected void grvUploadDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblreturnDate = (Label)e.Row.FindControl("lblreturnDate");
+                Label lblBankCharges = (Label)e.Row.FindControl("lblBankCharges");
+                Label lblBankAdviseNo = (Label)e.Row.FindControl("lblBankAdviseNo");
+
+
+                if (lblreturnDate.Text.Trim() != string.Empty)
+                {
+                    if (lblreturnDate.Text == "01/01/1900 00:00:00")
+                        lblreturnDate.Text = string.Empty;
+                    else
+                    {
+                        DateTime Date = Utility.StringToDate(lblreturnDate.Text);
+                        lblreturnDate.Text = Date.ToString(strDateFormat);
+                    }
+                    lblBankCharges.Text = Convert.ToDecimal(lblBankCharges.Text.ToString()).ToString(Utility.SetSuffix());
+                    lblBankCharges.Style.Add("text-align", "right");
+                }
+
+            }
+
+        }
+        catch (Exception ex)
+        {
+
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+        }
+    }
+    private void FunPriPageLoad()
+    {
+        try
+        {
+            this.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+
+            //Date Format
+            S3GSession ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strChequeReturn = fromTicket.Name;
+            }
+            if (Request.QueryString["qsMode"] != null)
+                strMode = Request.QueryString["qsMode"].ToString();
+            if (!IsPostBack)
+            {
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] != null && Request.QueryString["qsMode"] == "Q")
+                {
+                    btnSave.CssClass = "styleSubmitButton";
+                    FunLoadAllDetails(true);
+                    FunPriDisableControls(-1);
+                }
+                else
+                {
+                    btnSave.CssClass = "styleSubmitButton";
+                    int intGPSPrefix = ObjS3GSession.ProGpsPrefixRW <= 10 ? ObjS3GSession.ProGpsPrefixRW : 10;
+                    int intGPSSuffix = ObjS3GSession.ProGpsSuffixRW <= 3 ? ObjS3GSession.ProGpsSuffixRW : 3;
+                    FunPriDisableControls(0);
+
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #region [Details based on Cheque or Receipt No]
+
+    private void FunLoadAllDetails(bool bolThroughTextbox)
+    {
+        DataTable dtTableNew = new DataTable();
+        try
+        {
+            if (strChequeReturn != null)
+            {
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Cheque_Return_No", strChequeReturn);
+                Procparam.Add("@Company_ID", intCompanyID.ToString());
+                dtTableNew = Utility.GetDefaultData("S3g_CLN_GetChequeThroughExcelForView", Procparam);
+                //lblCurrentPath.Text = dtTableNew.Rows[0]["File_Path"].ToString();//Added by Srivatsan for ISFC Customization
+                ViewState["dtHeader"] = dtTableNew;
+                if (dtTableNew.Rows.Count > 0 && dtTableNew != null)
+                {
+                    btnCancel.Enabled =
+                    pnlGRDChqRtn.Visible = true;
+                    btnSave.Enabled =
+                    btnClear.Enabled =
+                    btnBrowse.Enabled =
+                    btnGo.Enabled =
+                    btnDlg.Enabled =
+                    hyplnkView.Enabled =
+                    flUpload.Enabled =
+                    pnlUpload.Enabled = false;
+
+                    grvUploadDetails.DataSource = dtTableNew;
+                    grvUploadDetails.DataBind();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion [Details based on Cheque or Receipt No]
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    if (!bCreate)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    btnSave.OnClientClick = "return fnCheckPageValidators();";
+                    btnSave.Text = "Process";
+                    btnSave.Enabled = false;
+                    btnCancel.Enabled =
+                    btnClear.Enabled = true;
+                    pnlUpload.Visible = false;
+                    break;
+
+                case 1: // Modify Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    if (!bModify)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    //btnSave.Text = "Cheque Return Cancel";
+                    //btnSave.CssClass = "styleSubmitLongButton";
+                    //btnSave.OnClientClick = "return ChequeCancelmsg();";
+                    //btnClear.Enabled = false;
+
+                    break;
+
+                case -1:// Query Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    btnSave.OnClientClick = "return fnCheckPageValidators();";
+                    btnSave.Text = "Save";
+                    btnSave.Enabled = btnClear.Enabled = false;
+
+                    if (!bQuery)
+                    {
+                        Response.Redirect(strRedirectPage);
+                    }
+                    if (bClearList)
+                    {
+
+                    }
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    protected void btnBrowse_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            HttpFileCollection hfc = Request.Files;
+            HttpPostedFile hpf = hfc[0];
+            string strFilePath = string.Empty;
+            if (hpf.ContentLength > 0)
+            {
+                if (ViewState["Docpath"] != null)
+                {
+                    strFilePath = ViewState["Docpath"].ToString();
+                    if (!Directory.Exists(strFilePath))
+                    {
+                        System.IO.Directory.CreateDirectory(strFilePath);
+                    }
+                    chkSelect.Checked = true;
+                    chkSelect.ToolTip = flUpload.ToolTip = hdnSelectedPath.Value;
+                    lblCurrentPath.Text = hpf.FileName;
+                    int intFileNamelength = lblCurrentPath.Text.Split('\\').Length;
+                    string strFileName = lblCurrentPath.Text.Split('\\')[intFileNamelength - 1];
+                    string strViewst = lblCurrentPath.Text;
+
+                    flUpload.SaveAs(ViewState["Docpath"].ToString() + "\\" + strFileName);
+                    lblCurrentPath.Text = ViewState["Docpath"].ToString() + "\\" + strFileName;
+                    ViewState["FilePath"] = lblCurrentPath.Text;
+                    Cache[strViewst] = hpf;
+                    hyplnkView.Enabled = true;
+                    lblExcelCurrentPath.Text = lblCurrentPath.Text;
+                    btnGo.Enabled = true;
+                    chkFail.Checked = false;
+                    chkSuccess.Checked = false;
+                }
+                else
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('No document path found');", true);
+                    btnGo.Enabled = false;
+                    return;
+                }
+
+            }
+        }
+        catch (Exception ex)
+        {
+            btnGo.Enabled = false;
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Invalid document path');", true);
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+
+    }
+    protected void FunProUploadFiles()
+    {
+        try
+        {
+
+            string strViewst = lblPath.Text;
+            if (chkSelect.Checked)
+            {
+                HttpPostedFile hpf = (HttpPostedFile)Cache[strViewst];
+                string strFilePath = string.Empty;
+
+                strFilePath = Path.Combine(ViewState["Docpath"].ToString(), "COMPANY" + intCompanyID.ToString() + "/");
+
+                if (!System.IO.Directory.Exists(strFilePath))
+                {
+                    System.IO.Directory.CreateDirectory(strFilePath);
+                }
+                strFilePath = strFilePath + @"\" + System.IO.Path.GetFileName(hpf.FileName).Replace("%20", "_").Replace(" ", "_");
+                lblCurrentPath.Text = strFilePath;
+                hpf.SaveAs(strFilePath);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+        }
+    }
+    protected void hyplnkView_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            string strFieldAtt = ((ImageButton)sender).ClientID;
+
+            string strFileName = lblCurrentPath.Text.Replace("\\", "/").Trim();
+            string strScipt = "window.open('../Common/S3GViewFile.aspx?qsFileName=" + strFileName + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+        }
+    }
+}

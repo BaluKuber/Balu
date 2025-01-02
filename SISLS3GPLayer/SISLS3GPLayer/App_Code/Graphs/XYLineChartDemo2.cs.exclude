@@ -1,0 +1,35 @@
+namespace Ujihara.Demo
+{
+    using org.jfree.chart;
+    using org.jfree.chart.plot;
+    using org.jfree.chart.renderer.xy;
+    using org.jfree.chart.axis;
+
+
+    public class XYLineChartDemo2 : ChartCreator
+    {
+        public override JFreeChart CreateChart()
+        {
+            JFreeChart chart = ChartFactory.createXYLineChart(
+                Name,
+                "X",
+                "Y",
+                DatasetCreator.createXYZDataset(2, 4),
+                PlotOrientation.VERTICAL,
+                true,
+                false,
+                false
+            );
+
+            XYPlot plot = (XYPlot)chart.getPlot();
+            XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
+            renderer.setSeriesLinesVisible(0, true);
+            renderer.setSeriesShapesVisible(0, false);
+            renderer.setSeriesLinesVisible(1, false);
+            renderer.setSeriesShapesVisible(1, true);
+            plot.setRenderer(renderer);
+
+            return chart;
+        }
+    }
+}

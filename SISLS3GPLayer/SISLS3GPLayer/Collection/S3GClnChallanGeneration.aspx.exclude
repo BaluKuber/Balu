@@ -1,0 +1,294 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnChallanGeneration.aspx.cs" Inherits="Collection_S3GClnChallanGeneration"
+    Title="Untitled Page" %>
+
+<%@ Register Assembly="iCONWebComponents" Namespace="iCON.Web.Components" TagPrefix="cc2" %>
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc1" TagName="PageNavigator" Src="~/UserControls/PageNavigator.ascx" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="3" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading" colspan="4">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="Challan Generation" ID="lblHeading" CssClass="styleDisplayLabel"> </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldAlign" colspan="4">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel" width="20%">
+                        <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleReqFieldLabel"></asp:Label>
+                        <%--<span class="styleMandatory">*</span>--%>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlLOB" runat="server" AutoPostBack="true" ToolTip="Line of Business"
+                            OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged" onmouseover="ddl_itemchanged(this);">
+                        </asp:DropDownList>
+                    </td>
+                    <td class="styleFieldLabel" width="20%">
+                        <asp:Label runat="server" Text="Date" ID="lblDate" CssClass="styleReqFieldLabel"></asp:Label>
+                        <%--<span class="styleMandatory">*</span>--%>
+                    </td>
+                    <td class="styleFieldAlign" width="25%">
+                        <asp:TextBox ID="txtDate" runat="server" Width="45%" AutoPostBack="true" OnTextChanged="txtDate_TextChanged"
+                            ToolTip="Date"></asp:TextBox>
+                        <asp:Image ID="Image1" runat="server" ImageUrl="~/Images/calendaer.gif" />
+                        <cc1:CalendarExtender runat="server" Format="dd/MM/yyyy" TargetControlID="txtDate"
+                            OnClientDateSelectionChanged="checkDate_NextSystemDate" PopupButtonID="Image1"
+                            ID="CalendarExtender2" Enabled="True">
+                        </cc1:CalendarExtender>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Location" ID="lblBranch" CssClass="styleReqFieldLabel"></asp:Label>
+                        <%--  <span class="styleMandatory">*</span>--%>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <uc:Suggest ID="ddlBranch" ToolTip="Location" runat="server" AutoPostBack="True"
+                            OnItem_Selected="ddlBranch_SelectedIndexChanged" IsMandatory="true" ErrorMessage="Select a Location"
+                            ValidationGroup="btnListing" ServiceMethod="GetBranchList" WatermarkText="--Select--" />
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Deposit Bank" ID="lblDraweebank" CssClass="styleReqFieldLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlDraweeBank" ToolTip="Deposit Bank" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlDraweeBank_SelectedIndexChanged" onmouseover="ddl_itemchanged(this);">
+                            <%-- <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>--%>
+                        </asp:DropDownList>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Receipt Type" ID="lblReceiptType" CssClass="styleReqFieldLabel"></asp:Label>
+                        <%--<span class="styleMandatory">*</span>--%>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlReceiptType" runat="server" AutoPostBack="true" ToolTip="Receipt Type"
+                            OnSelectedIndexChanged="ddlReceiptType_SelectedIndexChanged" onmouseover="ddl_itemchanged(this);">
+                        </asp:DropDownList>
+                        <td class="styleFieldAlign">
+                            <asp:Label runat="server" Text="Instrument Type" Visible="false" ID="lblInstrumentType"
+                                CssClass="styleDisplayLabel"></asp:Label>
+                            <%--<span class="styleMandatory">*</span>--%>
+                        </td>
+                        <td class="styleFieldAlign">
+                            <asp:DropDownList ID="ddlInstrumentType" Visible="false" AutoPostBack="true" runat="server"
+                                Width="65%" ToolTip="Instrument Type" OnSelectedIndexChanged="ddlInstrumentType_SelectedIndexChanged"
+                                onmouseover="ddl_itemchanged(this);">
+                                <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
+                            </asp:DropDownList>
+                        </td>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Challan No" Visible="true" ID="lblChallanNo" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="txtChallanNo" Visible="true" runat="server" ReadOnly="True" ToolTip="Challan Number"></asp:TextBox>
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Past Receipts" ID="lblPastReceipts" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:CheckBox ID="chkPastReceipts" runat="server" AutoPostBack="true" OnCheckedChanged="chkPastReceipts_CheckedChanged">
+                        </asp:CheckBox>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldAlign">
+                        &nbsp;
+                    </td>
+                    <td class="styleFieldAlign">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" colspan="4">
+                        &nbsp;&nbsp;<asp:Button ID="btnListing" ToolTip="List the Receipt details" runat="server"
+                            CausesValidation="true" CssClass="styleSubmitButton" OnClick="btnListing_Click"
+                            Text="Challan Listing" ValidationGroup="btnListing" />
+                        &nbsp;<asp:Button ID="btnGeneration" Enabled="false" runat="server" CausesValidation="true"
+                            CssClass="styleSubmitButton" OnClick="btnGeneration_Click" OnClientClick="return fnCheckPageValidators();"
+                            Text="Challan Generation" />
+                        &nbsp;<asp:Button ID="btnPrint" Enabled="false" runat="server" CausesValidation="true"
+                            CssClass="styleSubmitButton" OnClick="btnPrint_Click" Text="Print" />
+                        &nbsp;<asp:Button ID="btnClear" ToolTip="Clear Values" runat="server" CausesValidation="false"
+                            CssClass="styleSubmitButton" OnClick="btnClear_Click" OnClientClick="return fnConfirmClear();"
+                            Text="Clear" />
+                        &nbsp;<asp:Button ID="btnCancel" ToolTip="Goto translander page" runat="server" CausesValidation="false"
+                            CssClass="styleSubmitButton" Text="Cancel" OnClick="btnCancel_Click" />
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldAlign" colspan="4">
+                        <asp:Label ID="lblerrormessage1" runat="server" CssClass="styleDisplayLabel" Text=""> </asp:Label>
+                    </td>
+                    <tr>
+                        <td class="styleFieldAlign">
+                            &nbsp;
+                        </td>
+                        <td class="styleFieldAlign">
+                            &nbsp;
+                        </td>
+                    </tr>
+                    <tr id="pnlGrid" runat="server" visible="false">
+                        <td colspan="4" width="100%">
+                            <asp:Panel runat="server" CssClass="stylePanel">
+                                <asp:GridView ID="grvChallan" runat="server" AutoGenerateColumns="false" BorderWidth="2px"
+                                    HeaderStyle-CssClass="styleGridHeader" OnRowDataBound="grvChallan_RowDataBound"
+                                    Width="100%">
+                                    <%--                                         <PagerSettings Mode = "Numeric" PageButtonCount = "10" Position = "Bottom" Visible ="true" />
+--%>
+                                    <Columns>
+                                        <asp:BoundField DataField="RowNumber" HeaderText="Sl.No" ItemStyle-HorizontalAlign="Center" />
+                                        <%--<asp:TemplateField HeaderText="Sl.No">
+                                        <ItemTemplate>
+                                            <%# Eval("RowNumber").ToString() %>
+                                        </ItemTemplate>
+                                    </asp:TemplateField>--%>
+                                        <asp:TemplateField HeaderText="Instrument Date">
+                                            <ItemTemplate>
+                                                <%# FormatDate(Eval("Instrument_Date").ToString())%>
+                                            </ItemTemplate>
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Receipt No">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblReceiptno" runat="server" Text='<%#Bind("Receipt_No")%>'></asp:Label>
+                                            </ItemTemplate>
+                                        </asp:TemplateField>
+                                        <%--<asp:BoundField HeaderText="Receipt No" DataField="Receipt_No" ItemStyle-HorizontalAlign="Center" />--%>
+                                        <asp:BoundField DataField="Customer_Code" HeaderText="Entity/Customer Code" ItemStyle-HorizontalAlign="Left" />
+                                        <asp:BoundField DataField="Customer_Name" HeaderText="Entity/Customer Name" ItemStyle-HorizontalAlign="Left" />
+                                        <asp:BoundField DataField="Drawee Bank" HeaderText="Drawee Bank" ItemStyle-HorizontalAlign="Left" />
+                                        <asp:BoundField HeaderText="Location" DataField="Location" ItemStyle-HorizontalAlign="Left"
+                                            ItemStyle-Width="10%" />
+                                        <asp:TemplateField HeaderText="Amount" ItemStyle-HorizontalAlign="Right" ItemStyle-Width="10%">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblAmount" runat="server" Text='<%#Bind("Amount") %>'></asp:Label>
+                                            </ItemTemplate>
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Exclude">
+                                            <ItemTemplate>
+                                                <asp:CheckBox ID="chkExclude" runat="server" AutoPostBack="true" CausesValidation="false"
+                                                    CssClass="styleGridHeader" OnCheckedChanged="chkExclude_CheckedChanged" />
+                                            </ItemTemplate>
+                                            <ItemStyle HorizontalAlign="Center" />
+                                        </asp:TemplateField>
+                                        <asp:BoundField DataField="LOB_ID" HeaderText="LOB ID" ItemStyle-HorizontalAlign="Center"
+                                            Visible="false" />
+                                    </Columns>
+                                    <%--                                       <PagerStyle ForeColor="Black" HorizontalAlign="Right" BackColor="#C6C3C6"></PagerStyle>
+--%>
+                                </asp:GridView>
+                                <uc1:PageNavigator ID="ucCustomPaging" runat="server" />
+                            </asp:Panel>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="styleFieldAlign" colspan="4">
+                            &nbsp;
+                        </td>
+                        <caption>
+                            <tr>
+                                <td align="center">
+                                    &nbsp;
+                                    <asp:RequiredFieldValidator ID="rfvddlLOB" runat="server" ControlToValidate="ddlLOB"
+                                        CssClass="styleMandatoryLabel" Display="None" InitialValue="0" SetFocusOnError="True"
+                                        ValidationGroup="btnListing"></asp:RequiredFieldValidator>
+                                    <%--<asp:RequiredFieldValidator ID="rfvddlBranch" runat="server" ControlToValidate="ddlBranch"
+                                        CssClass="styleMandatoryLabel" Display="None" InitialValue="0" SetFocusOnError="True"
+                                        ValidationGroup="btnListing"></asp:RequiredFieldValidator>--%>
+                                    <asp:RequiredFieldValidator ID="rfvddlReceiptType" runat="server" ControlToValidate="ddlReceiptType"
+                                        CssClass="styleMandatoryLabel" Display="None" InitialValue="0" SetFocusOnError="True"
+                                        ValidationGroup="btnListing"></asp:RequiredFieldValidator>
+                                    <asp:RequiredFieldValidator ID="rfvtxtDate" runat="server" ControlToValidate="txtDate"
+                                        CssClass="styleMandatoryLabel" Display="None" SetFocusOnError="True" ValidationGroup="btnListing"></asp:RequiredFieldValidator>
+                                    <asp:RequiredFieldValidator ID="rfvddldraweeBank" runat="server" ControlToValidate="ddlDraweeBank"
+                                        CssClass="styleMandatoryLabel" Display="None" InitialValue="0" SetFocusOnError="True"
+                                        ValidationGroup="btnListing"></asp:RequiredFieldValidator>
+                                    <%-- <asp:RequiredFieldValidator ID="rfvddlInstrumentType" runat="server" ControlToValidate="ddlInstrumentType"
+                                        CssClass="styleMandatoryLabel" Display="None" InitialValue="0" SetFocusOnError="True"
+                                        ValidationGroup="btnListing"></asp:RequiredFieldValidator>--%>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="styleFieldAlign" colspan="4">
+                                    &nbsp;
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="styleFieldAlign" colspan="4">
+                                    <asp:Label ID="lblerrormessage" runat="server" CssClass="styleDisplayLabel" Text=""> </asp:Label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center" colspan="4">
+                                    <asp:ValidationSummary ID="vsUTPA" runat="server" CssClass="styleMandatoryLabel"
+                                        HeaderText="Correct the following validation(s):" ShowSummary="true" ValidationGroup="btnListing" />
+                                </td>
+                            </tr>
+                        </caption>
+                    </tr>
+                </tr>
+            </table>
+        </ContentTemplate>
+        <%--        <Triggers>
+            <asp:PostBackTrigger ControlID="btnPrint" />
+        </Triggers>--%>
+    </asp:UpdatePanel>
+
+    <script language="javascript" type="text/javascript">
+        function fnListing() {
+            if (document.getElementById('ctl00_ContentPlaceHolder1_chkPastReceipts').checked == false) {
+                if (document.getElementById('ctl00_ContentPlaceHolder1_txtDate').value == "") {
+                    alert("Enter the Date");
+                    document.getElementById('ctl00_ContentPlaceHolder1_txtDate').focus();
+                    return false;
+                }
+            }
+            if (document.getElementById('ctl00_ContentPlaceHolder1_ddlLOB').value == "0") {
+                alert("Select the Line of Business.");
+                document.getElementById('ctl00_ContentPlaceHolder1_ddlLOB').focus();
+                return false;
+            }
+            if (document.getElementById('ctl00_ContentPlaceHolder1_ddlDraweeBank').value == "0") {
+                alert("Select the Drawee Bank");
+                document.getElementById('ctl00_ContentPlaceHolder1_ddlDraweeBank').focus();
+                return false;
+            }
+            if (document.getElementById('ctl00_ContentPlaceHolder1_ddlBranch').value == "0") {
+                alert("Select the Branch.");
+                document.getElementById('ctl00_ContentPlaceHolder1_ddlBranch').focus();
+                return false;
+            }
+            if (document.getElementById('ctl00_ContentPlaceHolder1_ddlReceiptType').value == "0") {
+                alert("Select the Receipt Type.");
+                document.getElementById('ctl00_ContentPlaceHolder1_ddlReceiptType').focus();
+                return false;
+            }
+            /* if(document.getElementById('ctl00_ContentPlaceHolder1_ddlInstrumentType').value=="0")
+            {
+            alert("Select the Instrument Type");
+            document.getElementById('ctl00_ContentPlaceHolder1_ddlInstrumentType').focus();
+            return false;
+            }  */
+            return true;
+        }
+    </script>
+
+</asp:Content>

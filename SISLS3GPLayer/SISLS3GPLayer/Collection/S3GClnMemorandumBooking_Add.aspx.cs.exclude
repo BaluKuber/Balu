@@ -1,0 +1,1577 @@
+﻿#region Page Header
+
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Collection
+/// Screen Name			: Memorandum Booking
+/// Created By			: Thangam M
+/// Start Date		    : 09-Apr-2011
+/// End Date		    : 18-Apr-2011
+/// Purpose	            : To fetch Memorandum Booking Details
+/// Modified By         : --
+/// Modified Date       : --
+///  
+///
+
+#endregion
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Text;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using CLN = S3GBusEntity.Collection;
+using CLNSERVICE = ClnMemoMgtServicesReference;
+using System.Collections;
+using System.Configuration;
+
+#endregion
+
+public partial class Collection_S3GClnMemorandumBooking : ApplyThemeForProject
+{
+    #region Initialization
+
+    /// <summary>
+    /// Variable Declaration and object initialization
+    /// </summary>
+
+    int intCompanyId = 0;
+    int intUserId = 0;
+    string Memo_Link_Key = "0";
+    static string strPageName = "Memorandum Booking";
+    int intErrorCode = 0;
+    Dictionary<string, string> Procparam;
+
+    UserInfo ObjUserInfo;
+    CLN.ClnMemoMgtServices.S3G_CLN_MemorandumBookingDataTable ObjMemorandumDataTable;
+    CLNSERVICE.ClnMemoMgtServicesClient ObjClnMemoMgtServicesClient;
+
+    StringBuilder strbMemorandumDetails = new StringBuilder();
+    S3GSession ObjS3GSession = new S3GSession();
+
+    public string strDateFormat;
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CMB';";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnMemorandumBooking_Add.aspx';";
+    string strRedirectPage = "~/Collection/S3GClnTransLander.aspx?Code=CMB";
+
+    //User Authorization
+
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    bool bClearList = false;
+
+    //Code end
+    public static Collection_S3GClnMemorandumBooking obj_Page;
+    #endregion
+
+    #region Page Events
+
+    #region PageLoad
+
+    /// <summary>
+    /// This event is handled for load the page
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        try
+        {
+            ObjUserInfo = new UserInfo();
+            intCompanyId = ObjUserInfo.ProCompanyIdRW;
+            intUserId = ObjUserInfo.ProUserIdRW;
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            lblErrorMessage.InnerText = "";
+            bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+            //Code end
+
+            if (Request.QueryString["qsMode"] != null)
+                strMode = Request.QueryString["qsMode"];
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                if (fromTicket != null)
+                {
+                    Memo_Link_Key = fromTicket.Name;
+                }
+                else
+                {
+                    throw new ApplicationException("Invalid Memorandum Booking Details");
+                }
+            }
+
+            if (!IsPostBack)
+            {
+
+                txtDocDate.Attributes.Add("readonly", "readonly");
+                CEDocDate.Format = strDateFormat;
+
+                FunProIntializeGridData();
+                FunProFillMemoDesc();
+                Procparam = new Dictionary<string, string>();
+                ViewState["dtGapdays"] = Utility.GetDefaultData("S3G_CLN_GetDocValueGapDays", Procparam);
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+                Procparam.Add("@User_Id", Convert.ToString(intUserId));
+                Procparam.Add("@Program_Id", "100");
+                if (PageMode == PageModes.Create)
+                {
+                    Procparam.Add("@Is_Active", "1");
+                }
+                if (strMode != "Q" && strMode != "M")
+                    ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+                Procparam.Add("@LOB_Id", ddlLOB.SelectedValue.ToString());
+                if (strMode == "C")
+                {
+                    //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location" });
+                }
+                else
+                {
+                    if (strMode != "Q" && strMode != "M")
+                        //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location" });
+                        ddlBranch.SelectedValue = "0";
+                        ddlBranch.SelectedText = "--Select--";
+                }
+                if (Memo_Link_Key != "0")
+                {
+                    if (strMode != "Q" && strMode != "M")
+                        FunProGetMemoDetails();
+                    if (strMode == "M")
+                    {
+                        FunProGetMemoDetails_QueryMode();
+                        lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                        FunProControlStatus(1);
+                    }
+                    if (strMode == "Q")
+                    {
+                        FunProGetMemoDetails_QueryMode();
+                        lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                        FunProControlStatus(-1);
+                    }
+                }
+                else
+                {
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    FunProControlStatus(0);
+                }
+                ddlLOB.Focus();
+            }
+
+            //Values assgnment for Csutomer selection control
+
+            if (ddlBranch.SelectedValue.ToString() != "0")
+            {
+                ucCustomerCodeLov.strBranchID = ddlBranch.SelectedValue.ToString();
+            }
+            else
+            {
+                ucCustomerCodeLov.strBranchID = "-1";
+            }
+            if (ddlLOB.SelectedValue.ToString() != "0")
+            {
+                ucCustomerCodeLov.strLOBID = ddlLOB.SelectedValue.ToString();
+            }
+            else
+            {
+                ucCustomerCodeLov.strLOBID = "-1";
+            }
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+
+            TextBox txt = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            if (PageMode == PageModes.Create)
+            {
+                txt.Attributes.Add("onfocus", "fnLoadCustomer()");
+            }
+            txt.ToolTip = "Customer Code";
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Common Events
+
+    /// <summary>
+    /// Save Clear and Cancel button events
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// 
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            DataTable dtMemorandumGridDetails = new DataTable();
+            dtMemorandumGridDetails = (DataTable)ViewState["MemorandumGridDetails"];
+            if (dtMemorandumGridDetails.Rows.Count == 0)
+            {
+                cvMemorandumBooking.ErrorMessage = "Add atleast one Memorandum details";
+                cvMemorandumBooking.IsValid = false;
+                return;
+            }
+
+            lblErrorMessage.InnerText = "";
+            ObjMemorandumDataTable = new S3GBusEntity.Collection.ClnMemoMgtServices.S3G_CLN_MemorandumBookingDataTable();
+            CLN.ClnMemoMgtServices.S3G_CLN_MemorandumBookingRow ObjMemorandumBookingRow;
+            ObjMemorandumBookingRow = ObjMemorandumDataTable.NewS3G_CLN_MemorandumBookingRow();
+
+            ObjMemorandumBookingRow.Memo_Link_Key = Convert.ToInt32(Memo_Link_Key);
+            ObjMemorandumBookingRow.Company_ID = intCompanyId;
+            ObjMemorandumBookingRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjMemorandumBookingRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjMemorandumBookingRow.Customer_ID = Convert.ToInt32(Convert.ToString(ViewState["CustomerID"]));
+            ObjMemorandumBookingRow.PANum = Convert.ToString(ddlPANum.SelectedValue);
+            if (ddlSANum.SelectedIndex > 0)
+            {
+                ObjMemorandumBookingRow.SANum = Convert.ToString(ddlSANum.SelectedValue);
+            }
+            else
+            {
+                ObjMemorandumBookingRow.SANum = ddlPANum.SelectedValue + "DUMMY";
+            }
+
+            ObjMemorandumBookingRow.Created_By = intUserId;
+            ObjMemorandumBookingRow.Created_On = Utility.StringToDate(DateTime.Now.ToString());
+            ObjMemorandumBookingRow.Modified_By = intUserId;
+            ObjMemorandumBookingRow.Modified_On = Utility.StringToDate(DateTime.Now.ToString());
+            ObjMemorandumBookingRow.Txn_ID = 0;
+
+            //foreach (DataRow DRow in dtMemorandumGridDetails.Rows)
+            //{
+            //    if (DRow["CreditDebit"].ToString() == "Debit")
+            //    {
+            //        DRow["Due_Amount"] = Convert.ToDouble(DRow["Due_Amount"].ToString()) * (-1);
+            //    }
+            //}
+
+            if (dtMemorandumGridDetails.GetChanges(DataRowState.Added) != null)
+            {
+                ObjMemorandumBookingRow.MemorandumAddDetails = FunProGetFormedDataTable(dtMemorandumGridDetails.GetChanges(DataRowState.Added));
+            }
+            if (dtMemorandumGridDetails.GetChanges(DataRowState.Deleted) != null)
+            {
+                DataTable DtDeleted = dtMemorandumGridDetails.GetChanges(DataRowState.Deleted);
+                DtDeleted.RejectChanges();
+                ObjMemorandumBookingRow.MemorandumDeleteDetails = FunProGetFormedDataTable(DtDeleted);
+            }
+            if (dtMemorandumGridDetails.GetChanges(DataRowState.Modified) != null)
+            {
+                ObjMemorandumBookingRow.MemorandumUpdateDetails = FunProGetFormedDataTable(dtMemorandumGridDetails.GetChanges(DataRowState.Modified));
+            }
+
+            if (Memo_Link_Key == "0")
+            {
+                ObjMemorandumBookingRow.OperationType = "0";
+            }
+            else
+            {
+                ObjMemorandumBookingRow.OperationType = "1";
+            }
+
+            ObjMemorandumDataTable.AddS3G_CLN_MemorandumBookingRow(ObjMemorandumBookingRow);
+
+            if (ObjMemorandumDataTable.Rows.Count > 0)
+            {
+                string DocNo = "";
+                ObjClnMemoMgtServicesClient = new ClnMemoMgtServicesReference.ClnMemoMgtServicesClient();
+                SerializationMode SerMode = SerializationMode.Binary;
+                byte[] byteobjS3G_CLN_MemoBooking_DataTable = ClsPubSerialize.Serialize(ObjMemorandumDataTable, SerMode);
+
+                intErrorCode = ObjClnMemoMgtServicesClient.FunPubCreateMemorandumBooking(out DocNo, SerMode, byteobjS3G_CLN_MemoBooking_DataTable);
+
+                if (intErrorCode == 0)
+                {
+                    //To avoid double save click
+                    btnSave.Enabled = false;
+                    //End here
+
+                    if (Memo_Link_Key != "0")
+                    {
+                        strAlert = strAlert.Replace("__ALERT__", "Memorandum Booking updated successfully");
+                    }
+                    else
+                    {
+                        strAlert = "Memorandum Booking Details added successfully.";
+                        strAlert += @"\n\nMemorandum Number(s):" + DocNo;
+                        strAlert += @"\n\nWould you like to add one more Memorandum Booking?";
+                        strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                        strRedirectPageView = "";
+                    }
+                }
+                else if (intErrorCode == 1)
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Document Sequence for Memorandum Booking was not defined");
+                    strRedirectPageView = "";
+                }
+                else if (intErrorCode == 2)
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Document Sequence for Memorandum Booking is exceeded");
+                    strRedirectPageView = "";
+                }
+                else
+                {
+                    if (Memo_Link_Key != "0")
+                    {
+                        throw new ApplicationException("Error in updating Memorandum Booking Details");
+                    }
+                    else
+                    {
+                        throw new ApplicationException("Error in adding Memorandum Booking Details");
+                    }
+                }
+
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            }
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+        finally
+        {
+            if (ObjClnMemoMgtServicesClient != null)
+            {
+                ObjClnMemoMgtServicesClient.Close();
+            }
+        }
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            ddlLOB.SelectedIndex = 0;
+            //ddlBranch.SelectedIndex = 0;
+            ddlBranch.Clear();
+            FunProClearControls(true);
+            ddlLOB.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Session.Remove("CustomerDT");
+            Response.Redirect("~/Collection/S3GClnTransLander.aspx?Code=CMB");
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Grid Control Events
+
+    /// <summary>
+    /// Grid Control Events
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// 
+
+    protected void grvMemorandumDetails_DeleteClick(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            DataTable dtDelete;
+            dtDelete = (DataTable)ViewState["MemorandumGridDetails"];
+
+            if (PageMode == PageModes.Modify && grvMemorandumDetails.Rows.Count == 1)
+            {
+                throw new ApplicationException("Cannot remove all records");
+            }
+
+            int Sno = Convert.ToInt32(grvMemorandumDetails.DataKeys[e.RowIndex].Value.ToString());
+            ((DataRow)dtDelete.Select("Sno=" + Sno).GetValue(0)).Delete();
+            FunProFillgrid(dtDelete);
+
+            if (PageMode == PageModes.Modify)
+            {
+                decimal Sum = 0;
+                foreach (DataRow dr in dtDelete.Rows)
+                {
+                    if (dr.RowState != DataRowState.Deleted)
+                        Sum += Convert.ToDecimal(dr["Due_Amount"]);
+                }
+
+                lblDueAmount.Text = Convert.ToString(Sum) + "  (" + hdnDueAmount.Value + ")";
+            }
+
+            if (dtDelete.Rows.Count == 0)
+            {
+                FunProIntializeGridData();
+                FunProFillMemoDesc();
+            }
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void grvMemorandumDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblMemo_Booking_Date = (Label)e.Row.FindControl("lblMemo_Booking_Date");
+                Label lblValueDate = (Label)e.Row.FindControl("lblValueDate");
+                Label lblMemoTypeIDc = (Label)e.Row.FindControl("lblMemoTypeIDc");
+                AjaxControlToolkit.CalendarExtender ECEDocDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("ECEDocDate");
+                AjaxControlToolkit.CalendarExtender ECEValueDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("ECEValueDate");
+                TextBox txtEDocDate = (TextBox)e.Row.FindControl("txtEDocDate");
+                TextBox txtEValueDate = (TextBox)e.Row.FindControl("txtEValueDate");
+                LinkButton lnkEdit = (LinkButton)e.Row.FindControl("lnkEdit");
+                LinkButton lnkDelete = (LinkButton)e.Row.FindControl("lnkDelete");
+                Label lblUserID = (Label)e.Row.FindControl("lblUserID");
+                Label lblUserLevelID = (Label)e.Row.FindControl("lblUserLevelID");
+                Label lblAmount = (Label)e.Row.FindControl("lblAmount");
+
+                if (ECEDocDate != null && ECEValueDate != null)
+                {
+                    ECEDocDate.Format = ECEValueDate.Format = strDateFormat;
+                    txtEDocDate.Attributes.Add("readonly", "readonly");
+                    txtEValueDate.Attributes.Add("readonly", "readonly");
+                    if (txtEDocDate.Text != "")
+                    {
+                        txtEDocDate.Text = Utility.StringToDate(txtEDocDate.Text).ToString(strDateFormat);
+                        txtEValueDate.Text = Utility.StringToDate(txtEValueDate.Text).ToString(strDateFormat);
+                    }
+                }
+
+                if (lblUserID != null && lblUserLevelID != null && PageMode == PageModes.Modify)
+                {
+                    if (((bModify) && (ObjUserInfo.IsUserLevelUpdate(Convert.ToInt32(lblUserID.Text), Convert.ToInt32(lblUserLevelID.Text)))))
+                    {
+                        lnkEdit.Enabled = lnkDelete.Enabled = true;
+                    }
+                    else
+                    {
+                        lnkDelete.OnClientClick = "";
+                        lnkEdit.Enabled = lnkDelete.Enabled = false;
+                    }
+                }
+
+                DataTable dtdtOpenMonth = (DataTable)ViewState["dtOpenMonth"];
+                if (dtdtOpenMonth != null && dtdtOpenMonth.Rows.Count > 0 && lblValueDate != null && lblValueDate.Text != "")
+                {
+                    if (Utility.StringToDate(lblMemo_Booking_Date.Text).ToString("yyyy") + Utility.StringToDate(lblMemo_Booking_Date.Text).ToString("MM") !=
+                        dtdtOpenMonth.Rows[0]["Demand_Month"].ToString() || lblMemoTypeIDc.Text.Trim() == "24")  //ODI
+                    {
+                        lnkDelete.OnClientClick = "";
+                        lnkEdit.Enabled = lnkDelete.Enabled = false;
+                    }
+                }
+
+                if (lblAmount != null && !string.IsNullOrEmpty(lblAmount.Text))
+                {
+                    lblAmount.Text = Convert.ToDecimal(lblAmount.Text).ToString(Utility.SetSuffix());
+                }
+
+                if (lblMemo_Booking_Date != null && lblMemo_Booking_Date.Text != "")
+                {
+                    lblMemo_Booking_Date.Text = Utility.StringToDate(lblMemo_Booking_Date.Text).ToString(strDateFormat);
+                }
+                if (lblValueDate != null && lblValueDate.Text != "")
+                {
+                    lblValueDate.Text = Utility.StringToDate(lblValueDate.Text).ToString(strDateFormat);
+                }
+            }
+
+            if (e.Row.RowType == DataControlRowType.Footer)
+            {
+                if (e.Row != null)
+                {
+                    TextBox txtAmount = (TextBox)e.Row.FindControl("txtAmount");
+                    AjaxControlToolkit.CalendarExtender FCEDocDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("FCEDocDate");
+                    AjaxControlToolkit.CalendarExtender FCEValueDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("FCEValueDate");
+
+                    txtAmount.SetDecimalPrefixSuffix(10, 3, true, "Due Amount");
+                    FCEDocDate.Format = FCEValueDate.Format = strDateFormat;
+
+                    TextBox txtFDocDate = (TextBox)e.Row.FindControl("txtFDocDate");
+                    TextBox txtFValueDate = (TextBox)e.Row.FindControl("txtFValueDate");
+
+                    //txtFDocDate.Attributes.Add("readonly", "readonly");
+                    //txtFValueDate.Attributes.Add("readonly", "readonly");
+                    txtFDocDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtFDocDate.ClientID + "','" + strDateFormat + "',true,  false);");
+                    txtFValueDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtFValueDate.ClientID + "','" + strDateFormat + "',false,  false);");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void grvMemorandumDetails_RowEditing(object sender, GridViewEditEventArgs e)
+    {
+        try
+        {
+            grvMemorandumDetails.EditIndex = e.NewEditIndex;
+            DataTable dtMemoDetails = (DataTable)ViewState["MemorandumGridDetails"];
+            int Sno = Convert.ToInt32(grvMemorandumDetails.DataKeys[e.NewEditIndex].Value.ToString());
+            DataRow drEditRow = (DataRow)dtMemoDetails.Select("Sno=" + Sno).GetValue(0); //dtMemoDetails.Rows[e.NewEditIndex];
+            FunProFillgrid(dtMemoDetails);
+            grvMemorandumDetails.FooterRow.Visible = false;
+
+            DropDownList ddlMemoDesc = (DropDownList)grvMemorandumDetails.Rows[e.NewEditIndex].FindControl("ddlMemoDesc");
+            ddlMemoDesc.BindDataTable((DataTable)ViewState["MemoDescDetails"]);
+            ddlMemoDesc.SelectedValue = Convert.ToString(drEditRow["Memo_Type"]);
+
+            if (strMode == "M")
+            {
+                RequiredFieldValidator RFVMemoDesc = (RequiredFieldValidator)grvMemorandumDetails.Rows[e.NewEditIndex].FindControl("RFVMemoDesc");
+                RequiredFieldValidator RFVMemoDesc1 = (RequiredFieldValidator)grvMemorandumDetails.Rows[e.NewEditIndex].FindControl("rfvMemoDesc1");
+                RFVMemoDesc.Enabled = RFVMemoDesc1.Enabled = false;
+            }
+
+            TextBox txtAmount = (TextBox)grvMemorandumDetails.Rows[e.NewEditIndex].FindControl("txtAmount");
+            txtAmount.SetDecimalPrefixSuffix(10, 3, true, "Due Amount");
+            txtAmount.Text = Convert.ToDecimal(txtAmount.Text).ToString(Utility.SetSuffix());
+
+            TextBox txtEDocDate = (TextBox)grvMemorandumDetails.Rows[e.NewEditIndex].FindControl("txtEDocDate");
+
+            if (PageMode == PageModes.Create)
+            {
+                ddlMemoDesc.Focus();
+            }
+            else
+            {
+                txtEDocDate.Focus();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = "Unable To Edit";
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void grvMemorandumDetails_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+        try
+        {
+            DataTable dtMemorandumDetails = (DataTable)ViewState["MemorandumGridDetails"];
+
+            GridViewRow GRow = grvMemorandumDetails.Rows[e.RowIndex];
+
+            DropDownList ddlMemoDesc = (DropDownList)GRow.FindControl("ddlMemoDesc");
+            //DropDownList ddlCreditDebit = (DropDownList)GRow.FindControl("ddlCreditDebit");
+            TextBox txtAmount = (TextBox)GRow.FindControl("txtAmount");
+            TextBox txtRemarks = (TextBox)GRow.FindControl("txtRemarks");
+            TextBox txtEDocDate = (TextBox)GRow.FindControl("txtEDocDate");
+            TextBox txtEValueDate = (TextBox)GRow.FindControl("txtEValueDate");
+
+            int Sno = Convert.ToInt32(grvMemorandumDetails.DataKeys[e.RowIndex].Value.ToString());
+            int intRowIndex = dtMemorandumDetails.Rows.IndexOf((DataRow)dtMemorandumDetails.Select("Sno=" + Sno).GetValue(0));
+
+            DateTime dtDocDate = Utility.StringToDate(txtEDocDate.Text);
+            DateTime dtValueDate = Utility.StringToDate(txtEValueDate.Text);
+            int intGapDays = Convert.ToInt32(((DataTable)ViewState["dtGapdays"]).Rows[0][0].ToString());
+
+            if (Math.Abs((dtDocDate - dtValueDate).Days) > intGapDays)
+            {
+                cvMemorandumBooking.ErrorMessage = "Difference between Doc.Date and Value date(" + (Math.Abs((dtDocDate - dtValueDate).Days)).ToString() + ") should be within " + intGapDays.ToString() + " days.";
+                cvMemorandumBooking.IsValid = false;
+                txtEValueDate.Focus();
+                return;
+            }
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+            Procparam.Add("@Closure_Date", Utility.StringToDate(txtEValueDate.Text).ToString());
+
+            string strMnthClose = Utility.ValidateMonthClosure("S3G_LOANAD_ValidateMonthClosure", Procparam);
+            if (strMnthClose == "5")
+            {
+                cvMemorandumBooking.ErrorMessage = "Memorandum cannot be booked in locked month.";
+                txtEValueDate.Focus();
+                cvMemorandumBooking.IsValid = false;
+                return;
+            }
+
+            dtMemorandumDetails.BeginInit();
+
+            if (Memo_Link_Key == "0")
+            {
+                dtMemorandumDetails.Rows[intRowIndex]["Memo_Type"] = ddlMemoDesc.SelectedValue;
+                dtMemorandumDetails.Rows[intRowIndex]["Description"] = Convert.ToString(ddlMemoDesc.SelectedItem);
+
+
+                DataTable DtMemo = new DataTable();
+                DtMemo = (DataTable)ViewState["MemoDescDetails"];
+                string filterExpression = "Memo_Type = " + Convert.ToString(ddlMemoDesc.SelectedValue);
+                DataRow[] dtSuggestions = DtMemo.Select(filterExpression);
+
+                foreach (DataRow dr in dtSuggestions)
+                {
+                    dtMemorandumDetails.Rows[intRowIndex]["GL_Account"] = Convert.ToString(dr["GL_Account"]);
+                    dtMemorandumDetails.Rows[intRowIndex]["SL_Account"] = Convert.ToString(dr["SL_Account"]);
+                }
+            }
+
+            //dtMemorandumDetails.Rows[intRowIndex]["CreditDebit"] = ddlCreditDebit.SelectedItem.ToString();
+            dtMemorandumDetails.Rows[intRowIndex]["Memo_Booking_Date"] = txtEDocDate.Text.Trim();
+            dtMemorandumDetails.Rows[intRowIndex]["ValueDate"] = txtEValueDate.Text.Trim();
+            dtMemorandumDetails.Rows[intRowIndex]["Due_Amount"] = txtAmount.Text;
+            dtMemorandumDetails.Rows[intRowIndex]["Remarks"] = txtRemarks.Text.Trim();
+            dtMemorandumDetails.EndInit();
+
+            if (PageMode == PageModes.Modify)
+            {
+                lblDueAmount.Text = Convert.ToString(dtMemorandumDetails.Compute("Sum(Due_Amount)", "1 = 1")) + "  (" + hdnDueAmount.Value + ")";
+            }
+
+            grvMemorandumDetails.EditIndex = -1;
+            FunProFillgrid(dtMemorandumDetails);
+
+            ddlMemoDesc.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void grvMemorandumDetails_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+    {
+        try
+        {
+            grvMemorandumDetails.EditIndex = -1;
+            DataTable dtMemoDetails = (DataTable)ViewState["MemorandumGridDetails"];
+            FunProFillgrid(dtMemoDetails);
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = "Unable To Cancel";
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void btnAdd_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            DataRow DRow;
+            DataTable dtMemorandumDetails = (DataTable)ViewState["MemorandumGridDetails"];
+
+            DropDownList ddlMemoDesc = (DropDownList)grvMemorandumDetails.FooterRow.FindControl("ddlMemoDesc");
+            //DropDownList ddlCreditDebit = (DropDownList)grvMemorandumDetails.FooterRow.FindControl("ddlCreditDebit");
+            TextBox txtAmount = (TextBox)grvMemorandumDetails.FooterRow.FindControl("txtAmount");
+            TextBox txtRemarks = (TextBox)grvMemorandumDetails.FooterRow.FindControl("txtRemarks");
+            TextBox txtFDocDate = (TextBox)grvMemorandumDetails.FooterRow.FindControl("txtFDocDate");
+            TextBox txtFValueDate = (TextBox)grvMemorandumDetails.FooterRow.FindControl("txtFValueDate");
+
+            string MemofilterExpression = "Memo_Type = " + Convert.ToString(ddlMemoDesc.SelectedValue);
+            DataRow[] dtMemoSuggestions = dtMemorandumDetails.Select(MemofilterExpression);
+
+            if (dtMemoSuggestions.Length == 1)
+            {
+                cvMemorandumBooking.ErrorMessage = "Memorandum type already entered.";
+                cvMemorandumBooking.IsValid = false;
+                return;
+            }
+
+            DateTime dtDocDate = Utility.StringToDate(txtFDocDate.Text);
+            DateTime dtValueDate = Utility.StringToDate(txtFValueDate.Text);
+            int intGapDays = Convert.ToInt32(((DataTable)ViewState["dtGapdays"]).Rows[0][0].ToString());
+
+            if (Math.Abs((dtDocDate - dtValueDate).Days) > intGapDays)
+            {
+                cvMemorandumBooking.ErrorMessage = "Difference between Document Date and Value date(" + (Math.Abs((dtDocDate - dtValueDate).Days)).ToString() + ")  should be within " + intGapDays.ToString() + " days.";
+                cvMemorandumBooking.IsValid = false;
+                txtFValueDate.Focus();
+                return;
+            }
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+            Procparam.Add("@Closure_Date", Utility.StringToDate(txtFValueDate.Text).ToString());
+
+            string strMnthClose = Utility.ValidateMonthClosure("S3G_LOANAD_ValidateMonthClosure", Procparam);
+            if (strMnthClose == "5")
+            {
+                cvMemorandumBooking.ErrorMessage = "Memorandum cannot be booked in locked month.";
+                txtFValueDate.Focus();
+                cvMemorandumBooking.IsValid = false;
+                return;
+            }
+
+            DRow = dtMemorandumDetails.NewRow();
+            DRow["Memo_Type"] = ddlMemoDesc.SelectedValue;
+            DRow["Description"] = Convert.ToString(ddlMemoDesc.SelectedItem);
+
+            DataTable DtMemo = new DataTable();
+            DtMemo = (DataTable)ViewState["MemoDescDetails"];
+            string filterExpression = "Memo_Type = " + Convert.ToString(ddlMemoDesc.SelectedValue);
+            DataRow[] dtSuggestions = DtMemo.Select(filterExpression);
+
+            foreach (DataRow dr in dtSuggestions)
+            {
+                DRow["GL_Account"] = Convert.ToString(dr["GL_Account"]);
+                DRow["SL_Account"] = Convert.ToString(dr["SL_Account"]);
+            }
+
+            //DRow["CreditDebit"] = ddlCreditDebit.SelectedItem.ToString();
+            //DRow["Sno"] = dtMemorandumDetails.Rows.Count+1;
+
+            DRow["Memo_Booking_Date"] = txtFDocDate.Text.Trim();
+            DRow["ValueDate"] = txtFValueDate.Text.Trim();
+            DRow["Due_Amount"] = txtAmount.Text;
+            DRow["Remarks"] = txtRemarks.Text.Trim();
+            DRow["Created_By"] = "0";
+            DRow["User_Level_ID"] = "0";
+            dtMemorandumDetails.Rows.Add(DRow);
+
+            FunProFillgrid(dtMemorandumDetails);
+            ddlMemoDesc.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Other Control Events
+
+    /// <summary>
+    /// Other Controls Events
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProClearControls(false);
+            FunPubFillLocations();
+            ddlBranch.SelectedText = "--Select--";
+            ddlBranch.SelectedValue = "0";
+            FunProFillMemoDesc();
+            FunProPopulateCustomer();
+            ddlLOB.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProClearControls(false);
+            FunProFillMemoDesc();
+            FunProPopulateCustomer();
+            ddlBranch.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void ddlMLA_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //FunProPopulateSAN();
+            //if (ddlSANum.Items.Count > 1)
+            //{
+            //    lblSANum.CssClass = "styleReqFieldLabel";
+            //    rfvSANum.Enabled = true;
+            //}
+            //else
+            //{
+            //    lblSANum.CssClass = "styleDisplayLabel";
+            //    rfvSANum.Enabled = false;
+            //}
+
+            FunProIntializeGridData();
+            FunProFillMemoDesc();
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void ddlSANum_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProIntializeGridData();
+            FunProFillMemoDesc();
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void cmbCustomerCode_TextChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            GetCustomerList(cmbCustomerCode.Text, 20);
+            hdnCustomerID.Value = "0";
+            if (cmbCustomerCode.Text != "")
+            {
+                DataTable dtCustomer = new DataTable();
+                dtCustomer = (DataTable)System.Web.HttpContext.Current.Session["CustomerDT"];
+                if (dtCustomer != null)
+                {
+                    string filterExpression = "Cust_Code like '" + cmbCustomerCode.Text + "'";
+                    DataRow[] dtSuggestions = dtCustomer.Select(filterExpression);
+
+                    foreach (DataRow dr in dtSuggestions)
+                    {
+                        hdnCustomerID.Value = Convert.ToString(dr["Customer_ID"]);
+                    }
+                }
+            }
+
+            ViewState["CustomerID"] = hdnCustomerID.Value;
+            ddlSANum.Items.Clear();
+            FunProClearCustomerDetails();
+            //FunProPopulatePAN();
+            cmbCustomerCode.Focus();
+
+            //if (hdnCustomerID.Value == "0")
+            //{
+            //    throw new ApplicationException("Customer Information not available");
+            //}
+
+            FunProFillCustomerDetails(hdnCustomerID.Value);
+        }
+        catch (Exception ex)
+        {
+            cvMemorandumBooking.ErrorMessage = ex.Message;
+            cvMemorandumBooking.IsValid = false;
+        }
+    }
+
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField hdnCustomerId = (HiddenField)ucCustomerCodeLov.FindControl("hdnID");
+            if (hdnCustomerId != null && hdnCustomerId.Value != "")
+            {
+                if (ViewState["CustomerID"] == null || ViewState["CustomerID"].ToString() != hdnCustomerId.Value)
+                {
+                    FunProClearCustomerDetails();
+
+                    FunProFillCustomerDetails(hdnCustomerId.Value);
+                    FunProPopulatePAN(hdnCustomerId.Value);
+                    ddlPANum.Focus();
+                    ddlSANum.Items.Clear();
+                    FunProIntializeGridData();
+                    FunProFillMemoDesc();
+
+                    ViewState["CustomerID"] = hdnCustomerId.Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to display Customer Details");
+        }
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Page Methods
+
+    /// <summary>
+    /// Protected Methods 
+    /// </summary>
+
+
+    protected void FunPubFillLocations()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+        Procparam.Add("@User_Id", Convert.ToString(intUserId));
+        Procparam.Add("@Program_Id", "100");
+        if (PageMode == PageModes.Create)
+        {
+            Procparam.Add("@Is_Active", "1");
+        }
+        Procparam.Add("@LOB_Id", ddlLOB.SelectedValue.ToString());
+        //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location" });
+    }
+
+    protected void FunProClearControls(bool CanClearDate)
+    {
+        try
+        {
+            DataTable GridDt = new DataTable();
+            GridDt = (DataTable)ViewState["MemorandumGridDetails"];
+            GridDt.Rows.Clear();
+            FunProIntializeGridData();
+            FunProClearCustomerDetails();
+            if (CanClearDate)
+            {
+                txtDocDate.Text = "";
+            }
+            ddlPANum.Items.Clear();
+            ddlSANum.Items.Clear();
+            Session.Remove("CustomerDT");
+            ViewState["dtOpenMonth"] = null;
+            ViewState["CustomerID"] = "";
+            ucCustomerCodeLov.FunPubClearControlValue();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Clear the value");
+        }
+    }
+
+    protected void FunProClearCustomerDetails()
+    {
+        try
+        {
+            cmbCustomerCode.Text = "";
+            S3GCustomerAddress1.ClearCustomerDetails();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Clear Customer Details");
+        }
+    }
+
+    protected void FunProGetMemoDetails()
+    {
+        try
+        {
+            DataSet dsMemoDetails;
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Memo_Link_Key", Memo_Link_Key);
+            dsMemoDetails = Utility.GetDataset("S3G_CLN_GetMemorandumBooking", Procparam);
+
+            if (dsMemoDetails.Tables[0].Rows.Count > 0)
+            {
+                DataTable DtMaster = dsMemoDetails.Tables[0];
+
+                ddlLOB.SelectedValue = Convert.ToString(DtMaster.Rows[0]["LOB_ID"]);
+                ddlBranch.SelectedValue = Convert.ToString(DtMaster.Rows[0]["Location_ID"]);
+                ViewState["CustomerID"] = Convert.ToString(DtMaster.Rows[0]["Customer_ID"]);
+                hdnCustomerID.Value = Convert.ToString(DtMaster.Rows[0]["Customer_ID"]);
+                //txtDocDate.Text = Utility.StringToDate(DtMaster.Rows[0]["Created_On"].ToString()).ToString(strDateFormat);
+                txtDocDate.Text = DateTime.Today.ToString();
+
+                FunProPopulatePAN(Convert.ToString(DtMaster.Rows[0]["Customer_ID"]));
+                ddlPANum.SelectedValue = Convert.ToString(DtMaster.Rows[0]["PANum"]);
+
+                FunProPopulateSAN();
+                ddlSANum.SelectedValue = Convert.ToString(DtMaster.Rows[0]["SANum"]);
+
+                TextBox txt = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+
+                txt.Text = cmbCustomerCode.Text = Convert.ToString(DtMaster.Rows[0]["Customer_Code"]);
+                S3GCustomerAddress1.SetCustomerDetails(DtMaster.Rows[0], true);
+
+                if (dsMemoDetails.Tables[1].Rows.Count == 0)
+                {
+                    cvMemorandumBooking.ErrorMessage = "Memorandum type '" + DtMaster.Rows[0]["Description"] + "' is not mapped in Memo Master";
+                    cvMemorandumBooking.IsValid = false;
+                    return;
+                }
+                lblMemoTypeVal.Text = Convert.ToString(dsMemoDetails.Tables[1].Rows[0]["Description"]);
+                lblGLAccountVal.Text = Convert.ToString(dsMemoDetails.Tables[1].Rows[0]["GL_Account"]);
+                lblSLAccountVal.Text = Convert.ToString(dsMemoDetails.Tables[1].Rows[0]["SL_Account"]);
+
+                lblDueAmount.Text = hdnDueAmount.Value = hdnCalAmount.Value = Convert.ToString(DtMaster.Rows[0]["Due_Amount"]);
+                lblReceivedAmount.Text = Convert.ToString(DtMaster.Rows[0]["Received_Amount"]);
+
+                FunProFillgrid(dsMemoDetails.Tables[1]);
+                //FunProFillMemoDesc();
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Load Memorandum grid Details");
+        }
+    }
+    protected void FunProGetMemoDetails_QueryMode()
+    {
+        try
+        {
+            DataSet dsMemoDetails;
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Memo_Link_Key", Memo_Link_Key);
+            dsMemoDetails = Utility.GetDataset("S3G_CLN_GetMemorandumBooking", Procparam);
+
+            if (dsMemoDetails.Tables[0].Rows.Count > 0)
+            {
+                DataTable DtMaster = dsMemoDetails.Tables[0];
+
+
+
+                System.Web.UI.WebControls.ListItem LiB = new System.Web.UI.WebControls.ListItem(DtMaster.Rows[0]["LOB_Name"].ToString(), DtMaster.Rows[0]["LOB_ID"].ToString());
+                ddlLOB.Items.Add(LiB);
+
+
+                System.Web.UI.WebControls.ListItem LiL = new System.Web.UI.WebControls.ListItem(DtMaster.Rows[0]["Location_Name"].ToString(), DtMaster.Rows[0]["Location_ID"].ToString());
+
+                if (DtMaster.Rows[0]["Location_ID"].ToString() != "" && DtMaster.Rows[0]["Location_ID"].ToString() != "0")
+                {
+                    ddlBranch.SelectedText = DtMaster.Rows[0]["Location_Name"].ToString();
+                    ddlBranch.SelectedValue = DtMaster.Rows[0]["Location_ID"].ToString();
+                }
+                else {
+                    ddlBranch.SelectedText = "--Select--";
+                    ddlBranch.SelectedValue = "0";
+
+                }
+                
+                //ddlBranch.Items.Add(LiL);
+                
+
+
+                // ddlLOB.SelectedValue = Convert.ToString(DtMaster.Rows[0]["LOB_ID"]);
+                //ddlBranch.SelectedValue = Convert.ToString(DtMaster.Rows[0]["Location_ID"]);
+                ViewState["CustomerID"] = Convert.ToString(DtMaster.Rows[0]["Customer_ID"]);
+                hdnCustomerID.Value = Convert.ToString(DtMaster.Rows[0]["Customer_ID"]);
+                //txtDocDate.Text = Utility.StringToDate(DtMaster.Rows[0]["Created_On"].ToString()).ToString(strDateFormat);
+                txtDocDate.Text = DateTime.Today.ToString();
+
+                //FunProPopulatePAN(Convert.ToString(DtMaster.Rows[0]["Customer_ID"]));
+                System.Web.UI.WebControls.ListItem LiP = new System.Web.UI.WebControls.ListItem(DtMaster.Rows[0]["PANum"].ToString(), DtMaster.Rows[0]["PANum"].ToString());
+                ddlPANum.Items.Add(LiP);
+                
+                //ddlPANum.SelectedValue = Convert.ToString(DtMaster.Rows[0]["PANum"]);
+
+                //FunProPopulateSAN();
+                System.Web.UI.WebControls.ListItem LiS = new System.Web.UI.WebControls.ListItem(DtMaster.Rows[0]["SANum"].ToString(), DtMaster.Rows[0]["SANum"].ToString());
+                ddlSANum.Items.Add(LiS);
+                // ddlSANum.SelectedValue = Convert.ToString(DtMaster.Rows[0]["SANum"]);
+
+                TextBox txt = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+
+                txt.Text = cmbCustomerCode.Text = Convert.ToString(DtMaster.Rows[0]["Customer_Code"]);
+                S3GCustomerAddress1.SetCustomerDetails(DtMaster.Rows[0], true);
+
+                if (dsMemoDetails.Tables[1].Rows.Count == 0)
+                {
+                    cvMemorandumBooking.ErrorMessage = "Memorandum type '" + DtMaster.Rows[0]["Description"] + "' is not mapped in Memo Master";
+                    cvMemorandumBooking.IsValid = false;
+                    return;
+                }
+                lblMemoTypeVal.Text = Convert.ToString(dsMemoDetails.Tables[1].Rows[0]["Description"]);
+                lblGLAccountVal.Text = Convert.ToString(dsMemoDetails.Tables[1].Rows[0]["GL_Account"]);
+                lblSLAccountVal.Text = Convert.ToString(dsMemoDetails.Tables[1].Rows[0]["SL_Account"]);
+
+                lblDueAmount.Text = hdnDueAmount.Value = hdnCalAmount.Value = Convert.ToString(DtMaster.Rows[0]["Due_Amount"]);
+                lblReceivedAmount.Text = Convert.ToString(DtMaster.Rows[0]["Received_Amount"]);
+
+                FunProFillgrid(dsMemoDetails.Tables[1]);
+                //FunProFillMemoDesc();
+
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Load Memorandum grid Details");
+        }
+    }
+    protected void FunProIntializeGridData()
+    {
+        try
+        {
+            DataTable dtMemorandumDetails;
+            dtMemorandumDetails = new DataTable("MemorandumDetails");
+            dtMemorandumDetails.Columns.Add("Memo_Type");
+            dtMemorandumDetails.Columns.Add("Doc_Ref_No");
+            dtMemorandumDetails.Columns.Add("Memo_Booking_Date");
+            dtMemorandumDetails.Columns.Add("ValueDate");
+            dtMemorandumDetails.Columns.Add("Description");
+            dtMemorandumDetails.Columns.Add("GL_Account");
+            dtMemorandumDetails.Columns.Add("SL_Account");
+            dtMemorandumDetails.Columns.Add("CreditDebit");
+            dtMemorandumDetails.Columns.Add("Due_Amount");
+            dtMemorandumDetails.Columns.Add("ActualAmount");
+            dtMemorandumDetails.Columns.Add("Received_Amount");
+            dtMemorandumDetails.Columns.Add("Remarks");
+            dtMemorandumDetails.Columns.Add("Created_By");
+            dtMemorandumDetails.Columns.Add("User_Level_ID");
+
+            if (!dtMemorandumDetails.Columns.Contains("Sno"))
+            {
+                dtMemorandumDetails.Columns.Add("Sno", typeof(int));
+                dtMemorandumDetails.Columns["Sno"].AutoIncrement = true;
+                dtMemorandumDetails.Columns["Sno"].AutoIncrementSeed = 1;
+            }
+
+            DataRow DRow = dtMemorandumDetails.NewRow();
+            //DRow["Sno"] = 0;
+            DRow["Memo_Type"] = "";
+            DRow["Doc_Ref_No"] = "";
+            DRow["Memo_Booking_Date"] = "";
+            DRow["ValueDate"] = "";
+            DRow["Description"] = "";
+            DRow["GL_Account"] = "";
+            DRow["SL_Account"] = "";
+            DRow["CreditDebit"] = "";
+            DRow["Due_Amount"] = "";
+            DRow["ActualAmount"] = "";
+            DRow["Received_Amount"] = "";
+            DRow["Remarks"] = "";
+            DRow["Created_By"] = "0";
+            DRow["User_Level_ID"] = "0";
+
+            grvMemorandumDetails.EditIndex = -1;
+
+            dtMemorandumDetails.Rows.Add(DRow);
+            grvMemorandumDetails.DataSource = dtMemorandumDetails;
+            grvMemorandumDetails.DataBind();
+            grvMemorandumDetails.Rows[0].Visible = false;
+
+            dtMemorandumDetails.Rows[0].Delete();
+
+            ViewState["MemorandumGridDetails"] = dtMemorandumDetails;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Load Grid data");
+        }
+    }
+
+    protected void FunProFillMemoDesc()
+    {
+        try
+        {
+            DropDownList ddlMemoDesc = (DropDownList)grvMemorandumDetails.FooterRow.FindControl("ddlMemoDesc");
+            ddlMemoDesc.Items.Clear();
+
+            if (ddlLOB.SelectedIndex > 0 && ddlBranch.SelectedValue != "0")
+            {
+
+                Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+                if (PageMode == PageModes.Create)
+                {
+                    Procparam.Add("@IS_Active", "1");
+                }
+
+                DataSet dsMemoDescDetails = Utility.GetDataset("S3G_CLN_GetMemorandumDescDetails", Procparam);
+                ViewState["MemoDescDetails"] = dsMemoDescDetails.Tables[0];
+                ddlMemoDesc.BindDataTable((DataTable)ViewState["MemoDescDetails"]);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Load Memorandum Description");
+        }
+    }
+
+    protected void FunProControlStatus(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+
+                    pnlMemoType.Visible = false;
+                    //divSpace.Style.Add("display", "block");
+
+                    if (!bCreate)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    break;
+
+                case 1: //Modify
+
+                    Image1.Visible = false;
+                    CEDocDate.Enabled = false;
+                    ddlLOB.ClearDropDownList();
+                    
+                    ddlBranch.Enabled = false;
+                    ddlPANum.ClearDropDownList();
+                    ddlSANum.ClearDropDownList();
+                    btnClear.Enabled = false;
+                    cmbCustomerCode.ReadOnly = true;
+                    AutoCompleteExtenderCust.Enabled = false;
+                    ucCustomerCodeLov.ButtonEnabled = false;
+
+                    grvMemorandumDetails.Columns[1].Visible = true;
+
+                    grvMemorandumDetails.Columns[2].Visible = false;
+                    grvMemorandumDetails.Columns[3].Visible = false;
+                    grvMemorandumDetails.Columns[4].Visible = false;
+                    grvMemorandumDetails.FooterRow.Visible = false;
+
+                    if (!bModify)
+                    {
+                        btnSave.Enabled = false;
+                    }
+
+                    break;
+                case -1://Query
+
+                    if (!bQuery)
+                    {
+                        Response.Redirect(strRedirectPage,false);
+                    }
+
+                    ddlLOB.ClearDropDownList();
+                    ddlBranch.Enabled=false;
+                    btnClear.Enabled = false;
+                    Image1.Visible = false;
+                    CEDocDate.Enabled = false;
+                    ddlPANum.ClearDropDownList();
+                    ddlSANum.ClearDropDownList();
+                    cmbCustomerCode.ReadOnly = true;
+                    AutoCompleteExtenderCust.Enabled = false;
+                    ucCustomerCodeLov.ButtonEnabled = false;
+
+                    grvMemorandumDetails.Columns[1].Visible = true;
+
+                    grvMemorandumDetails.Columns[2].Visible = false;
+                    grvMemorandumDetails.Columns[3].Visible = false;
+                    grvMemorandumDetails.Columns[4].Visible = false;
+                    grvMemorandumDetails.Columns[11].Visible = false;
+                    grvMemorandumDetails.FooterRow.Visible = false;
+                    btnSave.Enabled = false;
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Load Disable Conrols");
+        }
+    }
+
+    protected void FunProPopulateSAN()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Type", "2");
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@PANum", ddlPANum.SelectedItem.Text);
+            Procparam.Add("@Customer_ID", Convert.ToString(ViewState["CustomerID"]));
+            Procparam.Add("@Program_ID", "100");
+            if (PageMode == PageModes.Create)
+            {
+                Procparam.Add("@Is_Closed", "1");
+                Procparam.Add("@ParamPA_Status", "'0','6','7','45','47'");
+                Procparam.Add("@ParamSA_Status", "'0','6','7','45','47'");
+
+                //Procparam.Add("@Is_Activated", "1");
+            }
+            ddlSANum.BindDataTable(SPNames.S3G_LOANAD_GetPLASLA_AIE, Procparam, new string[] { "SANum", "SANum" });
+            ddlPANum.Focus();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Sub Account Numbers");
+        }
+    }
+
+    protected void FunProPopulateCustomer()
+    {
+        try
+        {
+            if (ddlLOB.SelectedIndex > 0 && ddlBranch.SelectedValue != "0")
+            {
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                System.Web.HttpContext.Current.Session["CustomerDT"] = Utility.GetDefaultData(SPNames.S3G_CLN_GetCustomer, Procparam);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to get Customer Details");
+        }
+    }
+
+    protected void FunProFillCustomerDetails(string CustomerID)
+    {
+        try
+        {
+            DataTable CustDT = new DataTable();
+
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Option", "56");
+            Procparam.Add("@Param1", CustomerID);
+            CustDT = Utility.GetDataset("S3G_ORG_GetCustomerLookUp", Procparam).Tables[0];
+
+            if (CustDT.Rows.Count > 0)
+            {
+                //TextBox txt = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+
+                //txt.Text = cmbCustomerCode.Text = Convert.ToString(CustDT.Rows[0]["Customer_Code"]);
+                cmbCustomerCode.Text = Convert.ToString(CustDT.Rows[0]["Customer_Code"]);
+                S3GCustomerAddress1.SetCustomerDetails(CustDT.Rows[0], true);
+                S3GCustomerAddress1.CustomerId = CustDT.Rows[0]["Customer_ID"].ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to display Customer Details");
+        }
+    }
+
+    protected void FunProPopulatePAN(string strCustomerID)
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Type", "1");
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@Customer_ID", strCustomerID);  //Convert.ToString(ViewState["CustomerID"]));
+            if (PageMode == PageModes.Create)
+            {
+                Procparam.Add("@Is_Closed", "1");
+                Procparam.Add("@ParamPA_Status", "'0','6','7','45','47'");
+                Procparam.Add("@ParamSA_Status", "'0','6','7','45','47'");
+                //Procparam.Add("@Is_Activated", "1");
+            }
+            Procparam.Add("@Program_ID", "100");
+            ddlPANum.BindDataTable(SPNames.S3G_LOANAD_GetPLASLA_AIE, Procparam, new string[] { "PANum", "PANum" });
+
+            ViewState["PANumDt"] = (DataTable)ddlPANum.DataSource;
+
+            if (ddlPANum.Items.Count == 1)
+            {
+                cvMemorandumBooking.ErrorMessage = "No Active Contract is currently available for the selected Customer";
+                cvMemorandumBooking.IsValid = false;
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Load Prime Account Numbers");
+        }
+    }
+
+    protected void FunProFillgrid(DataTable dtMemoDetails)
+    {
+        try
+        {
+            grvMemorandumDetails.DataSource = ViewState["MemorandumGridDetails"] = dtMemoDetails;
+            grvMemorandumDetails.DataBind();
+
+            if (Memo_Link_Key != "0")
+            {
+                grvMemorandumDetails.FooterRow.Visible = false;
+            }
+            else
+            {
+                grvMemorandumDetails.FooterRow.Visible = true;
+                FunProFillMemoDesc();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Load Grid");
+        }
+    }
+
+    protected string FunProGetFormedDataTable(DataTable Dt)
+    {
+        try
+        {
+            if (Dt != null)
+            {
+                Dt.Columns.Add("ID");
+
+                for (int i = 0; i <= Dt.Rows.Count - 1; i++)
+                {
+                    Dt.Rows[i]["ID"] = i + 1;
+                }
+            }
+
+            return Dt.FunPubFormXml();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to form data table");
+        }
+    }
+
+    public string FunProGetColumnValue(DropDownList MyDLL, string strColumnName, DataTable Dt)
+    {
+        try
+        {
+            if (Dt != null)
+            {
+                DataRow[] DRows = Dt.Select(Convert.ToString(MyDLL.DataValueField) + " like '" + Convert.ToString(MyDLL.SelectedValue) + "%'");
+
+                foreach (DataRow dr in DRows)
+                {
+                    return Convert.ToString(dr[strColumnName]);
+                }
+            }
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetCustomerList(String prefixText, int count)
+    {
+        try
+        {
+            List<String> suggetions = null;
+            DataTable dtCustomer = new DataTable();
+            dtCustomer = (DataTable)System.Web.HttpContext.Current.Session["CustomerDT"];
+            suggetions = GetSuggestions(prefixText, count, dtCustomer);
+            return suggetions.ToArray();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Costomer list not available");
+        }
+    }
+
+    protected static List<String> GetSuggestions(string key, int count, DataTable dt1)
+    {
+        List<String> suggestions = new List<string>();
+        try
+        {
+            string filterExpression = "Cust_Code like '%" + key + "%'";
+            DataRow[] dtSuggestions = dt1.Select(filterExpression);
+            foreach (DataRow dr in dtSuggestions)
+            {
+                string suggestion = Convert.ToString(dr["Cust_Code"]);
+                suggestions.Add(suggestion);
+            }
+        }
+        catch (Exception ex)
+        {
+            return suggestions;
+        }
+        return suggestions;
+    }
+
+    #endregion
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyId.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", obj_Page.intUserId.ToString());
+        Procparam.Add("@Program_Id", "100");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+}

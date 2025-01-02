@@ -1,0 +1,1217 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : Receipt Processing
+/// Created By                : PRABHU K
+/// Created Date              : 16-Oct-2010
+/// Purpose                   : 
+/// Last Updated By           : Chandra Sekhar BS
+/// Last Updated Date         : 20-Sep-2013
+/// Reason                    : SQL Performance
+
+/// <Program Summary>
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+using System.Linq;
+#endregion
+
+public partial class Collection_S3GClnTempReceiptProcessing : ApplyThemeForProject
+{
+    #region [Common Variable declaration]
+    public static Collection_S3GClnTempReceiptProcessing obj_Page;
+    int intCompanyID, intUserID = 0;
+    int intTempReceiptId = 0;
+    static int intCustomer = 0;
+
+    Dictionary<string, string> Procparam = null;
+
+    int intErrCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string _DateFormat = "dd/MM/yyyy";
+    string strDateFormat = string.Empty;
+    StringBuilder strChallanBuilder = new StringBuilder();
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objReceiptProcessingClient;
+    StringBuilder strAccountDetailsBuilder = new StringBuilder();
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3gCLNTransLander.aspx?Code=CTR";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnTempReceiptProcessing.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GCLNTranslander.aspx?Code=CTR';";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+    #endregion
+
+    #region [Page Load Event]
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            _DateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                intTempReceiptId = Convert.ToInt32(fromTicket.Name);
+            }
+
+            //if (ddlBranch.SelectedValue.ToString() != "0")
+            //{
+            //    ucCustomerCodeLov.strBranchID = ddlBranch.SelectedValue.ToString();
+            //}
+            //else
+            //{
+            //    ucCustomerCodeLov.strBranchID = "-1";
+            //}
+            if (ddlLOB.SelectedValue.ToString() != "0")
+            {
+                ucCustomerCodeLov.strLOBID = ddlLOB.SelectedValue.ToString();
+            }
+            else
+            {
+                ucCustomerCodeLov.strLOBID = "-1";
+            }
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID.ToString();
+
+            TextBox txtUserName = ((TextBox)ucCustomerCodeLov.FindControl("txtName"));
+            txtDocAmount.SetDecimalPrefixSuffix(10, 4, true, "Doc Amount");
+            txtUserName.ToolTip = txtUserName.Text;
+            //txtDocDate.Attributes.Add("readonly", "true");
+            //txtValueDate.Attributes.Add("readonly", "true");
+            //txtInstrumentDate.Attributes.Add("readonly", "true");
+
+            txtDocDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtDocDate.ClientID + "','" + strDateFormat + "',true,  false);");
+            txtValueDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtValueDate.ClientID + "','" + strDateFormat + "',true,  false);");
+            txtInstrumentDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtInstrumentDate.ClientID + "','" + strDateFormat + "',true,  false);");
+
+            if (!IsPostBack)
+            {
+                calDocDate.Format = ObjS3GSession.ProDateFormatRW;
+                calValueDate.Format = ObjS3GSession.ProDateFormatRW;
+                calInstrumentDate.Format = ObjS3GSession.ProDateFormatRW;
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                lblReason.Visible = ddlReason.Visible = true;
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunPriDisableControls(-1);
+                }
+
+                if (Request.QueryString["qsMode"] == "M")
+                {
+                    txtUserName.Attributes.Add("onfocus", "fnLoadCustomer()");
+                    FunPriDisableControls(1);
+                }
+
+
+                if (Request.QueryString["qsMode"] != "Q" && Request.QueryString["qsMode"] != "M")
+                {
+                    lblReason.Visible = ddlReason.Visible = false;
+                    txtUserName.Attributes.Add("onfocus", "fnLoadCustomer()");
+                    FunPriLoadLOV();
+                    txtDocDate.Text = DateTime.Parse(DateTime.Today.ToString(), CultureInfo.CurrentCulture).ToString(ObjS3GSession.ProDateFormatRW);
+                    FunPriDisableControls(0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+    #endregion
+
+    #region [To populate LOV]
+    private void FunPriLoadLOV()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@OPTION", "3");
+            Procparam.Add("@COMPANYID", Convert.ToString(intCompanyID));
+            Procparam.Add("@USERID", Convert.ToString(intUserID));
+            Procparam.Add("@PROGRAMID", "135");
+            if (intTempReceiptId > 0)
+            {
+                Procparam.Add("@TYPE", "1");
+            }
+            ddlLOB.BindDataTable("S3G_CLN_LOADLOV", Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            //Procparam.Clear();
+            //Procparam.Add("@OPTION", "4");
+            //Procparam.Add("@COMPANYID", Convert.ToString(intCompanyID));
+            //Procparam.Add("@USERID", Convert.ToString(intUserID));
+            //Procparam.Add("@PROGRAMID", "135");
+            //if (intTempReceiptId > 0)
+            //{
+            //    Procparam.Add("@TYPE", "1");
+            //}
+            //ddlBranch.BindDataTable("S3G_CLN_LOADLOV", Procparam, new string[] { "Location_ID", "Location" });
+
+            Procparam.Clear();
+            Procparam.Add("@OPTION", "8");
+            ddlPaymentMode.BindDataTable("S3G_CLN_LOADLOV", Procparam, new string[] { "LOOKUP_CODE", "LOOKUP_DESCRIPTION" });
+            FunPriLoadReason();
+            FunPriLoadDraweeBank();
+        }
+
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriLoadReason()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@OPTION", "22");
+        if (Request.QueryString["qsMode"] != null)
+        {
+            if (Request.QueryString["qsMode"].ToString() == "Q")
+            {
+                Procparam.Add("@TYPE", "1");
+            }
+        }
+        ddlReason.BindDataTable("S3G_CLN_LOADLOV", Procparam, new string[] { "LOOKUP_CODE", "LOOKUP_DESCRIPTION" });
+    }
+
+    private void FunPriLoadDraweeBank()
+    {
+        try
+        {
+            Dictionary<string, string> Procparam = new Dictionary<string, string>();
+            Procparam.Add("@OPTION", "9");
+            if (ddlLOB.SelectedValue != "0") Procparam.Add("@LOBID", ddlLOB.SelectedValue);
+            if (ddlBranch.SelectedValue != "0") Procparam.Add("@LocationID", ddlBranch.SelectedValue);
+            ddlDraweeBank.BindDataTable("S3G_CLN_LOADLOV", Procparam, new string[] { "BANKNAME", "BANKNAME" });
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriLoadReceiptDetails()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@COMPANYID", intCompanyID.ToString());
+        Procparam.Add("@TempReceiptId", intTempReceiptId.ToString());
+        DataSet dsReceiptDetails = Utility.GetDataset("S3G_CLN_GETTEMPRECEIPTDETAILS", Procparam);
+        FunPriLoadRecDetails(dsReceiptDetails);
+    }
+    private void FunPriLoadReceiptDetails_QueryMode()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@COMPANYID", intCompanyID.ToString());
+        Procparam.Add("@TempReceiptId", intTempReceiptId.ToString());
+        DataSet dsReceiptDetails = Utility.GetDataset("S3G_CLN_GETTEMPRECEIPTDETAILS", Procparam);
+        FunPriLoadRecDetails_QueryMode(dsReceiptDetails);
+    }
+    private void FunPriLoadRecDetails_QueryMode(DataSet dsReceiptDetails)
+    {
+
+        System.Web.UI.WebControls.ListItem LiB = new System.Web.UI.WebControls.ListItem(dsReceiptDetails.Tables[0].Rows[0]["LOB_Name"].ToString(), dsReceiptDetails.Tables[0].Rows[0]["LOB_ID"].ToString());
+        ddlLOB.Items.Add(LiB);
+
+
+        
+        ddlBranch.SelectedText = dsReceiptDetails.Tables[0].Rows[0]["Location_Name"].ToString();
+        ddlBranch.SelectedValue = dsReceiptDetails.Tables[0].Rows[0]["Location_ID"].ToString();
+
+
+        ddlLOB.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["LOB_ID"]);
+        ddlBranch.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Location_ID"]);
+        if (dsReceiptDetails.Tables[0].Columns.Contains("Description"))
+        {
+            if (Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Description"]).Contains("Customer"))
+            {
+                FunPubQueryExistCustomerListReceiptProcessing(Convert.ToInt32(dsReceiptDetails.Tables[0].Rows[0]["ENTITY_ID"]));
+                intCustomer = Convert.ToInt32(dsReceiptDetails.Tables[0].Rows[0]["ENTITY_ID"]);
+            }
+        }
+        else
+        {
+            FunPubQueryExistCustomerListReceiptProcessing(Convert.ToInt32(dsReceiptDetails.Tables[0].Rows[0]["Customer_ID"]));
+            intCustomer = Convert.ToInt32(dsReceiptDetails.Tables[0].Rows[0]["Customer_ID"]);
+        }
+        ViewState["CustomerId"] = intCustomer.ToString();
+        txtDocNo.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["RECEIPT_NO"]);
+        txtDocDate.Text = DateTime.Parse(Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["RECEIPTDATE"]), CultureInfo.CurrentCulture).ToString(strDateFormat);
+        txtValueDate.Text = DateTime.Parse(Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["VALUEDATE"]), CultureInfo.CurrentCulture).ToString(strDateFormat);
+        txtDocAmount.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["TOTAL_RECEIPT_AMOUNT"]);
+        if (dsReceiptDetails.Tables[0].Rows[0]["DRAWEE_BANK_Name"] != DBNull.Value)
+        {
+            System.Web.UI.WebControls.ListItem LiP = new System.Web.UI.WebControls.ListItem(dsReceiptDetails.Tables[0].Rows[0]["DRAWEE_BANK_Name"].ToString(), dsReceiptDetails.Tables[0].Rows[0]["DRAWEE_BANK_Name"].ToString());
+            ddlDraweeBank.Items.Add(LiP);
+        }
+        else {
+            System.Web.UI.WebControls.ListItem LiP = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+            ddlDraweeBank.Items.Add(LiP);
+        }
+        ddlDraweeBank.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["DRAWEE_BANK_Name"]);
+        txtInstrumentNo.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["INSTRUMENT_NO"]);
+        if (dsReceiptDetails.Tables[0].Rows[0]["INSTRUMENTDATE"] != DBNull.Value)
+            txtInstrumentDate.Text = DateTime.Parse(Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["INSTRUMENTDATE"]), CultureInfo.CurrentCulture).ToString(strDateFormat);
+        txtPaymentGateway.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["PAYMENT_GATEWAY_REF"]);
+        txtACKNo.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["ACK_NO"]);
+        txtLocation.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["DRAWEE_BANK_LOCATION"]);
+        
+        
+        
+
+        if (dsReceiptDetails.Tables[0].Rows[0]["PAYMENT_MODE"] != DBNull.Value)
+        {
+            System.Web.UI.WebControls.ListItem LiP = new System.Web.UI.WebControls.ListItem(dsReceiptDetails.Tables[0].Rows[0]["PAYMENT_MODE_Desc"].ToString(), dsReceiptDetails.Tables[0].Rows[0]["PAYMENT_MODE"].ToString());
+            ddlPaymentMode.Items.Add(LiP);
+        }
+        else {
+            System.Web.UI.WebControls.ListItem LiP = new System.Web.UI.WebControls.ListItem("--Select--","0");
+            ddlPaymentMode.Items.Add(LiP);
+        }
+        ddlPaymentMode.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["PAYMENT_MODE"]);
+
+        FunPriToggleDraweeBankTab();
+        //FunPriLoadTempBookNo();
+
+        if (dsReceiptDetails.Tables[0].Rows[0]["Temp_Receipt_Book_Id"] != DBNull.Value)
+        {
+            System.Web.UI.WebControls.ListItem LiT = new System.Web.UI.WebControls.ListItem(dsReceiptDetails.Tables[0].Rows[0]["Temp_ReceiptBook_Desc"].ToString(), dsReceiptDetails.Tables[0].Rows[0]["Temp_Receipt_Book_Id"].ToString());
+            ddlBookNo.Items.Add(LiT);
+        }
+        else
+        {
+            System.Web.UI.WebControls.ListItem LiT = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+            ddlBookNo.Items.Add(LiT);
+        }
+        ddlBookNo.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Temp_Receipt_Book_Id"]);
+        FunPriLoadTempBookPageNo();
+
+        if (dsReceiptDetails.Tables[0].Rows[0]["Temp_Receipt_Book_Id"] != DBNull.Value)
+        {
+            System.Web.UI.WebControls.ListItem LiPa = new System.Web.UI.WebControls.ListItem(dsReceiptDetails.Tables[0].Rows[0]["Temp_Receipt_BookPage"].ToString(), dsReceiptDetails.Tables[0].Rows[0]["Temp_Receipt_BookPage"].ToString());
+            ddlBookPageNo.Items.Add(LiPa);
+        }
+        else
+        {
+            System.Web.UI.WebControls.ListItem LiPa = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+            ddlBookPageNo.Items.Add(LiPa);
+        }
+        ddlBookPageNo.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Temp_Receipt_BookPage"]);
+        FunPriToggleDraweeBankTab();
+        if (ddlDraweeBank.SelectedItem.Text.Trim().ToLower() == "others" && dsReceiptDetails.Tables[0].Rows[0]["Other_Bank_Name"] != DBNull.Value)
+        {
+            TxtBank.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Other_Bank_Name"]);
+            lblBankName.Visible = TxtBank.Visible = true;
+        }
+        //FunPriLoadReason();
+        if (Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Reason"]) != "")
+        {
+            System.Web.UI.WebControls.ListItem LiR = new System.Web.UI.WebControls.ListItem(dsReceiptDetails.Tables[0].Rows[0]["Reason_Desc"].ToString(), dsReceiptDetails.Tables[0].Rows[0]["Reason"].ToString());
+            ddlReason.Items.Add(LiR);
+            ddlReason.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Reason"]);
+        }
+        else {
+            System.Web.UI.WebControls.ListItem LiR = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+            ddlReason.Items.Add(LiR);
+        }
+        if (Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Receipt_No1"]) != "")
+        {
+            ddlLOB.ClearDropDownList();
+            ddlBranch.Enabled = false;
+            ddlPaymentMode.ClearDropDownList();
+            calDocDate.Enabled = false;
+            txtDocAmount.ReadOnly = txtInstrumentNo.ReadOnly = true;
+            ddlDraweeBank.ClearDropDownList();
+            ddlBookNo.ClearDropDownList();
+            ddlBookPageNo.ClearDropDownList();
+            TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            txtName.ReadOnly = true;
+            Button btnGetLOV = (Button)ucCustomerCodeLov.FindControl("btnGetLOV");
+            btnGetLOV.Visible = false;
+
+        }
+    }
+    private void FunPriLoadRecDetails(DataSet dsReceiptDetails)
+    {
+        ddlLOB.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["LOB_ID"]);
+        ddlBranch.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Location_ID"]);
+        ddlBranch.SelectedText  = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Location_Name"]);
+        if (dsReceiptDetails.Tables[0].Columns.Contains("Description"))
+        {
+            if (Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Description"]).Contains("Customer"))
+            {
+                FunPubQueryExistCustomerListReceiptProcessing(Convert.ToInt32(dsReceiptDetails.Tables[0].Rows[0]["ENTITY_ID"]));
+                intCustomer = Convert.ToInt32(dsReceiptDetails.Tables[0].Rows[0]["ENTITY_ID"]);
+            }
+        }
+        else
+        {
+            FunPubQueryExistCustomerListReceiptProcessing(Convert.ToInt32(dsReceiptDetails.Tables[0].Rows[0]["Customer_ID"]));
+            intCustomer = Convert.ToInt32(dsReceiptDetails.Tables[0].Rows[0]["Customer_ID"]);
+        }
+        ViewState["CustomerId"] = intCustomer.ToString();
+        txtDocNo.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["RECEIPT_NO"]);
+        txtDocDate.Text = DateTime.Parse(Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["RECEIPTDATE"]), CultureInfo.CurrentCulture).ToString(strDateFormat);
+        txtValueDate.Text = DateTime.Parse(Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["VALUEDATE"]), CultureInfo.CurrentCulture).ToString(strDateFormat);
+        txtDocAmount.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["TOTAL_RECEIPT_AMOUNT"]);
+        if (dsReceiptDetails.Tables[0].Rows[0]["DRAWEE_BANK_Name"] != DBNull.Value)
+            ddlDraweeBank.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["DRAWEE_BANK_Name"]);
+        txtInstrumentNo.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["INSTRUMENT_NO"]);
+        if (dsReceiptDetails.Tables[0].Rows[0]["INSTRUMENTDATE"] != DBNull.Value)
+            txtInstrumentDate.Text = DateTime.Parse(Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["INSTRUMENTDATE"]), CultureInfo.CurrentCulture).ToString(strDateFormat);
+        txtPaymentGateway.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["PAYMENT_GATEWAY_REF"]);
+        txtACKNo.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["ACK_NO"]);
+        txtLocation.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["DRAWEE_BANK_LOCATION"]);
+        ddlPaymentMode.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["PAYMENT_MODE"]);
+        FunPriToggleDraweeBankTab();
+        FunPriLoadTempBookNo();
+        ddlBookNo.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Temp_ReceiptBook_No"]);
+        FunPriLoadTempBookPageNo();
+        ddlBookPageNo.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Temp_Receipt_BookPage"]);
+        FunPriToggleDraweeBankTab();
+        if (ddlDraweeBank.SelectedItem.Text.Trim().ToLower() == "others" && dsReceiptDetails.Tables[0].Rows[0]["Other_Bank_Name"] != DBNull.Value)
+        {
+            TxtBank.Text = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Other_Bank_Name"]);
+            lblBankName.Visible = TxtBank.Visible = true;
+        }
+        FunPriLoadReason();
+        if (Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Reason"]) != "")
+        {
+            ddlReason.SelectedValue = Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Reason"]);
+        }
+        if (Convert.ToString(dsReceiptDetails.Tables[0].Rows[0]["Receipt_No1"]) != "")
+        {
+            ddlLOB.ClearDropDownList();
+            ddlBranch.Enabled=false;
+            ddlPaymentMode.ClearDropDownList();
+            calDocDate.Enabled = false;
+            txtDocAmount.ReadOnly = txtInstrumentNo.ReadOnly = true;
+            ddlDraweeBank.ClearDropDownList();
+            ddlBookNo.ClearDropDownList();
+            ddlBookPageNo.ClearDropDownList();
+            TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            txtName.ReadOnly = true;
+            Button btnGetLOV = (Button)ucCustomerCodeLov.FindControl("btnGetLOV");
+            btnGetLOV.Visible = false;
+
+        }
+    }
+    #endregion
+
+    #region [UserAuthorization]
+    ////This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                if (!bCreate)
+                {
+                    btnSave.Enabled = false;
+                }
+                btnTempReceiptCancel.Visible = false;
+                break;
+
+            case 1: // Modify Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                FunPriLoadLOV();
+                btnTempReceiptCancel.Visible = true;
+                if (!bModify)
+                {
+                    btnSave.Enabled = false;
+                }
+                FunPriLoadReceiptDetails();
+                ddlLOB.ClearDropDownList();
+                ddlBranch.Enabled = false;
+                btnClear.Enabled = false;
+                break;
+
+            case -1:// Query Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                //FunPriLoadLOV();
+                FunPriLoadReceiptDetails_QueryMode();
+                if (bClearList)
+                {
+                    ddlLOB.ClearDropDownList();
+                    ddlBranch.Enabled=false;
+                    ddlDraweeBank.ClearDropDownList();
+                    ddlPaymentMode.ClearDropDownList();
+                    ddlReason.ClearDropDownList();
+                    calDocDate.Enabled = false;
+                    calValueDate.Enabled = false;
+                    txtDocAmount.ReadOnly = true;
+                    calInstrumentDate.Enabled = false;
+                    txtLocation.ReadOnly = true;
+                    ddlBookNo.ClearDropDownList();
+                    ddlBookPageNo.ClearDropDownList();
+                }
+                btnTempReceiptCancel.Visible = false;
+                btnClear.Enabled = false;
+                btnSave.Enabled = false;
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPage,false);
+                }
+
+                txtDocDate.Attributes.Remove("onblur");
+                txtValueDate.Attributes.Remove("onblur");
+                txtInstrumentDate.Attributes.Remove("onblur");
+
+                txtDocDate.ReadOnly = true;
+                txtValueDate.ReadOnly = true;
+                txtInstrumentDate.ReadOnly = true;
+
+                break;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+    #endregion
+
+
+
+    #region [ButtonEvents]
+
+    protected void btnTempReceiptCancel_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+
+            FunPriCancelReceipt();
+        }
+        catch (Exception ex)
+        {
+            cvReceiptProcessing.ErrorMessage = "Unable to Cancel the Receipt";
+            cvReceiptProcessing.IsValid = false;
+        }
+
+    }
+
+    private void FunPriCancelReceipt()
+    {
+        ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objReceiptProcessingClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        try
+        {
+            int intResult = 0;
+
+
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_TempReceiptProcessingDataTable objReceiptProcessingDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_TempReceiptProcessingDataTable();
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_TempReceiptProcessingRow objReceiptProcessingRow = objReceiptProcessingDataTable.NewS3G_CLN_TempReceiptProcessingRow();
+            objReceiptProcessingRow.Company_ID = intCompanyID;
+            objReceiptProcessingRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            objReceiptProcessingRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            objReceiptProcessingRow.Customer_ID = Convert.ToInt32(ViewState["CustomerId"]);
+            objReceiptProcessingRow.Temp_Receipt_No = txtDocNo.Text;
+            objReceiptProcessingRow.Temp_Reciept_Date = Utility.StringToDate(txtDocDate.Text);
+            objReceiptProcessingRow.Value_Date = Utility.StringToDate(txtValueDate.Text);
+            objReceiptProcessingRow.Receipt_No = "";
+            objReceiptProcessingRow.Payment_Type = Convert.ToInt32(ddlPaymentMode.SelectedValue);
+            objReceiptProcessingRow.Temp_Receipt_Amount = Convert.ToDouble(txtDocAmount.Text);
+            objReceiptProcessingRow.Temp_ReceiptBook_No = Convert.ToInt32(ddlBookNo.SelectedValue);
+            objReceiptProcessingRow.Temp_Receipt_BookPage = Convert.ToInt32(ddlBookPageNo.SelectedValue);
+            if (!string.IsNullOrEmpty(txtPaymentGateway.Text))
+                objReceiptProcessingRow.Payment_Gateway_Ref = txtPaymentGateway.Text;
+            if (!string.IsNullOrEmpty(txtACKNo.Text))
+                objReceiptProcessingRow.ACK_No = txtACKNo.Text;
+            objReceiptProcessingRow.Created_By = intUserID;
+
+            if (ddlDraweeBank.SelectedIndex > 0)
+            {
+                if (ddlDraweeBank.SelectedItem.Text != "Others")
+                    objReceiptProcessingRow.Drawee_Bank_Name = ddlDraweeBank.SelectedItem.Text;
+                else
+                    objReceiptProcessingRow.Drawee_Bank_Name = TxtBank.Text;
+            }
+
+            if (!string.IsNullOrEmpty(txtInstrumentNo.Text))
+                objReceiptProcessingRow.Instrument_No = Convert.ToInt32(txtInstrumentNo.Text);
+            if (!string.IsNullOrEmpty(txtInstrumentDate.Text))
+                objReceiptProcessingRow.Instrument_Date = Utility.StringToDate(txtInstrumentDate.Text);
+
+
+            objReceiptProcessingRow.Created_On = Utility.StringToDate(DateTime.Today.ToString());
+            objReceiptProcessingRow.Txn_ID = 1;
+            objReceiptProcessingRow.Temp_Receipt_Status_Code = 91;
+            objReceiptProcessingRow.Temp_Receipt_Status = 1;
+            objReceiptProcessingRow.Temp_Receipt_ID = intTempReceiptId;
+            objReceiptProcessingRow.Modified_By = intUserID;
+            objReceiptProcessingRow.ReasonId = Convert.ToInt32(ddlReason.SelectedValue);
+
+            objReceiptProcessingDataTable.AddS3G_CLN_TempReceiptProcessingRow(objReceiptProcessingRow);
+
+            SerializationMode SerMode = SerializationMode.Binary;
+            byte[] objbyteReceiptTable = ClsPubSerialize.Serialize(objReceiptProcessingDataTable, SerMode);
+            intResult = objReceiptProcessingClient.FunPubCancelTempReceipt(SerMode, objbyteReceiptTable);
+            if (intResult == 0)
+            {
+                string strModAlert = "Temp.Receipt " + txtDocNo.Text + " cancelled successfully";
+                strAlert = strAlert.Replace("__ALERT__", strModAlert);
+            }
+            else if (intResult == -3)
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Already selected Page No was cancelled by another user");
+                strRedirectPageView = "";
+            }
+            else if (intResult == -4)
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Already Temp.Receipt No was used by another user");
+                strRedirectPageView = "";
+            }
+            else
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Error in cancelling Temp.Receipt");
+                strRedirectPageView = "";
+            }
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+        }
+        catch (Exception ex)
+        {
+        }
+        finally
+        {
+            objReceiptProcessingClient.Close();
+        }
+
+    }
+
+
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            ViewState["AccountDetails"] = null;
+
+
+            hvfCustomerID.Value = "";
+            S3GCustomerAddress1.ClearCustomerDetails();
+            HiddenField hdnCID = (HiddenField)ucCustomerCodeLov.FindControl("hdnID");
+            if (hdnCID != null && hdnCID.Value != "")
+            {
+                FunPubQueryExistCustomerListReceiptProcessing(Convert.ToInt32(hdnCID.Value));
+                hvfCustomerID.Value = hdnCID.Value.ToString();
+                ViewState["CustomerId"] = hdnCID.Value;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+
+
+    }
+
+    protected void btnSave_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+
+            TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            if (txtName != null)
+            {
+                if (txtName.Text == "")
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Select a Customer");
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                    return;
+                }
+            }
+            if (ddlPaymentMode.SelectedItem.Text.ToUpper().Contains("DD") || ddlPaymentMode.SelectedItem.Text.ToUpper().Contains("CHEQUE"))
+            {
+                if (txtInstrumentNo.Text == "")
+                {
+                    cvReceiptProcessing.ErrorMessage = "Enter the Instrument No.";
+                    cvReceiptProcessing.IsValid = false;
+                    return;
+                }
+                else if (txtInstrumentNo.Text != "" && txtInstrumentNo.Text.Length < 6)
+                {
+                    cvReceiptProcessing.ErrorMessage = "Instrument No. length should be 6 digits";
+                    cvReceiptProcessing.IsValid = false;
+                    return;
+                }
+
+                if (txtInstrumentDate.Text == "")
+                {
+                    cvReceiptProcessing.ErrorMessage = "Enter the Instrument Date";
+                    cvReceiptProcessing.IsValid = false;
+                    return;
+                }
+                if (ddlDraweeBank.SelectedItem.Text == "--Select--")
+                {
+                    cvReceiptProcessing.ErrorMessage = "Select the Drawee Bank";
+                    cvReceiptProcessing.IsValid = false;
+                    return;
+                }
+                if (txtLocation.Text.Trim() == "")
+                {
+                    cvReceiptProcessing.ErrorMessage = "Enter the Location";
+                    cvReceiptProcessing.IsValid = false;
+                    return;
+                }
+                if (ddlDraweeBank.SelectedItem.Text.ToLower().Trim() == "others" && TxtBank.Text.Trim() == "")
+                {
+                    cvReceiptProcessing.ErrorMessage = "Enter the Bank Name";
+                    cvReceiptProcessing.IsValid = false;
+                    return;
+                }
+            }
+
+            // Changed the below code by Srivatsan.
+
+            if ((ddlReason.SelectedValue != "0") && (ddlReason.SelectedValue != ""))
+            {
+                cvReceiptProcessing.ErrorMessage = "Reason only for cancelling purpose";
+                ddlReason.SelectedIndex = 0;
+                cvReceiptProcessing.IsValid = false;
+                return;
+            }
+
+            if (ddlPaymentMode.SelectedItem.Text.ToUpper().Contains("CHEQUE"))
+            {
+                if (txtInstrumentNo.Text != "")
+                {
+                    Procparam = new Dictionary<string, string>();
+                    Procparam.Add("@Option", "31");
+                    Procparam.Add("@CompanyId", intCompanyID.ToString());
+                    Procparam.Add("@InstrumentNo", txtInstrumentNo.Text);
+                    if (intTempReceiptId != 0)
+                    {
+                        Procparam.Add("@TempReceiptId", intTempReceiptId.ToString());
+                    }
+                    DataTable dtChequeExist = Utility.GetDefaultData("S3G_CLN_LOADLOV", Procparam);
+                    if (dtChequeExist.Rows.Count > 0)
+                    {
+                        if (dtChequeExist.Rows[0][0].ToString() != "0")
+                        {
+                            cvReceiptProcessing.ErrorMessage = "Instrument No. already Exists";
+                            cvReceiptProcessing.IsValid = false;
+                            return;
+                        }
+                    }
+                }
+
+            }
+
+            int intResult = 0;
+
+            string strReceiptNumber = ""; ;
+            SerializationMode SerMode;
+            byte[] objbyteReceiptTable;
+
+            intResult = FunPriSaveTempReceipt(out strReceiptNumber, out SerMode, out objbyteReceiptTable);
+
+
+            if (intResult == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                if (intTempReceiptId == 0)
+                {
+                    strAlert = "Temp Receipt " + strReceiptNumber + " created successfully";
+                    strAlert += @"\n\nWould you like to create one more Receipt?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPageView = "";
+                }
+                else
+                {
+                    string strModAlert = "Temp Receipt " + strReceiptNumber + " modified successfully";
+                    strAlert = strAlert.Replace("__ALERT__", strModAlert);
+
+                }
+
+            }
+            else if (intResult == -1)
+            {
+                strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoNotDefined);
+                strRedirectPageView = "";
+            }
+            else if (intResult == -2)
+            {
+                strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoExceeds);
+                strRedirectPageView = "";
+            }
+            else if (intResult == -3)
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Already selected Page No was cancelled by another user");
+                strRedirectPageView = "";
+            }
+
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+        }
+        catch (Exception ex)
+        {
+            cvReceiptProcessing.ErrorMessage = "Unable to Create/Modify the Temp.Receipt";
+            cvReceiptProcessing.IsValid = false;
+        }
+
+    }
+
+
+    private int FunPriSaveTempReceipt(out string strReceiptNumber, out SerializationMode SerMode, out byte[] objbyteReceiptTable)
+    {
+        ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objReceiptProcessingClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        int intResult = 0;
+        strReceiptNumber = "";
+
+        try
+        {
+
+
+
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_TempReceiptProcessingDataTable objReceiptProcessingDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_TempReceiptProcessingDataTable();
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_TempReceiptProcessingRow objReceiptProcessingRow = objReceiptProcessingDataTable.NewS3G_CLN_TempReceiptProcessingRow();
+            objReceiptProcessingRow.Company_ID = intCompanyID;
+            objReceiptProcessingRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            objReceiptProcessingRow.Temp_Receipt_ID = intTempReceiptId;
+            objReceiptProcessingRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            objReceiptProcessingRow.Customer_ID = Convert.ToInt32(ViewState["CustomerId"]);
+            objReceiptProcessingRow.Temp_Receipt_No = txtDocNo.Text;
+            objReceiptProcessingRow.Temp_Reciept_Date = Utility.StringToDate(txtDocDate.Text);
+            objReceiptProcessingRow.Value_Date = Utility.StringToDate(txtValueDate.Text);
+            objReceiptProcessingRow.Receipt_No = "";
+            objReceiptProcessingRow.Payment_Type = Convert.ToInt32(ddlPaymentMode.SelectedValue);
+            objReceiptProcessingRow.Temp_Receipt_Amount = Convert.ToDouble(txtDocAmount.Text);
+            objReceiptProcessingRow.Temp_ReceiptBook_No = Convert.ToInt32(ddlBookNo.SelectedValue);
+            objReceiptProcessingRow.Temp_Receipt_BookPage = Convert.ToInt32(ddlBookPageNo.SelectedValue);
+            if (!string.IsNullOrEmpty(txtPaymentGateway.Text))
+                objReceiptProcessingRow.Payment_Gateway_Ref = txtPaymentGateway.Text;
+            if (!string.IsNullOrEmpty(txtACKNo.Text))
+                objReceiptProcessingRow.ACK_No = txtACKNo.Text;
+            objReceiptProcessingRow.Created_By = intUserID;
+
+            if (ddlDraweeBank.SelectedIndex > 0)
+            {
+                // if (ddlDraweeBank.SelectedItem.Text.Trim().ToLower() != "others")
+                objReceiptProcessingRow.Drawee_Bank_Name = ddlDraweeBank.SelectedItem.Text;
+                //else
+                objReceiptProcessingRow.Other_Bank_Name = TxtBank.Text;
+            }
+
+            if (!string.IsNullOrEmpty(txtInstrumentNo.Text))
+                objReceiptProcessingRow.Instrument_No = Convert.ToInt32(txtInstrumentNo.Text);
+            if (!string.IsNullOrEmpty(txtInstrumentDate.Text))
+                objReceiptProcessingRow.Instrument_Date = Utility.StringToDate(txtInstrumentDate.Text);
+            if (!string.IsNullOrEmpty(txtLocation.Text))
+                objReceiptProcessingRow.Location = txtLocation.Text;
+
+            objReceiptProcessingRow.Created_On = Utility.StringToDate(DateTime.Today.ToString());
+            objReceiptProcessingRow.Txn_ID = 1;
+            objReceiptProcessingRow.Temp_Receipt_Status_Code = 91;
+            objReceiptProcessingRow.Temp_Receipt_Status = 1;
+
+
+            objReceiptProcessingDataTable.AddS3G_CLN_TempReceiptProcessingRow(objReceiptProcessingRow);
+
+            SerMode = SerializationMode.Binary;
+            objbyteReceiptTable = ClsPubSerialize.Serialize(objReceiptProcessingDataTable, SerMode);
+            intResult = objReceiptProcessingClient.FunPubCreateTempReceipt(out strReceiptNumber, SerMode, objbyteReceiptTable);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        finally
+        {
+            objReceiptProcessingClient.Close();
+        }
+        return intResult;
+    }
+    #endregion
+
+
+    #region [CustomerAddress]
+    public static string SetCustomerAddress(string Address1, string Address2, string City, string State, string Country, string Pincode)
+    {
+        try
+        {
+            string strAddress = "";
+            if (Address1.ToString() != "") strAddress += Address1.ToString() + System.Environment.NewLine;
+            if (Address2.ToString() != "") strAddress += Address2.ToString() + System.Environment.NewLine;
+            if (City.ToString() != "") strAddress += City.ToString() + System.Environment.NewLine;
+            if (State.ToString() != "") strAddress += State.ToString() + System.Environment.NewLine;
+            if (Country.ToString() != "") strAddress += Country.ToString() + System.Environment.NewLine;
+            if (Pincode.ToString() != "") strAddress += Pincode.ToString();
+            return strAddress;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region [CustomerDetails]
+    private void FunPubQueryExistCustomerListReceiptProcessing(int CustomerID)
+    {
+        string strCustomerAddress = "";
+
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@Customer_Id", CustomerID.ToString());
+
+            DataTable dtCustomerDetails = Utility.GetDefaultData("S3G_CLN_GetCustomerDetails", Procparam);
+            if (dtCustomerDetails.Rows.Count > 0)
+            {
+                if (intTempReceiptId > 0)
+                {
+                    TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+                    txtName.Text = dtCustomerDetails.Rows[0]["Title"].ToString() + ' ' + dtCustomerDetails.Rows[0]["Customer_Name"].ToString();
+                    txtName.ToolTip = txtName.Text;
+                    if (Request.QueryString["qsMode"] == "Q")
+                    {
+                        txtName.ReadOnly = true;
+                        Button btnGetLOV = (Button)ucCustomerCodeLov.FindControl("btnGetLOV");
+                        btnGetLOV.Visible = false;
+                    }
+                }
+                strCustomerAddress = SetCustomerAddress(dtCustomerDetails.Rows[0]["comm_address1"].ToString(), dtCustomerDetails.Rows[0]["comm_address2"].ToString(), dtCustomerDetails.Rows[0]["comm_city"].ToString(), dtCustomerDetails.Rows[0]["comm_state"].ToString(), dtCustomerDetails.Rows[0]["comm_country"].ToString(), dtCustomerDetails.Rows[0]["comm_pincode"].ToString());
+                S3GCustomerAddress1.SetCustomerDetails(dtCustomerDetails.Rows[0]["Customer_Code"].ToString(),
+                    strCustomerAddress, dtCustomerDetails.Rows[0]["Customer_Name"].ToString(),
+                    dtCustomerDetails.Rows[0]["comm_Telephone"].ToString(), dtCustomerDetails.Rows[0]["comm_mobile"].ToString(),
+                    dtCustomerDetails.Rows[0]["comm_email"].ToString(),
+                    dtCustomerDetails.Rows[0]["Comm_Website"].ToString());
+                hvfGLPostingCode.Value = dtCustomerDetails.Rows[0]["GL_Code"].ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+            //    ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw;
+        }
+
+
+
+    }
+    #endregion
+
+    #region [ClearCustomerDetails]
+    private void FunPriClearCusdetails()
+    {
+        try
+        {
+            S3GCustomerAddress1.ClearCustomerDetails();
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region [DropdownlistEvents]
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        //TextBox txtCustomerName = ucCustomerCodeLov.FindControl("txtName") as TextBox;
+        //txtCustomerName.Text = "";
+        //FunPriClearCusdetails();
+        txtValueDate.Text = "";
+        ddlBookNo.Items.Clear();
+        ListItem Lst = new ListItem("--Select--", "", true);
+        ddlBookNo.Items.Add(Lst);
+        FunPriLoadTempBookNo();
+        ddlBookPageNo.Items.Clear();
+        ddlBookPageNo.Items.Add(Lst);
+        FunPriLoadDraweeBank();
+    }
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        //txtDocDate.Text = DateTime.Parse(DateTime.Today.ToString(), CultureInfo.CurrentCulture).ToString(strDateFormat);
+        txtValueDate.Text = "";
+        //TextBox txtCustomerName = ucCustomerCodeLov.FindControl("txtName") as TextBox;
+        //txtCustomerName.Text = "";
+        //FunPriClearCusdetails();
+        ddlBookNo.Items.Clear();
+        ListItem Lst = new ListItem("--Select--", "", true);
+        ddlBookNo.Items.Add(Lst);
+        //FunPriLoadTempBookNo();
+        ddlBookPageNo.Items.Clear();
+        ddlBookPageNo.Items.Add(Lst);
+        FunPriLoadDraweeBank();
+    }
+    protected void ddlPaymentMode_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
+        FunPriToggleDraweeBankTab();
+
+    }
+    protected void ddlDraweeBank_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunDisableEnableControls();
+    }
+    private void FunDisableEnableControls()
+    {
+        TxtBank.Text = "";
+        if (ddlDraweeBank.SelectedItem.Text.Trim().ToLower() == "others")
+        {
+            lblBankName.Visible = true;
+            TxtBank.Visible = true;
+        }
+        else
+        {
+            lblBankName.Visible = false;
+            TxtBank.Visible = false;
+        }
+
+    }
+    private void FunPriToggleDraweeBankTab()
+    {
+        if (ddlPaymentMode.SelectedItem.Text == "Cash")
+        {
+            txtLocation.ReadOnly = true;
+            ddlDraweeBank.SelectedValue = "0";
+            ddlDraweeBank.Enabled = false;
+            txtInstrumentDate.ReadOnly = true;
+            txtInstrumentNo.ReadOnly = true;
+            calInstrumentDate.Enabled = false;
+            txtPaymentGateway.ReadOnly = txtACKNo.ReadOnly = true;
+            TabControlDataSheet.Enabled = false;
+
+        }
+        else
+        {
+            txtLocation.ReadOnly = false;
+            ddlDraweeBank.Enabled = true;
+            txtInstrumentDate.ReadOnly = false;
+            txtInstrumentDate.Enabled = true;
+            txtInstrumentNo.ReadOnly = false;
+            calInstrumentDate.Enabled = true;
+            //txtPaymentGateway.ReadOnly = txtACKNo.ReadOnly = false;
+            TabControlDataSheet.Enabled = true;
+        }
+    }
+    protected void txtValueDate_TextChanged(object sender, EventArgs e)
+    {
+        FunPriLoadTempBookNo();
+    }
+    protected void ddlBookNo_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriLoadTempBookPageNo();
+    }
+    private void FunPriLoadTempBookNo()
+    {
+        //Procparam = new Dictionary<string, string>();
+        //Procparam.Add("@OPTION", "20");
+        //Procparam.Add("@COMPANYID", Convert.ToString(intCompanyID));
+        //if (ddlLOB.SelectedIndex > 0)
+        //{
+        //    Procparam.Add("@LobId", ddlLOB.SelectedValue);
+        //}
+        //if (ddlBranch.SelectedIndex > 0)
+        //{
+        //    Procparam.Add("@LocationId", ddlBranch.SelectedValue);
+        //}
+        //if (txtDocDate.Text != "")
+        //{
+        //    Procparam.Add("@DocDate", txtDocDate.Text);
+        //}
+        //if (txtValueDate.Text != "")
+        //{
+        //    Procparam.Add("@ValueDate", txtValueDate.Text);
+        //}
+        /* Load the Book No based on Date of issue in Temp.Book*/
+
+
+        //objReceiptProcessingClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        //DataTable dtBookNo = objReceiptProcessingClient.FunPubLoadBookNo("S3G_CLN_LOADLOV", 20, intCompanyID,  Convert.ToDateTime(txtDocDate.Text), Convert.ToDateTime(txtValueDate.Text), Convert.ToInt32(ddlLOB.SelectedValue), Convert.ToInt32(ddlBranch.SelectedValue));
+        //ddlBookNo.BindDataTable(dtBookNo, new string[] { "Temp_Receipt_Book_Id", "Temp_ReceiptBook_No" });
+
+        /*Commented by Kuppu with Bashyam sir - to load Temp Book - Feb-15-2013*/
+        //if (txtValueDate.Text == string.Empty)
+        //{
+        //    ddlBookNo.Items.Clear();
+        //    ddlBookPageNo.Items.Clear();
+        //}
+        //else
+        //{
+            //Added by Thangam.M for UAT on 14/May/2012
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@OPTION", "20");
+            Procparam.Add("@COMPANYID", intCompanyID.ToString());
+            Procparam.Add("@DocDate", Utility.StringToDate(txtDocDate.Text).ToString());
+            if (txtValueDate.Text != string.Empty)
+            {
+                Procparam.Add("@ValueDate", Utility.StringToDate(txtValueDate.Text).ToString());
+            }
+            Procparam.Add("@LOBID", ddlLOB.SelectedValue);
+            Procparam.Add("@LOCATIONID", ddlBranch.SelectedValue);
+            Procparam.Add("@USERID", intUserID.ToString());
+
+            ddlBookNo.BindDataTable("S3G_CLN_LOADLOV", Procparam, new string[] { "Temp_Receipt_Book_Id", "Temp_ReceiptBook_No" });
+            //End here
+        //}
+    }
+    private void FunPriLoadTempBookPageNo()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@OPTION", "19");
+        if (ddlBookNo.SelectedIndex > 0)
+        {
+            Procparam.Add("@TempReceiptBookNo", ddlBookNo.SelectedValue);
+        }
+        if (intTempReceiptId > 0)
+        {
+            /*Changed by Prabhu.K on 28-Dec-2011 - For UAT Observation No:162 */
+            if (Request.QueryString["qsMode"].ToString() == "M")
+            {
+                Procparam.Add("@TYPE", "M");
+            }
+            else if (Request.QueryString["qsMode"].ToString() == "Q")
+            {
+                Procparam.Add("@TYPE", "Q");
+            }
+        }
+        ddlBookPageNo.BindDataTable("S3G_CLN_LOADLOV", Procparam, new string[] { "Temp_ReceiptBook_Details_Id", "Temp_ReceiptBook_Page_No" });
+
+    }
+    protected void btnClear_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearPage();
+        }
+        catch (Exception ex)
+        {
+            cvReceiptProcessing.ErrorMessage = "Unable to Clear the data";
+            cvReceiptProcessing.IsValid = false;
+        }
+
+    }
+    private void FunPriClearPage()
+    {
+        try
+        {
+
+            txtDocDate.Text = DateTime.Parse(DateTime.Today.ToString(), CultureInfo.CurrentCulture).ToString(strDateFormat);
+            txtDocNo.Text = txtDocAmount.Text = txtValueDate.Text = "";
+            FunPriLoadLOV();
+            ddlLOB.SelectedIndex =  ddlPaymentMode.SelectedIndex = 0;
+            ddlBranch.SelectedText = "--Select--";
+            ddlBranch.SelectedValue = "0";
+
+            TextBox txtCustomerName = ucCustomerCodeLov.FindControl("txtName") as TextBox;
+            txtCustomerName.Text = "";
+            txtLocation.Text = "";
+            txtInstrumentNo.Text = "";
+            txtInstrumentDate.Text = "";
+            S3GCustomerAddress1.ClearCustomerDetails();
+            FunPriLoadTempBookNo();
+            FunPriLoadTempBookPageNo();
+
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+
+    }
+    protected void btnCancel_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect(strRedirectPage,false);
+        }
+        catch (Exception ex)
+        {
+            cvReceiptProcessing.ErrorMessage = "Unable to close this process";
+            cvReceiptProcessing.IsValid = false;
+        }
+
+    }
+    #endregion
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo Uinfo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", Uinfo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", Uinfo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "135");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+
+
+
+
+
+
+
+}

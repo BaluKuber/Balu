@@ -1,0 +1,32 @@
+using System;
+using System.Data;
+using System.Configuration;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Web.UI.HtmlControls;
+using org.jfree.chart;
+using System.Reflection;
+
+namespace Ujihara.Demo
+{
+    public abstract class JFreeChartChartFactory
+    {
+        private JFreeChartChartFactory()
+        {
+        }
+
+        public static JFreeChart CreateChart(string name)
+        {
+            if (name == "")
+                name = "BarChartDemo1";
+
+            Type type = Type.GetType("Ujihara.Demo." + name);
+            ConstructorInfo ctor = type.GetConstructor(Type.EmptyTypes);
+            ChartCreator cc = (ChartCreator)ctor.Invoke(new object[] { });
+            return cc.CreateChart();
+        }
+    }
+}

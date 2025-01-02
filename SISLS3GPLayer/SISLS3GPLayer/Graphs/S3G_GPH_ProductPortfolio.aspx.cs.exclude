@@ -1,0 +1,125 @@
+﻿using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using System.Globalization;
+using System.Web.UI.WebControls;
+using System.Web.UI.DataVisualization.Charting;
+using System.Web.UI.DataVisualization.Charting.Utilities;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using System.Collections.Generic;
+using System.Data;
+using System;
+
+public partial class Graphs_S3G_GPH_ProductPortfolio :ApplyThemeForProject
+{
+    #region Declaration
+
+    int intCompanyID, intUserID = 0, intErrCode = 0;
+    public Dictionary<string, string> Procparam = null;
+    string intAssetVerificationNo = string.Empty;
+    int ProgCode = 262;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strAlert = "alert('__ALERT__');";
+  
+    #endregion      
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            FunLoadChart();
+        }
+       
+    }
+    public void FunLoadChart()
+    {
+
+
+        DataTable dt = new DataTable();
+        DataSet ds = new DataSet();
+      
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+        Procparam.Add("@COMPANY_ID", "1");
+        Procparam.Add("@DRILL_DOWN", "0");
+        Procparam.Add("@PRODUCT_ID", "2");
+
+        ds = Utility.GetDataset("S3G_GPH_PRDT", Procparam);
+            UCS3GChart1.showChartTitle = "Product Portfolio";
+        UCS3GChart1.setChartSeries1 = "Product Portfolio";
+              UCS3GChart1.setChartWidth = 500;
+            UCS3GChart1.setChartHeight = 400;
+            UCS3GChart1.setChart3DCustomesRotate = true;
+            UCS3GChart1.showChart3DRotateAngle = 0;
+            UCS3GChart1.setCustomePalette = true;
+
+            UCS3GChart1.showCustomesPaletteColor = "#83A0CD~#2F619F~#B43532~#7D9E38~#644788~#298CA6~#E47A22~#99B958~#8064A2";
+
+        UCS3GChart1.showChartType = SeriesChartType.Pie;
+        UCS3GChart1.setChartFontSize = 9;
+        UCS3GChart1.setLableValue = true;
+        UCS3GChart1.setLegendsValue = true;
+        UCS3GChart1.setChartMultipleSeries = false;
+        UCS3GChart1.setCustomePalette = false;
+        UCS3GChart1.setChart3D = true;
+        UCS3GChart1.setLegendsValue = true;
+        UCS3GChart1.setToolTipNameAnValues = true;
+        UCS3GChart1.setToolTipDrillChart = true;
+        UCS3GChart1.setClickDrillChartDetails = true;
+        UCS3GChart1.setDataTableSeries1 = ds.Tables[0];
+        UCS3GChart1.setPieLabelStyle = true;
+        UCS3GChart1.showPieLabelStyle = "Inside";
+        UCS3GChart1.setSaveChartImage = false;
+        UCS3GChart1.setClickDrillChartDetails = true;        
+        UCS3GChart1.showDrillDownChartPath = "DrillDownProductPortfolio.aspx";
+        UCS3GChart1.BindChart();
+
+        grdData.DataSource = ds.Tables[1];
+        grdData.DataBind();
+
+        //if (Procparam != null)
+        //    Procparam.Clear();
+        //else
+        //    Procparam = new Dictionary<string, string>();
+        //Procparam.Add("@COMPANY_ID", "1");
+        //Procparam.Add("@DRILL_DOWN", "1");
+        //Procparam.Add("@PRODUCT_ID", "2");
+
+        //ds = Utility.GetDataset("S3G_GPH_PRDT", Procparam);
+        //S3GChart1.showChartTitle = "New year Bonanza";
+        //S3GChart1.setChartSeries1 = "New year Bonanza";
+        //S3GChart1.setChartWidth = 350;
+        //S3GChart1.setChartHeight = 350;
+        //S3GChart1.setChart3DCustomesRotate = true;
+        //S3GChart1.showChart3DRotateAngle = 90;
+        //S3GChart1.showChartType = SeriesChartType.Pie;
+
+        //S3GChart1.setChartFontSize = 9;
+        //S3GChart1.setLableValue = true;
+        //S3GChart1.setLegendsValue = true;
+        //S3GChart1.setChartMultipleSeries = false;
+        //S3GChart1.setCustomePalette = false;
+        //S3GChart1.setChart3D = true;
+        //S3GChart1.setLegendsValue = true;
+        ////if (rbtnApplication.Checked)
+        ////    UCS3GChart1.showCustomesPaletteColor = "#00A0B1~#2E8DEF~#A700AE~#643EBF~#BF1E4B~#DC572E~#00A600~#0A5BC4";
+        ////if (rbtnAccount.Checked)
+        ////    UCS3GChart1.showCustomesPaletteColor = "#006AC1~#008287~#199900~#00C13F~#F3B200~#77B900~#2572EB~#AD103C~#632F00~#B01E00~#C1004F~#7200AC~#4617B4~#006AC1~#008287~#199900~#00C13F~#FF981D~#FF2E12~#FF1D77~#AA40FF~#1FAEFF~#56C5FF";
+        ////UCS3GChart1.setMaximumChartColor = true;
+        ////UCS3GChart1.showMaximumChartColor = "#F50A0A";
+
+        //S3GChart1.setToolTipValues = true;
+        //S3GChart1.setClickDrillChartDetails = true;
+        //S3GChart1.setDataTableSeries1 = ds.Tables[1];
+
+        //S3GChart1.setSaveChartImage = false;
+        //S3GChart1.BindChart();
+    }
+}

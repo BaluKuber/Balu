@@ -1,0 +1,98 @@
+﻿#region Header
+
+//Module Name      :   Dashboard
+//Screen Name      :   DrillDownProductPortfolio.aspx
+//Created By       :   Shibu 
+//Created Date     :   24-Mar-2014
+//Purpose          :   
+
+#endregion
+
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using System.Globalization;
+using System.Web.UI.WebControls;
+using System.Web.UI.DataVisualization.Charting;
+using System.Web.UI.DataVisualization.Charting.Utilities;
+using System.Web;
+using System.Text;
+using System.Net;
+
+#endregion
+
+
+public partial class Dashboard_DrillDownProductPortfolio : ApplyThemeForProject
+{  
+    #region Declaration
+
+    int intCompanyID, intUserID = 0, intErrCode = 0;
+    public Dictionary<string, string> Procparam = null;
+    string intAssetVerificationNo = string.Empty;
+    int ProgCode = 262;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Dashboard/DrillDownProductPortfolio.aspx";
+    string sSeriesValue = string.Empty;
+    int Company_ID = 0;
+    #endregion      
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        UserInfo ObjUserInfo = new UserInfo();
+        Company_ID = ObjUserInfo.ProCompanyIdRW;
+        if (!IsPostBack)
+        {
+            lblHeader.Text = Request.QueryString["SeriesValue"].ToString() + " - " + Request.QueryString["SeriesName"].ToString();
+            this.Page.Title =lblHeader.Text;
+
+            LoadChart();
+        }
+    }
+    protected void LoadChart()
+    {
+        DataSet ds = new DataSet();
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+        Procparam.Add("@COMPANY_ID", Company_ID.ToString());
+        Procparam.Add("@DRILL_DOWN", "0");
+        Procparam.Add("@PRODUCT_Name", Request.QueryString["SeriesValue"].ToString().Trim());
+
+        ds = Utility.GetDataset("S3G_GPH_PRDT_DETAIL", Procparam);
+        S3GChart.showChartTitle = Request.QueryString["SeriesValue"].ToString().Trim();
+        S3GChart.setChartSeries1 = Request.QueryString["SeriesValue"].ToString().Trim();
+        S3GChart.setCustomePalette = false;
+        S3GChart.showCustomesPaletteColor = "#00aba9~#00ABA9~#a588d1~#83A0CD~#2F619F~#B43532~#7D9E38~#644788~#298CA6~#E47A22~#99B958~#8064A2";
+        S3GChart.showChartType = SeriesChartType.Pie;
+        S3GChart.setChartFontSize = 9;
+        S3GChart.setLableValue = true;
+        S3GChart.setLegendsValue = true;
+        S3GChart.setChartMultipleSeries = false;
+        S3GChart.setCustomePalette = false;
+        S3GChart.setChart3D = true;
+        S3GChart.setChartLableInPercent = true;
+        S3GChart.setLegendsValue = true;
+        S3GChart.setToolTipNameAnValues = true;
+
+        S3GChart.setDataTableSeries1 = ds.Tables[0];
+        S3GChart.setPieLabelStyle = true;
+        S3GChart.showPieLabelStyle = "Outside";
+        
+    
+        S3GChart.BindChart();
+      
+        gvDetails.DataSource = ds.Tables[1];
+        gvDetails.DataBind();
+    }
+}

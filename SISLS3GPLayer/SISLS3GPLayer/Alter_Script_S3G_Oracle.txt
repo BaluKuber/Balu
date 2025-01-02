@@ -1,0 +1,1491 @@
+----22-Aug-2012
+------------------------
+
+CREATE SEQUENCE "SEQ_LAD_BILL_CASH_FLW" MINVALUE 1 MAXVALUE
+  999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER
+  NOCYCLE ;
+  
+CREATE SEQUENCE "SEQ_LAD_BILL_CASH_FLW" MINVALUE 1 MAXVALUE
+  999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER
+  NOCYCLE ;
+
+Alter table S3G_CMN_EMICashFlow add Cashflow_Type Number;
+Alter table S3G_CMN_EMICashFlow add Cashflow_Flag_Id Number;
+
+CREATE
+  TABLE "S3G_LAD_BILL_CASH_FLW"
+  (
+    "BILLING_CASHFLOW_ID" NUMBER(*,0) NOT NULL ENABLE,
+    "BILLING_ID"          NUMBER(*,0),
+    "CASHFLOWFLAG_ID"     NUMBER(*,0),
+    CONSTRAINT "S3G_LAD_BILL_CASH_FLW_PK" PRIMARY KEY ("BILLING_CASHFLOW_ID")
+    ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_LAD_BILL_CASH_FLW_TRG" BEFORE
+  INSERT
+    ON S3G_LAD_BILL_CASH_FLW FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>> BEGIN IF
+    :NEW.BILLING_CASHFLOW_ID                   IS NULL THEN
+  SELECT
+    SEQ_LAD_BILL_CASH_FLW.NEXTVAL
+  INTO
+    :NEW.BILLING_CASHFLOW_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_LAD_BILL_CASH_FLW_TRG" ENABLE;
+
+
+CREATE
+  TABLE "S3G_LAD_INC_AMORT_STRUCT"
+  (
+    "INCOME_AMORTDETAILS_ID" NUMBER NOT NULL ENABLE,
+    "PANUM"                  VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "SANUM"                  VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "NOOFDAYS"               NUMBER,
+    "INSTALLMENT_NO"         NUMBER NOT NULL ENABLE,
+    "FROMDATE" TIMESTAMP (6),
+    "TODATE" TIMESTAMP (6),
+    "INSTALLMENTDATE" TIMESTAMP (6) NOT NULL ENABLE,
+    "INSTALLMENTAMOUNT" NUMBER(16,4) NOT NULL ENABLE,
+    "INTEREST"          NUMBER(16,4),
+    "INTEREST_DATE" TIMESTAMP (6) NOT NULL ENABLE,
+    "INCOME_INTEREST"         NUMBER(16,4),
+    "INSURANCEAMOUNT"         NUMBER(16,4),
+    "OTHERS"                  NUMBER(16,4),
+    "FINANCECHARGES"          NUMBER(16,4),
+    "TAX"                     NUMBER(16,4),
+    "TAXSETOFF"               NUMBER(16,4),
+    "BILLSTATUS"              NUMBER,
+    "INCOME_FLAG"             NUMBER(*,0),
+    "STAT_FLAG"               NUMBER(*,0),
+    "PRINCIPALAMOUNT"         NUMBER(16,4),
+    "INSTALLMENT_OUTSTANDING" NUMBER(16,4),
+    "ACT_TAX"                 NUMBER(16,4),
+    "STAX"                    NUMBER(16,4),
+    "FROM_INSURANCE"          NUMBER(*,0),
+    "BILL_INTEREST"           NUMBER(16,4),
+    CONSTRAINT "S3G_LAD_INC_AMORT_STRUCT_PK" PRIMARY KEY (
+    "INCOME_AMORTDETAILS_ID") ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_LAD_INC_AMORT_STRUCT_TRG" BEFORE
+  INSERT
+    ON S3G_LAD_INC_AMORT_STRUCT FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>> BEGIN
+    IF :NEW.INCOME_AMORTDETAILS_ID                IS NULL THEN
+  SELECT
+    SEQ_LAD_INC_AMORT_STRUCT.NEXTVAL
+  INTO
+    :NEW.INCOME_AMORTDETAILS_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_LAD_INC_AMORT_STRUCT_TRG" ENABLE;
+
+
+
+CREATE
+  TABLE "S3G_LAD_CC_HDR"
+  (
+    "CC_HEADER_ID"        NUMBER(*,0) NOT NULL ENABLE,
+    "COMPANY_ID"          NUMBER(*,0) NOT NULL ENABLE,
+    "LOB_ID"              NUMBER(*,0) NOT NULL ENABLE,
+    "MONTH_YEAR"          VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "FREQUENCY_TYPE_CODE" NUMBER(*,0) NOT NULL ENABLE,
+    "FREQUENCY_TYPE"      NUMBER(*,0) NOT NULL ENABLE,
+    "CC_CALCULATION_DATE" TIMESTAMP (6) NOT NULL ENABLE,
+    "STARTDATE" TIMESTAMP (6) NOT NULL ENABLE,
+    "ENDDATE" TIMESTAMP (6) NOT NULL ENABLE,
+    "CREATED_BY" NUMBER(*,0) NOT NULL ENABLE,
+    "CREATED_ON" TIMESTAMP (6) NOT NULL ENABLE,
+    "TXN_ID" NUMBER(*,0),
+    CONSTRAINT "TABLE3_PK" PRIMARY KEY ("CC_HEADER_ID") ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_LAD_CC_HDR_TRG" BEFORE
+  INSERT
+    ON S3G_LAD_CC_HDR FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>> BEGIN IF
+    :NEW.CC_HEADER_ID                   IS NULL THEN
+  SELECT
+    SEQ_LAD_CC_HDR.NEXTVAL
+  INTO
+    :NEW.CC_HEADER_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_LAD_CC_HDR_TRG" ENABLE;
+
+
+CREATE
+  TABLE "S3G_LAD_CC_DTL"
+  (
+    "CC_CALCULATION_ID" NUMBER(*,0) NOT NULL ENABLE,
+    "CC_HEADER_ID"      NUMBER(*,0) NOT NULL ENABLE,
+    "CC_DOC_NUMBER"     VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "LOCATION_CODE"     VARCHAR2(30 BYTE),
+    "NO_OF_ACCOUNTS"    NUMBER(*,0) NOT NULL ENABLE,
+    "PAYMENT_AMOUNT"    NUMBER(16,5) NOT NULL ENABLE,
+    "REMARKS"           VARCHAR2(200 BYTE),
+    "ACCOUNT_LINK_KEY"  NUMBER(*,0),
+    CONSTRAINT "S3G_LAD_CC_DTL_PK" PRIMARY KEY ("CC_CALCULATION_ID") ENABLE,
+    CONSTRAINT "S3G_LAD_CC_DTL_S3G_LAD_CC_FK1" FOREIGN KEY ("CC_HEADER_ID")
+    REFERENCES "S3G_LAD_CC_HDR" ("CC_HEADER_ID") ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_LAD_CC_DTL_TRG" BEFORE
+  INSERT
+    ON S3G_LAD_CC_DTL FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>> BEGIN IF
+    :NEW.CC_CALCULATION_ID              IS NULL THEN
+  SELECT
+    SEQ_S3G_LAD_CC_DTL.NEXTVAL
+  INTO
+    :NEW.CC_CALCULATION_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_LAD_CC_DTL_TRG" ENABLE;
+
+
+CREATE SEQUENCE "SEQ_LAD_INC_AMORT_STRUCT" MINVALUE 1 MAXVALUE
+  999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER
+  NOCYCLE ;
+  
+Alter table S3G_ORG_CashFlowFlag add Service_Tax Number;
+
+CREATE SEQUENCE "SEQ_S3G_LAD_CC_AC_DTL" MINVALUE 1 MAXVALUE
+  999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER
+  NOCYCLE ;
+
+CREATE
+  TABLE "S3G_LAD_CC_AC_DTL"
+  (
+    "CC_DET_ID"         NUMBER(*,0) NOT NULL ENABLE,
+    "CC_CALCULATION_ID" NUMBER(*,0) NOT NULL ENABLE,
+    "LOCATION_CODE"     VARCHAR2(30 BYTE),
+    "PANUM"             VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "SANUM"             VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "CC_AMOUNT"         NUMBER(16,4) NOT NULL ENABLE,
+    CONSTRAINT "S3G_LAD_CC_AC_DTL_PK" PRIMARY KEY ("CC_DET_ID") ENABLE,
+    CONSTRAINT "S3G_LAD_CC_AC_DTL_S3G_LAD_FK1" FOREIGN KEY ("CC_DET_ID")
+    REFERENCES "S3G_LAD_CC_HDR" ("CC_HEADER_ID") ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_LAD_CC_AC_DTL_TRG" BEFORE
+  INSERT
+    ON S3G_LAD_CC_AC_DTL FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>> BEGIN IF
+    :NEW.CC_DET_ID                         IS NULL THEN
+  SELECT
+    SEQ_S3G_LAD_CC_AC_DTL.NEXTVAL
+  INTO
+    :NEW.CC_DET_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_LAD_CC_AC_DTL_TRG" ENABLE;
+
+CREATE SEQUENCE "SEQ_LAD_CC_ARCH" MINVALUE 1 MAXVALUE
+  999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER
+  NOCYCLE ;
+
+CREATE
+  TABLE "S3G_LAD_CC_ARCH"
+  (
+    "CC_ARCH_ID" NUMBER(*,0) NOT NULL ENABLE,
+    "CC_DET_ID"  NUMBER(*,0) NOT NULL ENABLE,
+    "COMPANY_ID" NUMBER(*,0) NOT NULL ENABLE,
+    "PANUM"      VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "SANUM"      VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "PAYMENT_DATE" TIMESTAMP (6) NOT NULL ENABLE,
+    "PAYMENT_CC" NUMBER(18,4) NOT NULL ENABLE,
+    CONSTRAINT "S3G_LAD_CC_ARCH_PK" PRIMARY KEY ("CC_ARCH_ID") ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_LAD_CC_ARCH_TRG" BEFORE
+  INSERT
+    ON S3G_LAD_CC_ARCH FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>> BEGIN IF
+    :NEW.CC_ARCH_ID                      IS NULL THEN
+  SELECT
+    SEQ_LAD_CC_ARCH.NEXTVAL
+  INTO
+    :NEW.CC_ARCH_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_LAD_CC_ARCH_TRG" ENABLE;
+
+CREATE SEQUENCE "SEQ_S3G_LAD_CC_DTL" MINVALUE 1 MAXVALUE
+  999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER
+  NOCYCLE ;
+
+CREATE SEQUENCE "SEQ_LAD_CC_HDR" MINVALUE 1 MAXVALUE
+  999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER
+  NOCYCLE ;
+
+CREATE
+  TABLE "S3G_RPT_WIRRAST"
+  (
+    "ASSETCLASSDESC" VARCHAR2(60 BYTE) NOT NULL ENABLE,
+    "ASSETMAKEDESC"  VARCHAR2(60 BYTE) NOT NULL ENABLE,
+    "CLASSIFICATION" VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "BCD"            NUMBER(10,4),
+    "BCDAMOUNT"      NUMBER(20,4),
+    "BDD"            NUMBER(10,4),
+    "BDDAMOUNT"      NUMBER(20,4),
+    "BCM"            NUMBER(10,4),
+    "BCMAMOUNT"      NUMBER(20,4),
+    "BDM"            NUMBER(10,4),
+    "BDMAMOUNT"      NUMBER(20,4),
+    "BCY"            NUMBER(10,4),
+    "BCYAMOUNT"      NUMBER(20,4),
+    "BDY"            NUMBER(10,4),
+    "BDYAMOUNT"      NUMBER(20,4),
+    "REPGENTIME" DATE,
+    "REPGENBY"     NUMBER,
+    "LOB_ID"       NUMBER,
+    "IRRTYPE"      NUMBER,
+    "REPORTTYPE"   NUMBER,
+    "DENOMINATION" NUMBER,
+    "CREATION_DATE" DATE,
+    "CREATED_BY" NUMBER,
+    "COMPANY_ID" NUMBER,
+    "LOB_CODE"   VARCHAR2(200 BYTE)
+  ) ;
+
+
+CREATE
+  TABLE "S3G_ORG_BUSINTARGETMAST"
+  (
+    "BUSINESS_TARGET_ID" NUMBER NOT NULL ENABLE,
+    "BUSINESS_TARGET_NO" VARCHAR2(50 BYTE),
+    "COMPANY_ID"         NUMBER NOT NULL ENABLE,
+    "LOB_ID"             NUMBER,
+    "PRODUCT_ID"         NUMBER,
+    "LOCATION_CODE"      VARCHAR2(30 BYTE),
+    "MARKETING_TYPE"     NUMBER NOT NULL ENABLE,
+    "MARKETING_CODE"     NUMBER,
+    "FREQUENCY_TYPE"     NUMBER NOT NULL ENABLE,
+    "FREQUENCY_CODE"     NUMBER,
+    "ASSET_CATEGORY"     NUMBER NOT NULL ENABLE,
+    "IS_ACTIVE"          NUMBER(1,0),
+    "CREATED_ON" TIMESTAMP (6),
+    "CREATED_BY" NUMBER,
+    "MODIFIED_ON" TIMESTAMP (6),
+    "MODIFIED_BY"   NUMBER,
+    "PORTFOLIO_IRR" NUMBER
+  ) ;
+
+CREATE
+  TABLE "S3G_ORG_BUSINTARGETDET"
+  (
+    "BUSINESS_TARGET_DET_ID" NUMBER NOT NULL ENABLE,
+    "BUSINESS_TARGET_ID"     NUMBER,
+    "PERIOD"                 NUMBER,
+    "TARGET_AMOUNT"          NUMBER NOT NULL ENABLE,
+    "UNITS"                  NUMBER NOT NULL ENABLE,
+    "COMMISSION_PERCEN"      NUMBER,
+    "SPLCOMMISION_PERCEN"    NUMBER,
+    "ASSET_CLASS"            NUMBER,
+    "ASSET_MAKE"             NUMBER
+  ) ;
+
+CREATE SEQUENCE "SEQ_S3G_ORG_BUSINTARGETDET" MINVALUE 1 MAXVALUE
+  9999999999999999999999999999 INCREMENT BY 1 START WITH 101 CACHE 20 NOORDER
+  NOCYCLE ;
+
+CREATE SEQUENCE "SEQ_S3G_ORG_BUSINTARGETMAST" MINVALUE 1 MAXVALUE
+  9999999999999999999999999999 INCREMENT BY 1 START WITH 101 CACHE 20 NOORDER
+  NOCYCLE ;
+
+16-OCT-2012
+----------------------
+
+Alter table S3G_ORG_CrdtParamTrans drop column ENQUIRY_RESPONSE_ID;
+
+
+-- 26/Oct/2012 Thangam M
+--_______________________
+
+CREATE TABLE S3G_LAD_BILL_ACC 
+(
+  BILLING_ACCOUNT_ID NUMBER NOT NULL 
+, BILLING_CONTROL_ID NUMBER NOT NULL 
+, CASHFLOW_FLAG_ID NUMBER NOT NULL 
+, PANUM VARCHAR2(50 BYTE) NOT NULL 
+, SANUM VARCHAR2(50 BYTE) NOT NULL 
+, DEBIT_AMOUNT NUMBER(24, 4) NOT NULL 
+, CONSTRAINT S3G_LAD_BILL_ACC_PK PRIMARY KEY 
+  (
+    BILLING_ACCOUNT_ID 
+  )
+  ENABLE 
+);
+
+CREATE SEQUENCE  SEQ_S3G_LAD_BILL_ACC  MINVALUE 1 MAXVALUE 999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE ;
+
+
+
+-- 15-Nov-2012
+--------------
+ALTER TABLE "S3G"."S3G_ORG_BUSINTARGETMAST"
+ADD CONSTRAINT "S3G_ORG_BUSINTARGETMAST_PK" PRIMARY KEY ("BUSINESS_TARGET_ID")
+
+
+ALTER TABLE "S3G"."S3G_ORG_BUSINTARGETDET"
+ADD CONSTRAINT "S3G_ORG_BUSINTARGETDET_PK" PRIMARY KEY ("BUSINESS_TARGET_DET_ID")
+
+ALTER TABLE "S3G"."S3G_ORG_BUSINTARGETDET"
+ADD CONSTRAINT "S3G_ORG_BUSINTARDET_ID_FK" FOREIGN KEY ("BUSINESS_TARGET_ID") REFERENCES "S3G"."S3G_ORG_BUSINTARGETMAST" ("BUSINESS_TARGET_ID") ENABLE
+
+
+
+-- 15/11/2012 Ganapathy
+
+--_____________________
+
+update S3G_SYSAD_GlobalParameterSetup 
+set Disable_Access_Wrong_pwd=5,Min_pwd_length=5,Pwd_Recycle_Itr=4
+
+
+--_____________________
+
+
+
+-- 15/11/2012 Thangam M
+--_____________________
+
+UPDATE S3G_SYSAD_ProgramMaster
+   SET Page_Url = 'S3GClnTransLander.aspx?Code=CDS'
+ WHERE Program_ID = 101
+
+CREATE GLOBAL TEMPORARY TABLE TMP_CLN_TL_DL_SPL
+( ID                NUMBER, CREATED_BY NUMBER, USER_LEVEL_ID NUMBER, DELINQUENCY_MONTH
+                      VARCHAR2(10 BYTE), DELINQUENCYSPOOL_DATE TIMESTAMP (6), LOB VARCHAR2
+(50 BYTE), LOCATION VARCHAR2(50 BYTE), ROWNUMBER NUMBER
+) ON COMMIT PRESERVE ROWS ;
+
+--______________________
+
+20-Nov-2012
+-------------
+
+Delete from S3G_SYSAD_ProgramMaster where program_id>200;
+
+Delete from S3G_SYSAD_ROLECODEMASTER where program_id>200;
+
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('217','PRI','Pricing Report','R','217',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GRptPricing.aspx','S3GRptPricing.aspx','24',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('204','CMAP','CIBIL Mapping','R','174',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GRPTCIBILMapping.aspx','S3GRPTCIBILMapping.aspx','1',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('205','SCHJB','Schedule Job','S','174',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GSysAdminScheduledJobsView.aspx','S3GSysAdminScheduledJobsView.aspx','1',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('219','TSM','Scheme Master','T','219',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3G_TA_SchemeMaster_View.aspx','S3G_TA_SchemeMaster_Add.aspx','1',NULL,NULL,0,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('221','TCSG','Credit Score Guide','T','221',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3G_TA_CreditScoreGuide_View.aspx','S3G_TA_CreditScoreGuide_Add.aspx','1',NULL,NULL,0,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('220','TXR','Tax Report','R','220',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GRptTaxReport.aspx','S3GRptTaxReport.aspx',NULL,NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('222','TCGT','Credit Guide Transaction','T','222',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3G_TA_TransLander.aspx?Code=TCGT','S3G_TA_CreditGuideTransaction_Add.aspx','1',0,NULL,0,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('201','PME','Premature Closure Memo','L','171',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GLOANADPreMatureClosureMemo_Add.aspx','S3GLOANADPreMatureClosureMemo_Add.aspx','44',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('202','CGN','CIBIL Report Generation','R','172',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3G_RPT_CIBILGeneration_View.aspx','S3GRPTCIBILReportGeneration.aspx','1',NULL,NULL,1,'CIBIL_Report_Generation');
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('203','RIN','Income Report','R','173',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GRptIncomeReport.aspx','S3GRptIncomeReport.aspx',NULL,NULL,NULL,1,'Income_Report');
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('207','KRE','Collateral Release','K','177',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GCLTTransLander.aspx?Code=KRE','S3GCLTCollateralRelease.aspx','6',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('208','TRG','Target Master','O','178',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GORGTransLander.aspx?Code=TRG','S3GORGTargetMaster_Add.aspx',NULL,NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('210','GTD','Demand Vs Collection Comparative','M','210',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'ComparingDC_2Years.aspx','ComparingDC_2Years.aspx','4',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('206','FIRM','Field Information Report Master','O','176',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3G_ORG_FIRMasterView.aspx','S3G_ORG_FIRMasterView.aspx',NULL,NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('209','GDC','Demand Vs Collection Location','M','209',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'ComparingDC.aspx','ComparingDC.aspx','1',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('211','GTS','Demand Vs Collection','M','211',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'DemandVsCollection_SingleYear.aspx','DemandVsCollection_SingleYear.aspx','2',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('212','GTP','Portfolio Performance','M','212',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'PorfolioPerformance1.aspx','PorfolioPerformance1.aspx','3',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('213','LCC','Compensation Calculation','L','213',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3gLoanAdTransLander.aspx?Code=LCC','S3GLoanAdCompensation.aspx','1',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('214','OGLM','Gold Loan Matrix','O','214',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GORGGoldLoanMatrix_View.aspx','S3GORGGoldLoanMatrix_Add.aspx','1',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('215','TMPL','Template Master','S','215',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3GTemplate_View.aspx','S3GTemplate_Add.aspx','1',NULL,NULL,NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('216','APG','Application Processing - Gold','O','216',1,'1','20-NOV-12 12.00.00.000000000 AM','1','20-NOV-12 12.00.00.000000000 AM','S3GORGTransLander.aspx?Code=APG^Create=1^Modify=1','S3G_ORG_ApplicationProcessingGL.aspx','1',0,'S3G_ORG_ApplicationProcessingGL.aspx?qsWorkFlow=',NULL,NULL);
+INSERT INTO S3G_SYSAD_ProgramMaster (Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag) VALUES('218','LCWDV','Lease Consolidation and WDV Report','R','217',1,'1','20-NOV-12 12.00.00.000000000 AM',NULL,NULL,'S3G_Rpt_WDV.aspx','S3G_Rpt_WDV.aspx',NULL,NULL,NULL,0,NULL);
+
+Update S3G_SYSAD_ProgramMaster Set Page_Url=Replace(Page_Url,'^','&');
+
+---20-Nov-2012
+---------------
+
+ALTER table S3G_LAD_ACCCASHFLOWDET
+modify  CASHFLOW_AMOUNT Number(18,4);
+
+ALTER table S3G_LAD_ACCREPAYMNTDET modify Amount Number(18,4);
+
+ALTER table S3G_LAD_ACCREPAYMNTDET
+modify Per_Instalment_Amount Number(18,4);
+
+ALTER table S3G_LAD_ACCREPAYSTRUCT
+modify InstallmentAmount Number(18,4);
+
+ALTER table S3G_ORG_APPPROCREPAYDET
+modify Amount Number(18,4) ;
+
+ALTER table S3G_ORG_APPPROCREPAYDET
+modify Per_Instalment_Amount Number(18,4) ;
+
+6-Aug-2012
+-----------------
+
+Alter table S3G_ORG_PRDDCMASTER modify DOCUMENT_PATH varchar2(500);
+
+Alter table S3G_LAD_PDDCMast modify DOCUMENT_PATH varchar2(500);
+
+Alter table S3G_ORG_FIRMASTER  modify DOCUMENT_PATH varchar2(500);
+
+
+----------11-Sep-2012
+--------------------------------
+
+Alter table S3G_SYSAD_WorkflowStatus add Document_Type NUMBER;
+Alter table S3G_SYSAD_WorkflowStatus add Out_User_Id NUMBER;
+Alter table S3G_ORG_FieldInformationReport add Agency_Type NUMBER;
+Alter table S3G_LAD_ASTVERFICNDET add Inspection_Date_To TIMESTAMP(6);
+Alter table S3G_LAD_ASTVERFICNDET add Inspection_Date_Resp TIMESTAMP(6);
+Alter table S3G_LAD_ASTVERFICNDET add Location_Resp varchar2(150);
+Alter table S3G_LAD_ASTVERFICNDET add Verification_Image varchar2(150);
+Alter table S3G_LAD_ASTVERFICNDET add User_Type varchar2(50);
+Alter table S3G_CLN_RCPTPROC add Account_Based NUMBER;
+Alter table S3G_SYSAD_GlobalParameterSetup add Force_Pwd_Change NUMBER NULL;
+Alter table S3G_SYSAD_GlobalParameterSetup add 	Days NUMBER NULL;
+Alter table S3G_SYSAD_GlobalParameterSetup add	Enforce_inital_pwd NUMBER NULL;
+Alter table S3G_SYSAD_GlobalParameterSetup add Disable_Access_Wrong_pwd NUMBER NULL;
+Alter table S3G_SYSAD_GlobalParameterSetup add Min_pwd_length NUMBER NULL;
+Alter table S3G_SYSAD_GlobalParameterSetup add Pwd_Recycle_Itr NUMBER NULL;
+Alter table S3G_SYSAD_GlobalParameterSetup add UpperCase_Char NUMBER NULL;
+Alter table S3G_SYSAD_GlobalParameterSetup add NUMERAL_CHAR Number NULL;
+Alter table S3G_SYSAD_GlobalParameterSetup add Spec_Char Number NULL;
+Alter table S3G_ORG_GLOBALPARAMLOB add Cashier_GL_Code Number;
+Alter table S3G_SYSAD_TaxGuideMaster add Posting_GL_Code Number;
+Alter table S3G_SYSAD_CompanyMaster add MARQUEE_TEXT Varchar2(1000);
+
+--------13-Sep-2012
+---------------------
+
+Alter table S3G_LAD_ACCREPAYMNTDET add Bill_Status NUMBER NULL;
+Alter table S3G_ORG_CashFlowFlag add Service_Tax NUMBER NULL;
+Alter table S3G_ORG_CustMaster add Family_Name Varchar2(50);
+Alter table S3G_ORG_CustMaster add Notes Varchar2(250);
+Alter table S3G_ORG_AppProc add is_goldloan NUMBER;
+
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('125','6','None','ORG_NumericOperator',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('126','3','Year wise IRR','ORG_ROI_RULES_IRR_REST',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('127','6','Principal','ORG_ROI_RULES_RETURN_PATTERN',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('128','9','Bullet','ORG_ROI_RULES_FREQUENCY',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('129','1','10K','Gold_Purity',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('130','2','14K','Gold_Purity',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('131','3','18K','Gold_Purity',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('132','4','22K','Gold_Purity',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('133','5','24K','Gold_Purity',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('134','1','Gram','Gold_Measurement',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('135','2','Tola','Gold_Measurement',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('136','3','Ounce','Gold_Measurement',1,'20-NOV-12');
+INSERT INTO S3G_ORG_Lookup (LookUp_ID,Value,Name,Type,Is_Active,Created_On) VALUES('137','4','Sovereigns','Gold_Measurement',1,'20-NOV-12');
+
+INSERT INTO S3G_LAD_LOOKUPTYPEMAST (Company_ID,LookupType_Code,LookupType_Description) VALUES('1','90','Relation_Type');
+INSERT INTO S3G_LAD_LOOKUPTYPEMAST (Company_ID,LookupType_Code,LookupType_Description) VALUES('1','100','Schedule Frequency');
+INSERT INTO S3G_LAD_LOOKUPTYPEMAST (Company_ID,LookupType_Code,LookupType_Description) VALUES('1','101','Job Nature');
+INSERT INTO S3G_LAD_LOOKUPTYPEMAST (Company_ID,LookupType_Code,LookupType_Description) VALUES('1','103','Template_Type');
+INSERT INTO S3G_LAD_LOOKUPTYPEMAST (Company_ID,LookupType_Code,LookupType_Description) VALUES('1','104','Mode_of_Mail');
+INSERT INTO S3G_LAD_LOOKUPTYPEMAST (Company_ID,LookupType_Code,LookupType_Description) VALUES('1','105','Exclusion_Category');
+
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('372','1','90','1','Customer');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('373','1','90','2','Guarantor1');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('374','1','90','3','Guarantor2');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('375','1','90','4','Co-Applicant');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('377','1','25','14','Assignment');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('378','1','103','1','Pricing Letter');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('380','1','103','2','Application Approval Letter');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('381','1','103','3','Assignment Letter');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('382','1','103','4','Debt Collector Incentive Letter');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('383','1','103','5','Dunning Letter');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('384','1','103','6','Re-possession Letter');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('385','1','104','1','PDF');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('386','1','104','2','E-Mail');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('387','1','105','1','Location');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('389','1','105','2','Customer');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('390','1','105','3','Account');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('391','1','105','4','Asset');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('392','1','105','5','Employee');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('393','1','105','6','Product');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('394','1','103','7','Todays Disbursement');
+INSERT INTO S3G_LAD_LOOKUPTYPEDET (LookUp_ID,Company_ID,LookupType_Code,Lookup_Code,Lookup_Description) VALUES('395','1','100','1','Time in Minutes');
+
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('216','Enquiry','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('217','Pricing Approval','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('218','Application Approval','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('219','Payment Request','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('220','Payment Approval','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('221','Account Creation','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('222','Account Activation','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('223','Account Closure','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('224','PreMature Closure','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+INSERT INTO S3G_Status_LookUP (ID,Name,Type,IsActive,Created_By,Created_On,Modified_By,Modified_On) VALUES('225','Account Specific Revision','ALERT_TYPE',1,'1','20-Nov-12','1','20-Nov-12');
+
+-------17-Sep-2012
+-------------------
+
+Alter table S3G_SYSAD_CustomerAlert Modify Event_Type_ID NUMBER;
+---Old Proc S3G_Update_GlobalParam_Details updated in UAT , due to pwd changes in GPS.
+
+Alter table S3G_SYSAD_UserMaster  Modify Password Varchar2(100);
+
+
+05-OCT-2012  --- BDO Changes
+----------------------------------------------
+
+Alter table S3g_Sysad_Usermaster add Designation_Id NUMBER;
+
+Alter table S3g_Sysad_Usermaster add Designation varchar2(40); 
+
+Alter table S3G_SYSAD_UTPAMaster add Previous_PWDs varchar2(600);
+
+--Alter table S3G_SYSAD_UTPAMaster add Pwd_Recycle_Itr 
+
+Alter table S3G_SYSAD_UTPAMaster add PWD_Modified_On DATE;
+
+Alter table S3G_SYSAD_UTPAMaster add PWD_Access_Count number;
+
+Alter table TMP_CLN_BUCKETPARAMVALUES add Credit_Weightage NUMBER;
+
+Alter table S3G_SYSAD_CompanyMaster ADD Marquee_Text  varchar2(1000)
+
+Alter table S3G_ORG_CustMaster ADD CreditType NUMBER;
+
+Alter table S3G_ORG_CustMaster ADD IS_BlocListed NUMBER;
+
+Alter table S3G_ORG_GBLCRDTPARAMAPPROV add Range_From number;
+
+Alter table S3G_ORG_GBLCRDTPARAMAPPROV add Range_To Number;
+
+Alter table S3G_ORG_GLOBALCRDTPARAMMASTER add Entity_Type_Id Number;
+
+Alter table S3G_ORG_AuthorizationRuleCard add Entity_Type_Id Number;
+
+Alter table S3G_CLT_HIGHLIQUIDSEC add Ownership Number;
+
+Alter table S3G_SYSAD_ScheduledJobs add LastRunDate TIMESTAMP(6);
+
+
+
+Alter table S3G_CLT_CAPTU add Total NUMBER;
+
+Alter table S3G_ORG_AUTHRULECARDDET Modify Total_Approvals NUMBER;
+
+Alter table S3G_ORG_GBLCRDTPARAMAPPROV Modify Number_Of_Approvals NUMBER(5,0);
+
+Alter table S3G_ORG_GBLCRDTPARAMAPPROV Modify Hygiene_Percentage NUMBER(5,2);
+
+Alter table S3G_ORG_GBLCRDTPARAMAPPROV Modify Minimal_Approval_Required NUMBER(5,0);
+
+Alter table S3G_SYSAD_UserMaster add Previous_PWDs varchar2(600);
+
+Alter table S3G_SYSAD_UserMaster add PWD_Access_Count NUMBER;
+
+Alter table S3G_SYSAD_UserMaster add PWD_Is_Reset NUMBER;
+
+Alter table S3G_CLT_LOWLIQUIDSEC add Ownership NUMBER;
+
+Alter table S3G_CLT_Commodities add Ownership NUMBER;
+
+Alter table S3G_CLT_FINSEC add Ownership NUMBER;
+
+Alter table S3G_CLT_MEDLIQUIDSEC add Ownership NUMBER;
+
+Alter table S3G_SYSAD_USERMaster add PWD_Modified_On DATE;
+
+
+Alter table S3G_CLT_HIGHLIQUIDSEC Modify DP_Name varchar2(50);
+
+Alter table S3G_CLT_HIGHLIQUIDSEC Modify DP_No varchar2(50);
+
+Alter table S3G_CLT_HIGHLIQUIDSEC Modify Client_ID varchar2(50);
+
+Alter table S3G_CLT_HIGHLIQUIDSEC Modify Certificate_No varchar2(25);
+
+Alter table S3G_CLT_HIGHLIQUIDSEC Modify Folio_No varchar2(25);
+
+Alter table S3G_CLT_HIGHLIQUIDSEC Modify Interest_Percentage NUMBER(5,2);
+
+Update S3G_SYSAD_CompanyMaster
+SET marquee_Text='Sundaram Finance offers easy Installment Loans';
+
+Update S3G_SYSAD_ProgramMaster set Program_Name='Business Target Master'
+Where Program_ID=208;
+
+Update S3G_SYSAD_ProgramMaster set Program_Name='Stock and Receivable'
+Where Program_ID=187;
+
+----Scheduled Job Mgt Services Reference to be added in Both web.config-------------------
+
+CREATE
+  TABLE "S3G_ORG_GCPAPPROVALDTLS"
+  (
+    "GCPAPPROVALDTLS_ID" NUMBER NOT NULL ENABLE,
+    "GCP_APPROVAL_ID"    NUMBER,
+    "SEQ_NO"             NUMBER,
+    "ENTITY_ID"          NUMBER,
+    "LOCATION_CODE"      VARCHAR2(50 BYTE)
+  ) ;
+
+GO
+CREATE
+  TABLE "S3G_SYSAD_USERDESIGNATION"
+  (
+    "DESIGNATION_ID"   NUMBER NOT NULL ENABLE,
+    "DESIGNATION_NAME" VARCHAR2(100 BYTE),
+    "HIERARCHY_ID"     NUMBER,
+    CONSTRAINT "S3G_SYSAD_USERDESIGNATION_PK" PRIMARY KEY ("DESIGNATION_ID")
+    ENABLE
+  ) ;
+
+GO
+CREATE
+  TABLE "S3G_ORG_AUTHRULECARDAPPR"
+  (
+    "AUTH_RULE_CARD_APPR_ID" NUMBER NOT NULL ENABLE,
+    "AUTH_RULE_CARD_DET_ID"  NUMBER,
+    "SEQ_NO"                 NUMBER,
+    "ENTITY_ID"              NUMBER,
+    "LOCATION_CODE"          VARCHAR2(50 BYTE)
+  ) ;
+
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('45','Vice Chairman cum Managing Directors',NULL);
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('46','Senior President (Operations and Management Services)','41');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('47','President','40');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('48','Vice President (Office of Risk Management)','39');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('49','Senior General Manager','38');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('50','General Manager (Operations)','37');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('51','Deputy General Manager (Operations)','36');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('52','Assistant General Manager (Operations)','35');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('53','Deputy Circle Manager','34');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('54','Division Manager','33');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('55','Marketing Officer','32');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('56','Manager','31');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('57','Branch Manager','30');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('58','Deputy Manager','29');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('59','Executive','28');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('60','Senior Manager','27');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('61','Marketing Officer Trainee','26');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('62','Officer','25');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('63','Back Office - Officer','24');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('64','Collection Officer','23');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('65','Sub staff','22');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('66','Company Secretary','21');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('67','Assistant','20');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('68','Senior Executive','19');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('69','Senior Deputy General Manager','18');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('70','Field Investigator','17');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('71','Back Office - Assistant','16');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('72','Collection Assistant','15');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('73','Support Assistant','14');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('74','Graduate Trainee','13');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('75','Retainer','12');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('76','Officer Insurance','11');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('77','Management Trainee','10');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('78','Trainee Back office','9');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('79','Trainee','8');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('80','Field Officer','7');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('81','Super Admin','6');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('82','SysAdmin','5');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('83','54','4');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('84','56','3');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('85','57','2');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('86','55','1');
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('87','68',NULL);
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('88','75',NULL);
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('89','51',NULL);
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('90','48',NULL);
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('91','61',NULL);
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('92','47',NULL);
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('93','58',NULL);
+INSERT INTO S3G_SYSAD_USERDESIGNATION (DESIGNATION_ID,DESIGNATION_NAME,Hierarchy_Id) VALUES('94','70',NULL);
+
+GO
+
+CREATE
+  TABLE "S3G_CLT_COLLCPTDTL"
+  (
+    "COLLATERAL_CAPTURE_DETAILS_ID" NUMBER NOT NULL ENABLE,
+    "COLLATERAL_CAPTURE_ID"         NUMBER NOT NULL ENABLE,
+    "REF_POINT_TYPE_CODE"           NUMBER NOT NULL ENABLE,
+    "REF_POINT_CODE"                NUMBER NOT NULL ENABLE,
+    "REF_POINT_ID"                  NUMBER NOT NULL ENABLE,
+    CONSTRAINT "S3G_CLT_COLLCPTDTL_PK" PRIMARY KEY (
+    "COLLATERAL_CAPTURE_DETAILS_ID") ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_CLT_COLLCPTDTL_TRG" BEFORE
+  INSERT
+    ON S3G_CLT_COLLCPTDTL FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>> BEGIN IF
+    :NEW.COLLATERAL_CAPTURE_DETAILS_ID      IS NULL THEN
+  SELECT
+    SEQ_S3G_CLT_COLLCPTDTL.NEXTVAL
+  INTO
+    :NEW.COLLATERAL_CAPTURE_DETAILS_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_CLT_COLLCPTDTL_TRG" ENABLE;
+
+
+Drop Table [S3G_SYSAD_ScheduledJobs]
+Drop Table [S3G_SYSAD_ScheduleJobStatus]
+
+CREATE
+  TABLE "S3G_SYSAD_SCHEDULEDJOBS"
+  (
+    "SCHEDULE_JOB_ID" NUMBER NOT NULL ENABLE,
+    "JOBDESCRIPTION"  VARCHAR2(60 BYTE) NOT NULL ENABLE,
+    "JOBNATURE"       NUMBER NOT NULL ENABLE,
+    "FREQUENCY"       NUMBER,
+    "STARTDATETIME" DATE NOT NULL ENABLE,
+    "ISHOLIDAYINCLUDE" VARCHAR2(1 BYTE),
+    "REMARKS"          VARCHAR2(200 BYTE),
+    "CREATED_BY"       NUMBER,
+    "CREATED_ON" DATE,
+    "MODIFIED_BY" NUMBER,
+    "MODIFIED_ON" DATE,
+    "IS_ACTIVE"        VARCHAR2(1 BYTE),
+    "COMPANY_ID"       NUMBER NOT NULL ENABLE,
+    "LOCATION_CODE"    VARCHAR2(30 BYTE),
+    "TIME_IN_MINS"     NUMBER,
+    "SCHEDULE_JOB"     NUMBER NOT NULL ENABLE,
+    "ONETIMEJOBSTATUS" VARCHAR2(5 BYTE),
+    "LASTRUNDATE" TIMESTAMP (6),
+    CONSTRAINT "S3G_SYSAD_SCHEDULEDJOBS_PK" PRIMARY KEY ("SCHEDULE_JOB_ID")
+    ENABLE
+  ) ;
+GO
+CREATE
+  TABLE "S3G_SYSAD_SCHEDULEJOBSTATUS"
+  (
+    "SCHEDULEJOB_STATUS_ID" NUMBER NOT NULL ENABLE,
+    "SCHEDULE_JOB_ID"       NUMBER NOT NULL ENABLE,
+    "COMPANY_ID"            NUMBER NOT NULL ENABLE,
+    "LOCATION_CODE"         VARCHAR2(30 BYTE) NOT NULL ENABLE,
+    "SCHEDULE_JOB"          NUMBER NOT NULL ENABLE,
+    "STARTDATETIME" TIMESTAMP (6) NOT NULL ENABLE,
+    "ENDDATETIME" TIMESTAMP (6),
+    "STATUS" VARCHAR2(5 BYTE) NOT NULL ENABLE,
+    CONSTRAINT "S3G_SYSAD_SCHEDULEJOBSTAT_PK" PRIMARY KEY (
+    "SCHEDULEJOB_STATUS_ID") ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_SYSAD_SCHEDULEJOBSTAT_TRG" BEFORE
+  INSERT
+    ON S3G_SYSAD_SCHEDULEJOBSTATUS FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>>
+    BEGIN IF :NEW.SCHEDULEJOB_STATUS_ID              IS NULL THEN
+  SELECT
+    SEQ_S3G_SYSAD_SCHEDULEJOBSTAT.NEXTVAL
+  INTO
+    :NEW.SCHEDULEJOB_STATUS_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_SYSAD_SCHEDULEJOBSTAT_TRG" ENABLE;
+
+ALTER TABLE S3G_ORG_GBLCRDTPARAMAPPROV DEFAULT 0 FOR Hygiene_Percentage;
+
+Alter table S3G_ORG_GBLCRDTPARAMAPPROV Modify Range_From Numeric(5,2);
+
+Alter table S3G_ORG_GBLCRDTPARAMAPPROV Modify Range_To Numeric(5,2);
+
+--15-OCT-2012
+---------------------------
+
+Alter table S3G_SYSAD_UserMaster Modify User_Code varchar(15);
+
+--24-Oct-2012
+-------------
+
+update S3G_SYSAD_ProgramMaster 
+set Module_Code='S'
+, Page_Url='S3GSysAdminScheduledJobsView.aspx' 
+ , Detail_Url='S3GSysAdminScheduledJobsView.aspx' where Program_ID='205';
+
+
+GO
+/****** Object:  Table [dbo].[S3G_SYSAD_TemplateMaster]    Script Date: 10/25/2012 10:33:03 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[S3G_SYSAD_TemplateMaster](
+	[Tmp_Doc_Id] [int] IDENTITY(1,1) NOT NULL,
+	[Company_Id] [int] NOT NULL,
+	[Tmp_Doc_No] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[LOB_Id] [int] NULL,
+	[Location_Code] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Template_Type] [int] NULL,
+	[Template_Type_Code] [int] NULL,
+	[Template_Field_Id] [int] NULL,
+	[Mode_of_Mail_Type] [int] NULL,
+	[Mode_of_Mail_Type_Code] [int] NULL,
+	[Doc_Path] [varchar](200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Template_Content] [varchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Is_Active] [bit] NOT NULL,
+	[Created_By] [int] NULL,
+	[Created_On] [datetime] NULL,
+	[Modified_By] [int] NULL,
+	[Modified_On] [datetime] NULL,
+ CONSTRAINT [PK_S3G_SYSAD_TemplateMaster] PRIMARY KEY CLUSTERED 
+(
+	[Tmp_Doc_Id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING OFF
+
+25-OCT-2012
+---------------
+
+----Scheduled Job service to be added in service and PLayer web.config
+---The below key to be added in PLayer web.config
+<add key="ServiceStatus" value="false"/> 
+
+
+--26/Oct/2012 Thangam M
+--______________________
+
+
+CREATE
+  TABLE "S3G_LAD_BILL_ACC"
+  (
+    "BILLING_ACCOUNT_ID" NUMBER NOT NULL ENABLE,
+    "BILLING_CONTROL_ID" NUMBER NOT NULL ENABLE,
+    "CASHFLOW_FLAG_ID"   NUMBER NOT NULL ENABLE,
+    "PANUM"              VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "SANUM"              VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "DEBIT_AMOUNT"       NUMBER(24,4) NOT NULL ENABLE,
+    CONSTRAINT "S3G_LAD_BILL_ACC_PK" PRIMARY KEY ("BILLING_ACCOUNT_ID") ENABLE
+  ) ;
+CREATE OR REPLACE TRIGGER "S3G_LAD_BILL_ACC_TRG" BEFORE
+  INSERT
+    ON S3G_LAD_BILL_ACC FOR EACH ROW BEGIN <<COLUMN_SEQUENCES>> BEGIN IF
+    :NEW.BILLING_ACCOUNT_ID               IS NULL THEN
+  SELECT
+    SEQ_S3G_LAD_BILL_ACC.NEXTVAL
+  INTO
+    :NEW.BILLING_ACCOUNT_ID
+  FROM
+    DUAL;
+END IF;
+END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "S3G_LAD_BILL_ACC_TRG" ENABLE;
+
+<add key="ServiceStatus" value="false"/>
+
+--08-Nov-2012
+---------------
+ALter table S3G_LAD_ACCREPAYARCH add Bill_Status NUMBER;
+
+Alter table S3G_SYSAD_GlobalParameterSetup add Numeral_Char NUMBER;
+
+Alter table S3G_LAD_LEASEASTDEPRECTN add Financial_Year_End Date;
+
+-- 15-Nov-2012
+--------------
+
+ALTER TABLE [dbo].[S3G_ORG_BusinTargetMast] ADD  CONSTRAINT [PK_S3G_ORG_BusinTargetMast] PRIMARY KEY CLUSTERED 
+(
+	[Business_Target_ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+GO
+
+
+ALTER TABLE [dbo].[S3G_ORG_BusinTargetDet] ADD  CONSTRAINT [PK_S3G_ORG_BusinTargetDet] PRIMARY KEY CLUSTERED 
+(
+	[Business_Target_Det_ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[S3G_ORG_BusinTargetDet]  WITH CHECK ADD  CONSTRAINT [FK_S3G_ORG_BusinTargetMast_S3G_ORG_BusinTargetDet] FOREIGN KEY([Business_Target_ID])
+REFERENCES [dbo].[S3G_ORG_BusinTargetMast] ([Business_Target_ID])
+GO
+
+ALTER TABLE [dbo].[S3G_ORG_BusinTargetDet] CHECK CONSTRAINT [FK_S3G_ORG_BusinTargetMast_S3G_ORG_BusinTargetDet]
+GO
+
+--15/11/2012 Ganapathy
+--____________________
+
+update S3G_SYSAD_GlobalParameterSetup 
+set Disable_Access_Wrong_pwd=5,Min_pwd_length=5,Pwd_Recycle_Itr=4
+
+--____________________
+
+-- 15/11/2012 Thangam M
+--_____________________
+
+UPDATE S3G_SYSAD_ProgramMaster
+   SET Page_Url = 'S3GClnTransLander.aspx?Code=CDS'
+ WHERE Program_ID = 101
+
+--______________________
+
+
+
+Alter table S3G_CLN_BKTPARVALUES  add Credit_Weightage Number;
+
+Alter table S3g_Org_Authrulecard  add ENTITY_TYPE_ID Number;
+
+Drop table "TBL_CLN_ACCDTLS";
+
+CREATE
+  TABLE "TBL_CLN_ACCDTLS"
+  (
+    "ACCOUNTDETAILSID"   NUMBER,
+    "PANUM"              VARCHAR2(50 BYTE),
+    "SANUM"              VARCHAR2(50 BYTE),
+    "GL_ACCOUNT"         VARCHAR2(50 BYTE),
+    "SL_ACCOUNT"         VARCHAR2(50 BYTE),
+    "DUE_FLAG"           VARCHAR2(50 BYTE),
+    "TRANSACTION_AMOUNT" NUMBER(16,4),
+    "CASHFLOWID"         NUMBER
+  ) ;
+
+CREATE
+  TABLE "S3G_OR_GCPAPPROVALDTLS"
+  (
+    "GCPAPPROVALDTLS_ID" NUMBER(4,0) NOT NULL ENABLE,
+    "GCP_APPROVAL_ID"    NUMBER(4,0),
+    "SEQ_NO"             NUMBER(4,0),
+    "ENTITY_ID"          NUMBER(4,0),
+    "LOCATION_CODE"      VARCHAR2(50 BYTE)
+  ) ;
+  
+CREATE SEQUENCE "SEQ_ORG_AUTHRULECARDAPPR" MINVALUE 1 MAXVALUE
+  9999999999999999999999999999 INCREMENT BY 1 START WITH 478 NOCACHE NOORDER
+  NOCYCLE ;
+
+
+--Script block added - Kuppusamy.B - 05-12-2012 - Numeric Column length modified
+--Starts--
+
+  Alter table FOR_UPDATE_PRODUCT_TEST modify PRODUCT_ID number;
+  Alter table FOR_UPDATE_SEC_PRODUCT modify PRODUCT_ID number;
+  Alter table S3G_ORG_APPPROCASSETDET modify NO_OF_UNITS number;
+  Alter table S3G_ORG_APPPROCINVOICEDET modify APPLICATION_PROCESS_INVOICE_ID number;
+  Alter table S3G_ORG_APPPROCMORATDET modify APPLICATION_PROCESS_ID number;
+  Alter table S3G_ORG_APPPROCMORATDET modify APP_PRC_MORATORIUM_ID number;
+  Alter table S3G_ORG_APPPROCOFFERDET modify APPLICATION_PROCESS_ID number;
+  Alter table S3G_ORG_APPPROCOFFERDET modify APPLICATION_PROCESS_OFFER_ID number;
+  Alter table S3G_ORG_APPPROCOFFERDET modify CASHFLOW_ID number;
+  Alter table S3G_ORG_APPPROCOFFERDET modify INFLOW_PAYTO number;
+  Alter table S3G_ORG_APPPROCOFFERPAYMTDET modify APPLICATION_PROCESS_ID number;
+  Alter table S3G_ORG_APPPROCOFFERPAYMTDET modify APPL_PROC_OFFER_PAY_ID number;
+  Alter table S3G_ORG_APPPROCOFFERPAYMTDET modify PAYMENT_RULECARD_ID number;
+  Alter table S3G_ORG_APPPROCOFFERPAYMTDET modify PAYMENT_RULE_NUMBER number;
+  Alter table S3G_ORG_APPPROCOFFERPAYMTDET modify ACCOUNTTYPE_ID number;
+  Alter table S3G_ORG_APPPROCOFFERPAYMTDET modify ENTITY_ID number;
+  Alter table S3G_ORG_APPPROCOFFERROIDET modify APPLICATION_PROCESS_ID number;
+  Alter table S3G_ORG_AUTHRULECARD modify AUTHORIZATION_RULE_CARD_ID number;
+  Alter table S3G_ORG_AUTHRULECARD modify PRODUCT_ID number;
+  Alter table S3G_ORG_AUTHRULECARD modify TRANSACTION_TYPE_ID number;
+  Alter table S3G_ORG_AUTHRULECARDDET modify AUTH_RULE_CARD_DET_ID number;
+  Alter table S3G_ORG_AUTHRULECARDDET modify AUTHORIZATION_RULE_CARD_ID number;
+  Alter table S3G_ORG_AUTHRULECARDDET modify CREATED_BY number;
+  Alter table S3G_ORG_AUTHRULECARDDET modify MODIFIED_BY number;
+  Alter table S3G_ORG_GLOBALPARAMSETUP modify AMOUNT number;
+  Alter table TMP_OR_TBLAUTHRULECARD_PAGING modify AUTHORIZATION_RULE_CARD_ID number;
+
+
+--Ends---
+  --- OPERATING LEASE DEPRICIATION TEMP TABLE /TABLE /SEQUENCE CREATION ETC --------
+  -- ON 27 - DEC - 2012 BY R.Manikandan ------
+-- Operating Lease Depr TEMP Table Creation ---------------------
+
+create global temporary table "TMP_LAD_OLD_LOC" ( "SNO" number, "LOCATION_ID" number, "LOCATION_CODE" VARCHAR2(50)) on commit preserve rows ;
+
+create global temporary table TMP_LAD_OLD_VALUES
+   (ASSET_NO varchar2(50), LOCATION_ID int,            
+   LAST_CALCULATED_DATE DATE, ACQUISITION_DATE DATE, ASSET_DESCRIPTION varchar2(200),           
+   ASSET_ID INT,  Depereciation_Percent DECIMAL(25,4),Asset_Value DECIMAL(25,4) ,Existing_Percent DECIMAL(25,4),           
+   Current_Percent DECIMAL(25,4), Current_Value DECIMAL(25,4), DEPRECIATION_DAYS INT, SNO INT) on commit preserve rows ;
+   
+  create global temporary table TMP_LAD_OLD_BASEVALUE
+  (PARAMETER_VALUE NUMERIC(25,6), PARAMETER_CODE VARCHAR2(25) ,PARAMETER_NAME VARCHAR2(25), PARAM_SET_ID INT) on commit preserve rows ;
+   
+   create global temporary table TMP_LAD_OLD_LOG
+  (SNO INT , LOCATION_ID INT, LOCATION_CODE VARCHAR2(50), ERRORCODE INT, ERRORDESCRIPTION VARCHAR2(200), DEPRECIATION_ID VARCHAR2(50)) on commit preserve rows ;
+  
+  -- Table Creation
+  
+  CREATE TABLE S3G_LAD_LeaseDepErrorLog(
+	Sno int  NOT NULL,
+	Location_Code varchar(50) NULL,
+	ERRORCODE int null,
+	ERRORDESCRIPTION varchar2(200) null,
+	DEPRECIATION_ID varchar2(50) null);
+	
+	create table S3G_LAD_LOCLEASEDEP(
+	LOC_DEP_ID int not null primary key,
+	Depreciation_ID varchar2(50) NULL,
+	COMPANY_ID int null,
+	Location_Code varchar2(50) NULL,
+	Depreciation_Date date NULL,
+	Account_Link_Key int NULL
+ 
+);
+-- SEQUENCE CREATION
+CREATE SEQUENCE SEQ_S3G_LAD_LEASELOCDEP MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 NOCACHE NOORDER NOCYCLE ;
+CREATE SEQUENCE SEQ_S3G_LAD_LEASELOGDEP MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 NOCACHE NOORDER NOCYCLE ;
+
+Alter table S3G_LAD_LEASEASTDEPRECTN Modify LOCATION_CODE NUMBER NULL;
+
+----- END ---- Operating Lease Depriciation ----------
+
+
+
+--- MARKET VALUE ENTRY PROGRAM MASTER MODIFICATION ---- ADDED ON JAN/11/2013
+
+UPDATE S3G_SYSAD_PROGRAMMASTER SET page_url = 'S3gClnTranslander.aspx?Code=CMV' where program_id = 89;
+COMMIT;
+ --- 
+
+
+--Added by Kali on 10-Jul-2013
+-----------------------------
+
+
+Update S3G_SYSAD_ProgramMaster
+set Program_Name='Credit Approval Score Master',Sequence=1 where Program_ID=21
+
+Update S3G_SYSAD_ProgramMaster
+set Program_Name='CAM Financial Parameter Master',Sequence=2 where Program_ID=26
+
+Update S3G_SYSAD_ProgramMaster
+set Program_Name='CAM Financial Parameter Transaction',Sequence=3 where Program_ID=43
+
+Update S3G_SYSAD_ProgramMaster
+set Program_Name='Credit Approval Score Transaction',Sequence=4 where Program_ID=35
+
+Update S3G_SYSAD_ProgramMaster
+set Program_Name='CAM Approval',Sequence=5 where Program_ID=51
+
+
+				
+------Added on 19-Jul-2013 by saran start--------------------------------
+
+alter table S3G_LOANAD_SpecificRevision add  Offer_Residual_Value	number(16,4),
+Offer_Residual_Value_Amount	number(16,4)
+
+
+
+alter table S3G_ORG_ApplicationProcessAssetDetails add  Discount_Amountnumber(16,4) ,
+Discount_Absorbed	number	
+
+
+
+SET IDENTITY_INSERT [dbo].[S3G_ORG_CashFlowFlag] ON
+INSERT INTO dbo.S3G_ORG_CashFlowFlag
+ (CashFlow_Flag_ID,CashFlowFlag_Code ,CashFlowFlag_Desc,Receipt_Flag,Account_Identifier,AddLess_Flag,Service_Tax)
+     VALUES(94,NULL,'Discount',	0,	NULL,	NULL,0)
+SET IDENTITY_INSERT [dbo].[S3G_ORG_CashFlowFlag] OFF
+
+INSERT INTO "S3G"."S3G_SYSAD_ACCOUNTCODEDESC" (ACCOUNT_CODE_DESC_ID, ACCOUNT_TAB_ID, ACCOUNT_CODE_DESC, ACCOUNT_FLAG, RECEIPT_FLAG) VALUES ('304', '3', 'Revision Fee', 'ARF', '0')
+				
+				
+				INSERT INTO "S3G"."S3G_ORG_CASHFLOWFLAG" (CASHFLOW_FLAG_ID, CASHFLOWFLAG_DESC, RECEIPT_FLAG) VALUES ('96', 'Revision Fee', '1')
+				
+				
+				
+				INSERT INTO "S3G"."S3G_LAD_LOOKUPTYPEDET" (LOOKUP_ID, COMPANY_ID, LOOKUPTYPE_CODE, LOOKUP_CODE, LOOKUP_DESCRIPTION) VALUES ('372', '1', '36', '96', 'Revision Fee')
+
+alter table S3G_LOANAD_SpecificRevision add  Revision_Fee number(16,4)
+
+------Added on 19-Jul-2013 by saran end--------------------------------
+
+------Added on 9-Aug-2013 by Santhosh.S start--------------------------------
+
+CREATE TABLE "S3G"."S3G_SYSAD_MANUALLOOKUP"
+  (
+    "LOOKUP_DEF_ID" NUMBER(38,0) NOT NULL ENABLE,
+    "LOOKUP_DESC"   VARCHAR2(100 BYTE) NOT NULL ENABLE,
+    "LOOKUP_TYPE"   VARCHAR2(50 BYTE) NOT NULL ENABLE,
+    "TABLE_NAME"    VARCHAR2(50 BYTE),
+    "IS_ACTIVE"     NUMBER(1,0),
+    "CREATED_BY"    NUMBER(4,0) NOT NULL ENABLE,
+    "CREATED_ON" TIMESTAMP (6) NOT NULL ENABLE,
+    "MODIFIED_BY" NUMBER(4,0),
+    "MODIFIED_ON" TIMESTAMP (6)
+  )
+  SEGMENT CREATION IMMEDIATE PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255 NOCOMPRESS LOGGING STORAGE
+  (
+    INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645 PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT
+  )
+  TABLESPACE "S3G" ;
+
+INSERT INTO S3G_SYSAD_ProgramMaster
+(Program_ID,Program_Code,Program_Name,Module_Code,Program_Ref_No,Is_Active,Created_By,Created_On,Modified_By,
+Modified_On,Page_Url,Detail_Url,Sequence,IsTransaction,WFUrl,Document_Path_Setup,Document_Flag)
+VALUES
+(248,'LKPM','Lookup Master','S','248',1,1,SYSDATE,NULL,
+NULL,'S3GSysAdminLookupMaster.aspx','S3GSysAdminLookupMaster.aspx',NULL,NULL,NULL,1,NULL)
+
+------Added on 9-Aug-2013 by Santhosh.S end--------------------------------
+
+
+--added by saran on 04-Sep-2013 start-----
+
+CREATE TABLE S3G_SYSAD_GROUPMASTER 
+(
+  GROUP_ID NUMBER NOT NULL 
+, GROUP_NAME VARCHAR2(50 BYTE) NOT NULL 
+, IS_ACTIVE NUMBER(1, 0) NOT NULL 
+, CONSTRAINT S3G_SYSAD_GROUPMASTER_PK PRIMARY KEY 
+  (
+    GROUP_ID 
+  )
+  ENABLE 
+) ;
+
+
+
+--Sequence
+
+CREATE SEQUENCE SEQ_S3G_SYSAD_GROUPMASTER INCREMENT BY 1 MAXVALUE 9999999999999999999999999999 MINVALUE 1 NOCACHE;
+
+ALTER TABLE S3G_SYSAD_USERMASTER 
+ADD (USER_GROUP_ID NUMBER );
+
+--added by saran on 04-Sep-2013 end-----
+
+
+--Added By Kuppusamy.B 10-10-2013
+
+ALTER TABLE S3G_CLN_DMDDS3 
+ADD (PA_SA_REF_ID NUMBER );
+
+ALTER TABLE S3G_CLN_DMDDS3 
+ADD (LOCATION_ID NUMBER );
+
+ALTER TABLE S3G_CLN_DMDDS4 
+ADD (PA_SA_REF_ID NUMBER );
+
+ALTER TABLE S3G_CLN_DMDDS4 
+ADD (LOCATION_ID NUMBER );
+
+ALTER TABLE S3G_CLN_RCPTPROCDTL  
+MODIFY (RECEIPT_PROC_DETAILS_ID NOT NULL);
+
+ALTER TABLE S3G_CLT_COLTRALDTL 
+ADD (RATE_INCREMENT NUMBER(18, 4) );
+
+ALTER TABLE S3G_LAD_ACCAMORTSTRUCTARCH 
+ADD (PA_SA_REF_ID NUMBER );
+
+ALTER TABLE S3G_LAD_ACCAMORTSTRUCT 
+ADD (PA_SA_REF_ID NUMBER );
+
+ALTER TABLE S3G_LAD_ACCREPAYSTRUCT 
+ADD (PA_SA_REF_ID NUMBER );
+
+ALTER TABLE S3G_LAD_ACCREPAYSTRUCTARCH 
+ADD (PA_SA_REF_ID NUMBER );
+
+ALTER TABLE S3G_LAD_FACTRNGINVLOADING 
+ADD (BILL_TYPE INT );
+
+ALTER TABLE S3G_LAD_FACTRNGINVLOADINGDET 
+ADD (LAST_INCOME_DATE TIMESTAMP );
+
+ALTER TABLE S3G_LAD_INC_AMORT_STRUCT 
+ADD (PA_SA_REF_ID NUMBER );
+
+ALTER TABLE S3G_LAD_ODICALCULATNS 
+ADD (ACCOUNT_LINK_KEY NUMBER );
+
+ALTER TABLE S3G_LAD_PDDCDOCCATEG 
+ADD (PDDC_DOC_TYPE_ID NUMBER );
+
+ALTER TABLE S3G_LAD_POSTDISBDOCTRANDET 
+ADD (DOC_COLLECTORWAIVED VARCHAR2(1) );
+
+ALTER TABLE S3G_LAD_POSTDISBDOCTRANDET 
+ADD (STOCK_DATE TIMESTAMP );
+
+ALTER TABLE S3G_LAD_POSTDISBDOCTRANDET 
+ADD (TOTAL_STOCKAMOUNT NUMBER(18, 0) );
+
+ALTER TABLE S3G_ORG_APPPROC 
+ADD (LOAN_TYPE NUMBER );
+
+ALTER TABLE S3G_ORG_APPPROC 
+ADD (MORTGAGE_TYPE NUMBER );
+
+ALTER TABLE S3G_ORG_APPPROC 
+ADD (MORTGAGE_FEES NUMBER(10, 3) );
+
+ALTER TABLE S3G_ORG_APPPROC 
+ADD (STEPDOWN_REVISIONTYPE NUMBER );
+
+ALTER TABLE S3G_ORG_APPPROCASSETDET 
+ADD (DISCOUNT_AMOUNT NUMBER(16, 4) );
+
+ALTER TABLE S3G_ORG_APPPROCASSETDET 
+ADD (DISCOUNT_ABSORBED NUMBER );
+
+ALTER TABLE S3G_ORG_APPPROCOFFERROIDET 
+ADD (COLLATERAL_TYPE_RATE NUMBER(18, 4) );
+
+ALTER TABLE S3G_ORG_CUSTMASTER 
+ADD (STOCK_STMT_FREQUENCY NUMBER );
+
+ALTER TABLE S3G_ORG_CUSTMASTER 
+ADD (PENAL_INTEREST_RATE NUMBER(25, 4) );
+
+ALTER TABLE S3G_ORG_ENTITYMASTER 
+ADD (IS_TRADEADVANCE INTEGER );
+
+ALTER TABLE S3G_ORG_FIRTRANSDOCDET 
+ADD (FIR_DOC_CAT_VALUE NUMBER );
+
+ALTER TABLE S3G_ORG_GLOBALPARAMSETUP 
+ADD (CSG_NEGATIVE INTEGER );
+
+ALTER TABLE S3G_ORG_GROUP_INDUSTRY_TYPE 
+ADD (INDUSTRY_ID NUMBER );
+
+ALTER TABLE S3G_ORG_PREDISBDOCTRANDET 
+ADD (DOC_COLLECTORWAIVED VARCHAR2(1) );
+
+ALTER TABLE S3G_ORG_PRICING 
+ADD (LOAN_TYPE NUMBER );
+
+ALTER TABLE S3G_SYSAD_ADDRESSLOOKUP 
+ADD (REMARKS VARCHAR2(1000) );
+
+
+ALTER TABLE S3G_SYSAD_COMPANYMASTER 
+ADD (S3G_APPLN_TYPE VARCHAR2(20) );
+
+ALTER TABLE S3G_SYSAD_COMPANYMASTER 
+ADD (FA_APPLN_TYPE VARCHAR2(20) );
+
+ALTER TABLE S3G_SYSAD_COMPANYMASTER 
+ADD (LOGIN_TEXT VARCHAR2(4000) );
+
+create table S3G_ORG_GOLDLOANMATRIX(
+                GLMatrix_ID number NOT NULL,
+                ASSET_ID number not null,
+                COMPANY_ID number not null,
+                CONSTITUTION_ID number null,
+                PRODUCT_ID number not null,
+                LOCATION_CODE varchar2(30) not null,
+                UNIT_ID number not null,
+                Eff_Date Date NOT NULL,
+                Created_By number NOT NULL,
+                CREATED_ON timestamp not null,
+                TENURE number null,
+                TENURE_TYPE number null
+  )
+
+
+
+--End
+
+
+---added by bhuvana on Oct 11th -2013---
+
+  CREATE TABLE S3G_LR_GARAGE_MAINT(
+	Garage_ID NUMBER NOT NULL,
+	Company_ID NUMBER NULL,
+	LOB_ID NUMBER NOT NULL,
+	Location_Code varchar2(30) NOT NULL,
+	Customer_ID NUMBER NOT NULL,
+	GARAGEMAINTNO varchar2(25) NULL,
+	Garage_Maint_ID NUMBER NOT NULL)
+  
+  CREATE TABLE S3G_LR_GARAGE_MAINT_DTL(
+	Garage_Detail_ID NUMBER  NOT NULL,
+	Company_ID NUMBER NOT NULL,
+	Asset_Number NUMBER NULL,
+	In_Date TIMESTAMP NULL,
+	Out_Date TIMESTAMP NULL,
+	Req_Area NUMBER(16, 4) NOT NULL,
+	Cust_Debit NUMBER(16, 4) NOT NULL,
+	PANum varchar2(50) NULL,
+	SANum varchar2(25) NULL,
+	Machine_No varchar2(20) NULL,
+	Garage_Maint_ID NUMBER NOT NULL)
+
+CREATE TABLE S3G_CLN_CRM_Docs(
+	CRM_Doc_ID NUMBER  NOT NULL,
+	Company_ID NUMBER NOT NULL,
+	Customer_ID NUMBER NULL,
+	Prospect_Name varchar2222(50) NULL,
+	CRM_ID NUMBER NOT NULL,
+	Doc_Link NUMBER NOT NULL,
+	Doc_No varchar2222(50) NULL,
+	Doc_Recd NUMBER NULL,
+	Doc_Scan NUMBER NULL,
+	Scan_Path varchar2222(100) NULL,
+	Link_FUD_Key NUMBER NULL,
+	User_ID NUMBER NULL,
+	Created_On TIMESTAMP NULL,
+	Doc_Cat_ID NUMBER NULL);
+  
+  CREATE TABLE S3G_CLN_CRM_Hdr(
+	CRM_ID NUMBER  NOT NULL,
+	Company_ID NUMBER NOT NULL,
+	Group_ID NUMBER NULL,
+	Customer_ID NUMBER NULL,
+	Location_Code varchar222(30) NULL,
+	Enquiry_Number varchar222(50) NULL,
+	Offer_Number varchar222(50) NULL,
+	Application_Number varchar222(50) NULL,
+	PANUM varchar222(50) NULL,
+	SANUM varchar222(50) NULL,
+	Prospect_Title NUMBER NULL,
+	Prospect_Name varchar222(100) NULL,
+	Address1 varchar222(64) NULL,
+	Address2 varchar222(64) NULL,
+	City varchar222(30) NULL,
+	State varchar222(60) NULL,
+	Country varchar222(60) NULL,
+	Pincode varchar222(10) NULL,
+	Mobile varchar222(12) NULL,
+	Telephone varchar222(12) NULL,
+	EMail varchar222(60) NULL,
+	Website varchar222(60) NULL,
+	SE_Ref varchar222(6) NULL,
+	Account_Stat_Type NUMBER NULL,
+	Account_Stat NUMBER NULL,
+	Customer_Stat_Type NUMBER NULL,
+	Customer_Stat NUMBER NULL,
+	Created_On TIMESTAMP NULL,
+	Created_By NUMBER NULL)
+  
+  CREATE TABLE S3G_CLN_CRM_Lead (
+	Lead_ID NUMBER  NOT NULL,
+	CRM_ID NUMBER NOT NULL,
+	FinanceMode NUMBER NULL,
+	LOB_ID NUMBER NULL,
+	Product_ID NUMBER NULL,
+	Lead_Source_Type NUMBER NULL,
+	Lead_Source varchar222(100) NULL,
+	Remarks varchar222(200) NULL,
+	Lead_Status NUMBER NULL,
+	Rate NUMBER(8, 4) NULL,
+	Tenure NUMBER NULL,
+	Constitution_ID NUMBER NULL)
+  
+  CREATE TABLE S3G_CLN_CRM_Lead_Asset(
+	Lead_Asset_ID NUMBER  NOT NULL,
+	CRM_ID NUMBER NOT NULL,
+	Asset_ID NUMBER NOT NULL,
+	Cost NUMBER(18, 4) NULL,
+	Finance_Amount NUMBER(18, 4) NULL)
+  
+  CREATE TABLE S3G_LAD_AccSpec_Off_Dtl(
+	AccSpec_Off_Dtl_ID NUMBER NOT NULL,
+	Company_ID NUMBER NOT NULL,
+	RevisionId NUMBER NULL,
+	Revision_Number varchar222(50) NULL,
+	PANum varchar222(50) NOT NULL,
+	SANum varchar222(50) NOT NULL,
+	COMPONENT_CODE varchar222(10) NULL,
+	CASHFLOW_TYPE NUMBER NULL,
+	CASHFLOW_ENT_TYPE NUMBER NULL,
+	CASHFLOW_ENT_CODE varchar222(10) NULL,
+	CASHFLOW_DATE TIMESTAMP NULL,
+	CASHFLOW_AMOUNT NUMBER(16, 4) NULL,
+	Bill_Status NUMBER NULL)
+  
+  
+  CREATE TABLE S3G_LAD_Fact_Retire(
+	FT_Retire_ID NUMBER  NOT NULL,
+	Retiret_Number varchar222(50) NOT NULL,
+	Fact_Inv_ID NUMBER NOT NULL,
+	Created_By NUMBER NOT NULL,
+	Created_On TIMESTAMP NOT NULL)
+  
+  
+  CREATE TABLE S3G_LAD_Fact_Retire_Dtl(
+	FT_Retire_Dtl_ID NUMBER  NOT NULL,
+	FT_Retiret_ID NUMBER NOT NULL,
+	Company_ID NUMBER NOT NULL,
+	Fact_Details_ID NUMBER NOT NULL,
+	Receipt_Detail_ID NUMBER NOT NULL,
+	Appr_Amount NUMBER(14, 4) NOT NULL,
+	Mapp_Date TIMESTAMP NOT NULL)
+  
+  
+  CREATE TABLE S3G_LAD_IncomeFact(
+	Income_Fact_ID NUMBER  NOT NULL,
+	IncomeRecogDtl_ID NUMBER NOT NULL,
+	Fact_Inv_Load_Details_ID NUMBER NOT NULL,
+	Income_Type NUMBER NOT NULL,
+	Income_Amount NUMBER(25, 4) NOT NULL,
+	Principle_OS NUMBER(25, 4) NULL,
+	Receipt_Amount NUMBER(25, 4) NULL)
+  
+  
+  CREATE TABLE S3G_LAD_Lease_Dep_Error_Log(
+	Sno NUMBER  NOT NULL,
+	Location_Code varchar222(50) NULL,
+	ERRORCODE NUMBER NULL,
+	ERROR_DES varchar222(200) NULL,
+	Depreciation_ID varchar222(50) NULL)
+  
+  CREATE TABLE S3G_LAD_PDDCDocType(
+	PDDC_Doc_Type_ID NUMBER NOT NULL,
+	PDDC_Doc_Type_Name varchar22(25) NOT NULL,
+	Designation_ID varchar22(100) NULL)
+  
+  
+  CREATE TABLE S3G_LAD_WriteoffReco_Dtl(
+	WriteoffReco_DTL_ID NUMBER  NOT NULL,
+	Company_ID NUMBER NULL,
+	Link_WOR_Key NUMBER NULL,
+	Doc_type varchar22(10) NULL,
+	Doc_ID NUMBER NULL,
+	Doc_Date TIMESTAMP NULL,
+	Installment_No NUMBER NULL,
+	Installment_Date TIMESTAMP NULL,
+	Installment_WOR_Amt NUMBER(12, 2) NULL,
+	Wri_Reco varchar22(1) NULL,
+	NUMBERerest_WOR_Amt NUMBER(12, 2) NULL,
+	NUMBERerest_Wri_Reco NUMBER(12, 2) NULL,
+	Remarks varchar22(60) NULL,
+	Approval_User_ID NUMBER NULL,
+	Approval_Date TIMESTAMP NULL,
+	Doc_Stat varchar22(1) NULL)
+
+  CREATE TABLE S3G_LAD_WriteoffReco_Hdr(
+	Company_ID NUMBER NULL,
+	Location_Code varchar22(30) NULL,
+	Customer_ID NUMBER NULL,
+	PANum varchar22(50) NULL,
+	SANum varchar22(50) NULL,
+	WriteOff_Amt NUMBER(18, 2) NULL,
+	Recovery_Amt NUMBER(18, 2) NULL,
+	Approved NUMBER NULL,
+	Link_WOR_Key NUMBER  NOT NULL,
+	Cust_Stat varchar22(1) NULL)
+  
+  CREATE TABLE S3g_LAD_Loc_Lease_Dep(
+	Loc_Dep_ID NUMBER  NOT NULL,
+	Depreciation_ID varchar2(50) NULL,
+	Company_ID NUMBER NULL,
+	Location_Code varchar2(50) NULL,
+	Depreciation_Date TIMESTAMP NULL,
+	Account_Link_Key NUMBER NULL)
+
+---end here---

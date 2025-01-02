@@ -1,0 +1,1100 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Collection
+/// Screen Name         :   Receipt Approval
+/// Created By          :   Tamilselvan.S
+/// Created Date        :   02-March-2011
+/// Purpose             :   Receipt Approval
+/// Last Updated By		:   
+/// Last Updated Date   :   
+/// Reason              :    
+/// <Program Summary>
+#endregion
+
+#region Namespaces
+
+using System;
+using System.Globalization;
+using System.Data;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Collections.Generic;
+using S3GBusEntity;
+using System.Web.Security;
+using AjaxControlToolkit;
+using System.ServiceModel;
+using System.Configuration;
+using System.Text;
+
+#endregion Namespaces
+
+public partial class Collection_S3GClnReceiptApproval : ApplyThemeForProject
+{
+
+    #region Initialization
+
+    int intCompanyID = 0;
+    int intReceipt_ID = 0;
+    int intUserID = 0;
+    int intErrCode = 0;
+    StringBuilder strSelect = new StringBuilder();
+    Dictionary<string, string> dictDropdownListParam;
+    SerializationMode SerMode = SerializationMode.Binary;
+    DataTable dtAction = new DataTable();
+    DataSet dsApproval = new DataSet();
+    DataSet Ds = new DataSet();
+    public string strDateFormat = string.Empty;
+    S3GSession ObjS3GSession = new S3GSession();
+    UserInfo ObjUserInfo = new UserInfo();
+    //ApprovalMgtServicesReference.ApprovalMgtServicesClient ObjApproval ;
+    S3GBusEntity.LoanAdmin.ApprovalMgtServices.S3G_LOANAD_ApprovalDataTable ObjApproval_DataTable = new S3GBusEntity.LoanAdmin.ApprovalMgtServices.S3G_LOANAD_ApprovalDataTable();
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objClnReceipt_Client;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ReceiptProcessingDataTable objReceiptDataTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ReceiptProcessingRow objReceiptRow = null;
+
+    string strPageName = "";
+    Dictionary<string, string> Procparam = null;
+    string strRedirectPage = "../Collection/S3gCLNTransLander.aspx?Code=CLNRAPL";
+    string strQueryRedirectPage = "../Collection/S3GClnReceiptProcessing.aspx?";
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    string strErrorMsg = @"Correct the following validation(s):</br><ul><li>";
+    string strErrorMsgData = @"Error Occured:</br><ul><li>";
+
+    string strErrMsgLast = "</li></ul>";
+    string strKey = "Authorize ";
+
+
+
+    PagingValues ObjPaging = new PagingValues();
+
+    public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    public int ProPageNumRW
+    {
+        get;
+        set;
+    }
+
+    public int ProPageSizeRW
+    {
+        get;
+        set;
+
+    }
+    protected void AssignValue(int intPageNum, int intPageSize)
+    {
+        ProPageNumRW = intPageNum;
+        ProPageSizeRW = intPageSize;
+        FunPubLoadReceiptGrid();
+    }
+
+
+    #endregion
+
+    #region [Event's]
+
+    #region [Page Event's]
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+            S3GSession ObjS3GSession = new S3GSession();
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+
+            ProPageNumRW = 1;
+            TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+            if (txtPageSize.Text != "")
+                ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+            else
+                ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+            PageAssignValue obj = new PageAssignValue(this.AssignValue);
+            ucCustomPaging.callback = obj;
+            ucCustomPaging.ProPageNumRW = ProPageNumRW;
+            ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+
+            if (!IsPostBack)
+            {
+                ceStartDate.TodaysDateFormat = ceEndDate.TodaysDateFormat = strDateFormat;
+                ceStartDate.Format = ceEndDate.Format = strDateFormat;
+                txtEndDate.Attributes.Add("readonly", "readonly");                // making the end date textbox readonly
+                txtStartDate.Attributes.Add("readonly", "readonly");              // making the start date textbox readonly
+
+                // lbtnViewReceipt.Visible = false;
+                FunPubLoadLOBBranch();
+                rblReceiptType.Focus();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to load the page." + strErrMsgLast;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    #endregion [Page Event's]
+
+    #region Button
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClear();
+        }
+        catch (Exception ex)
+        {
+            cvReceipt.IsValid = false;
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to Clear the Details." + strErrMsgLast;
+        }
+    }
+
+    protected void btnSearch_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            DateTimeFormatInfo dtformat = new DateTimeFormatInfo();
+            dtformat.ShortDatePattern = "MM/dd/yy";
+            if ((!(string.IsNullOrEmpty(txtStartDate.Text))) && (!(string.IsNullOrEmpty(txtEndDate.Text))))                                   // If start and end date is not empty
+            {
+                if (Utility.StringToDate(txtStartDate.Text) > Utility.StringToDate(txtEndDate.Text)) // start date should be less than or equal to the enddate
+                {
+                    Utility.FunShowAlertMsg(this, "End date should not be less than the Start Date");
+                    return;
+                }
+            }
+            ProPageNumRW = 1;
+            ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+            ucCustomPaging.Navigation(0, ProPageNumRW, ProPageSizeRW);
+            ucCustomPaging.setPageSize(ProPageSizeRW);
+            gvReceiptDetails.DataSource = null;
+            gvReceiptDetails.DataBind();
+            FunPubLoadReceiptGrid();
+        }
+        catch (Exception ex)
+        {
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to load the Receipt details." + strErrMsgLast;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnAuthorization_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubReceiptAuthorize();
+        }
+        catch (Exception ex)
+        {
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to Authorize the Receipt." + strErrMsgLast;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnAuthorize_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (FunPubReceiptAuthorize())
+                MPE.Hide();
+            else
+                MPE.Show();
+        }
+        catch (Exception ex)
+        {
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to Authorize the Receipt." + strErrMsgLast;
+            cvReceipt.IsValid = false;
+
+        }
+    }
+
+    protected void btnRevoke_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubRevokeReceiptAuthorize();
+        }
+        catch (Exception ex)
+        {
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to Revoke the Receipt." + strErrMsgLast;
+            cvReceipt.IsValid = false;
+
+        }
+    }
+
+    #endregion
+
+    #region [Link Button Event's]
+
+    protected void lnkView_Click(object sender, EventArgs e)
+    {
+        LinkButton lnkView = sender as LinkButton;
+        //FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(lnkView.CommandArgument.ToString(), false, 0);
+        //string strValue = strQueryRedirectPage + "qsViewId=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=Q&Popup=yes";
+        //ScriptManager.RegisterStartupScript(this, this.GetType(), "New", "window.open('" + strValue + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50')", true);
+        //return;
+
+
+        if (lnkView.CommandArgument != null && lnkView.CommandArgument != "" && lnkView.CommandName != null && lnkView.CommandName != "")
+        {
+            DataSet dsView = new DataSet();
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@Receipt_Type", Convert.ToString(lnkView.CommandName));
+            Procparam.Add("@Receipt_ID", Convert.ToString(lnkView.CommandArgument));
+            btnAuthorize.CommandArgument = Convert.ToString(lnkView.CommandArgument);
+            btnRevoke.CommandArgument = Convert.ToString(lnkView.CommandArgument);
+            S3GDALDBType DBType = new S3GDALDBType();
+            DBType = FunPubGetDatabaseType();
+            if (DBType == S3GDALDBType.SQL)
+            {
+                dsView = Utility.GetDataset("S3G_CLN_ViewReceiptDetailsForApproval", Procparam);
+            }
+            else
+            {
+                dsView = Utility.GetDataset("S3G_CLN_ViewReceiptDetailsForApprovalForView", Procparam);
+            }
+            if (dsView.Tables.Count >= 1)
+            {
+                if (dsView.Tables[0].Rows.Count > 0)
+                {
+
+                    S3GCustomerPermAddress0.SetCustomerDetails(dsView.Tables[0].Rows[0], true);
+                    lblpLob.Text = Convert.ToString(dsView.Tables[0].Rows[0]["LOB_Name"]);
+                    lblpBranch.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Location_Name"]);
+                    lblpDocNo.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Receipt_No"]);
+                    lblpDocDate.Text = Convert.ToDateTime(dsView.Tables[0].Rows[0]["Receipt_Date"]).ToString(strDateFormat);
+                    lblpTRRef.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Temp_Receipt_No"]);
+                    lblpValueDate.Text = Convert.ToDateTime(dsView.Tables[0].Rows[0]["Value_Date"] == DBNull.Value ? DateTime.Now : dsView.Tables[0].Rows[0]["Value_Date"]).ToString(strDateFormat);
+                    lblpAuthorizedBy.Text = Convert.ToString(dsView.Tables[0].Rows[0]["User_Name"]);
+                    lblpAuthorizedDate.Text = dsView.Tables[0].Rows[0]["Authorized_Date"] == DBNull.Value ? "" : Convert.ToDateTime(dsView.Tables[0].Rows[0]["Authorized_Date"]).ToString(strDateFormat);
+                    lblpReceiptAmount.Text = Convert.ToDecimal(dsView.Tables[0].Rows[0]["Total_Receipt_Amount"]).ToString(Utility.SetSuffix());
+
+                    txtpMode.Text = Convert.ToString(dsView.Tables[0].Rows[0]["PaymentMode"]);
+                    txtInstrumentNo.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Instrument_No"]);
+                    txtInstrumentDate.Text = dsView.Tables[0].Rows[0]["Instrument_Date"] == DBNull.Value ? "" : Convert.ToDateTime(dsView.Tables[0].Rows[0]["Instrument_Date"]).ToString(strDateFormat);
+                    txtLocation.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Location"]);
+                    txtDraweeBank.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Drawee_Bank_Name"]);
+                    txtOtherBankName.Visible = false;
+                    txtOtherBankName.Text = "";
+                    if (dsView.Tables[0].Rows[0]["Other_Bank_Name"] != DBNull.Value && Convert.ToString(dsView.Tables[0].Rows[0]["Other_Bank_Name"]) != "")
+                    {
+                        txtOtherBankName.Visible = true;
+                        txtOtherBankName.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Other_Bank_Name"]);
+                    }
+                    txtPaymentGateway.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Payment_Gateway_Ref"]);
+                    txtACKNo.Text = Convert.ToString(dsView.Tables[0].Rows[0]["Ack_No"]);
+
+                    btnAuthorize.Enabled = true;
+                    btnRevoke.Enabled = false;
+                    if (Convert.ToInt32(dsView.Tables[0].Rows[0]["Receipt_Status"]) == 5 || (dsView.Tables[0].Rows[0]["Authorized_By"] != DBNull.Value && Convert.ToInt64(dsView.Tables[0].Rows[0]["Authorized_By"]) > 0))
+                    {
+                        btnAuthorize.Enabled = false;
+                        btnRevoke.Enabled = true;
+                    }
+                }
+
+                if (dsView.Tables.Count >= 2)
+                {
+                    gvReceiptDetailsView.DataSource = dsView.Tables[1];
+                    gvReceiptDetailsView.DataBind();
+                }
+                if (dsView.Tables.Count == 3)
+                {
+                    gvAddLess.DataSource = dsView.Tables[2];
+                    gvAddLess.DataBind();
+                }
+                tcReceipt.ActiveTabIndex = 0;
+                if (dsView.Tables[0].Rows.Count > 0)
+                {
+                    if (Convert.ToBoolean(dsView.Tables[0].Rows[0]["Month_Option"]))    //Added by Tamilselvan.S on 22/06/2011 for to restrict for month lock
+                    {
+                        Utility.FunShowAlertMsg(this, "Month has been locked, cannot be processed.");
+                        btnAuthorize.Enabled = btnRevoke.Enabled = false;
+                    }
+                    if (dsView.Tables[0].Rows[0]["Challan_No"] != DBNull.Value)   //Added by Tamilselvan.S on 14/07/2011 for to restrict for Challan generated
+                    {
+                        Utility.FunShowAlertMsg(this, "Challan has been Generated, cannot be processed.");
+                        btnAuthorize.Enabled = btnRevoke.Enabled = false;
+                    }
+                }
+                else
+                    btnAuthorize.Enabled = btnRevoke.Enabled = false;
+                if (ObjUserInfo.ProModifyRW == false)  //Added by Tamilselvan.S on 10/06/2011 for to restrict the level1 and level2 user modification
+                {
+                    btnAuthorize.Enabled = btnRevoke.Enabled = false;
+                }
+            }
+        }
+        MPE.Show();
+    }
+
+    #endregion [Link Button Event's]
+
+    #region [Check box Event's]
+
+    protected void cbxAll_OnCheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriCheckBoxHeaderClick();
+            FunPubSetCurrentCheckedRecord("", ((CheckBox)sender).Checked, true);
+            //FunPriCheckBoxHeaderClick(((CheckBox)sender).Checked);
+        }
+        catch (Exception ex)
+        {
+            if (((CheckBox)sender).Checked)
+                cvReceipt.ErrorMessage = strErrorMsgData + "Unable to check the all records." + strErrMsgLast;
+            else
+                cvReceipt.ErrorMessage = strErrorMsgData + "Unable to uncheck the all records." + strErrMsgLast;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void cbxSelect_OnCheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            Label lblReceiptNo = ((Label)((GridViewRow)((CheckBox)sender).Parent.Parent).FindControl("lblReceiptNo")) as Label;
+            FunPubSetCurrentCheckedRecord(lblReceiptNo.Text.ToString(), ((CheckBox)sender).Checked, false);
+
+            //if (ViewState["DtReceiptDetails"] != null && ((DataTable)ViewState["DtReceiptDetails"]) != null && ((DataTable)ViewState["DtReceiptDetails"]).Rows.Count > 0)
+            //{
+            //    Label lblRowNumber = ((Label)((GridViewRow)((CheckBox)sender).Parent.Parent).FindControl("lblRowNumber")) as Label;
+            //    DataRow[] drcol = ((DataTable)ViewState["DtReceiptDetails"]).Select("RowNumber=" + lblRowNumber.Text);
+            //    if (drcol != null)
+            //    {
+            //        drcol[0].BeginEdit();
+            //        drcol[0]["Checked"] = ((CheckBox)sender).Checked;
+            //        drcol[0].AcceptChanges();
+            //    }
+            //}
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw;
+        }
+
+    }
+
+    #endregion [Check box Event's]
+
+    #region [GridView Event's]
+
+    protected void gvReceiptDetails_PageIndexChanging(object sender, GridViewPageEventArgs e)
+    {
+        try
+        {
+            gvReceiptDetails.PageIndex = e.NewPageIndex;
+            FunPubLoadReceiptGrid(false);
+        }
+        catch (Exception ex)
+        {
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to load the Receipt details." + strErrMsgLast;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void gvReceiptDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (DataControlRowType.DataRow == e.Row.RowType)
+            {
+                //if (ViewState["DtReceiptDetails"] != null && ((DataTable)ViewState["DtReceiptDetails"]) != null && ((DataTable)ViewState["DtReceiptDetails"]).Rows.Count > 0)
+                //{
+                //    DataRow[] drCol = ((DataTable)ViewState["DtReceiptDetails"]).Select("RowNumber=" + ((Label)e.Row.FindControl("lblRowNumber")).Text);
+                //    ((CheckBox)e.Row.FindControl("cbxSelect")).Checked = Convert.ToBoolean(drCol[0]["Checked"] == DBNull.Value ? false : Convert.ToBoolean(drCol[0]["Checked"]));
+                //}
+                Label lblReceiptAmount = (Label)e.Row.FindControl("lblReceiptAmount");
+                lblReceiptAmount.Text = Convert.ToDecimal(lblReceiptAmount.Text).ToString(Utility.SetSuffix());
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvReceipt.ErrorMessage = strErrorMsgData + ex.Message + strErrMsgLast;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void gvReceiptDetailsView_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (DataControlRowType.DataRow == e.Row.RowType)
+        {
+            Label txtAmount = (Label)e.Row.FindControl("txtAmount");
+            txtAmount.Text = Convert.ToDecimal(txtAmount.Text).ToString(Utility.SetSuffix());
+        }
+    }
+
+    protected void gvAddLess_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (DataControlRowType.DataRow == e.Row.RowType)
+        {
+            Label lblAmount = (Label)e.Row.FindControl("lblAmount");
+            lblAmount.Text = Convert.ToDecimal(lblAmount.Text).ToString(Utility.SetSuffix());
+        }
+    }
+
+    #endregion [GridView Event's]
+
+    #region [Radio Button List Event's]
+
+    protected void rblReceiptType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        gvReceiptDetails.DataSource = null;
+        gvReceiptDetails.DataBind();
+        pnlReceiptDetails.Style.Add("Display", "none");
+        ddllLineOfBusiness.ClearDropDownList();
+        //Changed by Thangam M on 18/Jul/2012 for UAT IV RA_001
+        //if (!rblReceiptType.Items.FindByText("Regular").Selected)
+        //{
+        //    Procparam = new Dictionary<string, string>();
+        //    Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        //    Procparam.Add("@UTPA_ID", intUserID.ToString());
+        //    Procparam.Add("@Is_Active", "1");
+        //    Procparam.Add("@Program_Id", "119");
+        //    ddllLineOfBusiness.BindDataTable("S3G_Get_UTPA_LOB_LIST", Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+        //}
+        //else
+        //{
+        ////Procparam = new Dictionary<string, string>();
+        ////Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        ////Procparam.Add("@User_ID", Convert.ToString(intUserID));
+        ////Procparam.Add("@Is_Active", "1");
+        ////Procparam.Add("@Program_Id", "119");
+
+
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        Procparam.Add("@User_ID", Convert.ToString(intUserID));
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@Program_Id", "119");
+        ddllLineOfBusiness.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+
+        //}
+        //End here
+
+        // FunPubLoadReceipt();
+    }
+
+    #endregion [Radio Button List Event's]
+
+    #endregion [Event's]
+
+    #region Contorl Events
+
+    public void FunPubLoadLOBBranch()
+    {
+        try
+        {
+            dictDropdownListParam = new Dictionary<string, string>();
+            dictDropdownListParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictDropdownListParam.Add("@User_Id", Convert.ToString(intUserID));
+            dictDropdownListParam.Add("@Is_Active", "1");
+            dsApproval = Utility.GetDataset("S3G_CLN_GetLOBBranch_List", dictDropdownListParam);
+
+            ddllLineOfBusiness.FillDataTable(dsApproval.Tables[0], "LOB_ID", "LOB_NAME"); ///LOB 
+            ddlBranch.FillDataTable(dsApproval.Tables[1], "Location_ID", "Location_Name"); ///Branch
+            rblReceiptType.DataSource = dsApproval.Tables[2];
+            rblReceiptType.DataBind();
+            dictDropdownListParam = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw;
+        }
+    }
+
+    private void FunPubGetLocationList()
+    {
+        try
+        {
+            dictDropdownListParam = new Dictionary<string, string>();
+            dictDropdownListParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictDropdownListParam.Add("@User_Id", Convert.ToString(intUserID));
+            dictDropdownListParam.Add("@LOB_Id", Convert.ToString(ddllLineOfBusiness.SelectedValue));
+            dictDropdownListParam.Add("@Is_Active", "1");
+            dsApproval = Utility.GetDataset("S3G_CLN_GetLOBBranch_List", dictDropdownListParam);
+            ddlBranch.FillDataTable(dsApproval.Tables[1], "Location_ID", "Location_Name"); ///Branch
+            dictDropdownListParam = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw;
+        }
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ddlBranch.SelectedIndex > 0)
+                FunPubLoadReceipt();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvReceipt.IsValid = false;
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to load receipt details" + strErrMsgLast;
+        }
+    }
+
+    protected void ddllLineOfBusiness_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ddllLineOfBusiness.SelectedIndex > 0)
+            {
+                FunPubGetLocationList();
+                gvReceiptDetails.DataSource = null;
+                gvReceiptDetails.DataBind();
+                pnlReceiptDetails.Style.Add("display", "none");
+                //FunPubLoadReceipt();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvReceipt.IsValid = false;
+            cvReceipt.ErrorMessage = strErrorMsgData + "Unable to load receipt details" + strErrMsgLast;
+        }
+    }
+
+    public void FunPubClear()
+    {
+        // grvApprovalDetails.DataSource = dsApproval.Tables.Add();  //make empty grid
+        // grvApprovalDetails.DataBind();
+
+        txtStartDate.Text = txtEndDate.Text = string.Empty;
+        if (ddllLineOfBusiness.Items.Count > 0)
+            ddllLineOfBusiness.SelectedIndex = 0;
+        if (ddlBranch.Items.Count > 0)
+            ddlBranch.SelectedIndex = 0;
+        rblReceiptType.ClearSelection();
+        gvReceiptDetails.ClearGrid();
+        S3GCustomerPermAddress0.ClearCustomerDetails();
+        ProPageNumRW = 1;
+        ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+        ucCustomPaging.Navigation(0, ProPageNumRW, ProPageSizeRW);
+        ucCustomPaging.setPageSize(ProPageSizeRW);
+        pnlReceiptDetails.Style.Add("display", "none");
+    }
+
+    public void FunPubLoadReceipt()
+    {
+        try
+        {
+            dictDropdownListParam = new Dictionary<string, string>();
+            dictDropdownListParam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            dictDropdownListParam.Add("@User_Id", Convert.ToString(intUserID));
+            dictDropdownListParam.Add("@LOB_ID", ddllLineOfBusiness.SelectedValue.ToString());
+            dictDropdownListParam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+            dictDropdownListParam.Add("@Receipt_Type", rblReceiptType.SelectedValue.ToString() == "" ? "0" : rblReceiptType.SelectedValue.ToString());
+            dictDropdownListParam.Add("@Prcess_Mode", Convert.ToString(Request.QueryString["qsMode"]));
+            //ddlReceiptNo.BindDataTable("S3G_CLN_GetReceiptNumber_Approval", dictDropdownListParam, new string[] { "Receipt_ID", "Receipt_No" });
+            dictDropdownListParam = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw;
+        }
+    }
+
+    #endregion
+
+    #region [Function's]
+
+    #region [FunPriCheckBoxHeaderClick]
+
+    private void FunPriCheckBoxHeaderClick(bool bolCheck)
+    {
+        try
+        {
+            if (!bolCheck)
+            {
+                foreach (GridViewRow grRow in gvReceiptDetails.Rows)
+                {
+                    ((CheckBox)grRow.FindControl("cbxSelect")).Checked = false;
+                }
+                return;
+            }
+            else
+            {
+                foreach (GridViewRow grRow in gvReceiptDetails.Rows)
+                {
+                    ((CheckBox)grRow.FindControl("cbxSelect")).Checked = true;
+                }
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion [FunPriCheckBoxHeaderClick]
+
+    #region [DateFormat]
+
+    public string FormatDate(string strDate)
+    {
+        return DateTime.Parse(strDate, CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+    }
+
+    #endregion [DateFormat]
+
+    #region [Load the Receipt based on the condition]
+
+    public void FunPubLoadReceiptGrid(Boolean bolStatus)
+    {
+        try
+        {
+            dictDropdownListParam = new Dictionary<string, string>();
+            dictDropdownListParam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            dictDropdownListParam.Add("@User_Id", Convert.ToString(intUserID));
+            if (ddllLineOfBusiness.SelectedValue != "0")
+                dictDropdownListParam.Add("@LOB_ID", ddllLineOfBusiness.SelectedValue.ToString());
+            if (ddlBranch.SelectedValue != "0")
+                dictDropdownListParam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+            dictDropdownListParam.Add("@Receipt_Type", rblReceiptType.SelectedValue.ToString());
+            if (txtStartDate.Text != "")
+                dictDropdownListParam.Add("@FromDate", Utility.StringToDate(txtStartDate.Text).ToString());
+            if (txtEndDate.Text != "")
+                dictDropdownListParam.Add("@ToDate", Utility.StringToDate(txtEndDate.Text).ToString());
+            if (bolStatus)
+            {
+                DataTable dtReceipt = Utility.GetDefaultData("S3G_CLN_GetReceiptDetailsApproval", dictDropdownListParam);
+                dtReceipt.Columns.Add("Checked", typeof(Boolean));
+                gvReceiptDetails.DataSource = ViewState["DtReceiptDetails"] = dtReceipt;
+            }
+            else if (ViewState["DtReceiptDetails"] != null && ((DataTable)ViewState["DtReceiptDetails"]) != null && ((DataTable)ViewState["DtReceiptDetails"]).Rows.Count > 0)
+            {
+                gvReceiptDetails.DataSource = (DataTable)ViewState["DtReceiptDetails"];
+            }
+            else
+            {
+                DataTable dtReceipt = Utility.GetDefaultData("S3G_CLN_GetReceiptDetailsApproval", dictDropdownListParam);
+                dtReceipt.Columns.Add("Checked", typeof(Boolean));
+                gvReceiptDetails.DataSource = ViewState["DtReceiptDetails"] = dtReceipt;
+            }
+            gvReceiptDetails.DataBind();
+            //gvReceiptDetails.BindGridView("S3G_CLN_GetReceiptDetailsApproval", dictDropdownListParam);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw;
+        }
+    }
+
+    public void FunPubLoadReceiptGrid()
+    {
+        try
+        {
+            dictDropdownListParam = new Dictionary<string, string>();
+            //dictDropdownListParam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            //dictDropdownListParam.Add("@User_Id", Convert.ToString(intUserID));
+            if (ddllLineOfBusiness.SelectedValue != "0")
+                dictDropdownListParam.Add("@LOB_ID", ddllLineOfBusiness.SelectedValue.ToString());
+            if (ddlBranch.SelectedValue != "0")
+                dictDropdownListParam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+            dictDropdownListParam.Add("@Receipt_Type", rblReceiptType.SelectedValue.ToString());
+            if (txtStartDate.Text != "")
+                dictDropdownListParam.Add("@FromDate", Utility.StringToDate(txtStartDate.Text).ToString());
+            if (txtEndDate.Text != "")
+                dictDropdownListParam.Add("@ToDate", Utility.StringToDate(txtEndDate.Text).ToString());
+
+            int intTotalRecords = 0;
+            bool bIsNewRow = false;
+            ObjPaging.ProCompany_ID = intCompanyID;
+            ObjPaging.ProTotalRecords = intTotalRecords;
+            ObjPaging.ProCurrentPage = ProPageNumRW;
+            ObjPaging.ProPageSize = ProPageSizeRW;
+            ObjPaging.ProUser_ID = intUserID;
+
+            DataTable dtReceipt = Utility.GetGridData("S3G_CLN_GetReceiptDetailsApproval", dictDropdownListParam, out intTotalRecords, ObjPaging);
+            if (ViewState["DtReceiptList"] == null || ((DataTable)ViewState["DtReceiptList"]) == null || ((DataTable)ViewState["DtReceiptList"]).Rows.Count == 0)
+                ViewState["DtReceiptList"] = dtReceipt;
+            else
+            {
+                dtReceipt = FunPubSetSelectedRows(dtReceipt);
+            }
+            if (dtReceipt.Rows.Count == 0)
+            {
+                DataRow dr = dtReceipt.NewRow();
+                dr["Receipt_ID"] = "0";
+                dr["Receipt_No"] = "0";
+                dr["ID"] = "0";
+                dr["Receipt_Date"] = DateTime.Now;
+                dr["Value_Date"] = DateTime.Now;
+                dr["Instrument_Date"] = DateTime.Now;
+                dr["Authorized_Date"] = DateTime.Now;
+                dr["Total_Receipt_Amount"] = 0;
+                dr["BolStatus"] = false;
+                dr["BolChkAllStatus"] = false;
+                dtReceipt.Rows.Add(dr);
+            }
+
+            gvReceiptDetails.DataSource = dtReceipt;
+            gvReceiptDetails.DataBind();
+            //gvReceiptDetails.BindGridView("S3G_CLN_GetReceiptDetailsApproval", dictDropdownListParam, out intTotalRecords, ObjPaging, out bIsNewRow);
+            //  gvReceiptDetails.BindGridView("S3G_CLN_GetReceiptDetailsApproval", dictDropdownListParam);
+            if (intTotalRecords == 0)
+                gvReceiptDetails.Rows[0].Visible = false;
+
+            ucCustomPaging.Navigation(intTotalRecords, ProPageNumRW, ProPageSizeRW);
+            ucCustomPaging.setPageSize(ProPageSizeRW);
+            if (gvReceiptDetails.Rows.Count > 0)
+            {
+                pnlReceiptDetails.Style.Add("display", "inline");
+            }
+            btnAuthorization.Enabled = false;
+            if (dtReceipt.Rows.Count > 0)
+            {
+                if (intTotalRecords == 0)
+                    gvReceiptDetails.Rows[0].Visible = false;
+                btnAuthorization.Enabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw;
+        }
+    }
+
+    public void FunPubMergeNewRecords(DataTable dtCurrent)
+    {
+        if (ViewState["DtReceiptList"] != null && ((DataTable)ViewState["DtReceiptList"]) != null && ((DataTable)ViewState["DtReceiptList"]).Rows.Count > 0 && dtCurrent.Rows.Count > 0)
+        {
+            DataTable dtNewList = ((DataTable)ViewState["DtReceiptList"]).Copy();
+            foreach (DataRow drow in dtCurrent.Rows)
+            {
+                DataRow[] drcol = ((DataTable)ViewState["DtReceiptList"]).Select("Receipt_No='" + Convert.ToString(drow["Receipt_No"]) + "'");
+                if (drcol != null && drcol.Length > 0 && Convert.ToBoolean(drcol[0]["BolStatus"]) == true)
+                {
+                    drow.BeginEdit();
+                    drow["BolStatus"] = true;
+                    drow.AcceptChanges();
+                }
+            }
+        }
+    }
+
+    public DataTable FunPubSetSelectedRows(DataTable dtCurrent)
+    {
+        if (ViewState["DtReceiptList"] != null || ((DataTable)ViewState["DtReceiptList"]) != null || ((DataTable)ViewState["DtReceiptList"]).Rows.Count > 0)
+        {
+            DataTable dtNewList = ((DataTable)ViewState["DtReceiptList"]).Copy();
+            if (dtCurrent.Rows.Count > 0)
+            {
+                foreach (DataRow dr in dtCurrent.Rows)
+                {
+                    DataRow[] drcol = ((DataTable)ViewState["DtReceiptList"]).Select("Receipt_No='" + Convert.ToString(dr["Receipt_No"]) + "'");
+                    if (drcol != null && drcol.Length > 0 && Convert.ToBoolean(drcol[0]["BolStatus"]) == true)
+                    {
+                        dr.BeginEdit();
+                        dr["BolStatus"] = true;
+                        dr.AcceptChanges();
+                    }
+                    else if (drcol == null || drcol.Length == 0)
+                    {
+                        dtNewList.ImportRow(dr);
+                    }
+                }
+                ViewState["DtReceiptList"] = dtNewList;
+            }
+        }
+        DataRow[] drcount = dtCurrent.Select("BolStatus=true");
+        DataTable dtViewTable = ((DataTable)ViewState["DtReceiptList"]);
+        if (drcount.Length == dtCurrent.Rows.Count)
+        {
+            dtViewTable.Rows[0].BeginEdit();
+            dtViewTable.Rows[0]["BolChkAllStatus"] = true;
+            dtViewTable.Rows[0].EndEdit();
+            dtViewTable.Rows[0].AcceptChanges();
+        }
+        else
+        {
+            dtViewTable.Rows[0].BeginEdit();
+            dtViewTable.Rows[0]["BolChkAllStatus"] = false;
+            dtViewTable.Rows[0].EndEdit();
+            dtViewTable.Rows[0].AcceptChanges();
+        }
+        return dtCurrent;
+    }
+
+    public void FunPubSetCurrentCheckedRecord(string strReceiptNo, bool bolChecked, bool bolChkAll)
+    {
+        if (ViewState["DtReceiptList"] != null && ((DataTable)ViewState["DtReceiptList"]) != null && ((DataTable)ViewState["DtReceiptList"]).Rows.Count > 0)
+        {
+            if (bolChkAll == false)
+            {
+                DataRow[] drcol = ((DataTable)ViewState["DtReceiptList"]).Select("Receipt_No='" + strReceiptNo + "'");
+                if (drcol != null && drcol.Length > 0)
+                {
+                    drcol[0].BeginEdit();
+                    drcol[0]["BolStatus"] = bolChecked;
+                    drcol[0].AcceptChanges();
+                }
+            }
+            else
+            {
+                foreach (GridViewRow gvr in gvReceiptDetails.Rows)
+                {
+                    Label lblReceiptNo = gvr.FindControl("lblReceiptNo") as Label;
+                    DataRow[] drcol = ((DataTable)ViewState["DtReceiptList"]).Select("Receipt_No='" + lblReceiptNo.Text.ToString() + "'");
+                    if (drcol != null && drcol.Length > 0)
+                    {
+                        drcol[0].BeginEdit();
+                        drcol[0]["BolStatus"] = bolChecked;
+                        drcol[0].AcceptChanges();
+                    }
+                }
+            }
+        }
+    }
+
+    private void FunPriCheckBoxHeaderClick()
+    {
+        try
+        {
+            strSelect.Append("<Root>");
+            string strRegionID = string.Empty;
+            if (!((CheckBox)gvReceiptDetails.HeaderRow.FindControl("cbxAll")).Checked)
+            {
+                foreach (GridViewRow grRow in gvReceiptDetails.Rows)
+                {
+                    CheckBox chkCheques = ((CheckBox)grRow.FindControl("cbxSelect"));
+                    chkCheques.Checked = false;
+                }
+                return;
+            }
+            else
+            {
+                foreach (GridViewRow grRow in gvReceiptDetails.Rows)
+                {
+                    CheckBox chkCheques = ((CheckBox)grRow.FindControl("cbxSelect"));
+                    chkCheques.Checked = true;
+                }
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion [Load the Receipt based on the condition]
+
+    protected void FunPriReceiptApprovalQuery(int intReceipt_ID)
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            DataSet DS = new DataSet();
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_Id", Convert.ToString(intUserID));
+            Procparam.Add("@Receipt_ID", Convert.ToString(intReceipt_ID));
+            DS = Utility.GetDataset("S3G_CLN_GetReceiptDetailsApproval", Procparam);
+            if (DS.Tables.Count == 0)
+            {
+                Utility.FunShowAlertMsg(this.Page, "No data found");
+                return;
+            }
+            else
+            {
+                // Table 0[OLE Details]
+                if (DS.Tables[0].Rows.Count >= 1)
+                {
+                    if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != string.Empty)
+                    { ddllLineOfBusiness.SelectedValue = DS.Tables[0].Rows[0]["LOB_ID"].ToString(); }
+                    if (DS.Tables[0].Rows[0]["Location_ID"].ToString() != string.Empty)
+                    { ddlBranch.SelectedValue = DS.Tables[0].Rows[0]["Location_ID"].ToString(); }
+                    S3GCustomerPermAddress0.SetCustomerDetails(DS.Tables[1].Rows[0], true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    public bool FunPubReceiptAuthorize()
+    {
+        bool bolStatus = false;
+        MPE.Show();
+        string strReceiptID = string.Empty;
+        objClnReceipt_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+
+        try
+        {
+
+            //objReceiptDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ReceiptProcessingDataTable();
+            //objReceiptRow = objReceiptDataTable.NewS3G_CLN_ReceiptProcessingRow();
+            //objReceiptRow.Receipt_ID = Convert.ToInt32(btnAuthorize.CommandArgument);
+            //objReceiptRow.Company_ID = intCompanyID;
+            //objReceiptRow.Created_By = intUserID;
+
+            //objReceiptDataTable.AddS3G_CLN_ReceiptProcessingRow(objReceiptRow);
+            if (rblReceiptType.SelectedIndex == 0)
+            {
+                intErrCode = objClnReceipt_Client.FunPubReceiptAuthorize(out strReceiptID, intCompanyID, intUserID, Convert.ToInt32(btnAuthorize.CommandArgument));
+            }
+            else
+            {
+                intErrCode = objClnReceipt_Client.FunPubUTPAReceiptAuthorize(out strReceiptID, intCompanyID, intUserID, Convert.ToInt32(btnAuthorize.CommandArgument));
+            }
+            if (intErrCode == 0)
+            {
+                //To avoid double Authorize click
+                btnAuthorize.Enabled = false;
+                //End here
+
+                bolStatus = true;
+                btnAuthorize.CommandArgument = "";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Selected Receipt authorized successfully');", true);
+                FunPubResetGridDetails();
+            }
+            else if (intErrCode == 15) //Aded by Tamilselvan.S on 16/05/2011
+            {
+                Utility.FunShowAlertMsg(this.Page, "Memo master not defined.");
+                bolStatus = false;
+            }
+            else
+            {
+                bolStatus = false;
+                if ((intErrCode == 50) || (intErrCode == 51) || (intErrCode == 52) || (intErrCode == 53) || (intErrCode == 120))
+                {
+                    Utility.FunShowValidationMsg(this.Page, "", intErrCode);
+                }
+                else
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Error in authorizing Receipt');", true);
+                }
+            }
+        }
+        catch (FaultException<ClnReceiptMgtServicesReference.ClsPubFaultException> ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            //if (objClnReceipt_Client != null)
+
+            objClnReceipt_Client.Close();
+
+        }
+        return bolStatus;
+    }
+
+    public bool FunPubRevokeReceiptAuthorize()
+    {
+        bool bolStatus = false;
+        string strReceiptID = string.Empty;
+        objClnReceipt_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        try
+        {
+            if (rblReceiptType.SelectedIndex == 0)
+            {
+                intErrCode = objClnReceipt_Client.FunPubRevokeReceiptAuthorize(out strReceiptID, intCompanyID, intUserID, Convert.ToInt32(btnRevoke.CommandArgument));
+            }
+            else
+            {
+                intErrCode = objClnReceipt_Client.FunPubRevokeUTPAReceiptAuthorize(out strReceiptID, intCompanyID, intUserID, Convert.ToInt32(btnRevoke.CommandArgument));
+            }
+            if (intErrCode == 25)
+            {
+                bolStatus = false;
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Challan was generated for this receipt, cannot revoke');", true);
+            }
+            else if (intErrCode == 0)
+            {
+                bolStatus = true;
+                btnRevoke.CommandArgument = "";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Selected Receipt authorization revoked successfully');", true);
+                FunPubResetGridDetails();
+            }
+            else
+            {
+                bolStatus = false;
+                if ((intErrCode == 50) || (intErrCode == 51) || (intErrCode == 52) || (intErrCode == 53) || (intErrCode == 120))
+                {
+                    Utility.FunShowValidationMsg(this.Page, "", intErrCode);
+                }
+                else
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Error in Revoke the Receipt authorize');", true);
+                }
+            }
+        }
+        catch (FaultException<ClnReceiptMgtServicesReference.ClsPubFaultException> ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            //if (objClnReceipt_Client != null)
+
+            objClnReceipt_Client.Close();
+
+        }
+        return bolStatus;
+    }
+
+    public void FunPubResetGridDetails()
+    {
+        ProPageNumRW = 1;
+        ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+        ucCustomPaging.Navigation(0, ProPageNumRW, ProPageSizeRW);
+        ucCustomPaging.setPageSize(ProPageSizeRW);
+        gvReceiptDetails.DataSource = null;
+        gvReceiptDetails.DataBind();
+        FunPubLoadReceiptGrid();
+    }
+
+    #endregion [Function's]
+
+}

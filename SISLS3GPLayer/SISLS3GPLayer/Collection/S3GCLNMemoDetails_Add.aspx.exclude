@@ -1,0 +1,185 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GCLNMemoDetails_Add.aspx.cs" Inherits="Collection_S3GCLNMemoDetails_Add"
+    Title="Untitled Page" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel21" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" ID="lblHeading" CssClass="styleInfoLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+            <table align="center" width="100%">
+                <tr>
+                    <td style="padding-top: 10px">
+                        <table width="100%">
+                            <tr width="50%">
+                                <td class="styleFieldLabel" width="15%">
+                                    <asp:Label ID="lblLOB" runat="server" Text="Line of Business" CssClass="styleDisplayLabel"></asp:Label>
+                                </td>
+                                <td class="styleFieldAlign" width="40%">
+                                    <asp:DropDownList ID="ddlLOB" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged">
+                                    </asp:DropDownList>
+                                </td>
+                                <td class="styleFieldLabel" width="15%">
+                                    <asp:Label ID="lblActive" runat="server" Text="Active" CssClass="styleDisplayLabel"></asp:Label>
+                                </td>
+                                <td class="styleFieldAlign" style="padding-left: 7px;">
+                                    <asp:CheckBox ID="CbxActive" runat="server" />
+                                </td>
+                            </tr>
+                            <tr width="50%">
+                                <td class="styleFieldLabel" width="15%">
+                                    <asp:Label ID="lblBranch" runat="server" Text="Location" CssClass="styleDisplayLabel"></asp:Label>
+                                </td>
+                                <td class="styleFieldAlign" width="40%">
+                                    <%-- <asp:DropDownList ID="ddlBranch" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlBranch_SelectedIndexChanged">
+                                    </asp:DropDownList>--%>
+                                    <uc:Suggest ID="ddlBranch" runat="server" AutoPostBack="True" OnItem_Selected="ddlBranch_SelectedIndexChanged"
+                                        ServiceMethod="GetBranchList" WatermarkText="--All--" />
+                                </td>
+                                <td colspan="2">
+                                    &nbsp;
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldAlign">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr align="center" width="100%">
+                    <td width="100%">
+                        <asp:Panel runat="server" ID="panMemo" GroupingText="Memo Details" CssClass="stylePanel"
+                            Width="70%">
+                            <asp:GridView ID="gvMemo" runat="server" CssClass="styleInfoLabel" Width="100%" AutoGenerateColumns="False"
+                                HorizontalAlign="Center" OnRowCommand="gvMemo_RowCommand" OnRowDataBound="gvMemo_RowDataBound"
+                                OnRowDeleting="gvMemo_RowDeleting" ShowFooter="true">
+                                <Columns>
+                                    <asp:TemplateField Visible="False">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblCode" runat="server" Text='<%# Eval("Lookup_Code") %>' /></ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:Label ID="lblFCode" runat="server" Text='<%# Eval("Lookup_Code") %>' /></ItemTemplate>
+                                        </FooterTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField Visible="False">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblMemoID" runat="server" Text='<%# Eval("Memo_ID") %>' /></ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:Label ID="lblfMemoID" runat="server" Text='<%# Eval("Memo_ID") %>' /></ItemTemplate>
+                                        </FooterTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Serial Number">
+                                        <ItemTemplate>
+                                            <asp:Label runat="server" ID="lblSNO" Text='<%#Container.DataItemIndex+1%>'></asp:Label>
+                                        </ItemTemplate>
+                                        <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                        <ItemStyle Width="5%" HorizontalAlign="Center" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Memo Description" HeaderStyle-CssClass="styleGridHeader">
+                                        <ItemTemplate>
+                                            <asp:Label runat="server" ID="txtDesc" Text='<%# Eval("Lookup_Description")%>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:DropDownList ID="ddlDesc" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlDesc_SelectedIndexChanged">
+                                            </asp:DropDownList>
+                                        </FooterTemplate>
+                                        <FooterStyle HorizontalAlign="Center" />
+                                        <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                        <ItemStyle Width="20%" HorizontalAlign="Left" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="GL Account" HeaderStyle-CssClass="styleGridHeader">
+                                        <ItemTemplate>
+                                            <asp:Label runat="server" ID="txtGLAC" Text='<%# Eval("GL_Account")%>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:DropDownList ID="ddlGL" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlGL_SelectedIndexChanged">
+                                                <asp:ListItem Text="--select--" Value="0"></asp:ListItem>
+                                            </asp:DropDownList>
+                                        </FooterTemplate>
+                                        <FooterStyle HorizontalAlign="Center" />
+                                        <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                        <ItemStyle HorizontalAlign="Left" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="SL Account" HeaderStyle-CssClass="styleGridHeader">
+                                        <ItemTemplate>
+                                            <asp:Label runat="server" ID="txtSL" Text='<%# Eval("SL_Account")%>'></asp:Label>
+                                            <%-- <asp:TextBox ID="txtSL" runat="server" MaxLength="3" Text='<%# Eval("SL_Account")%>' Width="200px" ReadOnly="true"></asp:TextBox>--%>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:DropDownList ID="ddlSL" runat="server" AutoPostBack="true">
+                                                <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
+                                            </asp:DropDownList>
+                                        </FooterTemplate>
+                                        <FooterStyle HorizontalAlign="Center" />
+                                        <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                        <ItemStyle HorizontalAlign="Left" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField>
+                                        <ItemTemplate>
+                                            <asp:LinkButton ID="btnRemove" Text="Remove" CommandName="Delete" runat="server"
+                                                CausesValidation="false" />
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:Button ID="btnAddrow" CausesValidation="false" runat="server" CommandName="AddNew"
+                                                CssClass="styleGridShortButton" Text="Add"></asp:Button>
+                                        </FooterTemplate>
+                                        <FooterStyle HorizontalAlign="Center" />
+                                        <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                    </asp:TemplateField>
+                                </Columns>
+                                <HeaderStyle CssClass="styleInfoLabel" HorizontalAlign="Center" />
+                            </asp:GridView>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="height: 10px">
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center">
+                        <asp:Button runat="server" ID="btnSave" CssClass="styleSubmitButton" Text="Save"
+                            OnClientClick="return fnCheckPageValidators();" OnClick="btnSave_Click" />
+                        &nbsp;
+                        <asp:Button runat="server" ID="btnClear" CssClass="styleSubmitButton" Text="Clear"
+                            CausesValidation="False" OnClick="btnClear_Click" OnClientClick="return fnConfirmClear();" />
+                        <%--  <cc1:ConfirmButtonExtender ID="btnAssetClear_ConfirmButtonExtender" runat="server"
+                            ConfirmText="Do you want to Clear?" Enabled="True" TargetControlID="btnClear">
+                        </cc1:ConfirmButtonExtender>--%>
+                        &nbsp;
+                        <asp:Button runat="server" ID="btnCancel" CssClass="styleSubmitButton" CausesValidation="False"
+                            Text="Cancel" OnClick="btnCancel_Click" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:ValidationSummary ID="vsMemo" runat="server" CssClass="styleMandatoryLabel"
+                            HeaderText="Correct the following validation(s):  " />
+                        <asp:CustomValidator ID="cvMemo" runat="server" Display="None" CssClass="styleMandatoryLabel"></asp:CustomValidator>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:Label ID="lblErrorMessage" runat="server" Style="color: Red; font-size: medium"></asp:Label>
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

@@ -1,0 +1,2205 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : Follow up Instructions
+/// Created By                : VijayaKumar
+/// Created Date              : 21-Feb-2011
+/// Purpose                   : 
+/// Last Updated By           : 
+/// Last Updated Date         : 
+/// Reason                    :
+
+/// <Program Summary>
+#endregion
+
+#region Namespaces
+
+using System;
+using System.Web.UI;
+using System.Data;
+using System.Text;
+using S3GBusEntity.Collection;
+using S3GBusEntity;
+using System.Web.UI.WebControls;
+using System.IO;
+using System.Web.Security;
+using System.Configuration;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Xml;
+using System.Xml.Linq;
+using System.Linq;
+using System.ServiceModel;
+using System.ServiceModel;
+using AjaxControlToolkit;
+
+#endregion
+
+public partial class Collection_S3GClnFollowUpInstructions : ApplyThemeForProject
+{
+    #region Common Variable declaration
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> ObjDictionary = null;
+    int intErrCode = 0;
+    int intFollowUpId = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strDateFormat = string.Empty;
+    //string strMode = string.Empty;
+    static string strPageName = "Follow Up Instructions";
+    static string strSuffix = "";
+    FormsAuthenticationTicket Ticket;
+    static int intTicketNo = 1;
+    //int intTicket = 0;
+
+    ClnDataMgtServicesReference.ClnDataMgtServicesClient objFollowUp_Client;
+    S3GBusEntity.Collection.ClnDataMgtServices.S3G_CLN_FollowUpDataTable objS3G_CLN_FollowUpDataTable = null;
+    S3GBusEntity.Collection.ClnDataMgtServices.S3G_CLN_FollowUpRow objS3G_CLN_FollowUpRow = null;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3gCLNTransLander.aspx?Code=CFP";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnFollowUpInstructions.aspx?qsMode=C'";
+    string strRedirectPageView = "window.location.href='../Collection/S3gCLNTransLander.aspx?Code=CFP'";
+    string strErrorMessagePrefix = @"Correct the following validation(s): </br></br>   ";
+
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+
+    #endregion
+
+    #region Events
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriPageLoad();
+            //if (!Page.IsPostBack)
+            //{
+            TextBox txtUserName = ((TextBox)ucPopUp.FindControl("txtName"));
+            txtUserName.Attributes.Add("onfocus", "fnLoadCustomer();");
+            txtUserName.AutoPostBack = true;
+            txtUserName.ToolTip = txtUserName.Text;
+            Button btnGetLOV = ((Button)ucPopUp.FindControl("btnGetLOV"));
+            btnGetLOV.Attributes.Add("onClick", "if(fnSearchFocus()){if(document.getElementById('ctl00_ContentPlaceHolder1_ucPopUp_hdnShow'))document.getElementById('ctl00_ContentPlaceHolder1_ucPopUp_hdnShow').value='1';}");
+            //}
+            strSuffix = Utility.SetSuffix();
+            txtNotifyDt.Attributes.Add("ReadOnly", "true");
+            //FunPubClearPopUp();
+
+            if (txtTicketNo.Text.Trim() != "")
+            {
+                ModalPopupExtender ucMPE = ((ModalPopupExtender)ucPopUp.FindControl("ucMPE"));
+                if (ucMPE != null) ucMPE.Dispose();
+                ucPopUp._ucShow = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            funGridClear(grvMain);
+            funGridClear(grvAssetDetails);
+            ucdCustomer.ClearCustomerDetails();
+            funGridClear(grvAccountDetails);
+            funGridClear(grvFollowUp);
+            pnlFollowUp.Visible = true;
+            FunPubClearPopUp();
+
+            if (ObjDictionary != null)
+                ObjDictionary.Clear();
+            else
+                ObjDictionary = new Dictionary<string, string>();
+
+            if ((ucPopUp.FindControl("txtName") as TextBox).Text.Trim() != "" && ddlType.SelectedValue != "0")
+            {
+                ObjDictionary.Add("@Company_ID", intCompanyID.ToString());
+                ObjDictionary.Add("@Type", ddlType.SelectedValue.ToString());
+                ObjDictionary.Add("@SearchValue", (ucPopUp.FindControl("txtName") as TextBox).Text.Trim());
+                ObjDictionary.Add("@UserId", intUserID.ToString());
+                if (ddlType.SelectedValue == "1" || ddlType.SelectedValue == "2" || ddlType.SelectedValue == "3")
+                    ObjDictionary.Add("@SearchType", "Customer");
+                else
+                    ObjDictionary.Add("@SearchType", "Account");
+
+                DataSet dsFollow = Utility.GetDataset("S3G_CLN_GetFollowUpList", ObjDictionary);
+                if (dsFollow.Tables[0] != null && dsFollow.Tables[0].Rows.Count > 0)
+                {
+                    grvMain.DataSource = dsFollow.Tables[0];
+                    grvMain.DataBind();
+                    pnlAccount.Visible = true;
+                }
+
+                if (dsFollow.Tables[1] != null && dsFollow.Tables[1].Rows.Count > 0)
+                {
+                    ucdCustomer.SetCustomerDetails(dsFollow.Tables[1].Rows[0], true);
+                    hidCustomerId.Text = dsFollow.Tables[1].Rows[0]["Customer_ID"].ToString();
+                    FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(hidCustomerId.Text, false, 0);
+                    btnUp.Attributes.Add("OnClick", "document.getElementById('ctl00_ContentPlaceHolder1_ucPopUp_hdnShow').value='0';if(funUpValidate()){ window.open('../Origination/S3GOrgCustomerMaster_Add.aspx?IsFromEnquiry=Yes&qsCustomerId=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=Q', 'null','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');return false;}");
+                }
+
+                if (dsFollow.Tables[2] != null && dsFollow.Tables[2].Rows.Count > 0)
+                {
+                    grvAssetDetails.DataSource = dsFollow.Tables[2];
+                    grvAssetDetails.DataBind();
+                }
+
+                ViewState["dtFollow"] = ViewState["dtFollowAll"] = dsFollow.Tables[3];
+                ViewState["Followup"] = dsFollow.Tables[3];
+                if (dsFollow.Tables[3] != null && dsFollow.Tables[3].Rows.Count > 0)
+                {
+                    pnlFollowUp.Visible = true;
+                    grvFollowUp.DataSource = dsFollow.Tables[3];
+                    grvFollowUp.DataBind();
+                }
+                else
+                {
+                    grvFollowUp.DataSource = funAddRow();
+                    grvFollowUp.DataBind();
+                    grvFollowUp.Rows[0].Visible = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void ddlType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            (ucPopUp.FindControl("txtName") as TextBox).Text = "";
+            (ucPopUp.FindControl("hdnID") as HiddenField).Value = "";
+            funAssignPopupValue();
+
+            ddlSearch.Items.Clear();
+            funGridClear(grvMain);
+            funGridClear(grvAssetDetails);
+            ucdCustomer.ClearCustomerDetails();
+            pnlFollowUp.Visible = pnlAccount.Visible = pnlAccountInformation.Visible = false;
+            funGridClear(grvFollowUp);
+            ViewState["Followup"] = null;
+            funGridClear(grvAccountDetails);
+            hidCustomerId.Text = "";
+
+            if(ddlType.SelectedValue == "0")
+            {
+                Session.Remove("FU_TYPE");
+            }
+            else
+            {
+                Session["FU_TYPE"] = ddlType.SelectedValue;
+            }
+
+            //if (ObjDictionary != null)
+            //    ObjDictionary.Clear();
+            //else
+            //    ObjDictionary = new Dictionary<string, string>();
+
+            //ObjDictionary.Add("@Company_ID", intCompanyID.ToString());
+            //ObjDictionary.Add("@Type", ddlType.SelectedValue.ToString());
+            //ObjDictionary.Add("@UserId", Convert.ToString(intUserID));
+            //ddlSearch.BindDataTable("S3G_CLN_GetFollowUpType", ObjDictionary, true, "-- Select --", new string[] { "Searchvalue", "Searchvalue" });
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void ddlSearch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            funGridClear(grvMain);
+            funGridClear(grvAssetDetails);
+            ucdCustomer.ClearCustomerDetails();
+            funGridClear(grvAccountDetails);
+            funGridClear(grvFollowUp);
+            ViewState["Followup"] = null;
+            pnlFollowUp.Visible = true;
+
+            if (ObjDictionary != null)
+                ObjDictionary.Clear();
+            else
+                ObjDictionary = new Dictionary<string, string>();
+
+            ObjDictionary.Add("@Company_ID", intCompanyID.ToString());
+            ObjDictionary.Add("@Type", ddlType.SelectedValue.ToString());
+            ObjDictionary.Add("@SearchValue", ddlSearch.SelectedValue.ToString());
+            ObjDictionary.Add("@UserId", intUserID.ToString());
+
+            DataSet dsFollow = Utility.GetDataset("S3G_CLN_GetFollowUpList", ObjDictionary);
+            if (dsFollow.Tables[0] != null && dsFollow.Tables[0].Rows.Count > 0)
+            {
+                grvMain.DataSource = dsFollow.Tables[0];
+                grvMain.DataBind();
+                pnlAccount.Visible = true;
+            }
+
+            if (dsFollow.Tables[1] != null && dsFollow.Tables[1].Rows.Count > 0)
+            {
+                ucdCustomer.SetCustomerDetails(dsFollow.Tables[1].Rows[0], true);
+                hidCustomerId.Text = dsFollow.Tables[1].Rows[0]["Customer_ID"].ToString();
+                FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(hidCustomerId.Text, false, 0);
+                btnUp.Attributes.Add("OnClick", "document.getElementById('ctl00_ContentPlaceHolder1_ucPopUp_hdnShow').value='0';if(funUpValidate()){ window.open('../Origination/S3GOrgCustomerMaster_Add.aspx?IsFromEnquiry=Yes&qsCustomerId=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=Q', 'null','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');return false;}");
+            }
+
+            if (dsFollow.Tables[2] != null && dsFollow.Tables[2].Rows.Count > 0)
+            {
+                grvAssetDetails.DataSource = dsFollow.Tables[2];
+                grvAssetDetails.DataBind();
+            }
+
+            ViewState["dtFollow"] = ViewState["dtFollowAll"] = dsFollow.Tables[3];
+            ViewState["Followup"] = dsFollow.Tables[3];
+            if (dsFollow.Tables[3] != null && dsFollow.Tables[3].Rows.Count > 0)
+            {
+                grvFollowUp.DataSource = dsFollow.Tables[3];
+                grvFollowUp.DataBind();
+            }
+            else
+            {
+                grvFollowUp.DataSource = funAddRow();
+                grvFollowUp.DataBind();
+                grvFollowUp.Rows[0].Visible = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void btnDown_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (hidCustomerId.Text.Trim() == "")
+            {
+                cvFollowUp.ErrorMessage = strErrorMessagePrefix + " Select the search description";
+                cvFollowUp.IsValid = false;
+                return;
+            }
+            FunPubClearPopUp();
+            pnlAccountInformation.Visible = true;
+            funGridClear(grvAccountDetails);
+
+            bool IsCheck = false;
+            List<StringBuilder> objList = FunFormXml(out IsCheck);
+
+            if (ObjDictionary != null)
+                ObjDictionary.Clear();
+            else
+                ObjDictionary = new Dictionary<string, string>();
+
+            ObjDictionary.Add("@Company_ID", intCompanyID.ToString());
+            if (IsCheck) ObjDictionary.Add("@StrXml", objList[0].ToString());// strGrvXML.ToString());
+            else ObjDictionary.Add("@StrXml", objList[1].ToString());// strAllXML.ToString());
+
+            grvAccountDetails.DataSource = Utility.GetDefaultData("S3G_CLN_GetFollowUp_AccountDetails", ObjDictionary);
+            grvAccountDetails.DataBind();
+
+            if (grvAccountDetails.Rows.Count == 0)
+            {
+                pnlAccountInformation.Visible = false;
+                Utility.FunShowAlertMsg(this, "Account Information does not exists");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    private List<StringBuilder> FunFormXml(out bool IsCheck)
+    {
+        List<StringBuilder> objList = new List<StringBuilder>();
+        StringBuilder strGrvXML = new StringBuilder();
+        StringBuilder strAllXML = new StringBuilder();
+        strGrvXML.Append("<Root>");
+        strAllXML.Append("<Root>");
+        IsCheck = false;
+
+        foreach (GridViewRow gvRow in grvMain.Rows)
+        {
+            CheckBox chkSelect = (CheckBox)gvRow.FindControl("chkSelect");
+            Label txtPrimeAccountNo = (Label)gvRow.FindControl("txtPrimeAccountNo");
+            Label txtSubAccountNo = (Label)gvRow.FindControl("txtSubAccountNo");
+
+            if (chkSelect.Checked)
+            {
+                IsCheck = true;
+                strGrvXML.Append("<Details  PANum='" + txtPrimeAccountNo.Text.Trim() + "' SANum ='" + txtSubAccountNo.Text.Trim() + "' /> ");
+            }
+            strAllXML.Append("<Details  PANum='" + txtPrimeAccountNo.Text.Trim() + "' SANum ='" + txtSubAccountNo.Text.Trim() + "' /> ");
+        }
+        strGrvXML.Append("</Root>");
+        strAllXML.Append("</Root>");
+        objList.Add(strGrvXML);
+        objList.Add(strAllXML);
+        return objList;
+    }
+
+    protected void grvFollowUp_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                LinkButton btnRemove = (LinkButton)e.Row.FindControl("btnRemove");
+                Label txtTicketNo = (Label)e.Row.FindControl("txtTicketNo");
+                LinkButton btnView = (LinkButton)e.Row.FindControl("btnView");
+                Label txtQuery = (Label)e.Row.FindControl("txtQuery");
+                LinkButton lnkQuery = (LinkButton)e.Row.FindControl("lnkQuery");
+                HiddenField hidQueryType = (HiddenField)e.Row.FindControl("hidQueryType");
+                HiddenField hidVersionNo = (HiddenField)e.Row.FindControl("hidVersionNo");
+                HiddenField hidStatus = (HiddenField)e.Row.FindControl("hidStatus");
+                HiddenField IsMax = (HiddenField)e.Row.FindControl("IsMax");
+                Label txtDescription = (Label)e.Row.FindControl("txtDescription");
+
+
+                //txtDescription.Text = txtDescription.Text.Replace("~Remarks:~", "<font  color='blue;' Weight='bold;'>Remarks:</font>");
+
+                if (txtTicketNo.Text.Trim() == "-1")
+                    e.Row.Visible = false;
+
+                if (txtTicketNo.Text.Trim() == "0" || txtTicketNo.Text.Trim() == "-1")
+                {
+                    txtTicketNo.Text = "";
+                    btnRemove.Enabled = btnView.Enabled = false;
+                }
+
+                if (hidVersionNo.Value.Trim() == "" || hidVersionNo.Value.Trim() == "0")
+                {
+                    btnRemove.Enabled = btnView.Enabled = lnkQuery.Visible = false;
+                }
+                else
+                {
+                    txtQuery.Visible = false;
+                }
+
+                if (IsMax.Value.Trim().ToUpper() == "TRUE" && txtTicketNo.Text != "")
+                {
+                    lnkQuery.Visible = btnRemove.Enabled = btnView.Enabled = true;
+                    txtQuery.Visible = false;
+                }
+                else
+                {
+                    lnkQuery.Visible = btnRemove.Enabled = btnView.Enabled = false;
+                    txtQuery.Visible = true;
+                }
+                if (hidQueryType.Value == "2" || hidQueryType.Value == "4")
+                {
+                    lnkQuery.Visible = false;
+                    txtQuery.Visible = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void ddlFrom_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            TextBox txtName = ucFrom.FindControl("txtName") as TextBox;
+            HiddenField hdnID = ucFrom.FindControl("hdnID") as HiddenField;
+            txtName.Text = hdnID.Value = string.Empty;
+            MPE.Show();
+            funAssignUser(ddlFrom, ucFrom);
+            FunPubClearPopUp();
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void ddlTo_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            TextBox txtName = ucTo.FindControl("txtName") as TextBox;
+            HiddenField hdnID = ucTo.FindControl("hdnID") as HiddenField;
+            txtName.Text = hdnID.Value = string.Empty;
+            MPE.Show();
+            funAssignUser(ddlTo, ucTo);
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void ddlQuery_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            if (hdnView.Value != "")
+            {
+                if (ddlQuery.SelectedValue == "5")
+                    ddlStatus.SelectedValue = "2";
+                if (ddlQuery.SelectedValue == "2" || ddlQuery.SelectedValue == "4")
+                    ddlStatus.SelectedValue = "3";
+            }
+            else
+            {
+                if (ddlQuery.SelectedValue != "1" && ddlQuery.SelectedValue != "3")
+                    txtTicketNo.Text = "";
+                else
+                    txtTicketNo.Text = hdnTicketNo.Value;
+            }
+            if (ddlQuery.SelectedValue == "1" || ddlQuery.SelectedValue == "3")
+                ceNotifyDt.Enabled = true;
+            else
+                ceNotifyDt.Enabled = false;
+
+            if (ddlQuery.SelectedValue == "5")
+            {
+                rfvddlQuery.Enabled = false;
+            }
+            else
+            {
+                rfvddlQuery.Enabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void btnView_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            ddlQuery.Items.Clear();
+            DataSet dsLookUp = ViewState["FollowUpLookUp"] as DataSet;
+            ddlQuery.DataSource = dsLookUp.Tables[3];
+            ddlQuery.DataValueField = "Lookup_Code";
+            ddlQuery.DataTextField = "Lookup_Description";
+            ddlQuery.DataBind();
+            ddlQuery.Items.Insert(0, new ListItem("--Select--", "0"));
+            ddlQuery.Items.RemoveAt(6);
+
+            funClearPopUp();
+            MPE.Show();
+            LinkButton btnView = (LinkButton)sender;
+            GridViewRow gvRow = (GridViewRow)btnView.Parent.Parent;
+            DataTable dtFollowUp = (DataTable)ViewState["dtFollow"];
+            Label txtTicket = (Label)gvRow.FindControl("txtTicketNo");
+            HiddenField hidQueryType = (HiddenField)gvRow.FindControl("hidQueryType");
+            hdnView.Value = gvRow.RowIndex.ToString();
+
+            DataRow[] drlist = dtFollowUp.Select("TicketNo= " + Convert.ToInt32(txtTicket.Text.Trim()) + " and QueryType='" + hidQueryType.Value + "'  ");
+            DataRow[] drlist1 = dtFollowUp.Select("TicketNo= " + Convert.ToInt32(txtTicket.Text.Trim()) + " and QueryType <> '" + hidQueryType.Value + "'  ");
+            DataRow[] drStatus = dtFollowUp.Select("TicketNo= " + Convert.ToInt32(txtTicket.Text.Trim()) + " ");
+
+            if (drlist.Length > 0)
+            {
+                txtTicketNo.Text = hdnTicketNo.Value = drlist[0]["TicketNo"].ToString();
+                txtDate.Text = FormatDate(drlist[0]["Date"].ToString());
+                //txtDescription.Text = drlist[0]["Description"].ToString();
+                txtNotifyDt.Text = FormatDate(drlist[0]["NotifyDate"].ToString());
+                ddlFrom.SelectedValue = drlist[0]["To_Type"].ToString();
+                ddlTo.SelectedValue = drlist[0]["From_Type"].ToString();
+                if (btnView.Text.ToUpper() == "EDIT")
+                {
+                    ddlQuery.SelectedValue = drlist[0]["QueryType"].ToString();
+                    ddlQuery.ClearDropDownList();
+                }
+                ddlMode.SelectedValue = drlist[0]["Mode"].ToString();
+                if (ddlQuery.SelectedValue == "1" || ddlQuery.SelectedValue == "3")
+                    ceNotifyDt.Enabled = true;
+                else
+                    ceNotifyDt.Enabled = false;
+
+                TextBox txtFromName = ucFrom.FindControl("txtName") as TextBox;
+                HiddenField hdnIDFrom = ucFrom.FindControl("hdnID") as HiddenField;
+                TextBox txtToName = ucTo.FindControl("txtName") as TextBox;
+                HiddenField hdnIDTo = ucTo.FindControl("hdnID") as HiddenField;
+                txtFromName.Text = drlist[0]["To_UserName"].ToString();
+                txtToName.Text = drlist[0]["From_UserName"].ToString();
+                hdnIDFrom.Value = drlist[0]["To"].ToString();
+                hdnIDTo.Value = drlist[0]["From"].ToString();
+                ddlStatus.SelectedValue = drStatus[0]["Status_Code"].ToString();
+                funAssignUser(ddlFrom, ucFrom);
+                funAssignUser(ddlTo, ucTo);
+
+                switch (drlist[0]["QueryType"].ToString())
+                {
+                    case "1":
+                        ddlStatus.SelectedValue = "1";
+                        break;
+                    case "2":
+                        ddlStatus.SelectedValue = "3";
+                        break;
+                    case "4":
+                        ddlStatus.SelectedValue = "3";
+                        break;
+                    case "3":
+                        ddlStatus.SelectedValue = "1";
+                        break;
+                    case "5":
+                        ddlStatus.SelectedValue = "2";
+                        break;
+                }
+            }
+
+            if (btnView.Text.ToUpper() != "EDIT")
+            {
+                hdnView.Value = "-1";
+                if (drlist.Length > 0)
+                {
+                    switch (drlist[0]["QueryType"].ToString())
+                    {
+                        case "1":
+                            ddlQuery.Items.RemoveAt(4);
+                            ddlQuery.Items.RemoveAt(3);
+                            ddlQuery.Items.RemoveAt(1);
+                            ddlStatus.SelectedValue = "1";
+                            break;
+                        case "2":
+                            ddlQuery.Items.RemoveAt(4);
+                            ddlQuery.Items.RemoveAt(3);
+                            ddlQuery.Items.RemoveAt(1);
+                            ddlStatus.SelectedValue = "3";
+                            break;
+                        case "4":
+                            ddlQuery.Items.RemoveAt(2);
+                            ddlQuery.Items.RemoveAt(3);
+                            ddlQuery.Items.RemoveAt(1);
+                            ddlStatus.SelectedValue = "3";
+                            break;
+                        case "3":
+                            ddlQuery.Items.RemoveAt(3);
+                            ddlQuery.Items.RemoveAt(2);
+                            ddlQuery.Items.RemoveAt(1);
+                            ddlStatus.SelectedValue = "1";
+                            break;
+                        case "5":
+                            ddlStatus.SelectedValue = "2";
+                            if (drlist1.Length > 0)
+                            {
+                                if (drlist1[0]["QueryType"].ToString() == "1" || drlist1[0]["QueryType"].ToString() == "3")
+                                {
+                                    ddlQuery.Items.RemoveAt(4);
+                                    ddlQuery.Items.RemoveAt(3);
+                                    ddlQuery.Items.RemoveAt(1);
+                                }
+                            }
+                            else
+                            {
+                                ddlQuery.Items.RemoveAt(3);
+                                ddlQuery.Items.RemoveAt(1);
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void btnOK_Click(object sender, EventArgs e)
+    {
+        FunPubClearPopUp();
+        try
+        {
+            if (((TextBox)ucFrom.FindControl("txtName")).Text.Trim() == "")
+            {
+                cvOK.ErrorMessage = strErrorMessagePrefix + "From cannot be empty";
+                cvOK.IsValid = false;
+                MPE.Show();
+                return;
+            }
+            if (ddlFrom.SelectedValue == ddlTo.SelectedValue)
+            {
+                if (ddlFrom.SelectedValue != "1")
+                {
+                    cvOK.ErrorMessage = strErrorMessagePrefix + "From Type and To Type cannot be same";
+                    cvOK.IsValid = false;
+                    MPE.Show();
+                    return;
+                }
+                if (((HiddenField)ucFrom.FindControl("hdnID")).Value.Trim() == ((HiddenField)ucTo.FindControl("hdnID")).Value.Trim())
+                {
+                    cvOK.ErrorMessage = strErrorMessagePrefix + "From and To cannot be same";
+                    cvOK.IsValid = false;
+                    MPE.Show();
+                    return;
+                }
+            }
+            if (ddlTo.SelectedValue == "1")
+            {
+                if (((HiddenField)ucTo.FindControl("hdnID")).Value.Trim() == intUserID.ToString())
+                {
+                    cvOK.ErrorMessage = strErrorMessagePrefix + "To cannot be same to as Logged in user";
+                    cvOK.IsValid = false;
+                    MPE.Show();
+                    return;
+                }
+            }
+
+            MPE.Hide();
+            DataTable dtFollow = new DataTable();
+            DataTable dt = ViewState["dtFollow"] as DataTable;
+
+            dtFollow = dt.Clone();
+            DataRow drFollow;
+
+            if (hdnView.Value == "" || hdnView.Value == "-1")
+            {
+                /* Newly add*/
+                DataRow[] drList = dt.Select(" TicketNo = " + Convert.ToInt32(hdnTicketNo.Value) + " ");
+                foreach (DataRow dr in drList)
+                {
+                    dr.BeginEdit();
+                    dr["isMax"] = false;
+                    if (dr["Version_No"].ToString() == "1")
+                    {
+                        dr["Status"] = ddlStatus.SelectedValue == "0" ? "" : ddlStatus.SelectedItem.Text.Trim();
+                        dr["Status_Code"] = ddlStatus.SelectedValue;
+                    }
+                    else
+                    {
+                        dr["Status"] = "";
+                        dr["Status_Code"] = "0";
+                    }
+                    dr.AcceptChanges();
+                }
+
+                drFollow = dtFollow.NewRow();
+                drFollow = funAssignDataRow(drFollow);
+                if (drList.Length > 0)
+                    drFollow["Version_No"] = (Convert.ToInt32(drList[0]["Version_No"]) + 1).ToString();
+                else
+                    drFollow["Version_No"] = "1";
+
+                drFollow["isMax"] = true;
+
+                //Comment By Vijay
+                #region
+                //Delete the ticket value For Query Type Follow Up
+
+                if (hdnView.Value == "" && ddlQuery.SelectedValue == "5")
+                {
+                    drFollow["Status"] = "";
+                    drFollow["Status_Code"] = "0";
+                    drFollow["TicketNo"] = "0";
+                }
+                #endregion
+
+                if (hdnView.Value == "-1")
+                {
+                    drFollow["Status"] = "";
+                    drFollow["Status_Code"] = "0";
+                }
+                //drFollow["Followup_Detail_ID"] = 0;
+                dtFollow.Rows.Add(drFollow);
+            }
+            dtFollow.Merge(dt);
+
+            if (hdnView.Value != "" && hdnView.Value != "-1")
+            {
+                int intRowIndex = Convert.ToInt32(hdnView.Value);
+                drFollow = dtFollow.Rows[intRowIndex];
+                drFollow.BeginEdit();
+                drFollow = funAssignDataRow(drFollow);
+                dtFollow.AcceptChanges();
+            }
+
+            grvFollowUp.DataSource = dtFollow;
+            grvFollowUp.DataBind();
+            ViewState["dtFollow"] = dtFollow;
+            funClearPopUp();
+            MPE.Hide();
+
+            ViewState["Followup"] = dtFollow;
+            txtSDate.Text = txtSTicketNo.Text = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void btnRemove_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            DataTable dtFollowUp = (DataTable)ViewState["dtFollow"];
+            LinkButton btnRemove = (LinkButton)sender;
+            GridViewRow gvRow = (GridViewRow)btnRemove.Parent.Parent;
+            Label txtTicketNo = (Label)gvRow.FindControl("txtTicketNo");
+            HiddenField hidVersionNo = (HiddenField)gvRow.FindControl("hidVersionNo");
+
+            dtFollowUp.Rows.RemoveAt(gvRow.RowIndex);
+            DataRow[] drList = dtFollowUp.Select(" TicketNo > " + Convert.ToInt32(txtTicketNo.Text) + " ");
+            DataRow[] drList1 = dtFollowUp.Select(" TicketNo = " + Convert.ToInt32(txtTicketNo.Text) + " and Version_No = '" + (Convert.ToInt32(hidVersionNo.Value) - 1) + "' ");
+            DataRow[] drQry = dtFollowUp.Select(" TicketNo = " + Convert.ToInt32(txtTicketNo.Text) + " ");
+            if (drQry.Length > 0)
+            {
+                string strQryType = drQry[drQry.Length - 1]["QueryType"].ToString();
+                drQry[0].BeginEdit();
+                if (strQryType == "1" || strQryType == "3")
+                {
+                    drQry[0]["Status"] = "Open";
+                    drQry[0]["Status_Code"] = "1";
+                }
+                else if (strQryType == "5")
+                {
+                    drQry[0]["Status"] = "Process";
+                    drQry[0]["Status_Code"] = "2";
+                }
+                else
+                {
+                    drQry[0]["Status"] = "Closed";
+                    drQry[0]["Status_Code"] = "3";
+                }
+                drQry[0].AcceptChanges();
+            }
+            foreach (DataRow dr in drList)
+            {
+                if (drList1.Length == 0)
+                {
+                    dr.BeginEdit();
+                    dr["TicketNo"] = Convert.ToInt32(dr["TicketNo"]) - 1;
+                    dr.AcceptChanges();
+                }
+            }
+            if (drList1.Length == 1)
+            {
+                drList1[0].BeginEdit();
+                drList1[0]["isMax"] = true;
+                drList1[0].AcceptChanges();
+            }
+
+            grvFollowUp.DataSource = dtFollowUp;
+            grvFollowUp.DataBind();
+
+            ViewState["Followup"] = dtFollowUp;
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void btnAdd_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ObjDictionary != null)
+                ObjDictionary.Clear();
+            else
+                ObjDictionary = new Dictionary<string, string>();
+
+            ObjDictionary.Add("@Company_ID", intCompanyID.ToString());
+            ObjDictionary.Add("@Customer_ID", hidCustomerId.Text.Trim());
+
+            DataTable dtTicket = Utility.GetDefaultData("S3G_CLN_GetFollowUp_TicketNo", ObjDictionary);
+            int dcTicketNo = 0;
+            if (dtTicket != null && dtTicket.Rows.Count > 0)
+            {
+                dcTicketNo = Convert.ToInt32(dtTicket.Rows[0]["TicketNo"].ToString()) + 1;
+            }
+
+            FunPubClearPopUp();
+            funClearPopUp();
+            hdnView.Value = "";
+
+            DataSet dsLookUp = ViewState["FollowUpLookUp"] as DataSet;
+            ddlQuery.Items.Clear();
+            ddlQuery.DataSource = dsLookUp.Tables[3];
+            ddlQuery.DataValueField = "Lookup_Code";
+            ddlQuery.DataTextField = "Lookup_Description";
+            ddlQuery.DataBind();
+            ddlQuery.Items.Insert(0, new ListItem("--Select--", "0"));
+            ddlQuery.Items.RemoveAt(6);
+            ddlQuery.Items.RemoveAt(4);
+            ddlQuery.Items.RemoveAt(2);
+
+            ddlStatus.SelectedValue = "1";
+            ddlFrom.SelectedValue = "1";
+            TextBox txtFrom = ucFrom.FindControl("txtName") as TextBox;
+            HiddenField hdnFrom = ucFrom.FindControl("hdnID") as HiddenField;
+            txtFrom.Text = ObjUserInfo.ProUserNameRW;
+            hdnFrom.Value = intUserID.ToString();
+            funAssignUser(ddlFrom, ucFrom);
+
+            ddlTo.SelectedValue = "2";
+            TextBox txtTo = ucTo.FindControl("txtName") as TextBox;
+            HiddenField hdnTo = ucTo.FindControl("hdnID") as HiddenField;
+            txtTo.Text = (ucdCustomer.FindControl("txtCustomerName") as TextBox).Text.Trim();
+            hdnTo.Value = hidCustomerId.Text.Trim();
+            funAssignUser(ddlTo, ucTo);
+
+            MPE.Show();
+
+            DataTable dtFollowAll = ViewState["dtFollowAll"] as DataTable;
+            DataRow[] drListAll = dtFollowAll.Select(" TicketNo >  0 ");
+            int intTicketNoAll = 0;
+            if (drListAll.Length > 0)
+                intTicketNoAll = Convert.ToInt32(drListAll[drListAll.Length - 1]["TicketNo"].ToString());
+
+            DataTable dtFollow = ViewState["dtFollow"] as DataTable;
+            DataRow[] drList = dtFollow.Select(" TicketNo >  0 ");
+            int intTicket = 0;
+            if (drList.Length > 0)
+                intTicket = Convert.ToInt32(drList[drList.Length - 1]["TicketNo"].ToString());
+
+            if (intTicket > intTicketNoAll)
+                intTicketNo = 1 + intTicket;// Convert.ToInt32(drList[drList.Length - 1]["TicketNo"].ToString());
+            else
+                intTicketNo = 1 + intTicketNoAll;
+
+            txtDate.Text = txtNotifyDt.Text = DateTime.Now.ToString(strDateFormat);
+            if (intTicketNo > dcTicketNo)
+                txtTicketNo.Text = hdnTicketNo.Value = Convert.ToString(intTicketNo);
+            else
+                txtTicketNo.Text = hdnTicketNo.Value = Convert.ToString(dcTicketNo);
+
+            if (ddlQuery.SelectedValue == "1" || ddlQuery.SelectedValue == "3")
+                ceNotifyDt.Enabled = true;
+            else
+                ceNotifyDt.Enabled = false;
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            if (hidCustomerId.Text.Trim() == "")
+            {
+                cvFollowUp.ErrorMessage = strErrorMessagePrefix + " Select the search description";
+                cvFollowUp.IsValid = false;
+                return;
+            }
+
+            DataTable dtFollow = ViewState["dtFollow"] as DataTable;
+            //DataRow[] drFollow = dtFollow.Select(" TicketNo<>0 and QueryType<>6  and TicketNo<>-1");
+            //DataRow[] drFollow = dtFollow.Select(" QueryType<>6  and TicketNo<>-1");
+            //if (drFollow.Length == 0)
+            //{
+            //    Utility.FunShowAlertMsg(this, "Add atleast one Follow up details");
+            //    return;
+            //}
+            FunPriSaveRecord();
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            ddlType.SelectedIndex = 0;
+            ddlSearch.Items.Clear();
+            ddlSearch.Text = "";
+            (ucPopUp.FindControl("txtName") as TextBox).Text = "";
+            (ucPopUp.FindControl("hdnID") as HiddenField).Value = "";
+            ucdCustomer.ClearCustomerDetails();
+            funGridClear(grvMain);
+            funGridClear(grvAccountDetails);
+            funGridClear(grvAssetDetails);
+            funGridClear(grvFollowUp);
+            ViewState["Followup"] = null;
+            pnlAccount.Visible = pnlFollowUp.Visible = pnlAccountInformation.Visible = false;
+            Session.Remove("FU_TYPE");
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    #region  Cancel Methods
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+
+    #endregion
+
+    protected void btnCan_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            funClearPopUp();
+            FunPubClearPopUp();
+            MPE.Hide();
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void grvPopUp_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                for (int i = 0; i < e.Row.Cells.Count; i++)
+                {
+                    switch (((System.Data.DataRowView)(e.Row.DataItem)).Row.ItemArray[i].GetType().ToString())
+                    {
+                        case "System.Decimal":
+                            e.Row.Cells[i].HorizontalAlign = System.Web.UI.WebControls.HorizontalAlign.Right;
+                            e.Row.Cells[i].Text = Convert.ToDecimal(e.Row.Cells[i].Text).ToString(strSuffix);
+                            break;
+                        case "System.Int32":
+                            e.Row.Cells[i].HorizontalAlign = System.Web.UI.WebControls.HorizontalAlign.Center;
+                            break;
+                        case "System.DateTime":
+                            {
+                                e.Row.Cells[i].HorizontalAlign = System.Web.UI.WebControls.HorizontalAlign.Left;
+                                e.Row.Cells[i].Text = FormatDate(e.Row.Cells[i].Text);
+                                break;
+                            }
+                        case "System.String":
+                            e.Row.Cells[i].HorizontalAlign = System.Web.UI.WebControls.HorizontalAlign.Left;
+                            break;
+                    }
+                    if (grvPopUp.Rows.Count > 0 && (grvPopUp.Rows[0].Cells[0].Text.Trim() == "&nbsp;" || grvPopUp.Rows[0].Cells[0].Text.Trim() == ""))
+                    {
+                        if (i != 2 && i != 6)
+                            grvPopUp.Rows[0].Cells[i].Text = "";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void grvAccountDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label txtNOD = e.Row.FindControl("txtNOD") as Label;
+                LinkButton lnkNOD = e.Row.FindControl("lnkNOD") as LinkButton;
+                if (txtNOD.Text.Trim() == "0")
+                    lnkNOD.Visible = false;
+                else
+                    txtNOD.Visible = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void lnkNOD_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            funShowPopUp(sender, e, "NOD");
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void txtBilledAmount_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            funShowPopUp(sender, e, "Billed Amount");
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void txtCollectedAmount_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            funShowPopUp(sender, e, "Collected Amount");
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void grvMain_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                HiddenField hidIsColor = (HiddenField)e.Row.FindControl("hidIsColor");
+                if (hidIsColor.Value != "True")
+                    e.Row.CssClass = "gridRowBG";
+                else
+                    e.Row.CssClass = "gridRowBGClose";
+                //e.Row.BackColor = System.Drawing.Color.LightGray;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void lnkJE_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            LinkButton lnkJE = (sender) as LinkButton;
+            //foreach (GridViewRow gvRow in grvAccountDetails.Rows)
+            //{
+            //    LinkButton lnkJE1 = gvRow.FindControl("lnkJE") as LinkButton;
+            //    if (lnkJE1.ClientID != lnkJE.ClientID)
+            //        rdoJE1.Checked = false;
+            //}
+            //LinkButton lnkNOD = (LinkButton)rdoJE.Parent.Parent.FindControl("lnkNOD");
+            funShowPopUp(lnkJE, e, "Ledger Entry");
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void Button3_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            moeNOD.Hide();
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    protected void chkSelect_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClearPopUp();
+            /*DataTable dt = ViewState["dtFollowAll"] as DataTable;// ViewState["dtFollow"] as DataTable;        
+            string txtPrimeAccountNo = "", txtSubAccountNo = "", SubAccountNo = "";
+
+            foreach (GridViewRow gvRow in grvMain.Rows)
+            {
+                if (((CheckBox)gvRow.FindControl("chkSelect")).Checked)
+                {
+                    if (txtPrimeAccountNo == "") txtPrimeAccountNo = "'" + (gvRow.FindControl("txtPrimeAccountNo") as Label).Text.Trim() + "'";
+                    else txtPrimeAccountNo = txtPrimeAccountNo + "," + "'" + (gvRow.FindControl("txtPrimeAccountNo") as Label).Text.Trim() + "'";
+
+                    SubAccountNo = (gvRow.FindControl("txtSubAccountNo") as Label).Text.Trim();
+                    if (SubAccountNo == "") SubAccountNo = (gvRow.FindControl("txtPrimeAccountNo") as Label).Text.Trim() + "DUMMY";
+
+                    if (txtSubAccountNo == "") txtSubAccountNo = "'" + SubAccountNo + "'";
+                    else txtSubAccountNo = txtSubAccountNo + "," + "'" + SubAccountNo + "'";
+                }
+            }
+
+            if (txtPrimeAccountNo != "" && txtSubAccountNo != "")
+            {
+                if (dt.Select("Panum in (" + txtPrimeAccountNo + ")and sanum  in (" + txtSubAccountNo + ") ").Length > 0)
+                {
+                    dt = dt.Select("Panum in (" + txtPrimeAccountNo + ")and sanum  in (" + txtSubAccountNo + ") ").CopyToDataTable();
+                    grvFollowUp.DataSource = ViewState["dtFollow"] = dt;
+                    grvFollowUp.DataBind();
+                }
+                else
+                {
+                    ViewState["dtFollow"] = (ViewState["dtFollowAll"] as DataTable).Clone();
+                    dt = funAddRow();
+                    grvFollowUp.DataSource = ViewState["dtFollow"] = dt;
+                    grvFollowUp.DataBind();
+                    grvFollowUp.Rows[0].Visible = false;
+                }
+            }
+            else
+            {
+                grvFollowUp.DataSource = ViewState["dtFollow"] = ViewState["dtFollowAll"] as DataTable;
+                grvFollowUp.DataBind();
+            }*/
+
+            bool IsCheck = false;
+            List<StringBuilder> objList = FunFormXml(out IsCheck);
+
+            if (ObjDictionary != null)
+                ObjDictionary.Clear();
+            else
+                ObjDictionary = new Dictionary<string, string>();
+
+            ObjDictionary.Add("@Company_ID", intCompanyID.ToString());
+            if (IsCheck) ObjDictionary.Add("@StrXml", objList[0].ToString());// strGrvXML.ToString());
+            //else ObjDictionary.Add("@StrXml", objList[1].ToString());// strAllXML.ToString());
+            ObjDictionary.Add("@Customer_ID", hidCustomerId.Text.ToString());
+            ObjDictionary.Add("@User_ID", intUserID.ToString());
+            DataTable dsAccountFollow = Utility.GetDefaultData("S3G_CLN_GetFollowUp_AccountWise", ObjDictionary);
+
+            ViewState["dtFollow"] = ViewState["dtFollowAll"] = dsAccountFollow;
+            ViewState["Followup"] = dsAccountFollow;
+            if (dsAccountFollow != null && dsAccountFollow.Rows.Count > 0)
+            {
+                pnlFollowUp.Visible = true;
+                grvFollowUp.DataSource = dsAccountFollow;
+                grvFollowUp.DataBind();
+            }
+            else
+            {
+                grvFollowUp.DataSource = funAddRow();
+                grvFollowUp.DataBind();
+                grvFollowUp.Rows[0].Visible = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvFollowUp.ErrorMessage = ex.Message;
+            cvFollowUp.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Methods
+
+    private void funAssignUser(DropDownList ddl, UserControls_LOBMasterView uc)
+    {
+        try
+        {
+            switch (ddl.SelectedValue)
+            {
+                case "1":
+                    uc.strLOV_Code = "USM";
+                    break;
+                case "2":
+                    uc.strLOV_Code = "CMD";
+                    break;
+                case "3":
+                    uc.strLOV_Code = "UTPA";
+                    break;
+                case "4":
+                    uc.strLOV_Code = "DCE";
+                    break;
+                case "5":
+                    uc.strLOV_Code = "DCT";
+                    break;
+                case "6":
+                    uc.strLOV_Code = "ENT";
+                    break;
+                default:
+                    uc.strLOV_Code = "USM";
+                    break;
+            }
+            uc.strControlID = uc.ClientID;
+            HiddenField hdnLovCode = uc.FindControl("hdnLovCode") as HiddenField;
+            HiddenField hdnCtrlId = uc.FindControl("hdnCtrlId") as HiddenField;
+            hdnCtrlId.Value = uc.ClientID;
+            hdnLovCode.Value = uc.strLOV_Code;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private string FunLoadXml()
+    {
+        StringBuilder strBuilder = new StringBuilder();
+        try
+        {
+            strBuilder.Append("<Root>");
+            foreach (GridViewRow gvRow in grvFollowUp.Rows)
+            {
+                HiddenField hidFromID = (HiddenField)gvRow.FindControl("hidFromID");
+                HiddenField hidFromType = (HiddenField)gvRow.FindControl("hidFromType");
+                HiddenField hidToID = (HiddenField)gvRow.FindControl("hidToID");
+                HiddenField hidToType = (HiddenField)gvRow.FindControl("hidToType");
+                HiddenField hidQueryType = (HiddenField)gvRow.FindControl("hidQueryType");
+                HiddenField hidMode = (HiddenField)gvRow.FindControl("hidMode");
+                HiddenField hidVersionNo = (HiddenField)gvRow.FindControl("hidVersionNo");
+                HiddenField IsMax = (HiddenField)gvRow.FindControl("IsMax");
+                HiddenField hidStatus = (HiddenField)gvRow.FindControl("hidStatus");
+                HiddenField hidFollowup_Detail_ID = (HiddenField)gvRow.FindControl("hidFollowup_Detail_ID");
+
+                Label txtDate = (Label)gvRow.FindControl("txtDate");
+                Label txtDescription = (Label)gvRow.FindControl("txtDescription");
+                Label txtNotifyDate = (Label)gvRow.FindControl("txtNotifyDate");
+                Label txtTicketNo = (Label)gvRow.FindControl("txtTicketNo");
+                string strTktNo = txtTicketNo.Text.Trim();
+                if (txtTicketNo.Text == "") strTktNo = "0";
+
+                if (hidMode.Value.Trim() != "6" && hidMode.Value.Trim() != "")
+                {
+                    strBuilder.Append("<Details Ticket_No='" + strTktNo + "' Date ='" + Utility.StringToDate(txtDate.Text.Trim()) + "'  ");
+                    strBuilder.Append("User_FromType='" + hidFromType.Value + "'  User_From='" + hidFromID.Value + "'  ");
+                    strBuilder.Append("User_ToType='" + hidToType.Value + "'  User_To='" + hidToID.Value + "'  ");
+                    strBuilder.Append("QueryType_Code='70'  Query_Code='" + hidQueryType.Value + "'  ");
+                    strBuilder.Append("Description='" + txtDescription.Text.Trim() + "'  Notify_Date='" + Utility.StringToDate(txtNotifyDate.Text.Trim()) + "'  ");
+                    strBuilder.Append("ModeType_Code='69'  Mode_Code='" + hidMode.Value + "'  ");
+                    strBuilder.Append("StatusType_Code='71'  Status_Code='" + hidStatus.Value + "'  Version_No='" + hidVersionNo.Value + "' IsMax='" + IsMax.Value + "' DocRef_No='' Followup_Detail_ID= '" + hidFollowup_Detail_ID.Value + "' ");
+                    strBuilder.Append("/>");
+                }
+            }
+            strBuilder.Append("</Root>");
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        return strBuilder.ToString();
+    }
+
+    private void FunPriPageLoad()
+    {
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                intFollowUpId = Convert.ToInt32(fromTicket.Name);
+            }
+
+            Button btnGetLOVTo = ucTo.FindControl("btnGetLOV") as Button;
+            Button btnGetLOVFrom = ucFrom.FindControl("btnGetLOV") as Button;
+            TextBox txtFrom = ucTo.FindControl("txtName") as TextBox;
+            TextBox txtTo = ucFrom.FindControl("txtName") as TextBox;
+            txtTo.Width = txtFrom.Width = Unit.Percentage(65);
+            //btnGetLOVTo.Attributes.Add("OnClick", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");
+            //txtTo.Attributes.Add("onfocus", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");
+            //txtFrom.Attributes.Add("onfocus", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");            
+            //btnGetLOVFrom.Attributes.Add("OnClick", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");
+            //pnlAddFollow.Attributes.Add("OnMouseMove", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");
+            //pnlAddFollow.Attributes.Add("OnMouseOver", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");
+            //pnlAddFollow.Attributes.Add("OnMouseOut", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");
+            ////pnlAddFollow.Attributes.Add("OnFocusOut", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");
+            //pnlAddFollow.Attributes.Add("OnBlur", "$find('ctl00_ContentPlaceHolder1_ucPopUp_ucMPE').hide();");
+            //txtFrom.Focus();
+
+            if (!IsPostBack)
+            {
+                ceNotifyDt.Format = strDateFormat;
+                calStartDate.Format = strDateFormat;
+                TextBox txtFromName = ucFrom.FindControl("txtName") as TextBox;
+                TextBox txtToName = ucTo.FindControl("txtName") as TextBox;
+                //txtFromName.Width = txtToName.Width = txtTicketNo.Width = txtDate.Width = Unit.Pixel(120);
+                //ddlFrom.Width = ddlTo.Width = ddlQuery.Width = ddlStatus.Width = ddlMode.Width = Unit.Pixel(120);
+                PopulateType();
+                funAssignPopupValue();
+                btnUp.Attributes.Add("OnClick", "return funUpValidate()");
+                txtFromName.Attributes.Add("readOnly", "true");
+                txtToName.Attributes.Add("readOnly", "true");
+                //txtSDate.Attributes.Add("readOnly", "true");
+                txtSDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtSDate.ClientID + "','" + strDateFormat + "',false,  false);");
+
+                Session.Remove("FU_TYPE");
+
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunFollowProcessForModification(intFollowUpId);
+                    rfvddlType.Enabled = RequiredFieldValidator1.Enabled = false;
+                    FunPriDisableControls(-1);
+                }
+                else if (Request.QueryString["qsMode"] == "M")
+                {
+                    FunFollowProcessForModification(intFollowUpId);
+                    FunPriDisableControls(1);
+                    rfvddlType.Enabled = RequiredFieldValidator1.Enabled = false;
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            ObjS3GSession = null;
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+
+    private void FunFollowProcessForModification(int intFollowUpId)
+    {
+        pnlFollowUp.Visible = true;
+        trHead.Visible = false;
+        try
+        {
+            if (ObjDictionary != null)
+                ObjDictionary.Clear();
+            else
+                ObjDictionary = new Dictionary<string, string>();
+
+            ObjDictionary.Add("@Company_ID", Convert.ToString(intCompanyID));
+            ObjDictionary.Add("@FollowUp_ID", intFollowUpId.ToString());
+            ObjDictionary.Add("@UserId", intUserID.ToString());
+
+            DataSet dsFollow = Utility.GetDataset("S3G_CLN_GetFollowUp", ObjDictionary);
+
+            if (dsFollow.Tables[0] != null && dsFollow.Tables[0].Rows.Count > 0)
+            {
+                grvMain.DataSource = dsFollow.Tables[0];
+                grvMain.DataBind();
+                pnlAccount.Visible = true;
+            }
+
+            if (dsFollow.Tables[1] != null && dsFollow.Tables[1].Rows.Count > 0)
+            {
+                ucdCustomer.SetCustomerDetails(dsFollow.Tables[1].Rows[0], true);
+                hidCustomerId.Text = dsFollow.Tables[1].Rows[0]["Customer_ID"].ToString();
+                FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(hidCustomerId.Text, false, 0);
+                btnUp.Attributes.Add("OnClick", "if(funUpValidate()){ window.open('../Origination/S3GOrgCustomerMaster_Add.aspx?IsFromEnquiry=Yes&qsCustomerId=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=Q', 'null','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');return false;}");
+            }
+
+            if (dsFollow.Tables[2] != null && dsFollow.Tables[2].Rows.Count > 0)
+            {
+                grvAssetDetails.DataSource = dsFollow.Tables[2];
+                grvAssetDetails.DataBind();
+            }
+
+            ViewState["dtFollow"] = ViewState["dtFollowAll"] = dsFollow.Tables[3];
+            ViewState["Followup"] = dsFollow.Tables[3];
+            if (dsFollow.Tables[3] != null && dsFollow.Tables[3].Rows.Count > 0)
+            {
+                grvFollowUp.DataSource = dsFollow.Tables[3];
+                grvFollowUp.DataBind();
+                if (dsFollow.Tables[3].Select(" FollowUp_ID = " + intFollowUpId + " ").Length > 0)
+                    txtFollowUpNo.Text = dsFollow.Tables[3].Select(" FollowUp_ID = " + intFollowUpId + " ").CopyToDataTable().Rows[0]["FollowUp_No"].ToString();
+            }
+            else
+            {
+                grvFollowUp.DataSource = funAddRow();
+                grvFollowUp.DataBind();
+                grvFollowUp.Rows[0].Visible = false;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #region "User Authorization"
+    //This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    if (!bCreate)
+                    {
+                        //btnListing.Enabled = false;
+                    }
+                    break;
+                case 1: // Modify Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    if (!bModify)
+                    {
+
+                    }
+                    btnClear.Enabled = false;
+                    foreach (GridViewRow gvRow in grvMain.Rows)
+                    {
+                        (gvRow.FindControl("chkSelect") as CheckBox).Enabled = false;
+                    }
+                    break;
+
+                case -1:// Query Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+
+                    if (!bQuery)
+                    {
+                        Response.Redirect(strRedirectPage,false);
+                    }
+                    btnClear.Enabled = btnSave.Enabled = false;
+                    if (grvFollowUp.HeaderRow != null) (grvFollowUp.HeaderRow.FindControl("btnAdd") as Button).Enabled = false;
+
+                    foreach (GridViewRow gvRow in grvFollowUp.Rows)
+                    {
+                        LinkButton btnView = gvRow.FindControl("btnView") as LinkButton;
+                        LinkButton btnRemove = gvRow.FindControl("btnRemove") as LinkButton;
+                        LinkButton lnkQuery = gvRow.FindControl("lnkQuery") as LinkButton;
+                        btnView.Enabled = btnRemove.Enabled = lnkQuery.Enabled = false;
+                    }
+                    foreach (GridViewRow gvRow in grvMain.Rows)
+                    {
+                        CheckBox chkSelect = gvRow.FindControl("chkSelect") as CheckBox;
+                        chkSelect.Enabled = false;
+                    }
+
+                    txtSDate.Attributes.Remove("onblur");
+                    txtSDate.ReadOnly = true;
+
+                    break;
+            }
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    //Code end
+    #endregion
+
+    private void PopulateType()
+    {
+        try
+        {
+            if (ObjDictionary != null)
+                ObjDictionary.Clear();
+            else
+                ObjDictionary = new Dictionary<string, string>();
+
+            ObjDictionary.Add("@Company_ID", Convert.ToString(intCompanyID));
+            DataSet dsLookUp = Utility.GetDataset("S3G_CLN_GetFollowUp_LookUp", ObjDictionary);
+
+            ViewState["FollowUpLookUp"] = dsLookUp;
+            ddlType.DataSource = dsLookUp.Tables[0];
+            ddlType.DataValueField = "Lookup_Code";
+            ddlType.DataTextField = "Lookup_Description";
+            ddlType.DataBind();
+            ddlType.Items.Insert(0, new ListItem("--Select--", "0"));
+
+            ddlFrom.DataSource = dsLookUp.Tables[1];
+            ddlFrom.DataValueField = "Lookup_Code";
+            ddlFrom.DataTextField = "Lookup_Description";
+            ddlFrom.DataBind();
+            ddlFrom.Items.Insert(0, new ListItem("--Select--", "0"));
+
+            ddlTo.DataSource = dsLookUp.Tables[1];
+            ddlTo.DataValueField = "Lookup_Code";
+            ddlTo.DataTextField = "Lookup_Description";
+            ddlTo.DataBind();
+            ddlTo.Items.Insert(0, new ListItem("--Select--", "0"));
+
+            ddlMode.DataSource = dsLookUp.Tables[2];
+            ddlMode.DataValueField = "Lookup_Code";
+            ddlMode.DataTextField = "Lookup_Description";
+            ddlMode.DataBind();
+            ddlMode.Items.Insert(0, new ListItem("--Select--", "0"));
+
+            ddlQuery.DataSource = dsLookUp.Tables[3];
+            ddlQuery.DataValueField = "Lookup_Code";
+            ddlQuery.DataTextField = "Lookup_Description";
+            ddlQuery.DataBind();
+            ddlQuery.Items.Insert(0, new ListItem("--Select--", "0"));
+            ddlQuery.Items.RemoveAt(6);
+
+            ddlStatus.DataSource = dsLookUp.Tables[4];
+            ddlStatus.DataValueField = "Lookup_Code";
+            ddlStatus.DataTextField = "Lookup_Description";
+            ddlStatus.DataBind();
+            ddlStatus.Items.Insert(0, new ListItem("--Select--", "0"));
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private DataTable funAddRow()
+    {
+        DataTable dtFollow = new DataTable();
+        try
+        {
+            if (ViewState["dtFollow"] != null)
+            {
+                dtFollow = ViewState["dtFollow"] as DataTable;
+            }
+            DataRow drFollow = dtFollow.NewRow();
+            drFollow["TicketNo"] = -1;
+            drFollow["Date"] = DateTime.Now.ToString();
+            drFollow["From"] = "";
+            drFollow["From_Type"] = "0";
+            drFollow["From_UserName"] = "";
+            drFollow["To"] = "";
+            drFollow["To_Type"] = "0";
+            drFollow["To_UserName"] = "";
+            drFollow["QueryType"] = "0";
+            drFollow["Description"] = "";
+            drFollow["NotifyDate"] = DateTime.Now.ToString();
+            drFollow["Mode"] = "";
+            drFollow["Status"] = "Open";
+            drFollow["QueryTxt"] = "";
+            drFollow["ModeTxt"] = "";
+            drFollow["isMax"] = false;
+            dtFollow.Rows.Add(drFollow);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        return dtFollow;
+    }
+
+    private DataRow funAssignDataRow(DataRow drFollow)
+    {
+        try
+        {
+            TextBox txtFromName = ucFrom.FindControl("txtName") as TextBox;
+            HiddenField hdnIDFrom = ucFrom.FindControl("hdnID") as HiddenField;
+            TextBox txtToName = ucTo.FindControl("txtName") as TextBox;
+            HiddenField hdnIDTo = ucTo.FindControl("hdnID") as HiddenField;
+
+            drFollow["TicketNo"] = Convert.ToInt32(hdnTicketNo.Value);
+            drFollow["Date"] = DateTime.Today;
+            drFollow["From"] = hdnIDFrom.Value;
+            drFollow["From_Type"] = ddlFrom.SelectedValue;
+            drFollow["From_UserName"] = txtFromName.Text.Trim();
+            drFollow["To"] = hdnIDTo.Value;
+            drFollow["To_Type"] = ddlTo.SelectedValue;
+            drFollow["To_UserName"] = txtToName.Text.Trim();
+            drFollow["QueryType"] = ddlQuery.SelectedValue;
+            drFollow["Description"] = txtDescription.Text.Trim();
+            drFollow["NotifyDate"] = Utility.StringToDate(txtNotifyDt.Text.Trim());
+            drFollow["Mode"] = ddlMode.SelectedValue;
+            drFollow["ModeTxt"] = ddlMode.SelectedValue == "0" ? "" : ddlMode.SelectedItem.Text.Trim();
+            drFollow["QueryTxt"] = ddlQuery.SelectedValue == "0" ? "" : ddlQuery.SelectedItem.Text.Trim();
+            drFollow["Status"] = "Open";
+            drFollow["Status_Code"] = "1";
+            drFollow["Followup_Detail_ID"] = 0;
+            string strMailId = "";
+            if (hdnIDTo.Value != "" && ddlMode.SelectedValue == "2")
+            {
+                try
+                {
+                    if (ObjDictionary != null)
+                        ObjDictionary.Clear();
+                    else
+                        ObjDictionary = new Dictionary<string, string>();
+
+                    ObjDictionary.Add("@Company_ID", Convert.ToString(intCompanyID));
+                    ObjDictionary.Add("@ToType", ddlTo.SelectedValue);
+                    ObjDictionary.Add("@User_To", hdnIDTo.Value);
+
+                    DataTable dtMail = Utility.GetDefaultData("S3G_CLN_GetFollowUp_ToMail", ObjDictionary);
+                    if (dtMail != null && dtMail.Rows.Count > 0)
+                        strMailId = dtMail.Rows[0]["ToMailId"].ToString();
+                }
+                catch (Exception ex)
+                {
+                    cvFollowUp.ErrorMessage = ex.Message;
+                    cvFollowUp.IsValid = false;
+                }
+            }
+            drFollow["ToMailId"] = strMailId;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        return drFollow;
+    }
+
+    #region Save
+    private void FunPriSaveRecord()
+    {
+        //FunPubSentMail();       
+        string strPANum = string.Empty;
+        string strSANum = string.Empty;
+        int chkCount = 0;
+        foreach (GridViewRow gvRow in grvMain.Rows)
+        {
+            CheckBox chkSelect = gvRow.FindControl("chkSelect") as CheckBox;
+            if (chkSelect.Checked)
+            {
+                if (chkCount == 0)
+                {
+                    strPANum = (gvRow.FindControl("txtPrimeAccountNo") as Label).Text.Trim();
+                    strSANum = (gvRow.FindControl("txtSubAccountNo") as Label).Text.Trim();
+                    if (strSANum == "") strSANum = strPANum + "DUMMY";
+                }
+                chkCount++;
+                if (chkCount > 1)
+                {
+                    strPANum = strSANum = "";
+                    break;
+                }
+            }
+        }
+        int intFollowId = 0;
+        string strDocNo = string.Empty;
+        objFollowUp_Client = new ClnDataMgtServicesReference.ClnDataMgtServicesClient();
+        try
+        {
+            if (Page.IsValid)
+            {
+                objS3G_CLN_FollowUpDataTable = new S3GBusEntity.Collection.ClnDataMgtServices.S3G_CLN_FollowUpDataTable();
+                objS3G_CLN_FollowUpRow = objS3G_CLN_FollowUpDataTable.NewS3G_CLN_FollowUpRow();
+
+                objS3G_CLN_FollowUpRow.FollowUp_ID = intFollowUpId;
+                objS3G_CLN_FollowUpRow.FollowUp_No = txtFollowUpNo.Text.Trim();
+                objS3G_CLN_FollowUpRow.Date = DateTime.Now;
+                objS3G_CLN_FollowUpRow.Customer_ID = Convert.ToInt32(hidCustomerId.Text);
+                objS3G_CLN_FollowUpRow.Company_ID = intCompanyID;
+                objS3G_CLN_FollowUpRow.Modified_By = intUserID;
+                objS3G_CLN_FollowUpRow.Modified_On = DateTime.Now;
+                objS3G_CLN_FollowUpRow.Created_By = intUserID;
+                objS3G_CLN_FollowUpRow.Created_On = DateTime.Now;
+                objS3G_CLN_FollowUpRow.PANum = strPANum;
+                objS3G_CLN_FollowUpRow.SANum = strSANum;
+                objS3G_CLN_FollowUpRow.Xml = FunLoadXml();
+                objS3G_CLN_FollowUpDataTable.AddS3G_CLN_FollowUpRow(objS3G_CLN_FollowUpRow);
+
+                intErrCode = objFollowUp_Client.FunPubCreateFollowUpProcess(out intFollowId, out strDocNo, ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_FollowUpDataTable, ObjSerMode));
+                switch (intErrCode)
+                {
+                    case 0:
+                        {
+                            string strMessage = "";
+                            int intMail = 0;
+                            foreach (GridViewRow gvRow in grvFollowUp.Rows)
+                            {
+                                //Mail:
+                                HiddenField hidMode = (HiddenField)gvRow.FindControl("hidMode");
+                                HiddenField hidFollowup_Detail_ID = (HiddenField)gvRow.FindControl("hidFollowup_Detail_ID");
+                                Label txtDescription = (Label)gvRow.FindControl("txtDescription");
+                                Label txtTicketNo = (Label)gvRow.FindControl("txtTicketNo");
+                                TextBox hidToMailId = (TextBox)gvRow.FindControl("hidToMailId");
+                                Label txtNotifyDate = (Label)gvRow.FindControl("txtNotifyDate");
+                                Label hidToUserName = (Label)gvRow.FindControl("hidToUserName");
+                                Label hidFromUserName = (Label)gvRow.FindControl("hidFromUserName");
+                                Label txtQuery = (Label)gvRow.FindControl("txtQuery");
+
+                                string strTktNo = txtTicketNo.Text.Trim();
+                                if (txtTicketNo.Text == "") strTktNo = "0";
+
+                                if (hidFollowup_Detail_ID.Value == "0" && strTktNo != "0" && hidMode.Value == "2")
+                                {
+                                    try
+                                    {
+                                        //FunPubSentMail(txtDescription.Text.Trim(), strTktNo, hidToMailId.Text.Trim(), txtNotifyDate.Text.Trim(), hidToUserName.Text.Trim(), txtQuery.Text.Trim(), hidFromUserName.Text.Trim());
+                                        Dictionary<string, string> dictMail = new Dictionary<string, string>();
+                                        dictMail.Add("FromMail", "s3g@sundaraminfotech.in");
+                                        dictMail.Add("ToMail", hidToMailId.Text.Trim());
+                                        dictMail.Add("Subject", "Follow up");
+                                        //dictMail.Add("ToCC", "");
+                                        //dictMail.Add("ToBCC", "");
+                                        ArrayList arrMailAttachement = new ArrayList();
+                                        StringBuilder strBody = new StringBuilder();
+                                        strBody = GetHTMLText(txtDescription.Text.Trim(), strTktNo, txtNotifyDate.Text.Trim(), hidToUserName.Text.Trim(), txtQuery.Text.Trim(), hidFromUserName.Text.Trim());
+
+                                        Utility.FunPubSentMail(dictMail, arrMailAttachement, strBody);
+                                    }
+                                    catch (Exception exMail)
+                                    {
+                                        if (intMail == 0)
+                                            strMessage = "Invalid EMail ID. Mail not sent to the Ticket No ( " + strTktNo;
+                                        else
+                                            strMessage = strMessage + "," + strTktNo;
+
+                                        intMail++;
+                                        //Utility.FunShowAlertMsg(this, strMessage);
+                                    }
+                                }
+                            }
+
+                            if (strMessage != "") strMessage = "\\n\\n " + strMessage + ")";
+                            if (intFollowUpId == 0)
+                            {
+                                //To avoid double save click
+                                btnSave.Enabled = false;
+                                //End here
+
+                                strAlert = "Follow Up " + Resources.ValidationMsgs.S3G_ValMsg_Save + " - " + strDocNo;  // "Account closed succesfully";
+                                strAlert += strMessage;
+                                strAlert += Resources.ValidationMsgs.S3G_ValMsg_FollowUp_Confirm;// "\\n\\n Would you like to add one more Follow Up details?";
+                                strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                                strRedirectPageView = "";
+                                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                            }
+                            else
+                            {
+                                //To avoid double save click
+                                btnSave.Enabled = false;
+                                //End here
+
+                                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert(' Follow Up " + Resources.ValidationMsgs.S3G_ValMsg_Update + strMessage + "');" + strRedirectPageView, true);   //Details Updated succesfully
+                            }
+
+                            break;
+                        }
+                    case 1:
+                        {
+                            Utility.FunShowAlertMsg(this.Page, Resources.LocalizationResources.DocNoNotDefined);
+                            break;
+                        }
+                    case 2:
+                        {
+                            Utility.FunShowAlertMsg(this.Page, Resources.LocalizationResources.DocNoExceeds);
+                            break;
+                        }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (objFollowUp_Client != null)
+                objFollowUp_Client.Close();
+        }
+    }
+    #endregion
+
+    #region  DateFormat
+    public string FormatDate(string strDate)
+    {
+        try
+        {
+            if (strDate != "")
+                return DateTime.Parse(strDate, CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                //return Utility.StringToDate(strDate).ToString(strDateFormat);
+            else
+                return "";
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    private void funClearPopUp()
+    {
+        try
+        {
+            TextBox txtFromName = ucFrom.FindControl("txtName") as TextBox;
+            HiddenField hdnIDFrom = ucFrom.FindControl("hdnID") as HiddenField;
+            TextBox txtToName = ucTo.FindControl("txtName") as TextBox;
+            HiddenField hdnIDTo = ucTo.FindControl("hdnID") as HiddenField;
+
+            txtDescription.Text = txtTicketNo.Text = hdnTicketNo.Value = txtDate.Text = txtNotifyDt.Text = "";
+            txtToName.Text = txtFromName.Text = hdnIDFrom.Value = hdnIDTo.Value = "";
+            ddlQuery.SelectedIndex = ddlFrom.SelectedIndex = ddlTo.SelectedIndex = ddlMode.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void funShowPopUp(object sender, EventArgs e, string strType)
+    {
+        try
+        {
+            if (ObjDictionary != null)
+                ObjDictionary.Clear();
+            else
+                ObjDictionary = new Dictionary<string, string>();
+
+            LinkButton lnkNOD = (LinkButton)sender;
+            GridViewRow gvRow = lnkNOD.Parent.Parent as GridViewRow;
+            HiddenField hidLOB = gvRow.FindControl("hidLOB") as HiddenField;
+            HiddenField hidBranch = gvRow.FindControl("hidBranch") as HiddenField;
+            Label txtPANum = gvRow.FindControl("txtPANum") as Label;
+            Label txtSANum = gvRow.FindControl("txtSANum") as Label;
+
+            ObjDictionary.Add("@Company_ID", intCompanyID.ToString());
+            ObjDictionary.Add("@LOB_ID", hidLOB.Value);
+            ObjDictionary.Add("@Location_ID", hidBranch.Value);
+            ObjDictionary.Add("@PANum", txtPANum.Text.Trim());
+            ObjDictionary.Add("@SANum", txtSANum.Text.Trim());
+            ObjDictionary.Add("@Customer_ID", hidCustomerId.Text.Trim());
+            ObjDictionary.Add("@Type", strType);
+            if (strType == "Ledger Entry")
+            {
+                DataSet dsJnEntry = Utility.GetDataset("S3G_CLN_GetFollowUp_PopUp", ObjDictionary);
+                if (dsJnEntry.Tables[1].Rows.Count > 0)
+                {
+                    DataTable dtJnEntry = dsJnEntry.Tables[0];
+                    dtJnEntry.Merge(dsJnEntry.Tables[1]);
+                    grvPopUp.DataSource = dtJnEntry;// dsJnEntry.Tables[0].Merge(dsJnEntry.Tables[1]); ;
+                    grvPopUp.DataBind();
+                }
+            }
+            else
+            {
+                grvPopUp.DataSource = Utility.GetDefaultData("S3G_CLN_GetFollowUp_PopUp", ObjDictionary);
+                grvPopUp.DataBind();
+            }
+            moeNOD.Show();
+            lblNodHead.Text = strType;
+            if (grvPopUp.Rows.Count == 0 && strType == "Ledger Entry")
+            {
+                Utility.FunShowAlertMsg(this, "Ledger Entry does not exists ");
+                moeNOD.Hide();
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+  
+    private void funGridClear(GridView gv)
+    {
+        try
+        {
+            gv.DataSource = null;
+            gv.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private StringBuilder GetHTMLText(string strDesc, string strTktNo, string strNotifyDt, string strUserName, string strQueryType, string strFrom)
+    {
+        StringBuilder strBody = new StringBuilder();
+        try
+        {
+            strBody.Append(
+               "<font size=\"1\"  color=\"black\" face=\"Times New Roman\">" +
+
+              " <table width=\"100%\">" +
+
+           "<tr >" +
+               "<td  align=\"Left\" >" +
+                   "<font size=\"1\"  color=\"Black\" face=\"Times New Roman\" >" + "Dear " + strUserName + ",</font> " + "</b>" +
+                   "</br>" +
+               "</td>" +
+          " </tr>" +
+
+           "<tr >" +
+               "<td  align=\"Left\" >" +
+                   "<font size=\"1\"  color=\"Black\" face=\"Times New Roman\" >" + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ticket No was generated sucessfully .  </font> " +
+               "</td>" +
+          " </tr>" +
+
+           "<tr >" +
+               "<td  align=\"Left\" >" +
+                   "<font size=\"1\"  color=\"Black\" face=\"Times New Roman\" >" + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ticket No : " + strTktNo + "</font> " +
+               "</td>" +
+          " </tr>" +
+
+            "<tr >" +
+               "<td  align=\"Left\" >" +
+                   "<font size=\"1\"  color=\"Black\" face=\"Times New Roman\" >" + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Query Type  : " + strQueryType + "</font> " +
+                    "</br>" +
+               "</td>" +
+          " </tr>" +
+
+          "<tr >" +
+               "<td  align=\"Left\" >" +
+                   "<font size=\"1\"  color=\"Black\" face=\"Times New Roman\" >" + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Notify Date : " + strNotifyDt + "</font> " +
+               "</td>" +
+          " </tr>" +
+
+            "<tr >" +
+               "<td  align=\"Left\" >" +
+                   "<font size=\"1\"  color=\"Black\" face=\"Times New Roman\" >" + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Description : " + strDesc + "</font> " +
+                    "</br>" +
+               "</td>" +
+          " </tr>" +
+
+             "<tr >" +
+               "<td  align=\"Left\" >" +
+                   "<font size=\"1\"  color=\"Black\" face=\"Times New Roman\" >" + " Yours Truly," + "</font> " +
+               "</td>" +
+          " </tr>" +
+
+
+             "<tr >" +
+               "<td  align=\"Left\" >" +
+                   "<font size=\"1\"  color=\"Black\" face=\"Times New Roman\" >" + strFrom + "</font> " +
+               "</td>" +
+          " </tr>" +
+
+       "</table>" + "</font>");
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        return strBody;
+    }
+
+    private void FunPubClearPopUp()
+    {
+        try
+        {
+            ModalPopupExtender ucMPE = ((ModalPopupExtender)ucPopUp.FindControl("ucMPE"));
+            if (ucMPE != null) ucMPE.Hide();
+            GridView gvList = ((GridView)ucPopUp.FindControl("gvList"));
+            gvList.ClearGrid();
+            //Utility.FunShowAlertMsg(this, MPE.OnCancelScript + "~~" + moeNOD.Site.ToString());            
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void funAssignPopupValue()
+    {
+        try
+        {
+            switch (ddlType.SelectedValue)
+            {
+                case "1":
+                    {
+                        ucPopUp.LOVCode = "FWUPD";
+                        ucPopUp.gvDisplay = "Customer_Code";
+                        break;
+                    }
+                case "2":
+                    {
+                        ucPopUp.LOVCode = "FWUPD";
+                        ucPopUp.gvDisplay = "Customer_Name";
+                        break;
+                    }
+                case "3":
+                    {
+                        ucPopUp.LOVCode = "FWUPD";
+                        ucPopUp.gvDisplay = "Mobile_Number";
+                        break;
+                    }
+                case "4":
+                    {
+                        ucPopUp.LOVCode = "FWUPD";
+                        ucPopUp.gvDisplay = "Prime_Account_No";
+                        break;
+                    }
+                case "5":
+                    {
+                        ucPopUp.LOVCode = "FWUPD";
+                        ucPopUp.gvDisplay = "Sub_Account_No";
+                        break;
+                    }
+                case "6":
+                    {
+                        ucPopUp.LOVCode = "FWUPD";
+                        ucPopUp.gvDisplay = "SERIAL_NUMBER";
+                        break;
+                    }
+                case "7":
+                    {
+                        ucPopUp.LOVCode = "FWUPD";
+                        ucPopUp.gvDisplay = "REGN_NUMBER";
+                        break;
+                    }
+                case "0":
+                    {
+                        ucPopUp.LOVCode = "";
+                        ucPopUp.gvDisplay = "";
+                        break;
+                    }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPubSentMail(string strDesc, string strTktNo, string MailId, string strNotifyDate, string strUserName, string strQueryType, string strFrom)
+    {
+
+
+        /*if (MailId.Trim() != "")
+        {
+            CommonMailServiceReference.CommonMailClient ObjCommonMail = new CommonMailServiceReference.CommonMailClient();
+            try
+            {
+                string body = "";
+                body = GetHTMLText(strDesc, strTktNo, strNotifyDate, strUserName, strQueryType, strFrom);
+                ClsPubCOM_Mail ObjCom_Mail = new ClsPubCOM_Mail();
+                ObjCom_Mail.ProFromRW = "s3g@sundaraminfotech.in";
+                ObjCom_Mail.ProTORW = MailId; // (ucdCustomer.FindControl("txtEmail") as TextBox).Text.Trim();
+                ObjCom_Mail.ProSubjectRW = "Follow up";
+                ObjCom_Mail.ProMessageRW = strBody.ToString();
+                ObjCommonMail.FunSendMail(ObjCom_Mail);
+            }
+            catch (FaultException<CommonMailServiceReference.ClsPubFaultException> ex)
+            {
+                if (ObjCommonMail != null)
+                    ObjCommonMail.Close();
+                  ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                if (ObjCommonMail != null)
+                    ObjCommonMail.Close();
+                  ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+                throw ex;
+            }
+            finally
+            {
+                if (ObjCommonMail != null)
+                    ObjCommonMail.Close();
+            }
+        }*/
+    }
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        if (ViewState["Followup"] != null)
+        {
+            DataTable dtFollowup = (DataTable)ViewState["Followup"];
+            DataTable dtFilteredFU = dtFollowup.Clone();
+
+            string filterCondition = "";
+
+            filterCondition = " 1 = 1 ";
+
+            if (!string.IsNullOrEmpty(txtSTicketNo.Text))
+            {
+                filterCondition = filterCondition + " AND TicketNo = '" + txtSTicketNo.Text + "'";
+            }
+            if (!string.IsNullOrEmpty(txtSDate.Text))
+            {
+                filterCondition = filterCondition + " AND DATE = #" + Utility.StringToDate(txtSDate.Text.ToString()) + "#";
+            }
+
+            DataRow[] drFileterdFU = dtFollowup.Select(filterCondition);
+
+            drFileterdFU.CopyToDataTable<DataRow>(dtFilteredFU, LoadOption.OverwriteChanges);
+
+            grvFollowUp.DataSource = dtFilteredFU;
+            grvFollowUp.DataBind();
+            
+        }
+    }
+
+    protected void btnSClear_Click(object sender, EventArgs e)
+    {
+        grvFollowUp.DataSource = (DataTable)ViewState["Followup"];
+        grvFollowUp.DataBind();
+    }
+
+    #endregion
+}

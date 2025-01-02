@@ -1,0 +1,792 @@
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3G_Cln_FunderReceipt_OPC.aspx.cs" Inherits="Collection_S3G_Cln_FunderReceipt_OPC" %>
+
+<%@ Register Src="../UserControls/S3GCustomerAddress.ascx" TagName="S3GCustomerAddress"
+    TagPrefix="uc1" %>
+<%@ Register Src="~/UserControls/LOBMasterView.ascx" TagName="LOV" TagPrefix="uc2" %>
+<%@ Register Assembly="iCONWebComponents" Namespace="iCON.Web.Components" TagPrefix="cc2" %>
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc3" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <asp:UpdatePanel ID="updtpnlMaster" runat="server">
+        <ContentTemplate>
+
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="Funder Receipt Processing" ID="lblHeading" CssClass="styleDisplayLabel"> </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <cc1:TabContainer ID="tcReceipt" runat="server" CssClass="styleTabPanel" ScrollBars="None" Width="98%">
+                            <cc1:TabPanel runat="server" HeaderText="General" ID="tbgeneral" CssClass="tabpan"
+                                BackColor="Red" ToolTip="General" Width="99%">
+                                <HeaderTemplate>
+                                    General
+                                </HeaderTemplate>
+                                <ContentTemplate>
+
+                                    <table width="100%">
+                                        <tr valign="top">
+                                            <td width="50%">
+                                                <asp:Panel GroupingText="Receipt Information" ID="pnlReceiptInformation" runat="server" CssClass="stylePanel">
+                                                    <table width="100%">
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblLineofBusiness" runat="server" Text="Line of Business" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlLOB" runat="server" ToolTip="Line of Business"></asp:DropDownList>
+                                                                <asp:RequiredFieldValidator ID="rfvLOB" runat="server" ControlToValidate="ddlLOB" InitialValue="0" Display="None"
+                                                                    CssClass="styleMandatoryLabel" ErrorMessage="Select a Line of Business" ValidationGroup="vsSave" SetFocusOnError="true">
+                                                                </asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblLocation" runat="server" Text="Location" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <uc3:Suggest ID="ddlLocation" runat="server" ServiceMethod="GetBranchList" IsMandatory="true" ValidationGroup="vsSave" AutoPostBack="true"
+                                                                    ErrorMessage="Select the Location" ToolTip="Location" OnItem_Selected="ddlLocation_Item_Selected" />
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblMode" runat="server" Text="Mode" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlMode" runat="server" ToolTip="Mode">
+                                                                </asp:DropDownList>
+                                                                <asp:RequiredFieldValidator ID="rfvMode" runat="server" ControlToValidate="ddlMode" InitialValue="0" Display="None"
+                                                                    CssClass="styleMandatoryLabel" ErrorMessage="Select a Mode" ValidationGroup="vsSave" SetFocusOnError="true">
+                                                                </asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblDocNo" runat="server" Text="Receipt No" CssClass="styleDisplayLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:TextBox ID="txtDocNo" runat="server" ReadOnly="true" ToolTip="Receipt No"></asp:TextBox>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblDocDate" runat="server" Text="Receipt Date" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:TextBox ID="txtDocDate" runat="server" MaxLength="12" ToolTip="Receipt Date" ReadOnly="true"></asp:TextBox>
+                                                                <asp:Image ID="imgDocDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                                <cc1:CalendarExtender ID="ceDocDate" runat="server" Enabled="false"
+                                                                    PopupButtonID="imgDocDate"
+                                                                    TargetControlID="txtDocDate">
+                                                                </cc1:CalendarExtender>
+                                                                <asp:RequiredFieldValidator ID="rfvDocDate" runat="server" ControlToValidate="txtDocDate" Enabled="true" CssClass="styleMandatoryLabel"
+                                                                    ErrorMessage="Enter the Receipt Date" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblDocAmount" runat="server" Text="Doc Amount" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:TextBox ID="txtDocAmount" runat="server" ToolTip="Dcoument Amount" MaxLength="16" onkeypress="fnAllowNumbersOnly(true,false,this)"></asp:TextBox>
+                                                                <cc1:FilteredTextBoxExtender ID="ftbeDocAmount" runat="server" TargetControlID="txtDocAmount" FilterType="Custom,Numbers"
+                                                                    ValidChars="." Enabled="true">
+                                                                </cc1:FilteredTextBoxExtender>
+                                                                <asp:RequiredFieldValidator ID="rfvDocAmount" runat="server" ControlToValidate="txtDocAmount" Enabled="true" CssClass="styleMandatoryLabel"
+                                                                    ErrorMessage="Enter the Doc Amount" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblValueDate" runat="server" Text="Value Date" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:TextBox ID="txtValueDate" runat="server" MaxLength="12" ToolTip="Value Date"></asp:TextBox>
+                                                                <asp:Image ID="imgValueDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                                <cc1:CalendarExtender ID="ceValueDate" runat="server" Enabled="true"
+                                                                    PopupButtonID="imgValueDate"
+                                                                    TargetControlID="txtValueDate" OnClientDateSelectionChanged="checkDate_DocDate">
+                                                                </cc1:CalendarExtender>
+                                                                <asp:RequiredFieldValidator ID="rfvValueDate" runat="server" ControlToValidate="txtValueDate" Enabled="true" CssClass="styleMandatoryLabel"
+                                                                    ErrorMessage="Enter the Value Date" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr style="display: none">
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblTranche" runat="server" Text="Tranche" CssClass="styleDisplayLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <uc3:Suggest ID="ddlTranche" runat="server" ServiceMethod="GetTrancheList" ToolTip="Tranche" />
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblGLBased" runat="server" Text="GL Based" CssClass="styleDisplayLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:DropDownList ID="ddlGLBased" runat="server" ToolTip="GL Based" Enabled="false"></asp:DropDownList>
+                                                                <asp:RequiredFieldValidator ID="rfvGLBased" runat="server" ControlToValidate="ddlGLBased" Enabled="true" CssClass="styleMandatoryLabel"
+                                                                    ErrorMessage="Select the GL Based" Display="None" InitialValue="-1" ValidationGroup="vsSave">
+                                                                </asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblFunderName" runat="server" Text="Funder Name" CssClass="styleMandatoryLabel"></asp:Label>
+                                                            </td>
+                                                            <td class="styleFieldAlign">
+                                                                <uc3:Suggest ID="ddlFunderName" runat="server" ServiceMethod="GetFunderList" ToolTip="Funder Name" ValidationGroup="vsSave"
+                                                                    IsMandatory="true" ErrorMessage="Select the Funder Name" OnItem_Selected="ddlFunderName_Item_Selected"
+                                                                    AutoPostBack="true" />
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </asp:Panel>
+                                            </td>
+                                            <td width="50%">
+                                                <asp:Panel GroupingText="Lessee Information" ID="pnlLesseeInfo" runat="server" CssClass="stylePanel">
+                                                    <table width="100%">
+                                                        <tr>
+                                                            <td align="left">
+                                                                <asp:Label runat="server" ToolTip="Lessee Name" Text="Lessee" ID="lblCode"
+                                                                    CssClass="styleMandatoryLabel"></asp:Label>
+                                                            </td>
+                                                            <td align="left">
+                                                                <asp:TextBox ID="txtCustomerCode" ToolTip="Lessee code" runat="server"
+                                                                    Style="display: none;" MaxLength="50"></asp:TextBox>
+                                                                <uc2:LOV ID="ucCustomerCodeLov" onblur="fnLoadCustomer()" runat="server" strLOV_Code="CMD"
+                                                                    DispalyContent="Code" />
+                                                                <asp:Button ID="btnCreateCustomer"
+                                                                    runat="server" Text="Create" Style="display: none;" CssClass="styleSubmitButton" OnClick="btnCreateCustomer_Click"
+                                                                    CausesValidation="false" />
+                                                                <asp:RequiredFieldValidator ID="rfvcmbCustomer" runat="server" ControlToValidate="txtCustomerCode"
+                                                                    ErrorMessage="Select a Lessee" ValidationGroup="vsSave" CssClass="styleMandatoryLabel"
+                                                                    Display="None" SetFocusOnError="True"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td colspan="2" align="left">
+                                                                <asp:Panel ID="pnlAddressDetails" runat="server">
+                                                                    <uc1:S3GCustomerAddress ID="ucCustomerAddress" runat="server" />
+                                                                </asp:Panel>
+                                                            </td>
+                                                        </tr>
+                                                        <td colspan="2" align="right">
+                                                            <asp:Button runat="server" ID="btnShow" CssClass="styleSubmitButton" Text="Show"
+                                                                OnClick="btnShow_Click" ToolTip="Show Funder Dues" />
+                                                        </td>
+                                                    </table>
+                                                </asp:Panel>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <table width="100%">
+                                        <tr>
+                                            <td>
+                                                <asp:Panel GroupingText="Filter Criteria" ID="pnlFilterCriteria" runat="server" CssClass="stylePanel">
+                                                    <table width="100%">
+                                                        <tr>
+                                                            <td>
+                                                                <asp:Label ID="lblFilTranche" runat="server" Text="Tranche" CssClass="styleDisplayLabel"></asp:Label>
+                                                            </td>
+                                                            <td>
+                                                                <uc3:Suggest ID="ddlFilTranche" runat="server" ServiceMethod="GetTrancheList" ToolTip="Tranche" />
+                                                            </td>
+                                                            <td>
+                                                                <asp:Label ID="lblFilInstalmentDate" runat="server" Text="Instalment From Date" CssClass="styleDisplayLabel"></asp:Label>
+                                                            </td>
+                                                            <td>
+                                                                <asp:TextBox ID="txtFilInstalmentDate" runat="server"></asp:TextBox>
+                                                                <asp:Image ID="imgFilInstalmentDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                                <cc1:CalendarExtender ID="ceFilInstalmentDate" runat="server" Enabled="true"
+                                                                    PopupButtonID="imgFilInstalmentDate"
+                                                                    TargetControlID="txtFilInstalmentDate">
+                                                                </cc1:CalendarExtender>
+                                                            </td>
+                                                            <td>
+                                                                <asp:Label ID="lblToDate" runat="server" Text="Instalment To Date" CssClass="styleDisplayLabel"></asp:Label>
+                                                            </td>
+                                                            <td>
+                                                                <asp:TextBox ID="txtFilInstalmentToDate" runat="server"></asp:TextBox>
+                                                                <asp:Image ID="imgFilInstalmentToDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                                <cc1:CalendarExtender ID="ceFilInstalmentToDate" runat="server" Enabled="true"
+                                                                    PopupButtonID="imgFilInstalmentToDate"
+                                                                    TargetControlID="txtFilInstalmentToDate">
+                                                                </cc1:CalendarExtender>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </asp:Panel>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <table width="100%">
+                                        <tr>
+                                            <td>
+
+                                                <asp:Panel GroupingText="Receipt Details" ID="pnlRcptDtls" runat="server" CssClass="stylePanel">
+                                                    <table width="100%">
+                                                        <tr>
+                                                            <td align="right">
+                                                                <asp:Label ID="lblTotalAmount" runat="server" Text="Total Amount" Font-Bold="true" CssClass="styleDisplayLabel"></asp:Label>
+                                                                <asp:TextBox ID="txtTotalAmount" runat="server" Text="" ReadOnly="true" Style="text-align: right"></asp:TextBox>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <table width="100%">
+                                                        <tr>
+                                                            <td>
+                                                                <asp:GridView ID="grvRentalRcptDetails" runat="server" ShowFooter="true" AutoGenerateColumns="false" Width="100%"
+                                                                    OnRowDataBound="grvRentalRcptDetails_RowDataBound">
+                                                                    <Columns>
+                                                                        <asp:TemplateField HeaderText="S No">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblRcptSlNo" Text='<%# Container.DataItemIndex+1%>' runat="server"></asp:Label>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Note ID" Visible="false">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblgvNoteID" runat="server" Text='<%#Bind("Note_ID") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Note No">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblgvNoteNo" runat="server" Text='<%#Bind("Note_No") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <FooterTemplate>
+                                                                                <uc3:Suggest ID="ddlNoteNo" runat="server" ServiceMethod="GetNoteList" IsMandatory="true" ValidationGroup="vsAdd"
+                                                                                    ErrorMessage="Select the Note No" ToolTip="Note No" OnItem_Selected="ddlNoteNo_Item_Selected" AutoPostBack="true" />
+                                                                            </FooterTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Tranche ID" Visible="false">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblgvTrancheID" runat="server" Text='<%#Bind("Tranche_ID") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Tranche No">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblgvTrancheNo" runat="server" Text='<%#Bind("Tranche_Name") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <FooterTemplate>
+                                                                                <uc3:Suggest ID="ddlgvTrancheNo" runat="server" ServiceMethod="GetNoteTrancheList" IsMandatory="false"
+                                                                                    ToolTip="Tranche No" />
+                                                                            </FooterTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Account Description ID" Visible="false">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblCashFlowID" runat="server" Text='<%#Bind("CashFlow_ID") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Account Description">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblCashFlowDesc" runat="server" Text='<%#Bind("CashFlow_Desc") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <FooterTemplate>
+                                                                                <asp:DropDownList ID="ddlAccountDescription" runat="server" OnSelectedIndexChanged="ddlAccountDescription_SelectedIndexChanged"
+                                                                                    AutoPostBack="true">
+                                                                                </asp:DropDownList>
+                                                                                <asp:RequiredFieldValidator ID="rfvFooterAcctDesc" runat="server" ControlToValidate="ddlAccountDescription" Enabled="true" Display="None" InitialValue="0"
+                                                                                    CssClass="styleMandatoryLabel" ErrorMessage="Select the Account Description" ValidationGroup="vsAdd"></asp:RequiredFieldValidator>
+                                                                            </FooterTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="GL Code" Visible="false">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblGLCodeDesc" runat="server" Text='<%#Bind("GL_Code_Desc") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <FooterTemplate>
+                                                                                <uc3:Suggest ID="ddlFtrGlCode" runat="server" ServiceMethod="GetGLCodeList" IsMandatory="false"
+                                                                                    ToolTip="GL Code" ErrorMessage="Enter the GL Code" ValidationGroup="vsAdd" Width="80px" />
+                                                                            </FooterTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="SL Code" Visible="false">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblSLCodeDesc" runat="server" Text='<%#Bind("SL_Code_Desc") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <FooterTemplate>
+                                                                                <uc3:Suggest ID="ddlFtrSLCode" runat="server" ServiceMethod="GetSLCodeList" IsMandatory="false"
+                                                                                    ToolTip="SL Code" ErrorMessage="Enter the SL Code" ValidationGroup="vsAdd" Width="80px" />
+                                                                            </FooterTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Cashflow Flag ID" Visible="false">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblCashFlowFlagID" runat="server" Text='<%#Bind("CashFlow_Flag_ID") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <FooterTemplate>
+                                                                                <asp:Label ID="lblFooterCashFlowFlagID" runat="server" Text=""></asp:Label>
+                                                                            </FooterTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Amount">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblgvAmount" runat="server" Text='<%#Bind("Amount") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <FooterTemplate>
+                                                                                <asp:TextBox ID="txtFooterAmount" runat="server" Text="" MaxLength="16" Width="120px"></asp:TextBox>
+                                                                                <cc1:FilteredTextBoxExtender ID="ftbeFooterAmount" runat="server" TargetControlID="txtFooterAmount" Enabled="true"
+                                                                                    FilterType="Custom,Numbers" ValidChars=".">
+                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                <asp:RequiredFieldValidator ID="rfvFooterAmount" runat="server" ControlToValidate="txtFooterAmount" Enabled="true" Display="None"
+                                                                                    CssClass="styleMandatoryLabel" ErrorMessage="Enter the Amount" ValidationGroup="vsAdd"></asp:RequiredFieldValidator>
+                                                                            </FooterTemplate>
+                                                                            <ItemStyle HorizontalAlign="Right" />
+                                                                            <FooterStyle HorizontalAlign="Right" />
+                                                                        </asp:TemplateField>
+
+                                                                        <asp:TemplateField HeaderText="Action">
+                                                                            <ItemTemplate>
+                                                                                <asp:LinkButton ID="lnkgvRemove" runat="server" Text="Remove" ToolTip="Remove Detail" OnClick="lnkgvRemove_Click"></asp:LinkButton>
+                                                                            </ItemTemplate>
+                                                                            <FooterTemplate>
+                                                                                <asp:Button ID="btnFooterAdd" runat="server" CssClass="styleSubmitButton" Width="100px" Text="Add" ValidationGroup="vsAdd" OnClick="btnFooterAdd_Click"></asp:Button>
+                                                                            </FooterTemplate>
+                                                                        </asp:TemplateField>
+
+                                                                    </Columns>
+
+                                                                </asp:GridView>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </asp:Panel>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <asp:Panel ID="pnlShowFunderDue" runat="server" CssClass="stylePanel" GroupingText="Funder Due Details" Visible="false"
+                                        Width="99%">
+                                        <asp:UpdatePanel ID="updtpnlFD" runat="server" UpdateMode="Conditional">
+                                            <ContentTemplate>
+                                                <div id="divFD" style="overflow: auto; width: 98%; padding-left: 1%;" runat="server">
+                                                    <table width="100%" align="center">
+                                                        <tr>
+                                                            <td>
+                                                                <asp:GridView ID="grvFunderInstallments" runat="server" AutoGenerateColumns="false" Width="100%"
+                                                                    OnRowDataBound="grvFunderInstallments_RowDataBound">
+                                                                    <Columns>
+                                                                        <asp:TemplateField Visible="true" HeaderText="Note No">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblFndPndNoteNo" runat="server" Text='<%#Bind("Note_No") %>' />
+                                                                                <asp:Label ID="lblFndPndNoteID" runat="server" Text='<%#Bind("Note_ID") %>' Visible="false" />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="15%" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="true" HeaderText="Tranche Name">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblFndPndTrancheID" runat="server" Text='<%#Bind("Tranche_ID") %>' Visible="false" />
+                                                                                <asp:Label ID="lblFndPndTrancheName" runat="server" Text='<%#Bind("Tranche_Name") %>' />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="15%" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="true" HeaderText="Account Description">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblFndPndCFDesc" runat="server" Text='<%#Bind("Account_Description") %>' />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="20%" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="true" HeaderText="Due Date" ItemStyle-HorizontalAlign="Left">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblFndPndDueDate" runat="server" Text='<%#Bind("Due_Date") %>' />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="10%" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="true" HeaderText="Due Amount" ItemStyle-HorizontalAlign="Right">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblFndPndAmount" runat="server" Text='<%#Bind("Due_Amount") %>' />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="10%" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="false" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblFndPndCFFlagId" runat="server" Text='<%#Bind("CashFlow_Flag_ID") %>' />
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="false" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblFndPndCFMId" runat="server" Text='<%#Bind("CashFlow_ID") %>' />
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="false" HeaderText="GL Code" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                            <ItemTemplate>
+                                                                                <uc3:Suggest ID="ddlFunderGLCode" runat="server" ServiceMethod="GetGLCodeList" ToolTip="GL Code" Width="100px" />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="10%" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="false" HeaderText="SL Code" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                            <ItemTemplate>
+                                                                                <uc3:Suggest ID="ddlFunderSLCode" runat="server" ServiceMethod="GetSLCodeList" ToolTip="SL Code" Width="100px" />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="10%" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField Visible="true" HeaderText="Amount to be Entered">
+                                                                            <ItemTemplate>
+                                                                                <asp:TextBox ID="txtFndrDueAmt" runat="server" MaxLength="16" onkeypress="fnAllowNumbersOnly(true,false,this)"
+                                                                                    Style="text-align: right" Text='<%#Bind("Receipt_Amount") %>'></asp:TextBox>
+                                                                                <cc1:FilteredTextBoxExtender ID="ftbeFndrDueAmt" runat="server" TargetControlID="txtFndrDueAmt" FilterType="Custom,Numbers"
+                                                                                    ValidChars="." Enabled="true">
+                                                                                </cc1:FilteredTextBoxExtender>
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="10%" HorizontalAlign="Right" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                            <HeaderTemplate>
+                                                                                <asp:CheckBox ID="chkFunderSelectAll" runat="server" onclick="javascript:fnfndrSelectAll(this,'chkFunderSelect');" />
+                                                                            </HeaderTemplate>
+                                                                            <ItemTemplate>
+                                                                                <asp:CheckBox ID="chkFunderSelect" runat="server" />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle Width="5%" />
+                                                                        </asp:TemplateField>
+                                                                    </Columns>
+                                                                </asp:GridView>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td align="center">
+                                                                <asp:Button ID="btnApplyFndrDue" runat="server" CausesValidation="true" Visible="false"
+                                                                    CssClass="styleSubmitButton" Text="Apply" OnClick="btnApplyFndrDue_Click" />
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </ContentTemplate>
+                                        </asp:UpdatePanel>
+                                    </asp:Panel>
+
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                            <cc1:TabPanel runat="server" HeaderText="Drawee Bank" ID="tbDraweeBank" CssClass="tabpan"
+                                BackColor="Red" ToolTip="Drawee Bank" Width="99%">
+                                <HeaderTemplate>
+                                    Drawee Bank
+                                </HeaderTemplate>
+                                <ContentTemplate>
+
+                                    <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="lblInstrumentNo" runat="server" Text="Instrument No" CssClass="styleDisplayLabel"></asp:Label>
+                                            </td>
+                                            <td class="styleFieldAlign">
+                                                <asp:TextBox ID="txtInstrumentNo" runat="server" ToolTip="Instrument No" MaxLength="6" onblur="fnChkInstrumentNo();"></asp:TextBox>
+                                                <cc1:FilteredTextBoxExtender ID="ftbeInstrumentNo" runat="server" TargetControlID="txtInstrumentNo" FilterType="Numbers"
+                                                    Enabled="true">
+                                                </cc1:FilteredTextBoxExtender>
+                                                <asp:RequiredFieldValidator ID="rfvInstrumentNo" runat="server" ControlToValidate="txtInstrumentNo" Enabled="false" CssClass="styleMandatoryLabel"
+                                                    ErrorMessage="Enter the Instrument No" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                            </td>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="lblPaymentGatewayRefNo" runat="server" Text="Payment Gateway Ref No" CssClass="styleDisplayLabel"></asp:Label>
+                                            </td>
+                                            <td class="styleFieldAlign">
+                                                <asp:TextBox ID="txtPaymentGatewayRefNo" runat="server" ToolTip="Payment Gateway Ref No" MaxLength="20"></asp:TextBox>
+                                                <asp:RequiredFieldValidator ID="rfvPaymentGatewayRefNo" runat="server" ControlToValidate="txtPaymentGatewayRefNo" Enabled="false" CssClass="styleMandatoryLabel"
+                                                    ErrorMessage="Enter the Payment Gateway Ref No" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="lblInstrumentDate" runat="server" Text="Instrument Date" CssClass="styleDisplayLabel"></asp:Label>
+                                            </td>
+                                            <td class="styleFieldAlign">
+                                                <asp:TextBox ID="txtInstrumentDate" runat="server" ToolTip="Instrument Date" MaxLength="12"></asp:TextBox>
+                                                <asp:Image ID="imgInstrumentDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                <cc1:CalendarExtender ID="ceInstrumentDate" runat="server" Enabled="true"
+                                                    PopupButtonID="imgInstrumentDate"
+                                                    TargetControlID="txtInstrumentDate" OnClientDateSelectionChanged="checkDate_InstrumentDate">
+                                                </cc1:CalendarExtender>
+                                                <asp:RequiredFieldValidator ID="rfvInstrumentDate" runat="server" ControlToValidate="txtInstrumentDate" Enabled="false" CssClass="styleMandatoryLabel"
+                                                    ErrorMessage="Enter the Instrument Date" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                            </td>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="lblAckNo" runat="server" Text="Ack No" CssClass="styleDisplayLabel"></asp:Label>
+                                            </td>
+                                            <td class="styleFieldAlign">
+                                                <asp:TextBox ID="txtAckNo" runat="server" ToolTip="Ack No" MaxLength="12"></asp:TextBox>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="lblBankLocation" runat="server" Text="Location" CssClass="styleDisplayLabel"></asp:Label>
+                                            </td>
+                                            <td class="styleFieldAlign">
+                                                <asp:TextBox ID="txtBankLocation" runat="server" ToolTip="Bank Location" MaxLength="50"></asp:TextBox>
+                                                <cc1:FilteredTextBoxExtender ID="ftbeBankLocation" runat="server" TargetControlID="txtBankLocation"
+                                                    FilterType="LowercaseLetters,UppercaseLetters" Enabled="true">
+                                                </cc1:FilteredTextBoxExtender>
+                                                <asp:RequiredFieldValidator ID="rfvBankLocation" runat="server" ControlToValidate="txtBankLocation" Enabled="false" CssClass="styleMandatoryLabel"
+                                                    ErrorMessage="Enter the Bank Location" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                            </td>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="lblDraweeBank" runat="server" Text="Drawee Bank" CssClass="styleDisplayLabel"></asp:Label>
+                                            </td>
+                                            <td class="styleFieldAlign">
+                                                <asp:DropDownList ID="ddlDraweeBank" runat="server" ToolTip="Drawee Bank"></asp:DropDownList>
+                                                <asp:TextBox ID="txtOtherDraweeBank" runat="server" Text="" MaxLength="60"></asp:TextBox>
+                                                <asp:RequiredFieldValidator ID="rfvDraweeBank" runat="server" ControlToValidate="ddlDraweeBank" Enabled="false" CssClass="styleMandatoryLabel" InitialValue="0"
+                                                    ErrorMessage="Select the Drawee Bank" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                        </cc1:TabContainer>
+                    </td>
+                </tr>
+
+            </table>
+
+            <table width="100%" align="center">
+                <tr class="styleButtonArea">
+                    <td align="center">
+                        <asp:Button ID="btnSave" runat="server" CausesValidation="true" CssClass="styleSubmitButton" ToolTip="Save Details"
+                            Text="Save" ValidationGroup="vsSave" OnClientClick="return fnCheckPageValidators('vsSave');"
+                            OnClick="btnSave_Click" />
+                        <asp:Button ID="btnClear" runat="server" CausesValidation="False" CssClass="styleSubmitButton" ToolTip="Clear Details"
+                            Text="Clear" OnClick="btnClear_Click" />
+                        <asp:Button ID="btnCancel" runat="server" CausesValidation="False" CssClass="styleSubmitButton" ToolTip="Cancel Details"
+                            Text="Cancel" OnClick="btnCancel_Click" />
+                        <asp:Button ID="btnReceiptCancel" runat="server" CausesValidation="false" CssClass="styleSubmitButton" ToolTip="Cancel Receipt"
+                            Text="Receipt Cancel" OnClick="btnReceiptCancel_Click" />
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldAlign"></td>
+                </tr>
+            </table>
+            <asp:ValidationSummary runat="server" ID="vsSave" ValidationGroup="vsSave"
+                HeaderText="Please correct the following validation(s):" Height="400px" CssClass="styleMandatoryLabel"
+                Width="500px" ShowMessageBox="false" ShowSummary="true" />
+            <asp:ValidationSummary runat="server" ID="vsAdd" ValidationGroup="vsAdd"
+                HeaderText="Please correct the following validation(s):" Height="400px" CssClass="styleMandatoryLabel"
+                Width="500px" ShowMessageBox="false" ShowSummary="true" />
+            <asp:CustomValidator ID="cvReceipt" runat="server" CssClass="styleMandatoryLabel"
+                Enabled="true" Width="98%" />
+
+        </ContentTemplate>
+    </asp:UpdatePanel>
+
+    <script type="text/javascript" language="javascript">
+        function fnLoadCustomer() {
+            document.getElementById('<%=btnCreateCustomer.ClientID%>').click();
+        }
+
+        function checkDate_DocDate(sender, args) {
+            //debugger;
+            var varDocDate = document.getElementById('<%=txtDocDate.ClientID%>').value;
+            var selectedDate = sender._selectedDate;
+            var millsecondsdiff = Math.abs(Date.parseInvariant(varDocDate, sender._format) - sender._selectedDate);
+            var millisecondsPerDay = 1000 * 60 * 60 * 24;
+            var days = Math.floor(millsecondsdiff / millisecondsPerDay);
+            var varGapDays = "<%=strValueDateGapDays%>";
+            if (days > varGapDays) {
+                var varAlert = "Gap Days between Receipt Date and Value Date should be " + varGapDays + " days";
+                document.getElementById('<%=txtValueDate.ClientID%>').value = "";
+                alert(varAlert);
+                return;
+            }
+
+        }
+
+        //new function to validate gap days on  - ONBLUR and editable textbox date field.
+        function checkDate_DocDateOnBlur(el, erID, eFormat, IsFutureDateValidation, IsBackDateValidation) {
+            fnDoDate(el, erID, eFormat, IsFutureDateValidation, IsBackDateValidation);
+            //debugger;
+            var varDocDate = document.getElementById('<%=txtDocDate.ClientID%>').value;
+            var varValueDate = document.getElementById('<%=txtValueDate.ClientID%>').value;
+
+            if (varValueDate !== "") {
+                //var selectedDate = sender._selectedDate;
+                var millsecondsdiff = Math.abs(Date.parseInvariant(varDocDate, eFormat) - Date.parseInvariant(varValueDate, eFormat));
+                var millisecondsPerDay = 1000 * 60 * 60 * 24;
+                var days = Math.floor(millsecondsdiff / millisecondsPerDay);
+                var varGapDays = "<%=strValueDateGapDays%>";
+                if (days > varGapDays) {
+                    var varAlert = "Gap Days between Receipt Date and Value Date should be " + varGapDays + " days";
+                    document.getElementById('<%=txtValueDate.ClientID%>').value = "";
+                    alert(varAlert);
+                    return;
+                }
+            }
+        }
+
+        function checkDate_InstrumentDate(sender, args) {
+            //debugger;
+            var varDocDate = document.getElementById('<%=txtDocDate.ClientID%>').value;
+            var selectedDate = sender._selectedDate;
+            var millsecondsdiff = sender._selectedDate - new Date();
+            var millisecondsPerDay = 1000 * 60 * 60 * 24;
+            var days = Math.floor(millsecondsdiff / millisecondsPerDay);
+            var varGapDays = "<%=strInstrumentDateGapDays%>";
+            if (days < ((-1) * varGapDays)) {
+                var varAlert = "Instrument Date should be less than or equal to " + varGapDays + " days";
+                document.getElementById('<%=txtInstrumentDate.ClientID%>').value = (new Date()).format(eFormat);
+                        alert(varAlert);
+                        return;
+                    }
+                    if (days > varGapDays) {
+                        var varAlert = "Instrument Date should be less than or equal to " + varGapDays + " days";
+                        document.getElementById('<%=txtInstrumentDate.ClientID%>').value = (new Date()).format(sender._format);
+                        alert(varAlert);
+                        return;
+                    }
+                }
+
+                function checkDate_InstrumentDate_OnBlur(el, erID, eFormat, IsFutureDateValidation, IsBackDateValidation) {
+
+                    fnDoDate(el, erID, eFormat, IsFutureDateValidation, IsBackDateValidation);
+
+                    //debugger;
+                    var varDocDate = document.getElementById('<%=txtInstrumentDate.ClientID%>').value;
+                    if (varDocDate != "") {
+                        var millsecondsdiff = Date.parseInvariant(varDocDate, eFormat) - new Date();
+                        var millisecondsPerDay = 1000 * 60 * 60 * 24;
+                        var days = Math.floor(millsecondsdiff / millisecondsPerDay);
+                        var varGapDays = "<%=strInstrumentDateGapDays%>";
+                        if (days < ((-1) * varGapDays)) {
+                            var varAlert = "Instrument Date should be less than or equal to " + varGapDays + " days";
+                            document.getElementById('<%=txtInstrumentDate.ClientID%>').value = (new Date()).format(eFormat);
+                            alert(varAlert);
+                            return;
+                        }
+                        if (days > varGapDays) {
+                            var varAlert = "Instrument Date should be less than or equal to " + varGapDays + " days";
+                            document.getElementById('<%=txtInstrumentDate.ClientID%>').value = (new Date()).format(eFormat);
+                            alert(varAlert);
+                            return;
+                        }
+                    }
+                }
+
+                function Mode_indexchanged() {
+
+                    var mode = document.getElementById('<%=ddlMode.ClientID%>');
+                    if (mode.value == 3 || mode.value == 4) {
+                        document.getElementById('<%=txtInstrumentDate.ClientID%>').disabled = true;
+                        document.getElementById('<%=txtInstrumentNo.ClientID%>').disabled = true;
+                        document.getElementById('<%=txtPaymentGatewayRefNo.ClientID%>').disabled = false;
+                        document.getElementById('<%=txtAckNo.ClientID%>').disabled = false;
+                        document.getElementById('<%=txtBankLocation.ClientID%>').disabled = false;
+                        document.getElementById('<%=ddlDraweeBank.ClientID%>').disabled = false;
+                        document.getElementById('<%=lblInstrumentNo.ClientID%>').setAttribute("className", "styleDisplayLabel");
+                        document.getElementById('<%=lblInstrumentDate.ClientID%>').setAttribute("className", "styleDisplayLabel");
+                        document.getElementById('<%=lblBankLocation.ClientID%>').setAttribute("className", "styleReqFieldLabel");
+                        document.getElementById('<%=lblDraweeBank.ClientID%>').setAttribute("className", "styleReqFieldLabel");
+                        ValidatorEnable(document.getElementById("<%=rfvInstrumentNo.ClientID %>"), false);
+                        ValidatorEnable(document.getElementById("<%=rfvInstrumentDate.ClientID %>"), false);
+                        ValidatorEnable(document.getElementById("<%=rfvBankLocation.ClientID %>"), true);
+                        ValidatorEnable(document.getElementById("<%=rfvDraweeBank.ClientID %>"), true);
+                        document.getElementById('<%=txtInstrumentDate.ClientID%>').value = "";
+                        document.getElementById('<%=txtInstrumentNo.ClientID%>').value = "";
+                    }
+                    else if (mode.value == 2 || mode.value == 5 || mode.value == 6) {                     //Cheque,PDC,DD
+                        document.getElementById('<%=txtInstrumentDate.ClientID%>').disabled = false;
+                        document.getElementById('<%=txtInstrumentNo.ClientID%>').disabled = false;
+                        document.getElementById('<%=txtPaymentGatewayRefNo.ClientID%>').disabled = false;
+                        document.getElementById('<%=txtAckNo.ClientID%>').disabled = false;
+                        document.getElementById('<%=txtBankLocation.ClientID%>').disabled = false;
+                        document.getElementById('<%=ddlDraweeBank.ClientID%>').disabled = false;
+                        document.getElementById('<%=lblInstrumentNo.ClientID%>').setAttribute("className", "styleReqFieldLabel");
+                        document.getElementById('<%=lblInstrumentDate.ClientID%>').setAttribute("className", "styleReqFieldLabel");
+                        document.getElementById('<%=lblBankLocation.ClientID%>').setAttribute("className", "styleReqFieldLabel");
+                        document.getElementById('<%=lblDraweeBank.ClientID%>').setAttribute("className", "styleReqFieldLabel");
+                        ValidatorEnable(document.getElementById("<%=rfvInstrumentNo.ClientID %>"), true);
+                        ValidatorEnable(document.getElementById("<%=rfvInstrumentDate.ClientID %>"), true);
+                        ValidatorEnable(document.getElementById("<%=rfvBankLocation.ClientID %>"), true);
+                        ValidatorEnable(document.getElementById("<%=rfvDraweeBank.ClientID %>"), true);
+                    }
+                    else {
+                        document.getElementById('<%=txtInstrumentDate.ClientID%>').disabled = true;
+                        document.getElementById('<%=txtInstrumentNo.ClientID%>').disabled = true;
+                        document.getElementById('<%=txtPaymentGatewayRefNo.ClientID%>').disabled = true;
+                        document.getElementById('<%=txtAckNo.ClientID%>').disabled = true;
+                        document.getElementById('<%=txtBankLocation.ClientID%>').disabled = true;
+                        document.getElementById('<%=ddlDraweeBank.ClientID%>').disabled = true;
+                        document.getElementById('<%=lblInstrumentNo.ClientID%>').setAttribute("className", "styleDisplayLabel");
+                        document.getElementById('<%=lblInstrumentDate.ClientID%>').setAttribute("className", "styleDisplayLabel");
+                        document.getElementById('<%=lblBankLocation.ClientID%>').setAttribute("className", "styleDisplayLabel");
+                        document.getElementById('<%=lblDraweeBank.ClientID%>').setAttribute("className", "styleDisplayLabel");
+                        ValidatorEnable(document.getElementById("<%=rfvInstrumentNo.ClientID %>"), false);
+                        ValidatorEnable(document.getElementById("<%=rfvInstrumentDate.ClientID %>"), false);
+                        ValidatorEnable(document.getElementById("<%=rfvBankLocation.ClientID %>"), false);
+                        ValidatorEnable(document.getElementById("<%=rfvDraweeBank.ClientID %>"), false);
+                        document.getElementById('<%=txtInstrumentDate.ClientID%>').value = "";
+                        document.getElementById('<%=txtInstrumentNo.ClientID%>').value = "";
+                        document.getElementById('<%=txtPaymentGatewayRefNo.ClientID%>').value = "";
+                        document.getElementById('<%=txtAckNo.ClientID%>').value = "";
+                        document.getElementById('<%=txtBankLocation.ClientID%>').value = "";
+                        document.getElementById('<%=ddlDraweeBank.ClientID%>').selectedIndex = "0";
+                    }
+            }
+
+            function DraweeBank_indexchanged() {
+                var ddlDraweeBank = document.getElementById('<%=ddlDraweeBank.ClientID%>');
+                var len = document.getElementById('<%=ddlDraweeBank.ClientID%>').length;
+                if (len > 0) {
+                    document.getElementById('<%=txtOtherDraweeBank.ClientID%>').value = "";
+                    if (ddlDraweeBank.options[ddlDraweeBank.selectedIndex].text == "Others") {
+                        document.getElementById('<%=txtOtherDraweeBank.ClientID%>').disabled = false;
+                        document.getElementById('<%=txtOtherDraweeBank.ClientID%>').style.display = '';
+                    }
+                    else {
+                        document.getElementById('<%=txtOtherDraweeBank.ClientID%>').disabled = true;
+                        document.getElementById('<%=txtOtherDraweeBank.ClientID%>').style.display = 'none';
+                    }
+                }
+            }
+            function fnfndrSelectAll(chkSelectAllBranch, chkSelectBranch) {
+                var gvBranchWise = document.getElementById('<%=grvFunderInstallments.ClientID%>');
+                var TargetChildControl = chkSelectBranch;
+                //Get all the control of the type INPUT in the base control.
+                var Inputs = gvBranchWise.getElementsByTagName("input");
+                //Checked/Unchecked all the checkBoxes in side the GridView.
+                for (var n = 0; n < Inputs.length; ++n)
+                    if (Inputs[n].type == 'checkbox' &&
+                Inputs[n].id.indexOf(TargetChildControl, 0) >= 0)
+                        Inputs[n].checked = chkSelectAllBranch.checked;
+            }
+
+            function fnChkInstrumentNo() {
+                var Instrument_No = document.getElementById('<%=txtInstrumentNo.ClientID%>').value;
+                if (Instrument_No != "" && parseInt(Instrument_No) == 0) {
+                    alert("Instrument No should not be Zero");
+                    document.getElementById('<%=txtInstrumentNo.ClientID%>').value = "";
+                }
+                else if (Instrument_No != "" && Instrument_No.length < 6) {
+                    alert("Instrument No should be 6 Numbers");
+                    document.getElementById('<%=txtInstrumentNo.ClientID%>').focus();
+                }
+        }
+
+        var prm = Sys.WebForms.PageRequestManager.getInstance();
+        prm.add_endRequest(function () {
+            //Mode_indexchanged();
+            DraweeBank_indexchanged();
+        });
+
+    </script>
+</asp:Content>
+

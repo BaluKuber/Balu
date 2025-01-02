@@ -1,0 +1,1847 @@
+﻿
+#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Collection
+/// Screen Name         :   Loan To Value Spooling
+/// Created By          :   M.Saran
+/// Created Date        :   
+/// Purpose             :   This interface will enable the user to see the data at LOB,branch or asset details Level.
+/// Last Updated By		:   NULL
+/// Last Updated Date   :   NULL
+/// Reason              :   NULL
+/// <Program Summary>
+#endregion
+
+#region NameSpaces
+using System;
+using System.Globalization;
+using System.Resources;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using System.ServiceModel;
+using System.Text;
+using System.Data;
+using System.Configuration;
+using System.Collections.Generic;
+using System.Linq;
+using S3GBusEntity.Collection;
+using System.IO;
+using System.Web.Security;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+#endregion
+
+public partial class Collection_S3gClnLoanToValueSpooling : ApplyThemeForProject
+{
+    #region Variable Declaration Region
+    public static Collection_S3gClnLoanToValueSpooling obj_Page;
+    public string strDateFormat;                                                // to maintain the standard format
+    Dictionary<string, string> Procparam = null;                                // Dictionary to send our procedure's Parameters    
+    int intUserID = 0;                                                          // user who signed in
+    int intCompanyID = 0;                                                       // conpany of the user who signed in   
+    UserInfo ObjUserInfo;                                                       // to maintain the user information      
+    //  User Authorization
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bIsActive = false;
+
+    const string strvalidationmsgname = "CLV";
+    static string strPageName = "Loan To Value Spooling";
+
+    //Footer grid value
+    decimal TotalPrincipalOutstanding = 0;
+    decimal TotalInterestOutstanding = 0;
+    decimal TotalMarketvalue = 0;
+    decimal TotalOutstanding = 0;
+
+
+    #endregion
+
+
+    #region Page Load
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        try
+        {
+            FunPriLoadPage();
+            ddlLOBSearch.AddItemToolTip();
+            //ddlBranch.AddItemToolTip();
+            ddlAssetType.AddItemToolTip();
+            ddlAssetModel.AddItemToolTip();
+            ddlAssetMake.AddItemToolTip();
+            ddlAssetClass.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Load, Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    #endregion
+
+
+    # region Page Methods
+
+
+    /// <summary>
+    /// This method will execute when page Loads
+    /// </summary>
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            #region Application Standard Date Format
+            S3GSession ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;                              // to get the standard date format of the Application
+            #endregion
+
+            # region User Information
+            ObjUserInfo = new UserInfo();
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;                                  // current user's company ID.
+            intUserID = ObjUserInfo.ProUserIdRW;                                        // current user's ID
+
+            #region  User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            bIsActive = ObjUserInfo.ProIsActiveRW;
+            #endregion
+            #endregion
+
+            if (!IsPostBack)
+            {
+                txtReportDate.Text = DateTime.Now.ToString(strDateFormat);
+                FunProLoadLOB();                   
+                //FunPriInsertSelect(ddlBranch);
+                FunPriLoadAssetClass();
+                FunPriLoadAssetMake();
+                FunPriLoadAssetModel();
+                FunPriLoadAssetType();
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadAssetModel()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@SearchFor", "4");
+            ddlAssetModel.BindDataTable("S3G_CLN_GetAssetCategoryDetails", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+            ddlAssetModel.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadAssetType()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@SearchFor", "3");
+            ddlAssetType.BindDataTable("S3G_CLN_GetAssetCategoryDetails", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+            ddlAssetType.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadAssetMake()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@SearchFor", "2");
+            ddlAssetMake.BindDataTable("S3G_CLN_GetAssetCategoryDetails", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+            ddlAssetMake.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadAssetClass()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@SearchFor", "1");
+            ddlAssetClass.BindDataTable("S3G_CLN_GetAssetCategoryDetails", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+            ddlAssetClass.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected void FunProLoadBranch()
+    {
+        // branch
+        try
+        {
+            if (ddlLOBSearch != null && ddlLOBSearch.SelectedIndex > 0)
+            {
+                //Procparam = new Dictionary<string, string>();
+                //Procparam.Clear();
+                //Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                //Procparam.Add("@User_ID", Convert.ToString(intUserID));
+                //Procparam.Add("@Is_Active", "1");
+                //Procparam.Add("@Lob_ID", ddlLOBSearch.SelectedValue);
+                //Procparam.Add("@Program_ID", "103");
+                //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+                //ddlBranch.AddItemToolTip();
+            }
+            else
+            {
+                if (ddlBranch != null)
+                {
+                    ddlBranch.Clear();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriInsertSelect(DropDownList ddl)
+    {
+        try
+        {
+            System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+            ddl.Items.Insert(0, liSelect);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected void FunProLoadLOB()
+    {
+        // LOB ComboBoxLOBSearch
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            if (Procparam != null)
+                Procparam.Clear();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Program_ID", "103");
+            ddlLOBSearch.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            ddlLOBSearch.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadAssetMake(DropDownList ddl, string Category_Type, string Asset_Type)
+    {
+        //Procparam = new Dictionary<string, string>();
+        //Procparam.Add("@Company_ID", intCompanyID.ToString());
+        //Procparam.Add("@Category_Type", Category_Type);
+        //if (ddlAsset != null && ddlAsset.SelectedIndex == 0)
+        //{
+        //    ddl.BindDataTable("S3G_CLN_GetAssetCategory", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+        //}
+        //else
+        //{
+        //    if (ViewState["AssetList"] != null)
+        //    {
+        //        DataTable dtAssetDetails = (DataTable)ViewState["AssetList"];
+        //        dtAssetDetails.DefaultView.RowFilter = "Asset_ID = '" + ddlAsset.SelectedValue + "'";
+        //        dtAssetDetails = dtAssetDetails.DefaultView.ToTable();
+        //        if (dtAssetDetails != null && dtAssetDetails.Rows.Count > 0)
+        //        {
+        //            Procparam.Add("@Asset_Category_ID", dtAssetDetails.Rows[0][Asset_Type].ToString());
+        //            ddl.BindDataTable("S3G_CLN_GetAssetCategory", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+        //        }
+        //    }
+        //    else
+        //    {
+        //        ddl.Items.Clear();
+        //        FunPriInsertSelect(ddl);
+        //    }
+        //}
+
+
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriAlignGrid()
+    {
+        try
+        {
+            for (int i_grvCol = 0; i_grvCol < grvValueSpooling.Columns.Count; i_grvCol++)
+            {
+                for (int i_grvrow = 0; i_grvrow < grvValueSpooling.Rows.Count; i_grvrow++)
+                {
+                    switch (i_grvCol) // sort depending on columns
+                    {
+                        case 6: // orgin date
+                            Label lblOrginDateI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblOrginDateI");
+                            if (lblOrginDateI != null && (!(string.IsNullOrEmpty(lblOrginDateI.Text))))
+                                //lblOrginValueI.Style["text-align"] = "right"; 
+                                lblOrginDateI.Text = Convert.ToDateTime(lblOrginDateI.Text).ToString(strDateFormat);
+                            break;
+                        case 13: // 
+                            Label lblAccountClosingDateI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblAccountClosingDateI");
+                            if (lblAccountClosingDateI != null && (!(string.IsNullOrEmpty(lblAccountClosingDateI.Text))))
+                                //lblAccountClosingDateI.Style["text-align"] = "right"; 
+                                lblAccountClosingDateI.Text = Convert.ToDateTime(lblAccountClosingDateI.Text).ToString(strDateFormat);
+                            break;
+                        case 5: // asset value
+                            Label lblAssetValueI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblAssetValueI");
+                            if (lblAssetValueI != null && (!(string.IsNullOrEmpty(lblAssetValueI.Text))))
+                                lblAssetValueI.Text = Convert.ToDecimal(lblAssetValueI.Text).ToString(Funsetsuffix());
+                            break;
+                        case 7: // orgin value
+                            Label lblOrginValueI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblOrginValueI");
+                            if (lblOrginValueI != null && (!(string.IsNullOrEmpty(lblOrginValueI.Text))))
+                                lblOrginValueI.Text = Convert.ToDecimal(lblOrginValueI.Text).ToString(Funsetsuffix());
+                            break;
+                        case 8: // Principal o/s
+                            Label lblPrincipalOutstandingI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblPrincipalOutstandingI");
+                            if (lblPrincipalOutstandingI != null && (!(string.IsNullOrEmpty(lblPrincipalOutstandingI.Text))))
+                                lblPrincipalOutstandingI.Text = Convert.ToDecimal(lblPrincipalOutstandingI.Text).ToString(Funsetsuffix());
+                            break;
+                        case 9: // interest o/s
+                            Label lblInterestOutstandingI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblInterestOutstandingI");
+                            if (lblInterestOutstandingI != null && (!(string.IsNullOrEmpty(lblInterestOutstandingI.Text))))
+                                lblInterestOutstandingI.Text = Convert.ToDecimal(lblInterestOutstandingI.Text).ToString(Funsetsuffix());
+                            break;
+                        case 10: // total o/s
+                            Label lblTotalOutstandingI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblTotalOutstandingI");
+                            if (lblTotalOutstandingI != null && (!(string.IsNullOrEmpty(lblTotalOutstandingI.Text))))
+                                lblTotalOutstandingI.Text = Convert.ToDecimal(lblTotalOutstandingI.Text).ToString(Funsetsuffix());
+                            break;
+                        case 11: // Market Value
+                            Label lblMarketValueI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblMarketValueI");
+                            if (lblMarketValueI != null && (!(string.IsNullOrEmpty(lblMarketValueI.Text))))
+                                lblMarketValueI.Text = Convert.ToDecimal(lblMarketValueI.Text).ToString(Funsetsuffix());
+                            break;
+                        case 12: // SLM
+                            Label lblSLMDepreciationValueI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblSLMDepreciationValueI");
+                            if (lblSLMDepreciationValueI != null && (!(string.IsNullOrEmpty(lblSLMDepreciationValueI.Text))))
+                                lblSLMDepreciationValueI.Text = Convert.ToDecimal(lblSLMDepreciationValueI.Text).ToString(Funsetsuffix());
+                            break;
+                        case 14: // Risk Percentage
+                            Label lblRiskPercentageI = (Label)grvValueSpooling.Rows[i_grvrow].Cells[i_grvCol].FindControl("lblRiskPercentageI");
+                            if (lblRiskPercentageI != null && (!(string.IsNullOrEmpty(lblRiskPercentageI.Text))))
+                                lblRiskPercentageI.Text = Convert.ToDecimal(lblRiskPercentageI.Text).ToString(Funsetsuffix());
+                            break;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunResetDDL(DropDownList ddl)
+    {
+        try
+        {
+            if (ddl != null && ddl.Items.Count > 0)
+            {
+                ddl.SelectedIndex = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private DataTable FunPriAddRowForXL(DataTable dt, string strLabel, int insertPos, DropDownList ddl)
+    {
+        if (ddl != null && ddl.SelectedIndex > 0 && dt != null)
+        {
+            DataRow dr = dt.NewRow();
+            dr[0] = strLabel;
+            dr[1] = ddl.SelectedItem.ToString();
+            dt.Rows.InsertAt(dr, insertPos);
+        }
+        return dt;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private string FunPriFlatFileText()
+    {
+        DataTable dt = (DataTable)ViewState["LoanToValueDetails"];
+
+        StringBuilder strb = new StringBuilder();
+
+        for (int i = 0; i < dt.Rows.Count; i++)
+        {
+            strb.Append(System.Environment.NewLine + System.Environment.NewLine + "Row: " + (i + 1).ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[0].ColumnName + ":  " + dt.Rows[i][0].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[1].ColumnName + ":  " + dt.Rows[i][1].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[2].ColumnName + ":  " + dt.Rows[i][2].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[3].ColumnName + ":  " + dt.Rows[i][3].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[4].ColumnName + ":  " + dt.Rows[i][4].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[5].ColumnName + ":  " + dt.Rows[i][5].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[6].ColumnName + ":  " + dt.Rows[i][6].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[7].ColumnName + ":  " + dt.Rows[i][7].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[8].ColumnName + ":  " + dt.Rows[i][8].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[9].ColumnName + ":  " + dt.Rows[i][9].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[10].ColumnName + ":  " + dt.Rows[i][10].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[11].ColumnName + ":  " + dt.Rows[i][11].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[12].ColumnName + ":  " + dt.Rows[i][12].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[13].ColumnName + ":  " + dt.Rows[i][13].ToString() + System.Environment.NewLine);
+            strb.Append("  " + dt.Columns[14].ColumnName + ":  " + dt.Rows[i][14].ToString() + System.Environment.NewLine);
+        }
+        return strb.ToString();
+
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /*private void FunPriDatatabletoXL(DataTable dt, string strFileName)
+    {
+        try
+        {
+            Microsoft.Office.Interop.Excel.ApplicationClass excel = new Microsoft.Office.Interop.Excel.ApplicationClass();
+            Microsoft.Office.Interop.Excel.Workbook workbook = excel.Workbooks.Add(true);
+            int icol = 0;
+            foreach (DataColumn c in dt.Columns)
+            {
+                icol++;
+                excel.Cells[1, icol] = c.ColumnName;
+            }
+            int irow = 0;
+            foreach (DataRow r in dt.Rows)
+            {
+                irow++;
+                icol = 0;
+                foreach (DataColumn c in dt.Columns)
+                {
+                    icol++;
+                    excel.Cells[irow + 1, icol] = r[c.ColumnName];
+                }
+            }
+            object missing = System.Reflection.Missing.Value;
+
+            //saving;
+            workbook.SaveAs(strFileName, Microsoft.Office.Interop.Excel.XlFileFormat.xlXMLSpreadsheet, missing, missing, missing, missing, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive, missing, missing, missing, missing, missing);
+
+            //make visible
+            excel.Visible = true;
+            Microsoft.Office.Interop.Excel.Worksheet worksheet = (Microsoft.Office.Interop.Excel.Worksheet)excel.ActiveSheet;
+            ((Microsoft.Office.Interop.Excel.Worksheet)worksheet).Activate();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            GC.Collect();
+        }
+
+    }*/
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private string GetHTMLText()
+    {
+        StringBuilder strHtml = new StringBuilder();
+
+        strHtml.Append(
+         "<font size=\"2\"  color=\"black\" face=\"verdana\">" +
+          " <table align=\"center\" width=\"80%\">" +
+       "<tr >" +
+           "<td colspan = \"2\" align=\"center\" >" +
+               "<font size=\"4\"  color=\"Black\" face=\"verdana\">" +
+              "<u> <b>Loan To Value Spooling</b> </u>" +
+                 "</font> " +
+           "</td>" +
+      " </tr>" +
+      "<tr>" +
+             "<td colspan=\"2\" height=\"15px\">" +
+                   "</td>" +
+               "</tr>" +
+               " <tr>" +
+         "  <td  align=\"left\"  valign=\"top\"> " +
+             "  Report Date:" +
+          " </td>" +
+          " <td align=\"left\">" +
+               txtReportDate.Text +
+          " </td>" +
+       "</tr>"
+       +
+      "<tr>" +
+             "<td colspan=\"2\" height=\"15px\">" +
+                   "</td>" +
+               "</tr>" +
+               " <tr>" +
+         "  <td  align=\"left\"  valign=\"top\"> " +
+             "  Line of Business:" +
+          " </td>" +
+          " <td align=\"left\">" +
+               ddlLOBSearch.SelectedItem.ToString() +
+          " </td>" +
+       "</tr>");
+
+
+
+        if (ddlBranch != null &&  Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+        {
+            strHtml.Append(" <tr>" +
+                  "  <td  align=\"left\"  valign=\"top\"> " +
+                      "  Branch:" +
+                   " </td>" +
+                   " <td align=\"left\">" +
+                        ddlBranch.SelectedText.ToString() +
+                   " </td>" +
+                "</tr>");
+        }
+
+        //if (ddlAsset != null && ddlAsset.SelectedIndex > 0)
+        //{
+        //    strHtml.Append(" <tr>" +
+        //          "  <td  align=\"left\"  valign=\"top\"> " +
+        //              "  Asset:" +
+        //           " </td>" +
+        //           " <td align=\"left\">" +
+        //                ddlAsset.SelectedItem.ToString() +
+        //           " </td>" +
+        //        "</tr>");
+        //}
+
+        if (ddlAssetClass != null && ddlAssetClass.SelectedIndex > 0)
+        {
+            strHtml.Append(" <tr>" +
+                  "  <td  align=\"left\"  valign=\"top\"> " +
+                      "  Asset Class:" +
+                   " </td>" +
+                   " <td align=\"left\">" +
+                        ddlAssetClass.SelectedItem.ToString() +
+                   " </td>" +
+                "</tr>");
+        }
+
+        if (ddlAssetType != null && ddlAssetType.SelectedIndex > 0)
+        {
+            strHtml.Append(" <tr>" +
+                  "  <td  align=\"left\"  valign=\"top\"> " +
+                      "  Asset Type:" +
+                   " </td>" +
+                   " <td align=\"left\">" +
+                        ddlAssetType.SelectedItem.ToString() +
+                   " </td>" +
+                "</tr>");
+        }
+
+        if (ddlAssetModel != null && ddlAssetModel.SelectedIndex > 0)
+        {
+            strHtml.Append(" <tr>" +
+                  "  <td  align=\"left\"  valign=\"top\"> " +
+                      "  Asset Model:" +
+                   " </td>" +
+                   " <td align=\"left\">" +
+                        ddlAssetModel.SelectedItem.ToString() +
+                   " </td>" +
+                "</tr>");
+        }
+
+        strHtml.Append("</table>" + "</font>");
+        return strHtml.ToString();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private string GetHTMLTextDDL(DropDownList ddl, string label)
+    {
+        if (ddl != null && ddl.SelectedIndex > 0)
+        {
+            return (
+                      label +
+
+                        ddl.SelectedItem.ToString() + System.Environment.NewLine
+                   );
+        }
+        return "";
+    }
+
+    private string GetHTMLTextDDL(String Value,String Text, string label)
+    {
+        if (Convert.ToInt32(Value) > 0)
+        {
+            return (
+                      label +
+
+                        Text + System.Environment.NewLine
+                   );
+        }
+        return "";
+    }
+    /// <summary>
+    /// 
+    /// </summary>
+    private string GetHTMLTextFile()
+    {
+        StringBuilder strHtml = new StringBuilder();
+
+        strHtml.Append(
+         "Loan To Value Spooling: " + System.Environment.NewLine +
+         "-----------------------" + System.Environment.NewLine + System.Environment.NewLine +
+         "  Report Date: " + txtReportDate.Text + System.Environment.NewLine);
+
+        strHtml.Append(GetHTMLTextDDL(ddlLOBSearch, "  Line of Business: "));
+        strHtml.Append(GetHTMLTextDDL(ddlBranch.SelectedValue,ddlBranch.SelectedText, "  Branch: "));
+        strHtml.Append(GetHTMLTextDDL(ddlAssetClass, "  Asset Class: "));
+        strHtml.Append(GetHTMLTextDDL(ddlAssetType, "  Asset Type: "));
+        strHtml.Append(GetHTMLTextDDL(ddlAssetModel, "  Asset Model: "));
+        if (grvValueSpooling != null && grvValueSpooling.FooterRow != null)
+        {
+            Label lblFooterPrincipalOutstanding = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterPrincipalOutstanding");
+            Label lblFooterInterestOutstanding = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterInterestOutstanding");
+            Label lblFooterMarketValue = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterMarketValue");
+            Label lblFooterTotalOutstandingF = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterTotalOutstandingF");
+
+            strHtml.Append("  Total PrincipalOutstanding: " + lblFooterPrincipalOutstanding.Text + System.Environment.NewLine);
+            strHtml.Append("  Total InterestOutstanding: " + lblFooterInterestOutstanding.Text + System.Environment.NewLine);
+            strHtml.Append("  Total Outstanding: " + lblFooterTotalOutstandingF.Text + System.Environment.NewLine);
+            strHtml.Append("  Total Market Value: " + lblFooterMarketValue.Text + System.Environment.NewLine);
+        }
+        else
+        {
+            strHtml.Append("  Total PrincipalOutstanding: " + TotalPrincipalOutstanding.ToString("0.00") + System.Environment.NewLine);
+            strHtml.Append("  Total InterestOutstanding: " + TotalInterestOutstanding.ToString("0.00") + System.Environment.NewLine);
+            strHtml.Append("  Total Outstanding: " + TotalOutstanding.ToString("0.00") + System.Environment.NewLine);
+            strHtml.Append("  Total Market Value: " + TotalMarketvalue.ToString("0.00") + System.Environment.NewLine);
+        }
+        return strHtml.ToString();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunSaveAndOpenFile()
+    {
+        try
+        {
+            String htmlText = GetHTMLText();
+            Guid objGuid = new Guid();
+            string strnewFile = (Server.MapPath(".") + "\\PDF Files\\" + objGuid + "LoanToValueSpooling.pdf");
+            Document doc = new Document();
+            PdfWriter writer = PdfWriter.GetInstance(doc, new FileStream(strnewFile, FileMode.Create));
+            doc.AddCreator("Sundaram Infotech Solutions");
+            doc.AddTitle("New PDF Document");
+            doc.Open();
+            List<IElement> htmlarraylist = iTextSharp.text.html.simpleparser.HTMLWorker.ParseToList(new StringReader(htmlText), null);
+            for (int k = 0; k < htmlarraylist.Count; k++)
+            { doc.Add((IElement)htmlarraylist[k]); }
+            doc.AddAuthor("S3G Team");
+            doc.Close();
+            System.Diagnostics.Process.Start(strnewFile);
+        }
+        catch (DirectoryNotFoundException dnfe)
+        {
+            //Utility.FunShowAlertMsg(this, "The target directory was not found");
+            //CLV_1
+            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 1);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public string FunPubFormXml(DataTable DtXml)
+    {
+        int intcolcount = 0;
+        string strColValue = string.Empty;
+        StringBuilder strbXml = new StringBuilder();
+        strbXml.Append("<Root>");
+        foreach (DataRow grvRow in DtXml.Rows)
+        {
+            intcolcount = 0;
+            strbXml.Append(" <Details ");
+            foreach (DataColumn dtCols in DtXml.Columns)
+            {
+                strColValue = grvRow.ItemArray[intcolcount].ToString();
+                strColValue = strColValue.Replace("&", "").Replace("<", "").Replace(">", "");
+                //if (!string.IsNullOrEmpty(strColValue))
+                //{
+                if (dtCols.ColumnName != string.Empty)
+                {
+
+                    // if (dtCols.ColumnName.ToUpper().Contains("DATE"))
+                    //     strbXml.Append(dtCols.ColumnName + "='" + Utility.StringToDate(strColValue).ToString() + "' ");
+                    //  else
+                    strbXml.Append(dtCols.ColumnName + "='" + strColValue + "' ");
+
+                }
+                //}
+                intcolcount++;
+            }
+            strColValue = "";
+            strbXml.Append(" /> ");
+        }
+        strbXml.Append("</Root>");
+        return strbXml.ToString();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private string FunPriGetHtmlTable(DataTable dt)
+    {
+        StringBuilder strHtml = new StringBuilder();
+        try
+        {
+            if (dt.Rows.Count > 1)
+            {
+                strHtml.Append("<table width=\"100%\" border=0 >");
+                for (int i_row = 0; i_row < dt.Rows.Count; i_row++)
+                {
+                    strHtml.Append(" <tr>");
+                    for (int i_column = 0; i_column < dt.Columns.Count; i_column++)
+                    {
+                        strHtml.Append(" <td align=\"center\"> ");
+                        strHtml.Append(dt.Rows[i_row][i_column].ToString());
+                        strHtml.Append(" </td> ");
+                    }
+                    strHtml.Append(" </tr> ");
+                }
+                strHtml.Append("</table>");
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        return strHtml.ToString();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadAssetModelBasedonAssetType()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@SearchFor", "4");
+            Procparam.Add("@AssType", ddlAssetType.SelectedValue);
+            ddlAssetModel.BindDataTable("S3G_CLN_GetAssetCategoryDetails", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+            ddlAssetModel.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadAssetMakebasedonAssetClass()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@SearchFor", "2");
+            Procparam.Add("@AssClass", ddlAssetClass.SelectedValue);
+            ddlAssetMake.BindDataTable("S3G_CLN_GetAssetCategoryDetails", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+            ddlAssetMake.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadAssetTypeBasedonAssetMake()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@SearchFor", "3");
+            Procparam.Add("@AssMake", ddlAssetMake.SelectedValue);
+            ddlAssetType.BindDataTable("S3G_CLN_GetAssetCategoryDetails", Procparam, new string[] { "Asset_Category_ID", "Category_Code", "Category_Description" });
+            ddlAssetType.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriGenereateScreenView()
+    {
+        try
+        {
+            String htmlText = GetHTMLTextFile();
+            Guid objGuid = new Guid();
+            string strnewFile = (Server.MapPath(".") + "\\PDF Files\\" + objGuid + "LoanToValueSpooling.html");
+            Document doc = new Document();
+            PdfWriter writer = PdfWriter.GetInstance(doc, new FileStream(strnewFile, FileMode.Create));
+            doc.AddCreator("Sundaram Infotech Solutions");
+            doc.AddTitle("New PDF Document");
+            doc.Open();
+            List<IElement> htmlarraylist = iTextSharp.text.html.simpleparser.HTMLWorker.ParseToList(new StringReader(htmlText), null);
+            for (int k = 0; k < htmlarraylist.Count; k++)
+            { doc.Add((IElement)htmlarraylist[k]); }
+            doc.AddAuthor("S3G Team");
+            doc.Close();
+            System.Diagnostics.Process.Start(strnewFile);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriSaveLoanToValue()
+    {
+        try
+        {
+            if (grvValueSpooling.Visible)
+            {
+                ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient objClnMaster_Client = new ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient();
+                S3GBusEntity.Collection.ClnReceivableMgtServices.S3G_CLN_LoanToValueDataTable objS3G_CLN_LoanToValueDataTable = new ClnReceivableMgtServices.S3G_CLN_LoanToValueDataTable();
+                S3GBusEntity.Collection.ClnReceivableMgtServices.S3G_CLN_LoanToValueRow objS3G_CLN_LoanToValueRow = objS3G_CLN_LoanToValueDataTable.NewS3G_CLN_LoanToValueRow();
+
+                objS3G_CLN_LoanToValueRow.Company_ID = intCompanyID;
+                objS3G_CLN_LoanToValueRow.LOB_ID = Convert.ToInt32(ddlLOBSearch.SelectedValue);
+                if (ddlBranch != null &&  Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+                    objS3G_CLN_LoanToValueRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+                else
+                    objS3G_CLN_LoanToValueRow.Branch_ID = -1; // this is to skip.
+                if (ddlAssetClass.SelectedIndex > 0)
+                    objS3G_CLN_LoanToValueRow.Asset_Class = Convert.ToInt32(ddlAssetClass.SelectedValue);
+                if (ddlAssetMake.SelectedIndex > 0)
+                    objS3G_CLN_LoanToValueRow.Asset_Make = Convert.ToInt32(ddlAssetMake.SelectedValue);
+                if (ddlAssetModel.SelectedIndex > 0)
+                    objS3G_CLN_LoanToValueRow.Asset_Model = Convert.ToInt32(ddlAssetModel.SelectedValue);
+                if (ddlAssetType.SelectedIndex > 0)
+                    objS3G_CLN_LoanToValueRow.Asset_Type = Convert.ToInt32(ddlAssetType.SelectedValue);
+
+                objS3G_CLN_LoanToValueRow.Spool_Path = @"D:\";
+
+                string strXml = "";
+                strXml = FunPubFormXml((DataTable)ViewState["LoanToValueDetails"]).ToString();
+
+                objS3G_CLN_LoanToValueRow.XMLS3G_CLN_LoanToValueDetails = strXml.ToString();
+
+                objS3G_CLN_LoanToValueRow.Spool_By = intUserID;
+                objS3G_CLN_LoanToValueRow.Txn_ID = 1;       // this is static - and want to get clear Idea from DB Team.
+
+                objS3G_CLN_LoanToValueDataTable.AddS3G_CLN_LoanToValueRow(objS3G_CLN_LoanToValueRow);
+
+                SerializationMode ObjSerMode = SerializationMode.Binary;
+
+                int errorCode = objClnMaster_Client.FunPubCreateLoanToValue(ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_LoanToValueDataTable, ObjSerMode));
+
+                if (errorCode == 0)
+                {
+                    //To avoid double save click
+                    btnSave.Enabled = false;
+                    //End here
+
+                    //Utility.FunShowAlertMsg(this, "Loan To Value Spooling saved successfully");
+                    //CLV_2
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 2, "S3gClnLoanToValueSpooling.aspx");
+                }
+                else if (errorCode == 1)
+                {
+                    //Utility.FunShowAlertMsg(this, "Cannot update Loan To Value Spooling - which was already saved for the displaying Report Date/Line of Business/Branch");
+                    //CLV_3
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 3);
+                }
+            }
+            else
+            {
+                //Utility.FunShowAlertMsg(this, "You can save, only after you create the grid - Click on Go Button");
+                //CLV_4
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 4);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriGenerateToExcel()
+    {
+        try
+        {
+            if (grvValueSpooling.Visible)
+            {
+                /* Guid objGuid = new Guid();
+                 string path = (Server.MapPath(".") + "\\PDF Files\\" + objGuid + DateTime.Now.ToString().Replace("/", "").Replace(":", "").Replace(" ", "") + "LoanToValueSpooling.xls");
+
+                 DataTable dtLoanToValueDetailstemp = (DataTable)ViewState["LoanToValueDetails"];
+                 DataTable dtLoanToValueDetails = dtLoanToValueDetailstemp.Copy();
+
+
+                 DataRow dr = dtLoanToValueDetails.NewRow();
+                 dtLoanToValueDetails.Rows.Add(dr);
+                 dtLoanToValueDetails = FunPriAddRowForXL(dtLoanToValueDetails, "Line of Business", dtLoanToValueDetails.Rows.Count + 1, ddlLOBSearch);
+                 dtLoanToValueDetails = FunPriAddRowForXL(dtLoanToValueDetails, "Branch", dtLoanToValueDetails.Rows.Count + 2, ddlBranch);
+                 dtLoanToValueDetails = FunPriAddRowForXL(dtLoanToValueDetails, "Asset Class", dtLoanToValueDetails.Rows.Count + 3, ddlAssetClass);
+                 dtLoanToValueDetails = FunPriAddRowForXL(dtLoanToValueDetails, "Asset Make", dtLoanToValueDetails.Rows.Count + 4, ddlAssetMake);
+                 dtLoanToValueDetails = FunPriAddRowForXL(dtLoanToValueDetails, "Asset Type", dtLoanToValueDetails.Rows.Count + 5, ddlAssetType);
+                 dtLoanToValueDetails = FunPriAddRowForXL(dtLoanToValueDetails, "Asset Model", dtLoanToValueDetails.Rows.Count + 6, ddlAssetModel);
+                 DataRow datarow;
+                 datarow = dtLoanToValueDetails.NewRow();
+                 datarow[0] = "Total PrincipalOutstanding Amount";
+                 datarow[1] = TotalPrincipalOutstanding.ToString("0.00");
+                 dtLoanToValueDetails.Rows.InsertAt(datarow, dtLoanToValueDetails.Rows.Count + 7);
+                 datarow = dtLoanToValueDetails.NewRow();
+                 datarow[0] = "Total InterestOutstanding Amount";
+                 datarow[1] = TotalInterestOutstanding.ToString("0.00");
+                 dtLoanToValueDetails.Rows.InsertAt(datarow, dtLoanToValueDetails.Rows.Count + 8);
+                 datarow = dtLoanToValueDetails.NewRow();
+                 datarow[0] = "Total Market Value";
+                 datarow[1] = TotalMarketvalue.ToString("0.00");
+                 dtLoanToValueDetails.Rows.InsertAt(datarow, dtLoanToValueDetails.Rows.Count + 9);
+                 FunPriDatatabletoXL(dtLoanToValueDetails, path);*/
+                grvValueSpooling.FunPubExportGrid("LoanToValueSpooling", enumFileType.Excel);
+            }
+            else
+            {
+                //Utility.FunShowAlertMsg(this, "You can create an Excel, only after you create the grid - Click on Go Button");
+                //CLV_5
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 5);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="control"></param>
+    public override void VerifyRenderingInServerForm(Control control)
+    {
+        //base.VerifyRenderingInServerForm(control);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadLoanToValueGridDetails()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@LOB_ID", ddlLOBSearch.SelectedValue);
+            Procparam.Add("@user_ID", intUserID.ToString());
+            if (ddlBranch != null &&  Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+                Procparam.Add("@Location_Id", ddlBranch.SelectedValue);
+            else
+                Procparam.Add("@Location_Id", "");
+            if (ddlAssetClass != null && ddlAssetClass.SelectedIndex > 0)
+                Procparam.Add("@AssetClass", ddlAssetClass.SelectedValue);
+            if (ddlAssetMake != null && ddlAssetMake.SelectedIndex > 0)
+                Procparam.Add("@AssetMake", ddlAssetMake.SelectedValue);
+            if (ddlAssetType != null && ddlAssetType.SelectedIndex > 0)
+                Procparam.Add("@AssetType", ddlAssetType.SelectedValue);
+            if (ddlAssetModel != null && ddlAssetModel.SelectedIndex > 0)
+                Procparam.Add("@AssetModel", ddlAssetModel.SelectedValue);
+
+            DataTable dtLoanToValueDetails = Utility.GetDefaultData("S3G_CLN_GetLoanToValue", Procparam);
+            ViewState["LoanToValueDetails"] = dtLoanToValueDetails;
+            grvValueSpooling.DataSource = dtLoanToValueDetails;
+            grvValueSpooling.DataBind();
+            grvValueSpooling.Visible = true;
+
+            if (dtLoanToValueDetails != null && dtLoanToValueDetails.Rows.Count > 0)
+            {
+                pnlLoanToValue.Visible = true;
+                TotalPrincipalOutstanding = Convert.ToDecimal(dtLoanToValueDetails.Compute("sum(PrincipalOutstanding)", "PrimeAccountNumber<>''"));
+                TotalInterestOutstanding = Convert.ToDecimal(dtLoanToValueDetails.Compute("sum(InterestOutstanding)", "PrimeAccountNumber<>''"));
+                TotalOutstanding = Convert.ToDecimal(dtLoanToValueDetails.Compute("sum(TotalOutstanding)", "PrimeAccountNumber<>''"));
+                TotalMarketvalue = Convert.ToDecimal(dtLoanToValueDetails.Compute("sum(MarketValue)", "PrimeAccountNumber<>''"));
+                if (grvValueSpooling != null && grvValueSpooling.FooterRow != null)
+                {
+                    Label lblFooterPrincipalOutstanding = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterPrincipalOutstanding");
+                    Label lblFooterInterestOutstanding = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterInterestOutstanding");
+                    Label lblFooterMarketValue = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterMarketValue");
+                    Label lblFooterTotalOutstandingF = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterTotalOutstandingF");
+                    Label lblFooterAssetDescription = (Label)grvValueSpooling.FooterRow.FindControl("lblFooterAssetDescription");
+                    lblFooterPrincipalOutstanding.Text = TotalPrincipalOutstanding.ToString(Funsetsuffix());
+                    lblFooterInterestOutstanding.Text = TotalInterestOutstanding.ToString(Funsetsuffix());
+                    lblFooterMarketValue.Text = TotalMarketvalue.ToString(Funsetsuffix());
+                    lblFooterTotalOutstandingF.Text = TotalOutstanding.ToString(Funsetsuffix());
+                    lblFooterAssetDescription.Text = "Grand Total";
+                }
+                //lnkGridSize.Visible = true;
+                FunPriAlignGrid();
+                btnExcel.Enabled = true;
+                btnFlatFile.Enabled = true;
+                btnSave.Enabled = true;
+            }
+            else
+            {
+                pnlLoanToValue.Visible = false;
+                grvValueSpooling.DataSource = null;
+                grvValueSpooling.DataBind();
+                TotalPrincipalOutstanding = 0;
+                TotalInterestOutstanding = 0;
+                TotalMarketvalue = 0;
+                TotalOutstanding = 0;
+                btnExcel.Enabled = false;
+                btnFlatFile.Enabled = false;
+                btnSave.Enabled = false;
+
+                //Utility.FunShowAlertMsg(this, "There is no record to spool for this combination");
+                //CLV_6
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 6);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion
+
+    #region Page Events
+
+    #region DropDown Events
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected void ddlAssetType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            grvValueSpooling.Visible = false;
+            pnlLoanToValue.Visible = false;
+            if (ddlAssetType != null && ddlAssetType.Items.Count > 0)
+            {
+                if (ddlAssetType.SelectedIndex > 0)
+                {
+                    FunPriLoadAssetModelBasedonAssetType();
+                }
+                else
+                {
+                    FunPriLoadAssetModel();
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Load Asset model, Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected void ddlAssetModel_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        grvValueSpooling.Visible = false;
+        pnlLoanToValue.Visible = false;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected void ddlAssetClass_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            grvValueSpooling.Visible = false;
+            pnlLoanToValue.Visible = false;
+            if (ddlAssetClass != null && ddlAssetClass.Items.Count > 0)
+            {
+                if (ddlAssetClass.SelectedIndex > 0)
+                {
+                    ddlAssetMake.Items.Clear();
+                    ddlAssetModel.Items.Clear();
+                    ddlAssetType.Items.Clear();
+                    FunPriLoadAssetModel();
+                    FunPriLoadAssetType();
+                    FunPriLoadAssetMakebasedonAssetClass();
+                }
+                else
+                {
+                    FunPriLoadAssetModel();
+                    FunPriLoadAssetType();
+                    FunPriLoadAssetMake();
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Load Asset make, Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected void ddlAssetMake_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            grvValueSpooling.Visible = false;
+            pnlLoanToValue.Visible = false;
+            if (ddlAssetMake != null && ddlAssetMake.Items.Count > 0)
+            {
+                if (ddlAssetMake.SelectedIndex > 0)
+                {
+                    ddlAssetModel.Items.Clear();
+                    ddlAssetType.Items.Clear();
+                    FunPriLoadAssetModel();
+                    FunPriLoadAssetTypeBasedonAssetMake();
+                }
+                else
+                {
+                    FunPriLoadAssetModel();
+                    FunPriLoadAssetType();
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Load Asset type, Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected void ddlLOBSearch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProLoadBranch();
+            ddlBranch.Clear();
+            FunResetDDL(ddlAssetClass);
+            FunResetDDL(ddlAssetMake);
+            FunResetDDL(ddlAssetType);
+            FunResetDDL(ddlAssetModel);
+            grvValueSpooling.Visible = false;
+            pnlLoanToValue.Visible = false;
+
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Load Line of business";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+
+            grvValueSpooling.Visible = false;
+            pnlLoanToValue.Visible = false;
+            FunPriLoadAssetClass();
+            FunPriLoadAssetModel();
+            FunPriLoadAssetType();
+            FunPriLoadAssetMake();
+            FunResetDDL(ddlAssetClass);
+            FunResetDDL(ddlAssetMake);
+            FunResetDDL(ddlAssetType);
+            FunResetDDL(ddlAssetModel);
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Load Line of business";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected void ddlAsset_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        //FunPriLoadAssetMake(ddlAssetClass, "CLASS", "Class_ID");
+        //FunPriLoadAssetMake(ddlAssetMake, "MAKE", "Make_ID");
+        //FunPriLoadAssetMake(ddlAssetModel, "MODEL", "Model_ID");
+        //FunPriLoadAssetMake(ddlAssetType, "TYPE", "Type_ID");
+        grvValueSpooling.Visible = false;
+        pnlLoanToValue.Visible = false;
+
+
+    }
+
+    #endregion
+
+
+    #region Button Events
+
+    /// <summary>
+    /// Button for generating flat file
+    /// </summary>
+    protected void btnFlatFile_Click(object sender, EventArgs e)
+    {
+
+        try
+        {
+            if (grvValueSpooling.Visible)
+            {
+                /*Guid objGuid = new Guid();
+                string path = (Server.MapPath(".") + "\\PDF Files\\" + objGuid + DateTime.Now.ToString().Replace("/", "").Replace(":", "").Replace(" ", "") + "LoanToValueSpooling.txt");
+                string strFileName = "/Collection/PDF Files/" + objGuid + DateTime.Now.ToString().Replace("/", "").Replace(" ", "").Replace(":", "") + "LoanToValueSpooling.txt";
+                if (File.Exists(path))
+                {
+                    Console.WriteLine("{0} already exists.", path);
+                    return;
+                }
+                using (StreamWriter sw = File.CreateText(path))
+                {
+                    sw.WriteLine(GetHTMLTextFile() + FunPriFlatFileText());
+
+                    sw.Close();
+                }
+
+               // System.Diagnostics.Process.Start(path);
+                string strScipt = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + strFileName + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), "LoanToValue", strScipt, true);
+                */
+                //grvValueSpooling.FunPubExportGrid("LoanTovalue Spooling", enumFileType.FlatFile);
+
+                FunGenFlatFile();
+            }
+            else
+            {
+                //Utility.FunShowAlertMsg(this, "You can create a Flat File, only after you create the grid - Click on Go Button");
+                //CLV_7
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 7);
+            }
+        }
+        catch (DirectoryNotFoundException dnfe)
+        {
+            //   Utility.FunShowAlertMsg(this, "The target directory was not found");
+            //CLV_1
+            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 1);
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To generate Flat File, Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    protected string FunProFormatedSpace(string strVal, int intFxdLength, int intAlign)
+    {
+        //intAlign | 1 - left , 2 - right, 3 - Center 
+        int intLen = 0;
+        string strRetValue = string.Empty;
+        intLen = strVal.Length;
+        strRetValue = strVal;
+
+        if (intAlign == 3)
+        {
+            int intStartPoint = 0;
+            intStartPoint = (intFxdLength - intLen) / 2;
+
+            for (int i = 0; i < intStartPoint; i++)
+            {
+                strRetValue = " " + strRetValue;
+            }
+            for (int i = 0; i < (intFxdLength - intLen) - intStartPoint; i++)
+            {
+                strRetValue = strRetValue + " ";
+            }
+        }
+
+        for (int i = 0; i < intFxdLength - intLen; i++)
+        {
+            if (intAlign == 1)
+            {
+                strRetValue = strRetValue + " ";
+            }
+            else if (intAlign == 2)
+            {
+                strRetValue = " " + strRetValue;
+            }
+        }
+
+        return strRetValue;
+    }
+
+    private string[] FunReturnValue(string strValue, int intlen)
+    {
+        string line1 = string.Empty;
+        string line2 = string.Empty;
+        string line3 = string.Empty;
+        string[] strSpliter = new string[] { string.Empty, string.Empty, string.Empty };
+
+        string[] strCollection = new string[] { string.Empty, string.Empty, string.Empty };
+
+        if (strValue.Length > intlen)
+        {
+           /* if (strValue.Contains(' '))
+            {
+                strSpliter = strValue.Split(' ');
+                line1 = strSpliter[0].ToString();
+                if (strSpliter[1] != null)
+                    if (strSpliter[1].ToString().Length > intlen)
+                    {
+                        line2 = strSpliter[1].ToString();
+                        if (strSpliter[2] != null)
+                            line3 = strSpliter[2].ToString();
+
+                    }
+                    else
+                        line2 = strSpliter[1].ToString();
+
+            }
+            else
+            {*/
+                line1 = strValue.Substring(0, intlen-1).ToString();
+                if (strValue.Substring(intlen - 1, (strValue.Length - intlen - 1)).Length > intlen - 1)
+                {
+                    line2 = strValue.Substring(intlen - 1, intlen - 1).ToString();
+                    line3 = strValue.Substring(intlen - 1 + intlen - 1, intlen - 1).ToString();
+                }
+                else
+                    line2 = strValue.Substring(intlen - 1, (strValue.Length - intlen - 1)).ToString();
+           /* }*/
+
+        }
+        else
+            line1 = strValue;
+        strCollection[0] = line1;
+        if (line2 != string.Empty)
+            strCollection[1] = line2;
+        if (line3 != string.Empty)
+            strCollection[2] = line3;
+
+        return strCollection;
+    }
+
+    private string FunPriFillEmtySpace(int intlen)
+    {
+        string strEmpty = string.Empty;
+        for (int i = 1; i <= intlen; i++)
+            strEmpty += " ";
+
+        return strEmpty;
+    }
+
+
+    private string FunPriSetMultiLineValue(string strVal,int inlen)
+    {
+        string strLine = string.Empty;
+        if (strVal != null)
+        {
+            if (strVal != string.Empty)
+            {
+                if (FunProFormatedSpace(strVal, inlen, 1).Length < inlen)
+                {
+                    strLine = FunProFormatedSpace(strVal, inlen, 1) + FunPriFillEmtySpace(FunProFormatedSpace(strVal, inlen, 1).Length - inlen);
+                }
+                else
+                {
+                    strLine = FunProFormatedSpace(strVal, inlen, 1);
+                }
+            }
+            else
+                strLine = FunProFormatedSpace(strVal, inlen, 1);
+        }
+        else
+            strLine = FunProFormatedSpace(strVal, inlen, 1);
+
+
+        return strLine;
+    }
+
+    private void FunGenFlatFile()
+    {
+        string strServerPath = Server.MapPath(".").ToString() + "\\PDF Files\\LoanToValueSpool.txt";
+
+        if (System.IO.File.Exists(strServerPath))
+        {
+            System.IO.File.Delete(strServerPath);
+        }
+
+        DataTable dt = (DataTable)ViewState["LoanToValueDetails"];
+        
+
+        StreamWriter sWriter = new StreamWriter(strServerPath, false);
+        sWriter.WriteLine("Loan To Value Spooling dated on " + txtReportDate.Text + "\t\t\t\t\t\t\t (Recommended view : Font - Lucida Console | Size - 9)");
+        sWriter.WriteLine();
+
+        sWriter.WriteLine("_____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________");
+        sWriter.WriteLine(FunProFormatedSpace(" ", 25, 1) + FunProFormatedSpace(" ", 35, 1) + FunProFormatedSpace("Prime Account", 16, 1) + FunProFormatedSpace("Sub Account", 16, 1) +
+           FunProFormatedSpace("Asset", 25, 1) + FunProFormatedSpace("Asset", 15, 1) + FunProFormatedSpace("Origin", 25, 1) +
+            FunProFormatedSpace("Origin", 15, 1) + FunProFormatedSpace("Principal", 15, 1) + FunProFormatedSpace("Interest", 15, 1) +
+            FunProFormatedSpace("Total", 15, 1) + FunProFormatedSpace("Market", 15, 1) + FunProFormatedSpace("SLM", 15, 1) + FunProFormatedSpace("Closing", 14, 1) + FunProFormatedSpace("Risk", 15, 1));
+
+        sWriter.WriteLine(FunProFormatedSpace("Location", 25, 1) + FunProFormatedSpace("Customer", 35, 1) + FunProFormatedSpace("Number", 16, 1) + FunProFormatedSpace("Number", 16, 1) +
+           FunProFormatedSpace("Description", 25, 1) + FunProFormatedSpace("Value", 15, 1) + FunProFormatedSpace("Date", 25, 1) +
+           FunProFormatedSpace("Value", 15, 1) + FunProFormatedSpace("Outstanding", 15, 1) + FunProFormatedSpace("Outstanding", 15, 1) +
+           FunProFormatedSpace("Outstanding", 15, 1) + FunProFormatedSpace("Value", 15, 1) + FunProFormatedSpace("Depreciation", 15, 1) + FunProFormatedSpace("Date", 14, 1) + FunProFormatedSpace("Percentage", 15, 1));
+        sWriter.WriteLine("_____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________");
+        string strlines1 = string.Empty;
+        string strlines2 = string.Empty;
+        string strlines3 = string.Empty;
+
+        string[] strlines = new string[] { string.Empty, string.Empty, string.Empty };
+        string[] strInlines = new string[] { string.Empty, string.Empty, string.Empty };
+
+        foreach (DataRow dRow in dt.Rows)
+        {
+            strlines1 = strlines2 = strlines3 = string.Empty;
+            strlines = FunReturnValue(dRow["Location"].ToString(), 25);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(),25);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 25);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 25);
+
+            strlines = FunReturnValue(dRow["Customer"].ToString(), 35);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 35);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 35);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 35);
+
+            strlines = FunReturnValue(dRow["PrimeAccountNumber"].ToString(), 16);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 16);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 16);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 16);
+
+            strlines = FunReturnValue(dRow["SubAccountNumber"].ToString(), 16);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 16);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 16);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 16);
+
+            strlines = FunReturnValue(dRow["AssetDescription"].ToString(), 25);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 25);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 25);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 25);
+
+            if (!string.IsNullOrEmpty(dRow["AssetValue"].ToString()))
+                dRow["AssetValue"] = Convert.ToDecimal(dRow["AssetValue"]).ToString(Funsetsuffix());
+
+            strlines = FunReturnValue(dRow["AssetValue"].ToString(), 15);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 15);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 15);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 15);
+
+            strlines = FunReturnValue(Utility.StringToDate(dRow["OriginDate"].ToString()).ToString(strDateFormat), 25);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 25);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 25);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 25);
+
+            if (!string.IsNullOrEmpty(dRow["OriginValue"].ToString()))
+                dRow["OriginValue"] = Convert.ToDecimal(dRow["OriginValue"]).ToString(Funsetsuffix());
+
+            strlines = FunReturnValue(dRow["OriginValue"].ToString(), 15);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 15);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 15);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 15);
+
+            if (!string.IsNullOrEmpty(dRow["PrincipalOutstanding"].ToString()))
+                dRow["PrincipalOutstanding"] = Convert.ToDecimal(dRow["PrincipalOutstanding"]).ToString(Funsetsuffix());
+
+            strlines = FunReturnValue(dRow["PrincipalOutstanding"].ToString(), 15);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 15);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 15);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 15);
+
+            if (!string.IsNullOrEmpty(dRow["InterestOutstanding"].ToString()))
+                dRow["InterestOutstanding"] = Convert.ToDecimal(dRow["InterestOutstanding"]).ToString(Funsetsuffix());
+
+            strlines = FunReturnValue(dRow["InterestOutstanding"].ToString(), 15);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 15);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 15);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 15);
+
+            if (!string.IsNullOrEmpty(dRow["TotalOutstanding"].ToString()))
+                dRow["TotalOutstanding"] = Convert.ToDecimal(dRow["TotalOutstanding"]).ToString(Funsetsuffix());
+
+            strlines = FunReturnValue(dRow["TotalOutstanding"].ToString(), 15);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 15);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 15);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 15);
+
+            if (!string.IsNullOrEmpty(dRow["MarketValue"].ToString()))
+                dRow["MarketValue"] = Convert.ToDecimal(dRow["MarketValue"]).ToString(Funsetsuffix());
+
+            strlines = FunReturnValue(dRow["MarketValue"].ToString(), 15);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 15);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 15);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 15);
+
+            if (!string.IsNullOrEmpty(dRow["SLMDepreciationValue"].ToString()))
+                dRow["SLMDepreciationValue"] = Convert.ToDecimal(dRow["SLMDepreciationValue"]).ToString(Funsetsuffix());
+
+            strlines = FunReturnValue(dRow["SLMDepreciationValue"].ToString(), 15);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 15);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 15);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 15);
+
+            strlines = FunReturnValue(Utility.StringToDate(dRow["AccountClosingDate"].ToString()).ToString(strDateFormat), 14);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 14);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 14);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 14);
+
+            if (!string.IsNullOrEmpty(dRow["RiskPercentage"].ToString()))
+                dRow["RiskPercentage"] = Convert.ToDecimal(dRow["RiskPercentage"]).ToString(Funsetsuffix());
+
+            strlines = FunReturnValue(dRow["RiskPercentage"].ToString(), 15);
+            strlines1 += FunPriSetMultiLineValue(strlines[0].ToString(), 15);
+            strlines2 += FunPriSetMultiLineValue(strlines[1].ToString(), 15);
+            strlines3 += FunPriSetMultiLineValue(strlines[2].ToString(), 15);
+
+
+
+            //Final write
+            sWriter.WriteLine(strlines1);
+
+            if (strlines2 != string.Empty)
+                sWriter.WriteLine(strlines2);
+            if (strlines3 != string.Empty)
+                sWriter.WriteLine(strlines3);
+        }
+
+
+       
+        sWriter.WriteLine();
+        
+
+        sWriter.Flush();
+        sWriter.Close();
+
+        if (!string.IsNullOrEmpty(strServerPath))
+        {
+            string strFileName = strServerPath.Replace("\\", "/").Trim();
+
+            Response.Clear();
+            Response.AppendHeader("content-disposition", "attachment; filename=" + ".." + strFileName);
+            Response.ContentType = "application/octet-stream";
+            Response.WriteFile(strFileName);
+            Response.End();
+
+        }
+        else
+        {
+            Utility.FunShowAlertMsg(this, "File cannot be generated");
+        }
+
+    }
+
+
+
+    /// <summary>
+    /// Button for generating Screen View
+    /// </summary>
+    protected void btnScreenView_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriGenereateScreenView();
+        }
+        catch (DirectoryNotFoundException dnfe)
+        {
+            // Utility.FunShowAlertMsg(this, "The target directory was not found");
+            //CLV_1
+            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 1);
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To View , Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// Button for Save
+    /// </summary>
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriSaveLoanToValue();
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Save, Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// Button for generating Excel 
+    /// </summary>
+    protected void btnExcel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriGenerateToExcel();
+        }
+        catch (DirectoryNotFoundException dnfe)
+        {
+            //Utility.FunShowAlertMsg(this, "The target directory was not found");
+            //CLV_1
+            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 1);
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To genereate excel, Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+
+    }
+
+    /// <summary>
+    /// Button for clear
+    /// </summary>
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunResetDDL(ddlLOBSearch);
+            ddlBranch.Clear();
+            FunResetDDL(ddlAssetClass);
+            FunResetDDL(ddlAssetMake);
+            FunResetDDL(ddlAssetType);
+            FunResetDDL(ddlAssetModel);
+            // lnkGridSize.Visible =
+            grvValueSpooling.Visible = false;
+            pnlLoanToValue.Visible = false;
+            //if (string.Compare("<--->", lnkGridSize.Text) != 0)
+            //{
+            //    lnkGridSize_Click(sender, e);
+            //}
+            btnExcel.Enabled = false;
+            btnFlatFile.Enabled = false;
+            btnSave.Enabled = false;
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Clear.";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// Button to generate grid
+    /// </summary>
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadLoanToValueGridDetails();
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To Spool, Due to Data Problem";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// Grid DataBound
+    /// </summary>
+
+    protected void grvValueSpooling_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        /*if (e.Row.RowType == DataControlRowType.DataRow)                // If data Row then check the data type and set the style - Alignment.
+        {
+            Label lblPrincipalOutstandingI = (Label)e.Row.FindControl("lblPrincipalOutstandingI");
+            Label lblInterestOutstandingI = (Label)e.Row.FindControl("lblInterestOutstandingI");
+            Label lblTotalOutstandingI = (Label)e.Row.FindControl("lblTotalOutstandingI");
+            Label lblMarketValueI = (Label)e.Row.FindControl("lblMarketValueI");
+            Label lblSLMDepreciationValueI = (Label)e.Row.FindControl("lblSLMDepreciationValueI");
+            Label lblRiskPercentageI = (Label)e.Row.FindControl("lblRiskPercentageI");
+
+            if (lblPrincipalOutstandingI != null && lblPrincipalOutstandingI.Text != string.Empty)
+                lblPrincipalOutstandingI.Text = Convert.ToDecimal(lblPrincipalOutstandingI.Text).ToString("0.000");
+        }*/
+
+
+    }
+
+    /// <summary>
+    /// To shrink/Expand the grid
+    /// </summary>
+    protected void lnkGridSize_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (string.Compare("<--->", lnkGridSize.Text) == 0)
+            {
+                grvValueSpooling.Style["Width"] = "1275px";
+                lnkGridSize.Text = ">---<";
+                lnkGridSize.ToolTip = "Shrink Grid to original size";
+            }
+            else
+            {
+                grvValueSpooling.Style["Width"] = "100%";
+                lnkGridSize.Text = "<--->";
+                lnkGridSize.ToolTip = "Expand Grid to view better";
+            }
+        }
+        catch (Exception ex)
+        {
+            CVLoanTovalue.ErrorMessage = "Unable To shrink/Expand.";
+            CVLoanTovalue.IsValid = false;
+        }
+    }
+
+
+    private string Funsetsuffix()
+    {
+
+        int suffix = 1;
+        S3GSession ObjS3GSession = new S3GSession();
+        suffix = ObjS3GSession.ProGpsSuffixRW;
+        string strformat = "0.";
+        for (int i = 1; i <= suffix; i++)
+        {
+            strformat += "0";
+        }
+        return strformat;
+    }
+
+
+    #endregion
+
+    #endregion
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "101");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOBSearch.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+}

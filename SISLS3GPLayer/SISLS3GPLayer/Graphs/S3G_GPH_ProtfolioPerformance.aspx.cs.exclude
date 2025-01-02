@@ -1,0 +1,165 @@
+﻿#region Header
+
+//Module Name      :   Graphs
+//Screen Name      :   S3G_GPH_ProtfolioPerformance.aspx
+//Created By       :   Shibu 
+//Created Date     :   24-Mar-2014
+//Purpose          :   
+
+#endregion
+
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using System.Globalization;
+using System.Web.UI.WebControls;
+using System.Web.UI.DataVisualization.Charting;
+using System.Web.UI.DataVisualization.Charting.Utilities;
+using System.Web;
+using System.Text;
+using System.Net;
+
+#endregion
+
+
+public partial class Graphs_S3G_GPH_ProtfolioPerformance : ApplyThemeForProject
+{
+    #region Declaration
+
+    int intCompanyID, intUserID = 0, intErrCode = 0;
+    public Dictionary<string, string> Procparam = null;
+    string intAssetVerificationNo = string.Empty;
+    int ProgCode = 262;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Graphs/S3G_GPH_ProtfolioPerformance.aspx";
+    string sSeriesValue = string.Empty;
+    int Company_ID = 0;
+    
+    #endregion
+
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        UserInfo ObjUserInfo = new UserInfo();
+        Company_ID = ObjUserInfo.ProCompanyIdRW;
+        if (!IsPostBack)
+        {
+            
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Company_ID.ToString());
+           ViewState["GetDataset"] = Utility.GetDataset("S3G_GPH_PORTFOLIO", Procparam);
+           dlList.DataSource = ((DataSet)ViewState["GetDataset"]).Tables[0];
+           dlList.DataBind();
+            LoadChart();
+        }
+    }
+    protected void LoadChart()
+    {
+        dlList.SelectedIndex = Convert.ToInt32(hdnClick.Value)-1;
+        DataSet ds = new DataSet();
+        ds = (DataSet)ViewState["GetDataset"];
+      
+        S3GDrillChart.setChartSeries1 = "Test";
+        S3GDrillChart.setChartWidth = 500;
+        S3GDrillChart.setChartHeight = 400;
+        S3GDrillChart.setChart3DCustomesRotate = true;
+        S3GDrillChart.showChart3DRotateAngle=0;
+        S3GDrillChart.showChartType = SeriesChartType.Pie;
+        S3GDrillChart.setChartFontSize = 9;
+        S3GDrillChart.setLableValue = true;
+        S3GDrillChart.setLegendsValue = true;
+        S3GDrillChart.setChartMultipleSeries = false;
+        S3GDrillChart.setCustomePalette = true;
+        S3GDrillChart.showCustomesPaletteColor = "#00A0B1~#2E8DEF~#A700AE~#643EBF~#BF1E4B~#DC572E~#00A600~#0A5BC4";
+        if (Convert.ToInt32(hdnClick.Value) == 2)
+        {
+            S3GDrillChart.setPieLabelStyle = true;
+            S3GDrillChart.showPieLabelStyle = "Outside";
+        }
+        S3GDrillChart.setToolTipValues = true;
+        S3GDrillChart.setClickDrillChartDetails = false;
+        if(Convert.ToInt32(hdnClick.Value)==1)
+             S3GDrillChart.setDataTableSeries1 = ds.Tables[1];
+        else
+             S3GDrillChart.setDataTableSeries1 = ds.Tables[3];
+        S3GDrillChart.setChart3D = true;
+        S3GDrillChart.BindChart();
+        if (Convert.ToInt32(hdnClick.Value) == 1)
+            gvDetails.DataSource = ds.Tables[2];
+        else
+            gvDetails.DataSource = ds.Tables[4];
+        gvDetails.DataBind();
+
+        
+    }
+
+   
+
+    //protected void FunLoadDrillChart()
+    //{
+
+    //   dlList.SelectedIndex = Convert.ToInt32(hdnClick.Value) - 2;
+  
+
+    //    ds = (DataSet)ViewState["GetDataset"];
+    //    if (ds.Tables[0].Rows.Count <= 0)
+    //        return;
+    //   // S3GDrillChart.showChartTitle = "Hierachy - " + Request.QueryString["HName"].ToString();
+    //    S3GDrillChart.setChartWidth = 500;
+    //    S3GDrillChart.setChartHeight = 400;
+
+    //    if (hdnClick.Value == "2")
+    //    {
+    //        S3GDrillChart.showChartType = SeriesChartType.Column;
+    //    }
+    //    else if (hdnClick.Value == "3")
+    //    { S3GDrillChart.showChartType = SeriesChartType.Bar; }
+    //    else if (hdnClick.Value == "4")
+    //    {
+    //        S3GDrillChart.showChartType = SeriesChartType.Column;
+    //        //S3GDrillChart.setChart3D = true;
+    //    }
+    //    else if (hdnClick.Value == "5")
+    //    { S3GDrillChart.showChartType = SeriesChartType.Bar; }
+
+    //    S3GDrillChart.setChartFontSize = 9;
+    //    S3GDrillChart.setLableValue = true;
+    //    S3GDrillChart.setLegendsValue = true;
+    //    S3GDrillChart.setChartMultipleSeries = true;
+    //    S3GDrillChart.setCustomePalette = true;
+    //    S3GDrillChart.showCustomesPaletteColor = "#00A0B1~#2E8DEF~#A700AE~#643EBF~#BF1E4B~#DC572E~#00A600~#0A5BC4";
+    //    //S3GDrillChart.setMaximumChartColor = true;
+    //    //S3GDrillChart.showMaximumChartColor = "#1e7145";
+    //    S3GDrillChart.setToolTipValues = true;
+    //    S3GDrillChart.setClickDrillChartDetails = false;
+    //    S3GDrillChart.setDataTableSeries1 = ds.Tables[0];
+    //    S3GDrillChart.setSaveChartImage = true;
+    //    S3GDrillChart.BindChart();
+    //    //DataSet ds = new DataSet();
+    //    //Procparam = new Dictionary<string, string>();
+    //    //Procparam.Add("@Location_Id", Request.QueryString["region_ID"].ToString());
+    //    //Procparam.Add("@Month", Request.QueryString["Month"].ToString());
+    //    //ds = Utility.GetDataset("s3g_GetDrillChartGVValue", Procparam);
+    //    gvDetails.DataSource = ds.Tables[1];
+    //    gvDetails.DataBind();
+    //}
+    protected void btnClick_Click(object sender, EventArgs e)
+    {
+        LoadChart();
+    }
+
+}

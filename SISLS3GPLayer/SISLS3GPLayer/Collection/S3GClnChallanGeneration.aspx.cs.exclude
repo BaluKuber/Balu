@@ -1,0 +1,1639 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : Challan Generation
+/// Created By                : VijayaKumar
+/// Created Date              : 11-Oct-2010
+/// Purpose                   : 
+/// Last Updated By           : Chandra Sekhar BS
+/// Last Updated Date         : 19-Sep-2013
+/// Reason                    : SQL Performance
+
+
+/// <Program Summary>
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+using System.Collections;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using System.Diagnostics;
+using System.Xml.Linq;
+using System.Linq;
+using System.Web;
+using CrystalDecisions.CrystalReports.Engine;
+using CrystalDecisions.Shared;
+
+#endregion
+
+public partial class Collection_S3GClnChallanGeneration : ApplyThemeForProject
+{
+    # region Variable Declaration
+    public static Collection_S3GClnChallanGeneration obj_Page;
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> Procparam = null;
+    string strChallanID = string.Empty;
+    int intErrCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string _DateFormat = "dd/MM/yyyy";
+    string strDateFormat = string.Empty;
+    StringBuilder strChallanBuilder = new StringBuilder();
+    ArrayList strexclude;
+    DataTable dtList = new DataTable();
+    decimal deAmount;
+
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objChallanGen_Client;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChallanGenerationDataTable objS3G_CLN_ChallanGenDataTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChallanGenerationRow objS3G_CLN_ChallanGenDataRow = null;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3gCLNTransLander.aspx?Code=CCG";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnChallanGeneration.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnChallanGeneration.aspx?Code=CGN';";
+    string strValid = "CLN_CHN";
+    string strReceipt = Resources.ValidationMsgs.CLN_CHN_1;
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    //bool bModify = false;
+    bool bQuery = false;
+    //bool bDelete = false;
+    //bool bMakerChecker = false;
+    bool bMakerChecker = false;
+    //Code end
+
+    string strProcName = SPNames.S3G_CLN_GetChallanListings;//S3G_ORG_GetEntityDetails_Paging 
+    PagingValues ObjPaging = new PagingValues();
+
+    public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    public int ProPageNumRW
+    {
+        get;
+        set;
+    }
+
+    public int ProPageSizeRW
+    {
+        get;
+        set;
+
+    }
+    protected void AssignValue(int intPageNum, int intPageSize)
+    {
+        ProPageNumRW = intPageNum;
+        ProPageSizeRW = intPageSize;
+        //  FunPriBindGrid();
+        PopulateGridValues();
+    }
+    #endregion
+
+    # region Events
+
+    #region Page Load Event
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            ProPageNumRW = 1;
+            TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+            if (txtPageSize.Text != "")
+                ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+            else
+                ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+            PageAssignValue obj = new PageAssignValue(this.AssignValue);
+            ucCustomPaging.callback = obj;
+            ucCustomPaging.ProPageNumRW = ProPageNumRW;
+            ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+            rfvtxtDate.ErrorMessage = Resources.ValidationMsgs.S3g_ValMsg_Date;
+            //rfvddlInstrumentType.ErrorMessage = Resources.ValidationMsgs.S3g_ValMsg_InstrumentType;
+
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            _DateFormat = ObjS3GSession.ProDateFormatRW;
+            bMakerChecker = ObjUserInfo.ProMakerCheckerRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            //bModify = ObjUserInfo.ProModifyRW;
+            //bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strChallanID = fromTicket.Name;
+            }
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                strMode = Request.QueryString["qsMode"].ToString();
+            }
+
+            if (!IsPostBack)
+            {
+                lblInstrumentType.CssClass = "styleDisplayLabel"; //"styleReqFieldLabel";
+                CalendarExtender2.Format = strDateFormat;
+                txtDate.Text = DateTime.Today.ToString(strDateFormat);
+
+                if (Request.QueryString["qsMode"] == "C")
+                {
+                    PopulateLOBList();
+                    PopulateBranchList();
+                    PopulateReceiptType();
+                    PopulateDraweeBank();
+                }
+
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunChallanGenerationForModification_QueryMode();
+                    FunPriDisableControls(-1);
+                    CalendarExtender2.Enabled = false;
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+                //Added by Tamilselvan.S on 3/11/2011 for Next version bug fixing
+                if (strMode != "Q" && strMode != "M")
+                    ddlLOB.Focus();
+
+                //S3G to SFL - Kuppu - Aug-07
+                rfvddldraweeBank.ErrorMessage = Resources.ValidationMsgs.S3g_ValMsg_DepositBank;  //Modified by Tamilselvan.S on 27/05/2011 for validation msg changed
+            }
+
+            AddItemToolTipForControls();
+
+            txtDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtDate.ClientID + "','" + strDateFormat + "',true,  false);");
+        }
+        catch (Exception ex)
+        {
+            Utility.FunShowAlertMsg(this, ex.Message);
+            throw ex;
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+    protected void Page_Load_Old(object sender, EventArgs e)
+    {
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            ProPageNumRW = 1;
+            TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+            if (txtPageSize.Text != "")
+                ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+            else
+                ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+            PageAssignValue obj = new PageAssignValue(this.AssignValue);
+            ucCustomPaging.callback = obj;
+            ucCustomPaging.ProPageNumRW = ProPageNumRW;
+            ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+            rfvtxtDate.ErrorMessage = Resources.ValidationMsgs.S3g_ValMsg_Date;
+            //rfvddlInstrumentType.ErrorMessage = Resources.ValidationMsgs.S3g_ValMsg_InstrumentType;
+
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            _DateFormat = ObjS3GSession.ProDateFormatRW;
+            bMakerChecker = ObjUserInfo.ProMakerCheckerRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            //bModify = ObjUserInfo.ProModifyRW;
+            //bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strChallanID = fromTicket.Name;
+            }
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                strMode = Request.QueryString["qsMode"].ToString();
+            }
+
+            if (!IsPostBack)
+            {
+                lblInstrumentType.CssClass = "styleDisplayLabel"; //"styleReqFieldLabel";
+                CalendarExtender2.Format = strDateFormat;
+                txtDate.Text = DateTime.Today.ToString(strDateFormat);
+                PopulateLOBList();
+                if (Request.QueryString["qsMode"] != "C")
+                {
+                    PopulateBranchList();
+                }
+                PopulateReceiptType();
+                //PopulateInstrumentType();
+                PopulateDraweeBank();
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunChallanGenerationForModification();
+                    FunPriDisableControls(-1);
+                    CalendarExtender2.Enabled = false;
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+                //Added by Tamilselvan.S on 3/11/2011 for Next version bug fixing
+                if (strMode != "Q" && strMode != "M")
+                    ddlLOB.Focus();
+
+                //S3G to SFL - Kuppu - Aug-07
+                rfvddldraweeBank.ErrorMessage = Resources.ValidationMsgs.S3g_ValMsg_DepositBank;  //Modified by Tamilselvan.S on 27/05/2011 for validation msg changed
+            }
+
+            AddItemToolTipForControls();
+
+            txtDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtDate.ClientID + "','" + strDateFormat + "',true,  false);");
+        }
+        catch (Exception ex)
+        {
+            Utility.FunShowAlertMsg(this, ex.Message);
+            throw ex;
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+    #endregion
+
+
+    #region Dropdown Events
+    # region Branch selected index change
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
+        
+        string strVal = ddlBranch.SelectedValue;
+        string strTex = ddlBranch.SelectedText;
+        PriFunclearcontrols();
+        ddlBranch.SelectedText = strTex;
+        ddlBranch.SelectedValue = strVal;
+
+
+        PopulateDraweeBank();
+    }
+    # endregion
+
+    # region LOB Selected index change
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        PriFunclearcontrols();
+        //PriFunclear();
+        //PopulateDraweeBank();
+        PopulateBranchList();
+    }
+    #endregion
+
+    #region Drawee Bank index change
+    protected void ddlDraweeBank_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        PriFunclearGrid();
+    }
+    #endregion
+
+    #region fill grid based on Instrument type
+    protected void ddlInstrumentType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        PriFunclearGrid();
+        AddItemToolTipForControls();
+    }
+    #endregion
+
+    #region "Instrument Type Based on Receipt Type "
+    protected void ddlReceiptType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        //PopulateInstrumentType();
+        PriFunclearGrid();
+        ddlDraweeBank.AddItemToolTip();
+    }
+    #region [Gird Fill based on Past receipt]
+
+    protected void chkPastReceipts_CheckedChanged(object sender, EventArgs e)
+    {
+        PriFunclearGrid();
+    }
+    #endregion [Gird Fill based on Past receipt]
+
+    #region [Gird Fill based on receipt date]
+
+    protected void txtDate_TextChanged(object sender, EventArgs e)
+    {
+        PriFunclearGrid();
+    }
+
+    #endregion [Gird Fill based on receipt date]
+
+    #endregion
+
+    #endregion
+
+
+    #region Button Events
+    #region Challan Generation
+    protected void btnGeneration_Click(object sender, EventArgs e)
+    {
+        Insertchallan();
+    }
+    #endregion
+
+    #region [button Print]
+    /// <summary>
+    /// Created by Tamilselvan.S
+    /// Created date 17/05/2011
+    /// For Challan Printing
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            StringBuilder strHTML = new StringBuilder();
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Challan_No", strChallanID);
+            dictParam.Add("@Company_ID", intCompanyID.ToString());
+            dictParam.Add("@User_ID", intUserID.ToString());
+            DataSet dsChallanList = Utility.GetDataset("S3G_CLN_GetChallanForPrint", dictParam);
+            string strChallanName = DateTime.Now.ToString().Replace("/", "").Replace(":", "").Replace(" ", "") + strChallanID.Replace("/", "") + "Challan.pdf";
+            string strnewFile = (Server.MapPath(".") + "\\PDF Files\\" + strChallanName);
+
+            string strFileName = "/Collection/PDF Files/" + strChallanName;
+            if (dsChallanList.Tables[0].Rows.Count > 0)
+            {
+                //dtgridDate.Rows[dtgridDate.Rows.Count - 1].Delete();
+
+                ReportDocument rptd = new ReportDocument();
+                rptd.Load(Server.MapPath("crChallanGeneration.rpt"));
+                rptd.SetDataSource(dsChallanList.Tables[0]);
+                DirectoryInfo df = new DirectoryInfo(Convert.ToString(Server.MapPath(".") + "\\PDF Files"));
+                if (!df.Exists)
+                {
+                    df.Create();
+                }
+                if (File.Exists(strnewFile) == true)
+                {
+                    File.Delete(strnewFile);
+                }
+
+                rptd.ExportToDisk(ExportFormatType.PortableDocFormat, Server.MapPath(".") + "\\PDF Files\\" + strChallanName);
+                //rptd.ExportToHttpResponse(ExportFormatType.PortableDocFormat, Response, false, "ChallanGeneration");
+            }
+            string strScipt = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + strFileName + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+
+            //FunProGeneratePDF();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            lblerrormessage.Text = "Unable to print the challan details.";
+        }
+    }
+
+    public override void VerifyRenderingInServerForm(Control control)
+    {
+        //base.VerifyRenderingInServerForm(control);
+    }
+
+    #endregion [button Print]
+
+
+    #region Button Cancel
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+    #endregion
+
+    #region Challan Listing
+    protected void btnListing_Click(object sender, EventArgs e)
+    {
+        PopulateGridValues();
+    }
+    #endregion
+
+    #region Clear button click event
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        PriFunclear();
+    }
+    #endregion
+    #endregion
+
+    # region Grid events
+    protected void grvChallan_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (strMode == "Q")
+        {
+            e.Row.Cells[7].Visible = true;
+            e.Row.Cells[8].Visible = false;
+        }
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            try
+            {
+                strexclude = (ArrayList)ViewState["exclude"];
+                Label lblReceiptno = (Label)e.Row.FindControl("lblReceiptno");
+                CheckBox chkExclude = (CheckBox)e.Row.FindControl("chkExclude");
+                Label lblAmount = (Label)e.Row.FindControl("lblAmount");
+                lblAmount.Text = Convert.ToDecimal(string.IsNullOrEmpty(lblAmount.Text) ? "0" : lblAmount.Text).ToString(Utility.SetSuffix());
+                if (strexclude != null && strexclude.Contains(lblReceiptno.Text))
+                    chkExclude.Checked = true;
+                else
+                    chkExclude.Checked = false;
+            }
+            catch (Exception ex)
+            {
+                ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+                throw ex;
+            }
+        }
+    }
+
+    #endregion
+
+    #region Check box events
+    protected void chkExclude_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //int val;
+            strexclude = (ArrayList)ViewState["exclude"];
+            string strFieldAtt = ((CheckBox)sender).ClientID;
+            string strVal = strFieldAtt.Substring(strFieldAtt.LastIndexOf("grvChallan_")).Replace("grvChallan_ctl", "");
+            int gRowIndex = Convert.ToInt32(strVal.Substring(0, strVal.LastIndexOf("_")));
+            gRowIndex = gRowIndex - 2;
+            string strRefno = ((Label)grvChallan.Rows[gRowIndex].FindControl("lblReceiptno")).Text;
+
+            //CheckBox chkExclude = (CheckBox)grvRow.FindControl("chkExclude");
+            //   Label lblReceiptno = (Label)grvRow.FindControl("lblReceiptno");
+            if (((CheckBox)sender).Checked)
+            {
+                if (strexclude == null)
+                    strexclude = new ArrayList();
+                strexclude.Add(strRefno);
+                ViewState["exclude"] = strexclude;
+            }
+            else
+            {
+                lblerrormessage.Text = string.Empty;
+                if (strexclude.Contains(strRefno))
+                {
+                    strexclude.Remove(strRefno);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #endregion
+
+    # region User Methods
+
+    #region For Modification
+    private void FunChallanGenerationForModification()
+    {
+
+        Dictionary<string, string> dictParam = new Dictionary<string, string>();
+        dictParam.Add("@Challan_No", strChallanID);
+        dictParam.Add("@Company_ID", intCompanyID.ToString());
+        //dictParam.Add("@Memo_Type_Code", "36");
+        DataTable Dt = Utility.GetDefaultData("S3g_CLN_GetChallanDetails", dictParam);
+        if (Dt.Rows.Count > 0)
+        {
+            ddlLOB.SelectedValue = Dt.Rows[0]["LOB_ID"].ToString();
+            ddlBranch.SelectedValue = Dt.Rows[0]["Location_ID"].ToString();
+            txtChallanNo.Text = Dt.Rows[0]["Challan_No"].ToString();
+            txtDate.Text = FormatDate(Dt.Rows[0]["Challan_Date"].ToString());
+            ddlReceiptType.SelectedValue = Dt.Rows[0]["Challan_Type"].ToString();
+            string str = ddlReceiptType.SelectedItem.Text;
+            //PopulateInstrumentType();
+            //ddlInstrumentType.SelectedValue = Dt.Rows[0]["Payment_Mode"].ToString();
+            PopulateDraweeBank();
+            //if (ddlReceiptType.SelectedValue != "1")
+            ddlDraweeBank.SelectedValue = Dt.Rows[0]["Bank_ID"].ToString(); // Dt.Rows[0]["Bank_ID"].ToString(); changed by Tamilselvan.S on 12/05/2011
+            int Past = Convert.ToInt32(Dt.Rows[0]["Past_receipt"]);
+            if (Past == 0)
+                chkPastReceipts.Checked = false;
+            else
+                chkPastReceipts.Checked = true;
+            PopulateGridValues();
+            ddlBranch.Enabled = false;
+            ddlLOB.ClearDropDownList();
+            ddlReceiptType.ClearDropDownList();
+            //ddlInstrumentType.ClearDropDownList();
+            ddlDraweeBank.ClearDropDownList();
+            chkPastReceipts.Enabled = false;
+            btnPrint.Enabled = true;
+        }
+    }
+    private void FunChallanGenerationForModification_QueryMode()
+    {
+
+        Dictionary<string, string> dictParam = new Dictionary<string, string>();
+        dictParam.Add("@Challan_No", strChallanID);
+        dictParam.Add("@Company_ID", intCompanyID.ToString());
+        //dictParam.Add("@Memo_Type_Code", "36");
+        DataTable Dt = Utility.GetDefaultData("S3g_CLN_GetChallanDetails", dictParam);
+        if (Dt.Rows.Count > 0)
+        {
+            System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem(Dt.Rows[0]["LOB_Name"].ToString(), Dt.Rows[0]["LOB_ID"].ToString());
+            ddlLOB.Items.Add(LIB);
+
+
+            ddlBranch.SelectedText = Dt.Rows[0]["Location_Name"].ToString();
+            ddlBranch.SelectedValue = Dt.Rows[0]["Location_ID"].ToString();
+
+
+            System.Web.UI.WebControls.ListItem LIR = new System.Web.UI.WebControls.ListItem(Dt.Rows[0]["Challan_Type_Desc"].ToString(), Dt.Rows[0]["Challan_Type"].ToString());
+            ddlReceiptType.Items.Add(LIR);
+
+
+            ddlLOB.SelectedValue = Dt.Rows[0]["LOB_ID"].ToString();
+            ddlBranch.SelectedValue = Dt.Rows[0]["Location_ID"].ToString();
+            txtChallanNo.Text = Dt.Rows[0]["Challan_No"].ToString();
+            txtDate.Text = FormatDate(Dt.Rows[0]["Challan_Date"].ToString());
+            ddlReceiptType.SelectedValue = Dt.Rows[0]["Challan_Type"].ToString();
+            string str = ddlReceiptType.SelectedItem.Text;
+            //PopulateInstrumentType();
+            //ddlInstrumentType.SelectedValue = Dt.Rows[0]["Payment_Mode"].ToString();
+            PopulateDraweeBank();
+            //if (ddlReceiptType.SelectedValue != "1")
+            ddlDraweeBank.SelectedValue = Dt.Rows[0]["Bank_ID"].ToString(); // Dt.Rows[0]["Bank_ID"].ToString(); changed by Tamilselvan.S on 12/05/2011
+            int Past = Convert.ToInt32(Dt.Rows[0]["Past_receipt"]);
+            if (Past == 0)
+                chkPastReceipts.Checked = false;
+            else
+                chkPastReceipts.Checked = true;
+            PopulateGridValues();
+            ddlBranch.Enabled = false;
+            ddlLOB.ClearDropDownList();
+            ddlReceiptType.ClearDropDownList();
+            //ddlInstrumentType.ClearDropDownList();
+            ddlDraweeBank.ClearDropDownList();
+            chkPastReceipts.Enabled = false;
+            btnPrint.Enabled = true;
+        }
+    }
+    #endregion
+
+    #region To Save Challan Values
+    private void Insertchallan()
+    {
+        string strChallanNumber = string.Empty;
+
+        if (grvChallan.Rows.Count == 0)
+        {
+            //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('There is no receipt available for Challan generation');", true);
+            //Utility.FunShowValidationMsg(this.Page, strValid, 1);
+            lblerrormessage.Text = strReceipt;
+            return;
+
+        }
+        else
+        {
+            lblerrormessage.Text = string.Empty;
+            bool booSelect = false;
+
+            strexclude = (ArrayList)ViewState["exclude"];
+            int count;
+            count = (int)ViewState["count"];
+            if (count == 0)
+            {
+                lblerrormessage.Text = "No Records found ";
+                return;
+            }
+            if (strexclude != null && strexclude.Count == count)
+            {
+                lblerrormessage.Text = Resources.ValidationMsgs.CLN_CHN_2.ToString();
+                return;
+            }
+            else
+                lblerrormessage.Text = string.Empty;
+
+            if (Page.IsValid)
+            {
+                LoadXMLValues();
+                objChallanGen_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+                try
+                {
+                    objS3G_CLN_ChallanGenDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChallanGenerationDataTable();
+                    objS3G_CLN_ChallanGenDataRow = objS3G_CLN_ChallanGenDataTable.NewS3G_CLN_ChallanGenerationRow();
+
+                    objS3G_CLN_ChallanGenDataRow.Company_ID = intCompanyID;
+                    objS3G_CLN_ChallanGenDataRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                    objS3G_CLN_ChallanGenDataRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+                    objS3G_CLN_ChallanGenDataRow.Challan_No = strChallanID;
+                    //String  Deposit_BankID;
+                    //ddlDraweeBank.SelectedValue.ToString().Split('-').GetValue(0).ToString();
+                    objS3G_CLN_ChallanGenDataRow.Deposit_Bank_Code = ddlDraweeBank.SelectedValue; //SelectedItem.Text.ToString().Split('-').GetValue(0).ToString();
+                    objS3G_CLN_ChallanGenDataRow.Challan_RuleDetails_ID = Convert.ToInt64(ddlDraweeBank.SelectedValue);
+                    objS3G_CLN_ChallanGenDataRow.Challan_Date = Utility.StringToDate(txtDate.Text.Trim());
+                    objS3G_CLN_ChallanGenDataRow.Challan_Amount = deAmount;
+                    objS3G_CLN_ChallanGenDataRow.Account_Link_Key = 1; // hot code
+                    objS3G_CLN_ChallanGenDataRow.Created_By = intUserID;
+                    objS3G_CLN_ChallanGenDataRow.Created_On = DateTime.Now;
+                    objS3G_CLN_ChallanGenDataRow.Modified_By = intUserID;
+                    objS3G_CLN_ChallanGenDataRow.Modified_On = DateTime.Now;
+                    objS3G_CLN_ChallanGenDataRow.Txn_ID = 1;
+
+                    objS3G_CLN_ChallanGenDataRow.XMLDetails = strChallanBuilder.ToString();
+
+                    objS3G_CLN_ChallanGenDataRow.Drawee_Bank_Name = ddlDraweeBank.SelectedItem.Text.ToString();//.Split('-').GetValue(1).ToString();
+                    objS3G_CLN_ChallanGenDataRow.Past_Receipt = (chkPastReceipts.Checked) ? "y" : "n";
+                    //objS3G_CLN_ChallanGenDataRow.Instrument_Type = Convert.ToInt32(ddlInstrumentType.SelectedValue);
+                    objS3G_CLN_ChallanGenDataRow.Instrument_Type = -1;
+                    objS3G_CLN_ChallanGenDataRow.Challan_Type_Code = 41;//look up master value
+                    objS3G_CLN_ChallanGenDataRow.Challan_Type = Convert.ToInt32(ddlReceiptType.SelectedValue);
+                    objS3G_CLN_ChallanGenDataTable.AddS3G_CLN_ChallanGenerationRow(objS3G_CLN_ChallanGenDataRow);
+                    intErrCode = objChallanGen_Client.FunPubCreateChallanGenerationLogic(out strChallanNumber, ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_ChallanGenDataTable, ObjSerMode));
+                    if (intErrCode == 12)
+                    {
+                        Utility.FunShowAlertMsg(this, Resources.LocalizationResources.DocNoNotDefined);
+                        return;
+                    }
+                    else if (intErrCode == 21)
+                    {
+                        Utility.FunShowAlertMsg(this, Resources.LocalizationResources.DocNoExceeds);
+                        return;
+                    }
+                    else if (intErrCode == 49)
+                    {
+                        Utility.FunShowAlertMsg(this, "There is no receipt existing for challan generation");
+                        return;
+                    }
+                    else if ((intErrCode == 50) || (intErrCode == 51) || (intErrCode == 52) || (intErrCode == 53) || (intErrCode == 54) || (intErrCode == 120) || (intErrCode >= 8000))
+                    {
+                        Utility.FunShowValidationMsg(this.Page, "", intErrCode);
+                        return;
+                    }
+                    else
+                    {
+
+                        //To avoid double save click
+                        btnGeneration.Enabled = false;
+                        //End here
+
+                        strChallanID = strChallanNumber;
+                        strAlert = "Challan number " + strChallanNumber.ToString() + " Generated successfully";
+                        strAlert += @"\n\nWould you like to add one more record? ";
+                        strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                        strRedirectPageView = string.Empty;
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+                    throw ex;
+                }
+                finally
+                {
+                    if (objChallanGen_Client != null)
+                        objChallanGen_Client.Close();
+                }
+            }
+        }
+    }
+    #endregion
+
+
+    #region Clear controls
+    private void FunClearDDl(DropDownList ddlctrl, int val)
+    {
+        try
+        {
+            if (ddlctrl.Items.Count > 0)
+            {
+                ddlctrl.SelectedIndex = 0;
+                if (val == 0)
+                    ddlctrl.ClearDropDownList();
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+
+    private void PriFunclear()
+    {
+        try
+        {
+            FunClearDDl(ddlLOB, 1);
+            //FunClearDDl(ddlBranch, 1);
+            ddlBranch.Clear();
+            FunClearDDl(ddlDraweeBank, 0);
+            //FunClearDDl(ddlInstrumentType, 0);
+            FunClearDDl(ddlReceiptType, 1);
+            ddlDraweeBank.Enabled = true;
+            //ddlInstrumentType.Enabled = true;
+            //rfvddlInstrumentType.Enabled = false;
+            txtChallanNo.Text = string.Empty;
+            txtDate.Text = string.Empty;
+            chkPastReceipts.Checked = false;
+            PriFunclearGrid();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+
+    private void PriFunclearcontrols()
+    {
+        ddlBranch.Clear();
+        ddlDraweeBank.ClearSelection();
+        ddlReceiptType.ClearSelection();
+        //ddlInstrumentType.ClearSelection();
+
+        ddlDraweeBank.Enabled = true;
+        //ddlInstrumentType.Enabled = true;
+        //rfvddlInstrumentType.Enabled = false;
+
+        //rfvddldraweeBank.Enabled = true;
+        // lblDraweebank.CssClass = "styleReqFieldLabel"; //"styleDisplayLabel"; //"styleReqFieldLabel";
+
+        txtChallanNo.Text = string.Empty;
+        //txtDate.Text = string.Empty;
+        chkPastReceipts.Checked = false;
+        PriFunclearGrid();
+
+    }
+    private void PriFunclearGrid()
+    {
+        grvChallan.DataSource = null;
+        grvChallan.DataBind();
+        btnGeneration.Enabled = false;
+        pnlGrid.Visible = false;
+        lblerrormessage.Text = string.Empty;
+        ViewState["exclude"] = null;
+        ViewState["count"] = null;
+        ddlDraweeBank.AddItemToolTip();
+    }
+    #endregion
+
+    #region To populate LOB List Values
+
+    private void PopulateLOBList()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            if (strChallanID == "")
+            {
+                Procparam.Add("@Is_Active", "1");
+            }
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            Procparam.Add("@Program_ID", "96");
+
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            ddlLOB.AddItemToolTip();
+            rfvddlLOB.ErrorMessage = Resources.ValidationMsgs.S3G_ValMsg_LOB;
+            PriFunclearGrid();
+        }
+        catch (Exception ex)
+        {
+            Utility.FunShowAlertMsg(this, ex.Message);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To populate Branch Values
+    private void PopulateBranchList()
+    {
+        try
+        {
+            //Procparam = new Dictionary<string, string>();
+            //if (strChallanID == "")
+            //{
+            //    Procparam.Add("@Is_Active", "1");
+            //}
+            //Procparam.Add("@User_ID", intUserID.ToString());
+            //Procparam.Add("@Company_ID", intCompanyID.ToString());
+            //Procparam.Add("@Lob_Id", Convert.ToString(ddlLOB.SelectedValue));
+            //Procparam.Add("@Program_ID", "96");
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+            //ddlBranch.AddItemToolTip();
+            //rfvddlBranch.ErrorMessage = Resources.ValidationMsgs.S3G_ValMsg_Branch;
+            PriFunclearGrid();
+            ddlReceiptType.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+            Utility.FunShowAlertMsg(this, ex.Message);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To populate Receipt Types
+    private void PopulateReceiptType()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@LookupType_Code", "41");
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            ddlReceiptType.BindDataTable(SPNames.S3G_CLN_GetChallanReceiptType, Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+            ddlReceiptType.AddItemToolTip();
+            rfvddlReceiptType.ErrorMessage = Resources.ValidationMsgs.S3g_ValMsg_ReceipType;
+        }
+        catch (Exception ex)
+        {
+            Utility.FunShowAlertMsg(this, ex.Message);
+            throw ex;
+        }
+        PriFunclearGrid();
+    }
+    #endregion
+
+    #region To populate Instrument Types
+    /*  private void PopulateInstrumentType()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@LookupType_Code", "42");   //LookupType_Code 49 is changed to 42 by Tamilselvan.S on 11/05/2011
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@Type", ddlReceiptType.SelectedValue);
+            ddlInstrumentType.BindDataTable(SPNames.S3G_CLN_GetChallanReceiptType, Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+            ddlInstrumentType.AddItemToolTip();
+
+            PriFunclearGrid();
+
+            if (ddlReceiptType.SelectedValue == "1" || ddlReceiptType.SelectedValue == "6")
+            {
+                ddlInstrumentType.SelectedIndex = -1;
+                ddlInstrumentType.Enabled = false;
+                rfvddlInstrumentType.Enabled = false;
+                lblInstrumentType.CssClass = "styleDisplayLabel";
+            }
+            else if (ddlReceiptType.Items.Count > 0 && ddlReceiptType.SelectedValue == "-1")
+            {
+                ddlInstrumentType.SelectedValue = "4";
+                ddlInstrumentType.Enabled = false;
+                rfvddlInstrumentType.Enabled = false;
+                lblInstrumentType.CssClass = "styleDisplayLabel";
+            }
+            else if (ddlReceiptType.SelectedValue == "0")
+            {
+                ddlDraweeBank.Enabled = true;
+                rfvddldraweeBank.Enabled = true;
+                lblDraweebank.CssClass = "styleReqFieldLabel";
+                //ddlInstrumentType.Enabled = true;
+                //rfvddlInstrumentType.Enabled = false;
+                lblInstrumentType.CssClass = "styleDisplayLabel"; //"styleReqFieldLabel";
+            }
+            else
+            {
+                ddlDraweeBank.Enabled = true;
+                rfvddldraweeBank.Enabled = true;
+                lblDraweebank.CssClass = "styleReqFieldLabel";
+                //ddlInstrumentType.Enabled = true;
+                //rfvddlInstrumentType.Enabled = true;
+                lblInstrumentType.CssClass = "styleReqFieldLabel"; //"styleDisplayLabel";
+            }
+        }
+        catch (Exception ex)
+        {
+            Utility.FunShowAlertMsg(this, ex.Message);
+            throw ex;
+        }
+    }*/
+    #endregion
+
+    #region To populate Drawee Bank
+    private void PopulateDraweeBank()
+    {
+        try
+        {
+            PriFunclearGrid();
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+            ddlDraweeBank.BindDataTable("S3G_CLN_GetDepositBank", Procparam, new string[] { "Bank_ID", "BankName" });
+            ddlDraweeBank.AddItemToolTip();
+            ddlReceiptType.AddItemToolTip();
+            ddlDraweeBank.AddItemToolTip();
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            Utility.FunShowAlertMsg(this, objFaultExp.Message);
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            Utility.FunShowAlertMsg(this, ex.Message);
+            throw ex;
+        }
+    }
+    #endregion
+
+
+    //#region To populate Drawee Bank Deposit id
+    //private void PopulateDepositBank()
+    //{
+    //    try
+    //    {
+    //        if (Procparam != null)
+    //            Procparam.Clear();
+    //        else
+    //            Procparam = new Dictionary<string, string>();
+    //        Procparam.Add("@Company_ID", intCompanyID.ToString());
+    //        Procparam.Add("@Branch_ID", ddlBranch.SelectedValue.ToString());
+    //        Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+    //        Procparam.Add("@Drawee_Bank", ddlDraweeBank.SelectedValue.ToString());
+    //        DataTable dtTable = new DataTable();
+    //        dtTable = Utility.GetDefaultData("S3G_CLN_GetDepositBank", Procparam);
+    //        if (dtTable.Rows.Count > 0)
+    //        {
+    //            txtDeposit.Text = dtTable.Rows[0]["Bank_ID"].ToString().Trim();
+    //        }
+    //    }
+    //    catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+    //{
+    //    Utility.FunShowAlertMsg(this, objFaultExp.Message);
+    //    throw objFaultExp;
+    //}
+    //catch (Exception ex)
+    //{
+    //    Utility.FunShowAlertMsg(this, ex.Message);
+    //    throw ex;
+    //}
+    //}
+    //#endregion
+
+    #region "Challan Generation stored in XML format"
+    /// <summary>
+    /// Storing the Values of the grid as XML documnet for bulk insert in the Data base
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    private void LoadXMLValues()
+    {
+        //  Grid sent as XMl     
+        deAmount = 0;
+        try
+        {
+
+            strexclude = (ArrayList)ViewState["exclude"];
+            if (strexclude != null && strexclude.Count > 0)
+            {
+                for (int i = 0; i < strexclude.Count; i++)
+                    if (i != (strexclude.Count - 1))
+                        strChallanBuilder.Append("'" + strexclude[i].ToString() + "',");
+                    else
+                        strChallanBuilder.Append("'" + strexclude[i].ToString() + "'");
+            }
+            //else
+            //    strChallanBuilder.Append("0");  //Hide by Tamilselvan for validation on 11/05/2011
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region  DateFormat
+    public string FormatDate(string strDate)
+    {
+        try
+        {
+            if ((strDate.Trim()).Length > 0)
+                return DateTime.Parse(strDate, CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+            else
+                return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To populate Grid  Values
+    private void PopulateGridValues()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            int intTotalRecords = 0;
+            bool bIsNewRow = false;
+            ObjPaging.ProCompany_ID = intCompanyID;
+            ObjPaging.ProUser_ID = intUserID;
+            ObjPaging.ProTotalRecords = intTotalRecords;
+            ObjPaging.ProCurrentPage = ProPageNumRW;
+            ObjPaging.ProPageSize = ProPageSizeRW;
+            //ObjPaging.ProSearchValue = hdnSearch.Value;
+            //ObjPaging.ProOrderBy = hdnOrderBy.Value;
+            //Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            // DateTime.Parse(Utility.StringToDate(txtInspDate.Text.Trim() + " " + txtInspTime.Text.Trim()).ToString(strDateFormat));
+            //string str = Utility.StringToDate(txtDate.Text).ToString();
+
+            Procparam.Add("@Receipt_Date", Convert.ToDateTime(Utility.StringToDate(txtDate.Text)).ToString("MM/dd/yyyy"));
+            //DateTime.Parse(Utility.StringToDate(txtDate.Text).ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat));
+            //(Utility.StringToDate(txtDate.Text).ToString()));
+            if (ddlLOB.SelectedValue != "0") Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            if (ddlBranch.SelectedValue != "0") Procparam.Add("@Location_Id", Convert.ToString(ddlBranch.SelectedValue));
+            if (ddlReceiptType.SelectedValue != "0") Procparam.Add("@Receipt_Type", Convert.ToString(ddlReceiptType.SelectedValue));
+            //if (ddlInstrumentType.SelectedValue != "0") Procparam.Add("@Instrument_Type", Convert.ToString(ddlInstrumentType.SelectedValue));
+            if (ddlDraweeBank.SelectedValue != "0") Procparam.Add("@DepositBank_Code", ddlDraweeBank.SelectedValue);
+            //if (ddlDraweeBank.SelectedValue != "0")
+            //    Procparam.Add("@Drawee_Bank_Name", Convert.ToString(ddlDraweeBank.SelectedItem.Text.ToString().Split('-').GetValue(1).ToString()));  //Modified by Tamilselvan.S on 12/05/2011
+            if (chkPastReceipts.Checked == true) Procparam.Add("@Past_Receipt", "y");
+            if (strMode == "Q")
+                Procparam.Add("@Challan_No", strChallanID);
+            grvChallan.BindGridView(strProcName, Procparam, out intTotalRecords, ObjPaging, out bIsNewRow);
+            //dtList = (DataTable) grvChallan.DataSource;
+            //grvChallan.DataBind();
+            //grvChallan.BindGridView(strProcName, Procparam, out intTotalRecords, ObjPaging, out bIsNewRow);
+
+            //dtList = Utility.GetDefaultData(SPNames.S3G_CLN_GetChallanListingsForInsert, Procparam);
+            //grvChallan.DataSource = ( DataTable) ViewState["grvChallanViewState"];
+            //grvChallan.DataBind();
+            if (bIsNewRow)
+            {
+                grvChallan.Rows[0].Visible = false;
+            }
+            ucCustomPaging.Navigation(intTotalRecords, ProPageNumRW, ProPageSizeRW);
+
+            ucCustomPaging.setPageSize(ProPageSizeRW);
+            ViewState["count"] = intTotalRecords;
+            if (grvChallan.Rows.Count > 0)
+            {
+                lblerrormessage.Text = string.Empty;
+                pnlGrid.Visible = true;
+                btnGeneration.Enabled = true;
+            }
+            else
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('There is no receipt for Challan Generation');", true);
+                lblerrormessage.Text = strReceipt;
+                // btnGeneration.Enabled = false;
+                return;
+            }
+            if (intTotalRecords == 0 || strMode == "Q")
+            { btnGeneration.Enabled = false; }
+
+        }
+
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            Utility.FunShowAlertMsg(this, objFaultExp.Message);
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            Utility.FunShowAlertMsg(this, ex.Message);
+            throw ex;
+        }
+
+    }
+    #endregion
+
+    //protected void grvChallan_PageIndexChanging(object sender, GridViewPageEventArgs e)
+    //{
+    //    try
+    //    {
+    //        int newPageIndex = 1;
+    //        if (ViewState["PreviousPageIndex"] == null)
+    //            ViewState["PreviousPageIndex"] = 1;
+    //        //else
+    //        //{
+    //        if (((int)ViewState["PreviousPageIndex"]) > (e.NewPageIndex + 1))
+    //        { newPageIndex = e.NewPageIndex - 1; }
+    //        else
+    //        { newPageIndex = e.NewPageIndex + 1; }
+    //        //}
+    //        if (ViewState["grvChallanViewState"] != null)
+    //            grvChallan.DataSource = (DataTable)ViewState["grvChallanViewState"];
+    //        grvChallan.PageIndex = (newPageIndex - 1);
+    //        grvChallan.DataBind();
+
+
+
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //          ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+    //        throw ex;
+    //    }
+    //}
+
+
+    #region [Printing process]
+    /// <summary>
+    /// Created by Tamilselvan.S
+    /// Created Date 17/05/2011
+    /// </summary>
+    protected void FunProGeneratePDF()
+    {
+        string strHTML = FunGetHTMLForRECP();
+        string strnewFile = (Server.MapPath(".") + "\\PDF Files\\Challan.pdf");
+
+        string strFileName = "/Collection/PDF Files/Challan.pdf";
+
+        //creating Folder for Dynamicaly by Tamilselvan.S on 08/07/2011 
+        DirectoryInfo df = new DirectoryInfo(Convert.ToString(Server.MapPath(".") + "\\PDF Files"));
+        if (!df.Exists)
+        {
+            df.Create();
+        }
+        if (File.Exists(strnewFile) == true)
+        {
+            File.Delete(strnewFile);
+        }
+
+        Document doc = new Document();
+
+        PdfWriter writer = PdfWriter.GetInstance(doc, new FileStream(strnewFile, FileMode.Create));
+
+        doc.AddCreator("Sundaram Infotech Solutions");
+        doc.AddTitle("Challan");
+        doc.Open();
+        List<IElement> htmlarraylist = iTextSharp.text.html.simpleparser.HTMLWorker.ParseToList(new StringReader(strHTML), null);
+        for (int k = 0; k < htmlarraylist.Count; k++)
+        {
+            doc.Add((IElement)htmlarraylist[k]);
+        }
+        doc.AddAuthor("S3G Team");
+
+        doc.Close();
+
+        //hide by Tamilselvan.S for direct print is failed on server on 21/06/2011
+
+        //Process Prc = new Process();
+        //Prc.StartInfo.Verb = "Print";
+        //Prc.StartInfo.CreateNoWindow = false;
+        //Prc.StartInfo.FileName = strnewFile;
+        //Prc.StartInfo.WindowStyle = ProcessWindowStyle.Normal;
+        //Prc.Start();
+        //Prc.CloseMainWindow();
+        //Prc.Close();
+
+        string strScipt = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + strFileName + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+    }
+
+    protected string FunGetHTMLForRECP()
+    {
+        StringBuilder strHTML = new StringBuilder();
+        Dictionary<string, string> dictParam = new Dictionary<string, string>();
+        dictParam.Add("@Challan_No", strChallanID);
+        dictParam.Add("@Company_ID", intCompanyID.ToString());
+        dictParam.Add("@User_ID", intUserID.ToString());
+        DataSet dsChallanList = Utility.GetDataset("S3G_CLN_GetChallanForPrint", dictParam);
+
+
+        DataTable dtHDR = dsChallanList.Tables[0];
+        DataTable dtReceiptDetails = dsChallanList.Tables[1];
+        if (dtHDR.Rows.Count > 0)
+        {
+            DataRow drHDR = dtHDR.Rows[0];
+            //drHDR["BANK_ADDRESS_1"] = DBNull.Value;
+
+            //string strAddress1 = string.Empty;
+            //string strAddress2 = string.Empty;
+            //string strAddress3 = string.Empty;
+            //string strAddress4 = string.Empty;
+            //string strAddress5 = string.Empty;
+
+            //if (drHDR["BANK_ADDRESS_1"] == DBNull.Value && drHDR["BANK_ADDRESS_2"] == DBNull.Value && drHDR["BANK_ADDRESS_3"] == DBNull.Value && drHDR["BANK_ADDRESS_4"] == DBNull.Value)
+            //{
+            //    strAddress1 = drHDR["ZIPCODE"].ToString();
+            //}
+            //else
+            //{
+            //    strAddress2 = strAddress3 = strAddress4 = strAddress5 = "";
+            //}
+            //if (drHDR["BANK_ADDRESS_1"] == DBNull.Value && drHDR["BANK_ADDRESS_2"] == DBNull.Value && drHDR["BANK_ADDRESS_3"] == DBNull.Value && drHDR["BANK_ADDRESS_4"] == DBNull.Value)
+            //{
+            //    strAddress1 = drHDR["ZIPCODE"].ToString();
+            //}
+            //else
+            //{
+            //    strAddress2 = strAddress3 = strAddress4 = strAddress5 = "";
+            //}
+
+
+            strHTML.Append(" <font size=\"1\"  color=\"black\" face=\"verdana\">" +
+        "<table width=\"85%\">" +
+        "<tr>" +
+        "<td width=\"100%\">" +
+            "<table border=\"0\" width=\"100%\">" +
+                "<tr>" +
+                    "<td align=\"center\">" +
+                       "<b>" + drHDR["COMPANY_NAME"].ToString() + "</b>" +
+                    "</td>" +
+                "</tr>" +
+                "<tr>" +
+                    "<td align=\"center\">" +
+                        "<b>" + drHDR["Address"] + "</b>" +
+                        "<br />" +
+                    "</td>" +
+                "</tr>" +
+                "<tr>" +
+                    "<td align=\"center\">" +
+                        "<b>BANK CHALLAN</b>" +
+                    "</td>" +
+                "</tr>" +
+            "</table>" +
+        "</td>" +
+    "</tr>" +
+
+    "<tr>" +
+        "<td>" +
+            "<table width=\"100%\">" +
+                "<tr>" +
+                    "<td align=\"left\">" +
+                      "<table align=\"left\" valign=\"top\" cellpadding=\"0\" cellspacing=\"0\">" +
+                         "<tr>" +
+                                     "<td align=\"left\">" +
+                                       "Name of the bank" +
+                                      "</td>" +
+                                      "<td align=\"left\">" +
+                                            drHDR["BANK_NAME"].ToString() + " (" + drHDR["SYS_BANK_CODE"].ToString() + ")" +
+                                      "</td>" +
+                                  "</tr>" +
+                                  "<tr>" +
+                                       "<td> </td>" +
+                                     "<td>" +
+                                     ((drHDR["BANK_ADDRESS_1"] != DBNull.Value) ? (drHDR["BANK_ADDRESS_1"].ToString()) : ((drHDR["BANK_ADDRESS_2"] != DBNull.Value) ? (drHDR["BANK_ADDRESS_2"].ToString()) : (drHDR["BANK_ADDRESS_3"] != DBNull.Value) ? (drHDR["BANK_ADDRESS_3"].ToString()) : (drHDR["BANK_ADDRESS_4"] != DBNull.Value) ? (drHDR["BANK_ADDRESS_4"].ToString()) : drHDR["ZIPCODE"].ToString()).ToString()) +
+
+
+                                     //drHDR["BANK_ADDRESS_1"].ToString() +
+                                     "</td>" +
+                                  "</tr>" +
+                                  "<tr>" +
+                                   "<td> </td>" +
+                                     "<td>" +
+                                      drHDR["BANK_ADDRESS_2"].ToString() +
+                                     "</td>" +
+                                  "</tr>" +
+                                  "<tr>" +
+                                   "<td> </td>" +
+                                     "<td>" +
+                //((drHDR["BANK_ADDRESS_1"] != DBNull.Value && drHDR["BANK_ADDRESS_2"] != DBNull.Value && drHDR["BANK_ADDRESS_3"]!=DBNull.Value ) ? drHDR["BANK_ADDRESS_3"] : (drHDR["BANK_ADDRESS_1"] == DBNull.Value && drHDR["BANK_ADDRESS_2"] == DBNull.Value && drHDR["BANK_ADDRESS_3"]==DBNull.Value && drHDR["BANK_ADDRESS_4"] != DBNull.Value) ?
+
+                                    // ((drHDR["BANK_ADDRESS_1"] == DBNull.Value && drHDR["BANK_ADDRESS_2"] == DBNull.Value) ? "" : (drHDR["BANK_ADDRESS_1"] == DBNull.Value && drHDR["BANK_ADDRESS_2"] != DBNull.Value && drHDR["BANK_ADDRESS_3"] != DBNull.Value) ? drHDR["BANK_ADDRESS_3"] : (drHDR["BANK_ADDRESS_4"] != DBNull.Value) ? (drHDR["BANK_ADDRESS_4"].ToString() + "-" + drHDR["ZIPCODE"].ToString()) : drHDR["ZIPCODE"].ToString()) +
+
+
+                                    drHDR["BANK_ADDRESS_3"].ToString() +
+                                     "</td>" +
+                                  "</tr>" +
+                                  "<tr>" +
+                                   "<td> </td>" +
+                                     "<td>" +
+                                        ((drHDR["BANK_ADDRESS_1"] == DBNull.Value) ? "" : (drHDR["BANK_ADDRESS_2"] == DBNull.Value) ? "" : (drHDR["BANK_ADDRESS_3"] == DBNull.Value) ? "" : (drHDR["BANK_ADDRESS_4"] != DBNull.Value) ? (drHDR["BANK_ADDRESS_4"].ToString() + "-" + drHDR["ZIPCODE"].ToString()) : drHDR["ZIPCODE"].ToString()) +
+                                     "</td>" +
+                                  "</tr>" +
+                                "</table>" +
+                      "</td>" +
+                      "<td>" +
+                       "<table width=\"95%\" align=\"left\" cellpadding=\"0\" cellspacing=\"0\">" +
+                          "<tr>" +
+                                 "<td align=\"left\" colspan=\"2\">" +
+                                    "Challan Number" +
+                                 "</td>" +
+                                 "<td  align=\"left\">" +
+                                    ":" +
+                                 "</td>" +
+                                 "<td align=\"left\" colspan=\"2\">" +
+                                     drHDR["Challan_No"].ToString() +
+                                 "</td>" +
+                         "</tr>" +
+                         "<tr>" +
+                               "<td align=\"left\" colspan=\"2\">" +
+                                 "Challan Date" +
+                               "</td>" +
+                               "<td align=\"left\">" +
+                                 ":" +
+                               "</td>" +
+                               "<td align=\"left\" colspan=\"2\">" +
+                                Convert.ToDateTime(drHDR["Challan_Date"]).ToString(strDateFormat) +
+                               "</td>" +
+                        "</tr>" +
+                        "<tr>" +
+                              "<td align=\"left\" colspan=\"2\">" +
+                                "Receipt Type" +
+                              "</td>" +
+                              "<td align=\"left\">" +
+                                ":" +
+                              "</td>" +
+                              "<td align=\"left\" colspan=\"2\" colspan=\"2\">" +
+                                drHDR["ReceiptType"].ToString() +
+                              "</td>" +
+                      "</tr>" +
+                      "<tr>" +
+                            "<td align=\"left\" colspan=\"2\">" +
+                                "Page" +
+                            "</td>" +
+                            "<td align=\"left\">" +
+                                ":" +
+                           " </td>" +
+                            "<td align=\"left\" colspan=\"2\">" +
+                                "1 of 1" +
+                            "</td>" +
+                     "</tr>" +
+                     "<tr><td></td><td></td><td></td><td></td><td></td></tr>" +
+               "</table>" +
+           " </td>" +
+          "</tr>" +
+        "</table>" +
+      " </td>" +
+    "</tr>" +
+    "<tr>" +
+        "<td>" +
+            "<table width=\"100%\">" +
+                "<tr>" +
+                    "<td>" +
+                        "Kindly accept the enclosed Cheques as per details given below and credit the proceeds to " + drHDR["COMPANY_NAME"].ToString() + ", with you.");// + drHDR["TOTAL_RECEIPT_AMOUNT"].ToString() + " (" +
+            strHTML.Append(
+               "<br />" +
+               "<br />" +
+           "</td>" +
+       "</tr>" +
+   "</table>" +
+"</td>" +
+"</tr>" +
+"<tr>" +
+"<td>" +
+   "<table width=\"100%\" style=\"border-color: Black;\" border=\"1\" cellpadding=\"4\" cellspacing=\"0\">" +
+       "<tr>" +
+           "<td align=\"center\" width=\"10px\">" +
+               "<font face=\"verdana\" size=\"1\"><b>Sl.No </b></font>" +
+           "</td>" +
+           "<td align=\"center\">" +
+               "<font face=\"verdana\" size=\"1\"><b>Receipt Number </b></font>" +
+           "</td>" +
+           "<td align=\"center\">" +
+               "<font face=\"verdana\" size=\"1\"><b>Cheque / DD Number</b></font>" +
+           "</td>" +
+           "<td align=\"center\">" +
+               "<font face=\"verdana\" size=\"1\"><b>Drawee Bank</b></font>" +
+           "</td>" +
+            "<td align=\"center\">" +
+               "<font face=\"verdana\" size=\"1\"><b>Place</b></font>" +
+           "</td>" +
+           "<td align=\"center\">" +
+               "<font face=\"verdana\" size=\"1\"><b>Amount</b></font>" +
+           "</td>");
+            dtReceiptDetails.Columns["Amount"].DataType = typeof(decimal);
+            foreach (DataRow drow in dtReceiptDetails.Rows)
+            {
+                strHTML.Append(
+                                   "</tr>" +
+                                   "<tr>" +
+                                       "<td align=\"center\" width=\"10%\">" +
+                                          drow["SNo"].ToString() +
+                                       "</td>" +
+                                       "<td>" +
+                                          drow["Receipt_No"].ToString() +
+                                       "</td>" +
+                                       "<td>" +
+                                           drow["Instrument_No"].ToString() +
+                                       "</td>" +
+                                       "<td>" +
+                                           drow["Drawee Bank"].ToString() +
+                                       "</td>" +
+                                        "<td>" +
+                                           drow["DraweeBank_Place"].ToString() +
+                                       "</td>" +
+                                       "<td align=\"right\">" +
+                                          Convert.ToDecimal(drow["Amount"]).ToString(Utility.SetSuffix()) +
+                                       "</td>" +
+                                   "</tr>");
+            }
+
+            decimal decTotalAmt = Convert.ToDecimal((from c in dtReceiptDetails.AsEnumerable()
+                                                     select c.Field<decimal>("Amount")).Sum());
+
+            strHTML.Append(
+                "<tr>" +
+                    "<td colspan=\"4\">" +
+                    "</td>" +
+                    "<td>" +
+                        "Grand Total" +
+                    "</td>" +
+                    "<td align=\"right\">" +
+                    Convert.ToDecimal(decTotalAmt).ToString(Utility.SetSuffix()) +
+                    "</td>" +
+                "</tr>" +
+            "</table>" +
+        "</td>" +
+    "</tr>" +
+    "<tr>" +
+        "<td>" +
+            "Received the above instruments to the of " + drHDR["Currency_Code"].ToString() + " " + Convert.ToDecimal(decTotalAmt.ToString()).GetAmountInWords() +
+            "<br />" +
+            "<br />" +
+        "</td>" +
+    "</tr>" +
+    "<tr>" +
+        "<td>" +
+            "<table width=\"100%\">" +
+                "<tr>" +
+                    "<td>" +
+                //  ObjUserInfo.ProUserNameRW.ToString() +
+                    "</td>" +
+                    "<td width=\"60%\">" +
+                    "</td>" +
+                    "<td align=\"center\">" +
+                        "Deposited by " + drHDR["COMPANY_NAME"].ToString() +
+                    "</td>" +
+                "</tr>" +
+            "</table>" +
+        "</td>" +
+    "</tr>" +
+"</table> </font>");
+        }
+
+        return strHTML.ToString();
+    }
+
+    #endregion [Printing process]
+
+    #endregion
+
+    #region "User Authorization"
+    ////This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                if (!bCreate)
+                {
+                    btnListing.Enabled = false;
+                }
+                break;
+
+            //case 1: // Modify Mode
+
+            //    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+            //    if (!bModify)
+            //    {
+
+            //    }
+            //    ddlLOB.Enabled = false;
+            //    break;
+
+            case -1:// Query Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                btnListing.Enabled = false;
+                if (!bQuery)
+                {
+                    //Response.Redirect(strRedirectPage);
+                }
+                //ddlLOB.Enabled =
+                btnGeneration.Enabled = btnClear.Enabled = btnGeneration.Enabled = false;
+                txtDate.Attributes.Remove("onblur");
+                txtDate.ReadOnly = true;
+                break;
+        }
+    }
+    ////Code end
+    #endregion
+
+    private void AddItemToolTipForControls()
+    {
+        ddlLOB.AddItemToolTip();
+        //ddlBranch.AddItemToolTip();
+        ddlReceiptType.AddItemToolTip();
+        ddlDraweeBank.AddItemToolTip();
+        //ddlInstrumentType.AddItemToolTip();
+    }
+
+    #region unwanted
+
+    //#region user control code start 
+    //variable section
+    //
+    //string strProcName = SPNames.S3G_CLN_GetChallanListings;//S3G_ORG_GetEntityDetails_Paging 
+    //PagingValues ObjPaging = new PagingValues();
+
+    //public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    //public int ProPageNumRW
+    //{
+    //    get;
+    //    set;
+    //}
+
+    //public int ProPageSizeRW
+    //{
+    //    get;
+    //    set;
+
+    //}
+
+    //protected void AssignValue(int intPageNum, int intPageSize)
+    //{
+    //    ProPageNumRW = intPageNum;
+    //    ProPageSizeRW = intPageSize;
+    //  //  FunPriBindGrid();
+    //}
+    //ProPageNumRW = 1;
+    //           TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+    //           if (txtPageSize.Text != "")
+    //               ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+    //           else
+    //               ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+    //           PageAssignValue obj = new PageAssignValue(this.AssignValue);
+    //           ucCustomPaging.callback = obj;
+    //           ucCustomPaging.ProPageNumRW = ProPageNumRW;
+    //           ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+    //#endregion
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "96");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+    #endregion
+
+
+}

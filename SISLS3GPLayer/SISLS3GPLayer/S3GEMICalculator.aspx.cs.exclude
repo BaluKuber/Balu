@@ -1,0 +1,1199 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Common 
+/// Screen Name               : EMI Calcualtor
+/// Created By                : VijayaKumar
+/// Created Date              : 19-Sep-2011
+/// Purpose                   : 
+/// Last Updated By           : 
+/// Last Updated Date         : 
+/// Reason                    :
+
+/// <Program Summary>
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+using AjaxControlToolkit;
+
+#endregion
+
+
+public partial class Common_S3GEMICalculator : ApplyThemeForProject
+{
+    #region Common Variable declaration
+    int intCompanyID, intUserID = 0, intSerialNo = 0;
+    Dictionary<string, string> Procparam = null;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    public string strDateFormat = string.Empty;
+    static string strPageName = "EMI Calculator";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+
+    DataTable DtRepayGrid = new DataTable();
+    DataTable DtRepaySummary = new DataTable();
+
+    //Code end
+    #endregion
+
+    #region Properties
+    protected DateTime dtNextDate { get; set; }
+    protected int intNextInstall { get; set; }
+    #endregion
+
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (!IsPostBack)
+            {
+                txtDate.Text = DateTime.Now.ToString(strDateFormat);
+                ceDate.Format = strDateFormat;
+                FunProGetIRRDetails();
+                FunPubLoadLob();
+            }
+        }
+        catch (Exception ex)
+        {
+            cvEMICalculator.ErrorMessage = " Error in loading EMI Calculator";
+            ClsPubCommErrorLog.CustomErrorRoutine(ex, strPageName);
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+
+    private void FunPriFillRateTypeDropdown(bool blnFixed, bool blnFloating)
+    {
+        try
+        {
+            ddlReturnPattern.Items.FindByValue("1").Enabled = blnFixed;
+            ddlReturnPattern.Items.FindByValue("2").Enabled = blnFloating;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    private void FunPriRatePatternDropdown(bool blnRate, bool blnIRR, bool blnPTF, bool blnPLF, bool blnPMF)
+    {
+        try
+        {
+            ddlReturnPattern.Items.FindByValue("1").Enabled = blnRate;
+            ddlReturnPattern.Items.FindByValue("2").Enabled = blnIRR;
+            ddlReturnPattern.Items.FindByValue("3").Enabled = blnPTF;
+            ddlReturnPattern.Items.FindByValue("4").Enabled = blnPLF;
+            ddlReturnPattern.Items.FindByValue("5").Enabled = blnPMF;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    private void FunPriTimeDropdown(bool blnADV, bool blnARR, bool blnADR, bool blnARF)
+    {
+        try
+        {
+            ddlTime.Items.FindByValue("1").Enabled = blnADV;
+            ddlTime.Items.FindByValue("2").Enabled = blnARR;
+            ddlTime.Items.FindByValue("3").Enabled = blnADR;
+            ddlTime.Items.FindByValue("4").Enabled = blnARF;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    private void FunPriFrequencyDropdown(bool blnWeekly, bool blnFortNightly, bool blnMonthly, bool blnBiMonthly, bool blnQuarterly, bool blnHalfYearly, bool blnAnnual)
+    {
+        try
+        {
+            ddlTenureType.Items.FindByValue("2").Enabled = blnWeekly;
+            ddlTenureType.Items.FindByValue("3").Enabled = blnFortNightly;
+            ddlTenureType.Items.FindByValue("4").Enabled = blnMonthly;
+            ddlTenureType.Items.FindByValue("5").Enabled = blnBiMonthly;
+            ddlTenureType.Items.FindByValue("6").Enabled = blnQuarterly;
+            ddlTenureType.Items.FindByValue("7").Enabled = blnHalfYearly;
+            ddlTenureType.Items.FindByValue("8").Enabled = blnAnnual;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    private void FunPriRepaymentMode(bool blnEI, bool blnSAP, bool blnSF, bool blnProduct, bool blnTL)
+    {
+        try
+        {
+            ddlRepaymentMode.Items.FindByValue("1").Enabled = false;
+            ddlRepaymentMode.Items.FindByValue("2").Enabled = false;
+            ddlRepaymentMode.Items.FindByValue("3").Enabled = false;
+            ddlRepaymentMode.Items.FindByValue("4").Enabled = blnProduct;
+            ddlRepaymentMode.Items.FindByValue("5").Enabled = blnTL;
+            ddlReturnPattern.SelectedValue = "0";
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    private void FunPriRecoveryPatternMandotary(bool blnFlag)
+    {
+        try
+        {
+            lblRecoveryPatternYear1.Attributes.Add("class", "");
+            if (blnFlag)
+            {
+                lblRecoveryPatternYear1.Attributes.Add("class", "styleReqFieldLabel");
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    private void FunPubLobChange()
+    {
+        FunPriAssignRate(ddlActivity.SelectedValue);
+        FunPriFillRateTypeDropdown(false, false);
+        FunPriRatePatternDropdown(false, false, false, false, false);
+        FunPriTimeDropdown(false, false, false, false);
+        FunPriFrequencyDropdown(false, false, false, false, false, false, false);
+        FunPriRepaymentMode(false, false, false, false, false);
+
+        txtRecoveryPatternYear1.Enabled = txtRecoveryPatternYear2.Enabled = txtRecoveryPatternYear3.Enabled = txtRecoveryPatternYearRest.Enabled = false;
+        txtRecoveryPatternYear1.Text = txtRecoveryPatternYear2.Text = txtRecoveryPatternYear3.Text = txtRecoveryPatternYearRest.Text = "";
+
+        ddlReturnPattern.SelectedValue = "0";
+        ddlTime.SelectedValue = "0";
+        ddlTenureType.SelectedValue = "0";
+        ddlRepaymentMode.SelectedValue = "0";
+
+        string strType = ddlActivity.SelectedItem.Text.Split('-')[0].Trim();
+        switch (strType.ToLower())
+        {
+            case "hp":  //Hire Purchase
+                {
+                    //FunPriRateTypeDropdown(true);                    
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRepaymentMode(true, true, true, false, false);
+                    FunPriRatePatternDropdown(true, true, false, false, false);
+                    FunPriTimeDropdown(true, true, true, true);
+                    FunPriFrequencyDropdown(true, true, true, true, true, true, true);
+                    //FunPriEnableIRRRest(true);
+                    //FunPriIntrestCalculationDropdown(true, true, false, false, false);
+                    //FunPriIntrestLevyDropdown(true, true, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);//aug-11
+                    //FunPriInsuranceDropdown(true);
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+            case "ln": //Loan
+                {
+                    //FunPriRateTypeDropdown(true);                    
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRatePatternDropdown(true, true, false, false, false);
+
+                    FunPriTimeDropdown(true, true, true, true);
+                    FunPriFrequencyDropdown(true, true, true, true, true, true, true);
+                    FunPriRepaymentMode(true, true, true, false, false);
+                    //FunPriEnableIRRRest(true);
+
+                    //FunPriIntrestCalculationDropdown(true, true, false, false, false);
+                    //FunPriIntrestLevyDropdown(true, true, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);//aug-11
+
+                    //FunPriInsuranceDropdown(true);
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+
+
+            case "fl":  //Financial Leasing
+                {
+                    //FunPriRateTypeDropdown(true);                    
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRatePatternDropdown(true, true, true, true, true);
+
+                    FunPriTimeDropdown(true, true, true, true);
+                    FunPriFrequencyDropdown(true, true, true, true, true, true, true);
+                    FunPriRepaymentMode(true, true, true, false, false);
+                    //FunPriEnableIRRRest(true);
+
+                    //FunPriIntrestCalculationDropdown(true, true, false, false, false);
+                    //FunPriIntrestLevyDropdown(true, true, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);//aug-11
+
+                    //FunPriInsuranceDropdown(true);
+                    //FunPriResidualValueDropdown(true);
+                    //ddlResidualValue.Enabled = true;
+                    break;
+                }
+            case "ol":  //Operating Lease
+                {
+                    //FunPriRateTypeDropdown(true);
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRatePatternDropdown(true, true, true, true, true);
+
+                    FunPriTimeDropdown(true, true, true, true);
+                    FunPriFrequencyDropdown(true, true, true, true, true, true, true);
+                    FunPriRepaymentMode(true, true, true, false, false);
+                    //FunPriEnableIRRRest(true);
+
+                    //FunPriIntrestCalculationDropdown(true, true, false, false, false);
+                    //FunPriIntrestLevyDropdown(true, true, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);//aug-11
+
+                    //FunPriInsuranceDropdown(true);
+                    //FunPriResidualValueDropdown(true);
+                    //ddlResidualValue.Enabled = true;
+                    break;
+                }
+            case "ft":  //Factoring
+                {
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRepaymentMode(false, false, false, true, false);
+                    FunPriRatePatternDropdown(true, false, false, false, false);
+                    //FunPriIntrestCalculationDropdown(true, true, true, true, true);
+                    //FunPriIntrestLevyDropdown(true, true, true, true, true);
+                    //FunPriInterestCalculationMandotary(true);
+
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+            case "tl":  //Term Loan
+                {
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRepaymentMode(true, true, true, false, true);
+                    FunPriRatePatternDropdown(true, true, false, false, false);
+                    FunPriTimeDropdown(true, true, true, true);
+                    FunPriFrequencyDropdown(true, true, true, true, true, true, true);
+                    //FunPriEnableIRRRest(true);
+                    //FunPriIntrestCalculationDropdown(true, true, false, false, false);
+                    //FunPriIntrestLevyDropdown(true, true, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);//aug-11
+
+                    //FunPriInsuranceDropdown(true);
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+            case "te":  //Term Loan Extentible
+                {
+
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRepaymentMode(true, true, true, false, true);
+                    FunPriRatePatternDropdown(true, true, false, false, false);
+
+                    FunPriTimeDropdown(true, true, true, true);
+                    FunPriFrequencyDropdown(true, true, true, true, true, true, true);
+
+                    //FunPriEnableIRRRest(true);
+
+                    //FunPriIntrestCalculationDropdown(true, true, false, false, false);
+                    //FunPriIntrestLevyDropdown(true, true, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);//aug-11
+
+                    //FunPriInsuranceDropdown(true);
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+            case "wc":  //Working Capital
+                {
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRatePatternDropdown(true, false, false, false, false);
+                    FunPriRepaymentMode(false, false, false, true, false);
+
+                    //FunPriIntrestCalculationDropdown(true, true, true, true, true);
+                    //FunPriIntrestLevyDropdown(true, true, true, true, true);
+                    //FunPriInterestCalculationMandotary(true);
+
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+            case "vf":  //Vendor Finance
+                {
+                    //FunPriRateTypeDropdown(true);
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRatePatternDropdown(true, false, false, false, false);
+
+                    FunPriTimeDropdown(true, true, false, false);
+                    FunPriFrequencyDropdown(false, false, true, false, true, true, false);
+                    FunPriRepaymentMode(false, false, false, false, true);
+
+                    //FunPriIntrestCalculationDropdown(true, true, false, false, false);
+                    //FunPriIntrestLevyDropdown(true, true, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);//aug-11
+
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+            case "cf":  //Channel Finance
+                {
+                    //FunPriRateTypeDropdown(true);
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRatePatternDropdown(true, false, false, false, false);
+
+                    FunPriTimeDropdown(true, true, false, false);
+                    FunPriFrequencyDropdown(false, false, true, false, true, true, false);
+                    FunPriRepaymentMode(false, false, false, false, true);
+
+                    //FunPriIntrestCalculationDropdown(true, true, false, false, false);
+                    //FunPriIntrestLevyDropdown(true, true, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);//aug-11
+
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+
+            case "sf":  //Security Finance
+                {
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRatePatternDropdown(true, false, false, false, false);
+                    FunPriRepaymentMode(false, false, false, false, true);
+                    //FunPriIntrestCalculationDropdown(false, false, true, true, true);
+                    //FunPriIntrestLevyDropdown(false, false, true, true, true);
+                    //FunPriInterestCalculationMandotary(true);
+
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+            case "of":  //Commodity Finance
+                {
+                    FunPriFillRateTypeDropdown(true, true);
+                    FunPriRatePatternDropdown(true, false, false, false, false);
+                    FunPriRepaymentMode(false, false, false, false, true);
+                    //FunPriIntrestCalculationDropdown(false, false, true, true, true);
+                    //FunPriIntrestLevyDropdown(false, false, true, true, true);
+                    //FunPriInterestCalculationMandotary(true);
+
+                    //FunPriMarginDropdown(true, true);
+                    break;
+                }
+            default:
+                {
+                    FunPriFillRateTypeDropdown(false, false);
+                    FunPriRatePatternDropdown(true, false, false, false, false);
+                    FunPriRepaymentMode(false, false, false, false, false);
+                    //FunPriEnableIRRRest(false);
+
+                    //FunPriIntrestCalculationDropdown(false, false, false, false, false);
+                    //FunPriIntrestLevyDropdown(false, false, false, false, false);
+                    //FunPriInterestCalculationMandotary(false);
+                    FunPriRecoveryPatternMandotary(false);
+                    //txtRecoveryPatternYear1.Enabled =
+                    //txtRecoveryPatternYear2.Enabled =
+                    //txtRecoveryPatternYear3.Enabled =
+                    //txtRecoveryPatternYearRest.Enabled = false;
+                    //ddlResidualValue.Enabled = false;
+                    break;
+                }
+        }
+    }
+
+    private void FunPubLoadLob()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        Procparam.Add("@User_ID", ObjUserInfo.ProUserIdRW.ToString());
+        Procparam.Add("@Is_Active", "1");
+
+        ddlActivity.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_CODE", "LOB_NAME" });
+
+        Procparam = new Dictionary<string, string>();
+        DataTable dtDefault = Utility.GetDefaultData("S3G_ORG_GetROIRulesLookUp", Procparam);
+        DataTable dtDefaultNew;
+        DataView dvSearchView;
+        if (dtDefault != null)
+        {
+            dvSearchView = new DataView(dtDefault); ;
+            dvSearchView.RowFilter = "[Type] LIKE 'ORG_ROI_RULES_RATE_TYPE'";
+            dvSearchView.Sort = "Name Asc";
+            dtDefaultNew = dvSearchView.ToTable();
+            ddlRateType.FillDataTable(dtDefaultNew, "Value", "Name");
+            dvSearchView.Dispose();
+
+            dvSearchView = new DataView(dtDefault); ;
+            dvSearchView.RowFilter = "[Type] LIKE 'ORG_ROI_RULES_TIME_VALUE'";
+            dvSearchView.Sort = "Name Asc";
+            dtDefaultNew = dvSearchView.ToTable();
+            ddlTime.FillDataTable(dtDefaultNew, "Value", "Name");
+            dvSearchView.Dispose();
+
+            dvSearchView = new DataView(dtDefault); ;
+            dvSearchView.RowFilter = "[Type] LIKE 'ORG_ROI_RULES_REPAYMENT_MODE'";
+            dvSearchView.Sort = "Name Asc";
+            dtDefaultNew = dvSearchView.ToTable();
+            ddlRepaymentMode.FillDataTable(dtDefaultNew, "Value", "Name");
+            dvSearchView.Dispose();
+
+            dvSearchView = new DataView(dtDefault); ;
+            dvSearchView.RowFilter = "[Type] LIKE 'ORG_ROI_RULES_RETURN_PATTERN'";
+            dvSearchView.Sort = "Name Asc";
+            dtDefaultNew = dvSearchView.ToTable();
+            ddlReturnPattern.FillDataTable(dtDefaultNew, "Value", "Name");
+            dvSearchView.Dispose();
+
+            dvSearchView = new DataView(dtDefault); ;
+            dvSearchView.RowFilter = "[Type] LIKE 'ORG_ROI_RULES_FREQUENCY'";
+            dvSearchView.Sort = "Name Asc";
+            dtDefaultNew = dvSearchView.ToTable();
+            ddlTenureType.FillDataTable(dtDefaultNew, "Value", "Name");
+            dvSearchView.Dispose();
+            ddlTenureType.Items.FindByValue("1").Enabled = false;
+        }
+    }
+
+    protected void ddlActivity_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPubLobChange();
+    }
+
+    protected void Repayment_AddRow_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            DtRepayGrid = (DataTable)ViewState["DtRepayGrid"];
+            DateTime dtTodate;
+            ClsRepaymentStructure objRepaymentStructure = new ClsRepaymentStructure();
+            DropDownList ddlRepaymentCashFlow_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("ddlRepaymentCashFlow_RepayTab") as DropDownList;
+            // TextBox txtAmountRepaymentCashFlow_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtAmountRepaymentCashFlow_RepayTab") as TextBox;
+            TextBox txtPerInstallmentAmount_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtPerInstallmentAmount_RepayTab") as TextBox;
+            TextBox txtBreakup_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtBreakup_RepayTab") as TextBox;
+            TextBox txtFromInstallment_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtFromInstallment_RepayTab") as TextBox;
+            TextBox txtToInstallment_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtToInstallment_RepayTab") as TextBox;
+            TextBox txtfromdate_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtfromdate_RepayTab") as TextBox;
+            TextBox txtToDate_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtToDate_RepayTab") as TextBox;
+            string[] strIds = ddlRepaymentCashFlow_RepayTab1.SelectedValue.ToString().Split(',');
+            if (strIds[4] == "23")
+            {
+
+                if (DtRepayGrid.Rows.Count > 0)
+                {
+                    // objRepaymentStructure.FunPubGetNextRepaydate(DtRepayGrid, ddlTenureType.SelectedItem.Value);
+                    FunPriGetNextRepaydate();
+                    if (Utility.StringToDate(txtfromdate_RepayTab1.Text) < dtNextDate)
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('From and To Installment should not be overlapped');", true);
+                        return;
+                    }
+                }
+            }
+
+
+            Dictionary<string, string> objMethodParameters = new Dictionary<string, string>();
+            objMethodParameters.Add("CashFlow", ddlRepaymentCashFlow_RepayTab1.SelectedItem.Text);
+            objMethodParameters.Add("CashFlowId", ddlRepaymentCashFlow_RepayTab1.SelectedValue);
+            objMethodParameters.Add("PerInstall", txtPerInstallmentAmount_RepayTab1.Text);
+            objMethodParameters.Add("Breakup", txtBreakup_RepayTab1.Text);
+            objMethodParameters.Add("FromInstall", txtFromInstallment_RepayTab1.Text);
+            objMethodParameters.Add("ToInstall", txtToInstallment_RepayTab1.Text);
+            objMethodParameters.Add("FromDate", txtfromdate_RepayTab1.Text);
+            objMethodParameters.Add("Frequency", ddlTenureType.SelectedItem.Value);
+            objMethodParameters.Add("TenureType", ViewState["TenureType"].ToString());
+            objMethodParameters.Add("Tenure", ViewState["Tenure"].ToString());
+            objMethodParameters.Add("DocumentDate", DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture).ToString(strDateFormat));
+            string strErrorMessage = "";
+            DateTime dtNextFromdate;
+            objRepaymentStructure.FunPubAddRepayment(out dtNextFromdate, out strErrorMessage, out DtRepayGrid, DtRepayGrid, objMethodParameters);
+            if (strErrorMessage != "")
+            {
+                Utility.FunShowAlertMsg(this, strErrorMessage);
+                return;
+            }
+
+            if (strIds[4] == "23")
+            {
+                decimal decIRRActualAmount = 0;
+                decimal decTotalAmount = 0;
+                string strFinAmount = GetLOBBasedFinAmt();
+                //if (!objRepaymentStructure.FunPubValidateTotalAmount(DtRepayGrid, strFinAmount, txtMarginMoneyPer_Cashflow.Text, ddl_Return_Pattern.SelectedValue, txt_Rate.Text, ViewState["TenureType"].ToString(), ViewState["Tenure"].ToString(), out decIRRActualAmount, out decTotalAmount, "1"))
+                if (!objRepaymentStructure.FunPubValidateTotalAmount(DtRepayGrid, strFinAmount, "0", ddlReturnPattern.SelectedValue, txtFlatRate.Text, ddlTenureType.SelectedValue, txtTenure.Text, out decIRRActualAmount, out decTotalAmount, "1"))
+                {
+                    Utility.FunShowAlertMsg(this, "Total Amount Should be equal to finance amount + interest (" + decTotalAmount + ")");
+                    if (DtRepayGrid.Rows.Count > 0)
+                        DtRepayGrid.Rows.RemoveAt(DtRepayGrid.Rows.Count - 1);
+                    return;
+                }
+                if (((decimal)DtRepayGrid.Compute("Sum(Breakup)", "CashFlow_Flag_ID = 23")) > 100)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Breakup Percentage cannot be greater that 100%');", true);
+                    if (DtRepayGrid.Rows.Count > 0)
+                        DtRepayGrid.Rows.RemoveAt(DtRepayGrid.Rows.Count - 1);
+                    return;
+                }
+            }
+
+            if (DtRepayGrid.Rows.Count > 0)
+            {
+                gvRepaymentDetails.DataSource = DtRepayGrid;
+                gvRepaymentDetails.DataBind();
+            }
+
+            TextBox txtFromInstallment_RepayTab1_upd = gvRepaymentDetails.FooterRow.FindControl("txtFromInstallment_RepayTab") as TextBox;
+            Label lblToInstallment_Upd = (Label)gvRepaymentDetails.Rows[gvRepaymentDetails.Rows.Count - 1].FindControl("lblToInstallment_RepayTab");
+            txtFromInstallment_RepayTab1_upd.Text = Convert.ToString(Convert.ToDecimal(lblToInstallment_Upd.Text.Trim()) + Convert.ToInt32("1"));
+            TextBox txtfromdate_RepayTab1_Upd = gvRepaymentDetails.FooterRow.FindControl("txtfromdate_RepayTab") as TextBox;
+            //txtfromdate_RepayTab1_Upd.Text = DateTime.Parse(dtNextFromdate.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+            ViewState["DtRepayGrid"] = DtRepayGrid;
+            FunPriGenerateNewRepayment();
+            FunPriIRRReset();
+            FunPriCalculateSummary(DtRepayGrid, "CashFlow", "TotalPeriodInstall");
+            ((LinkButton)gvRepaymentDetails.Rows[gvRepaymentDetails.Rows.Count - 1].FindControl("lnRemoveRepayment")).Visible = true;
+
+        }
+        catch (Exception ex)
+        {
+            cvEMICalculator.ErrorMessage = ex.Message;
+            cvEMICalculator.IsValid = false;
+        }
+    }
+
+    private void FunPriIRRReset()
+    {
+        txtAccIRR.Text = txtBusinessIRR.Text =
+        txtCompanyIRR.Text = "";
+    }
+
+    private void FunPriCalculateSummary(DataTable objDataTable, string strGroupByField, string strSumField)
+    {
+        try
+        {
+            DataTable dtSummaryDetails = Utility.FunPriCalculateSumAmount(objDataTable, strGroupByField, strSumField);
+
+
+            DataTable dtSummaryDtls = new DataTable();
+            DataColumn dc1 = new DataColumn("CashFlow_Description");
+            DataColumn dc2 = new DataColumn("Amount");
+            dtSummaryDtls.Columns.Add(dc1);
+            dtSummaryDtls.Columns.Add(dc2);
+            if (dtSummaryDetails.Rows.Count > 0)
+            {
+
+                for (int i = 0; i < dtSummaryDetails.Rows.Count; i++)
+                {
+                    DataRow dr = dtSummaryDtls.NewRow();
+                    dr["CashFlow_Description"] = dtSummaryDetails.Rows[i]["CashFlow"];
+                    dr["Amount"] = dtSummaryDetails.Rows[i]["TotalPeriodInstall"];
+                    dtSummaryDtls.Rows.Add(dr);
+                }
+            }
+            //gvRepaymentSummary.DataSource = dtSummaryDtls;
+            //gvRepaymentSummary.DataBind();
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Error in calculating Summary");
+        }
+
+    }
+
+    protected void gvRepaymentDetails_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            DtRepayGrid = (DataTable)ViewState["DtRepayGrid"];
+            if (DtRepayGrid.Rows.Count > 0)
+            {
+                LessingSummaryAmount(e.RowIndex);
+                DtRepayGrid.Rows.RemoveAt(e.RowIndex);
+
+                if (DtRepayGrid.Rows.Count == 0)
+                {
+                    ViewState["DtRepayGrid"] = DtRepayGrid;
+                    gvRepaymentDetails.Rows[0].Cells.Clear();
+                    gvRepaymentDetails.Rows[0].Visible = false;
+                    TextBox txtFromInstallment_RepayTab1_upd = gvRepaymentDetails.FooterRow.FindControl("txtFromInstallment_RepayTab") as TextBox;
+                    txtFromInstallment_RepayTab1_upd.Text = "1";
+                    //FunPriBindRepaymentDetails("");
+                }
+                else
+                {
+                    intSerialNo = 0;
+                    gvRepaymentDetails.DataSource = DtRepayGrid;
+                    gvRepaymentDetails.DataBind();
+                    FunPriBindRepaymentCashflowDetails();
+
+                    TextBox txtFromInstallment_RepayTab1_upd = gvRepaymentDetails.FooterRow.FindControl("txtFromInstallment_RepayTab") as TextBox;
+                    Label lblToInstallment_Upd = (Label)gvRepaymentDetails.Rows[gvRepaymentDetails.Rows.Count - 1].FindControl("lblToInstallment_RepayTab");
+                    txtFromInstallment_RepayTab1_upd.Text = Convert.ToString(Convert.ToDecimal(lblToInstallment_Upd.Text.Trim()) + Convert.ToInt32("1"));
+                    /*TextBox txtfromdate_RepayTab1_Upd = gvRepaymentDetails.FooterRow.FindControl("txtfromdate_RepayTab") as TextBox;
+                    Label lblTODate_ReapyTab_Upd = (Label)gvRepaymentDetails.Rows[gvRepaymentDetails.Rows.Count - 1].FindControl("lblTODate_ReapyTab");
+                    DateTime dtTodate = Utility.StringToDate(lblTODate_ReapyTab_Upd.Text);
+                    DateTime dtNextFromdate = S3GBusEntity.CommonS3GBusLogic.FunPubGetNextDate(ddl_Frequency.SelectedItem.Text, dtTodate);
+                    txtfromdate_RepayTab1_Upd.Text = DateTime.Parse(dtNextFromdate.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);*/
+                    FunPriCalculateSummary(DtRepayGrid, "CashFlow", "TotalPeriodInstall");
+                    if (ddlRepaymentMode.SelectedValue != "2")
+                    {
+                        Label lblCashFlowId = (Label)gvRepaymentDetails.Rows[gvRepaymentDetails.Rows.Count - 1].FindControl("lblCashFlow_Flag_ID");
+                        if (lblCashFlowId.Text != "23")
+                        {
+                            ((LinkButton)gvRepaymentDetails.Rows[gvRepaymentDetails.Rows.Count - 1].FindControl("lnRemoveRepayment")).Visible = true;
+                        }
+                    }
+                    else
+                    {
+                        ((LinkButton)gvRepaymentDetails.Rows[gvRepaymentDetails.Rows.Count - 1].FindControl("lnRemoveRepayment")).Visible = true;
+                    }
+
+                }
+                FunPriIRRReset();
+                //grvRepayStructure.DataSource = null;
+                //grvRepayStructure.DataBind();
+                ViewState["RepayStructure"] = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvEMICalculator.ErrorMessage = ex.Message;
+            cvEMICalculator.IsValid = false;
+        }
+    }
+
+    private void SetWhiteSpaceDLL(DropDownList ObjDLL)
+    {
+        try
+        {
+            if (ObjDLL.Items.Count == 0)
+            {
+                ListItem liSelect = new ListItem("", "-1");
+                ObjDLL.Items.Insert(0, liSelect);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriBindRepaymentCashflowDetails()
+    {
+        try
+        {
+            AjaxControlToolkit.CalendarExtender CalendarExtenderSD_fromdate_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("CalendarExtenderSD_fromdate_RepayTab") as AjaxControlToolkit.CalendarExtender;
+            AjaxControlToolkit.CalendarExtender CalendarExtenderSD_ToDate_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("CalendarExtenderSD_ToDate_RepayTab") as AjaxControlToolkit.CalendarExtender;
+
+            CalendarExtenderSD_fromdate_RepayTab1.Format = strDateFormat;
+            CalendarExtenderSD_ToDate_RepayTab1.Format = strDateFormat;
+
+            DropDownList ddlRepaymentCashFlow_RepayTab = gvRepaymentDetails.FooterRow.FindControl("ddlRepaymentCashFlow_RepayTab") as DropDownList;
+            Utility.FillDLL(ddlRepaymentCashFlow_RepayTab, ((DataTable)ViewState["RepayCashInflowList"]), true);
+            SetWhiteSpaceDLL(ddlRepaymentCashFlow_RepayTab);
+
+            int count = 0;
+
+            DtRepayGrid = (DataTable)ViewState["DtRepayGrid"];
+
+            foreach (GridViewRow gvr in gvRepaymentDetails.Rows)
+            {
+                DropDownList ddlRepaymentCashFlow_RepayTab1 = gvr.FindControl("ddlRepaymentCashFlow_RepayTab") as DropDownList;
+                TextBox txtfromdate_RepayTab1 = gvr.FindControl("txtfromdate_RepayTab") as TextBox;
+                TextBox txtToDate_RepayTab1 = gvr.FindControl("txtToDate_RepayTab") as TextBox;
+
+                if (ddlRepaymentCashFlow_RepayTab1 != null)
+                {
+                    txtfromdate_RepayTab1.Text = DateTime.Parse(DtRepayGrid.Rows[count]["FromDate"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                    txtToDate_RepayTab1.Text = DateTime.Parse(DtRepayGrid.Rows[count]["ToDate"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+
+                    Utility.FillDLL(ddlRepaymentCashFlow_RepayTab1, ((DataTable)ViewState["RepayCashInflowList"]), false);
+                    SetSelectItem_DLL(ddlRepaymentCashFlow_RepayTab1, DtRepayGrid.Rows[count]["CashFlow"].ToString());
+                    ddlRepaymentCashFlow_RepayTab1.Enabled = false;
+                }
+                count = count + 1;
+            }
+
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void SetSelectItem_DLL(DropDownList ObjDrop, string str)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(str))
+            {
+                ObjDrop.SelectedValue = str;
+                ObjDrop.Enabled = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriGenerateNewRepayment()
+    {
+        try
+        {
+            DropDownList ddlRepaymentCashFlow_RepayTab = gvRepaymentDetails.FooterRow.FindControl("ddlRepaymentCashFlow_RepayTab") as DropDownList;
+            Utility.FillDLL(ddlRepaymentCashFlow_RepayTab, ((DataTable)ViewState["RepayCashInflowList"]), true);
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load Cashflow Description in Repayment");
+        }
+    }
+
+    private string GetLOBBasedFinAmt()
+    {
+        string strFinAmount = "";
+        strFinAmount = txtAmount.Text;
+        return strFinAmount;
+    }
+
+    private void FunPriGetNextRepaydate()
+    {
+
+        DtRepayGrid = (DataTable)ViewState["DtRepayGrid"];
+        int intToInstall = 0;
+        DateTime dtNextFromdate = DateTime.Now;
+        DataRow[] drRow = DtRepayGrid.Select("CashFlow_Flag_ID = 23", "ToInstall desc");
+        if (drRow.Length > 0)
+        {
+            dtNextDate = S3GBusEntity.CommonS3GBusLogic.FunPubGetNextDate(ddlTenureType.SelectedValue, Convert.ToDateTime(drRow[0].ItemArray[8].ToString()));
+            intNextInstall = Convert.ToInt32(drRow[0].ItemArray[6].ToString());
+        }
+        else
+        {
+            dtNextDate = dtNextFromdate;
+            intNextInstall = 0;
+        }
+    }
+
+    protected void txRepaymentFromDate_TextChanged(object sender, EventArgs e)
+    {
+        TextBox txtBoxFromdate = (TextBox)sender;
+        //FunPriGenerateRepayment(Utility.StringToDate(txtBoxFromdate.Text));
+    }
+
+    protected void gvRepaymentDetails_RowCreated(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.Footer)
+            {
+                TextBox txtfromdate_RepayTab = e.Row.FindControl("txtfromdate_RepayTab") as TextBox;
+                txtfromdate_RepayTab.Attributes.Add("readonly", "readonly");
+                AjaxControlToolkit.CalendarExtender CalendarExtenderSD_fromdate_RepayTab = e.Row.FindControl("CalendarExtenderSD_fromdate_RepayTab") as AjaxControlToolkit.CalendarExtender;
+                CalendarExtenderSD_fromdate_RepayTab.Format = DateFormate; //ObjS3GSession.ProDateFormatRW;
+            }
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                AjaxControlToolkit.CalendarExtender calext_FromDate = e.Row.FindControl("calext_FromDate") as AjaxControlToolkit.CalendarExtender;
+                calext_FromDate.Format = DateFormate;// ObjS3GSession.ProDateFormatRW;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvEMICalculator.ErrorMessage = ex.Message;
+            cvEMICalculator.IsValid = false;
+        }
+    }
+
+    protected void gvRepaymentDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                intSerialNo += 1;
+                e.Row.Cells[0].Text = intSerialNo.ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+            cvEMICalculator.ErrorMessage = ex.Message;
+            cvEMICalculator.IsValid = false;
+        }
+    }
+
+    protected void ddlRepaymentMode_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriRecoveryPatternMandotary(false);
+            txtRecoveryPatternYear1.Text =
+            txtRecoveryPatternYear2.Text =
+            txtRecoveryPatternYear3.Text =
+            txtRecoveryPatternYearRest.Text = "";//cannot be 0
+            txtRecoveryPatternYear1.Enabled = false;
+            if (Convert.ToInt32(ddlRepaymentMode.SelectedValue) == 3)
+            {
+                if (ddlReturnPattern.SelectedValue != "1" && ddlReturnPattern.SelectedValue != "2")
+                    FunprisetMandatoryRate(false);
+                else
+                    FunprisetMandatoryRate(true);
+
+                FunPriRecoveryPatternMandotary(true);
+                txtRecoveryPatternYear1.Enabled =
+                txtRecoveryPatternYear2.Enabled =
+                txtRecoveryPatternYear3.Enabled =
+                txtRecoveryPatternYearRest.Enabled = true;
+            }
+            ddlRepaymentMode.Focus();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    private void FunprisetMandatoryRate(bool Blnflag)
+    {
+        try
+        {
+            /*rfvRate.Enabled = Blnflag;
+            if (Blnflag)
+                lblRate.Attributes.Add("class", "styleReqFieldLabel");
+            else
+                lblRate.Attributes.Add("class", "");*/
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void Funrepaymode(bool blnEI, bool blnSAP, bool blnSF, bool blnProduct, bool blnTL)
+    {
+        try
+        {
+            ddlRepaymentMode.Items.FindByValue("1").Enabled = blnEI;
+            ddlRepaymentMode.Items.FindByValue("2").Enabled = blnSAP;
+            ddlRepaymentMode.Items.FindByValue("3").Enabled = blnSF;
+            ddlRepaymentMode.Items.FindByValue("4").Enabled = blnProduct;
+            ddlRepaymentMode.Items.FindByValue("5").Enabled = blnTL;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void ddlReturnPattern_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //txtRate.Text = "";
+            string strType = ddlActivity.SelectedItem.Text.Split('-')[0].Trim();
+            if ((ddlReturnPattern.SelectedValue != "1" && ddlReturnPattern.SelectedValue != "2") && ddlRepaymentMode.SelectedValue == "3")
+                FunprisetMandatoryRate(false);
+            else
+                FunprisetMandatoryRate(true);
+
+            switch (strType.ToLower())
+            {
+                case "hp"://Hire Purchase
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(true, true, true, false, false);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(true, false, false, false, false);
+                    break;
+                case "ln"://Loan
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(true, true, true, false, false);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(true, false, false, false, false);
+                    break;
+                case "fl"://Financial Lease
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(true, true, true, false, false);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(true, false, false, false, false);
+                    break;
+                case "ol"://Operating Lease
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(true, true, true, false, false);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(true, false, false, false, false);
+                    break;
+                case "ft"://Factoring
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(false, false, false, true, false);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(false, false, false, false, false);
+                    break;
+                case "tl"://Term Loan                     
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(true, true, true, false, true);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(true, false, false, false, false);
+                    break;
+
+                case "te"://Term Loan Extendable
+
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(true, true, true, false, true);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(true, false, false, false, false);
+                    break;
+
+                case "wc"://Working Capital
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(false, false, false, true, false);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(false, false, false, false, false);
+                    break;
+                case "vf"://Vendor Finance
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(false, false, false, false, true);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(false, false, false, false, false);
+                    break;
+                case "cf"://Channel Finance
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(false, false, false, false, true);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(false, false, false, false, false);
+                    break;
+                case "sf"://Security Finance
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(false, false, false, false, true);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(false, false, false, false, false);
+                    break;
+                case "of"://Commodity Finance
+                    if (Convert.ToInt32(ddlReturnPattern.SelectedValue) == 1)
+                        Funrepaymode(false, false, false, false, true);
+                    else if (Convert.ToInt32(ddlReturnPattern.SelectedValue) > 2)
+                        Funrepaymode(true, false, true, false, false);
+                    else
+                        Funrepaymode(false, false, false, false, false);
+                    break;
+                default:
+
+                    break;
+
+            }
+
+            ddlReturnPattern.Focus();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+
+        }
+    }
+
+    protected void ddlRepaymentCashFlow_RepayTab_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            DropDownList ddlCashFlowDesc = sender as DropDownList;
+            FunPriDoCashflowBasedValidation(ddlCashFlowDesc);
+        }
+        catch (Exception ex)
+        {
+            cvEMICalculator.ErrorMessage = "Error in fetching values based on cash flow details";
+            cvEMICalculator.IsValid = false;
+        }
+
+    }
+
+    private void FunPriDoCashflowBasedValidation(DropDownList ddlCashFlowDesc)
+    {
+        try
+        {
+            string[] strvalues = ddlCashFlowDesc.SelectedValue.Split(',');
+            TextBox txtFromInstallment_RepayTab1_upd = gvRepaymentDetails.FooterRow.FindControl("txtFromInstallment_RepayTab") as TextBox;
+            TextBox txtfromdate_RepayTab1_Upd = gvRepaymentDetails.FooterRow.FindControl("txtfromdate_RepayTab") as TextBox;
+            TextBox txtPerInstallmentAmount_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtPerInstallmentAmount_RepayTab") as TextBox;
+            TextBox txtBreakup_RepayTab1 = gvRepaymentDetails.FooterRow.FindControl("txtBreakup_RepayTab") as TextBox;
+
+            AjaxControlToolkit.CalendarExtender CalendarExtenderSD_ToDate_RepayTab = gvRepaymentDetails.FooterRow.FindControl("CalendarExtenderSD_ToDate_RepayTab") as AjaxControlToolkit.CalendarExtender;
+            AjaxControlToolkit.CalendarExtender CalendarExtenderSD_fromdate_RepayTab = gvRepaymentDetails.FooterRow.FindControl("CalendarExtenderSD_fromdate_RepayTab") as AjaxControlToolkit.CalendarExtender;
+            if (strvalues[4].ToString() != "23")
+            {
+                txtFromInstallment_RepayTab1_upd.Attributes.Remove("readonly");
+                txtFromInstallment_RepayTab1_upd.ReadOnly = false;
+                CalendarExtenderSD_ToDate_RepayTab.Enabled = false;
+                CalendarExtenderSD_fromdate_RepayTab.Enabled = false;
+                txtfromdate_RepayTab1_Upd.Text = "";
+                txtBreakup_RepayTab1.Attributes.Add("readonly", "readonly");
+            }
+            else
+            {
+                if (ddlTime.SelectedValue == "2" || ddlTime.SelectedValue == "4")
+                {
+                    ClsRepaymentStructure objRepaymentStructure = new ClsRepaymentStructure();
+                    objRepaymentStructure.dtNextDate = S3GBusEntity.CommonS3GBusLogic.FunPubGetNextDate(ddlTenureType.SelectedValue, Utility.StringToDate(DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat)));
+                    txtfromdate_RepayTab1_Upd.Text = DateTime.Parse(objRepaymentStructure.dtNextDate.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                }
+                else
+                {
+                    ClsRepaymentStructure objRepaymentStructure = new ClsRepaymentStructure();
+                    objRepaymentStructure.FunPubGetNextRepaydate((DataTable)ViewState["DtRepayGrid"], ddlTenureType.SelectedItem.Value);
+                    txtFromInstallment_RepayTab1_upd.Text = Convert.ToString(objRepaymentStructure.intNextInstall + 1);
+                    txtfromdate_RepayTab1_Upd.Text = DateTime.Parse(objRepaymentStructure.dtNextDate.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                }
+                txtFromInstallment_RepayTab1_upd.Attributes.Add("readonly", "readonly");
+                txtBreakup_RepayTab1.Attributes.Remove("readonly");
+                txtFromInstallment_RepayTab1_upd.ReadOnly = true;
+
+                CalendarExtenderSD_ToDate_RepayTab.Enabled = CalendarExtenderSD_fromdate_RepayTab.Enabled = true;
+                CalendarExtenderSD_ToDate_RepayTab.Format = CalendarExtenderSD_fromdate_RepayTab.Format = strDateFormat;
+
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex);
+            throw new ApplicationException(ex.Message);
+        }
+    }
+
+    private void LessingSummaryAmount(int RowIdx)
+    {
+        try
+        {
+            string FlowDesc = string.Empty;
+            DataTable DtRepaydetails = new DataTable();
+            DtRepaydetails = (DataTable)ViewState["DtRepayGrid"];
+            DtRepaySummary = (DataTable)ViewState["RepaymentSummary"];
+            FlowDesc = Convert.ToString(DtRepaydetails.Rows[RowIdx]["CashFlow"]);
+
+            for (int Idx = 0; Idx <= DtRepaySummary.Rows.Count - 1; Idx++)
+            {
+                if (FlowDesc == Convert.ToString(DtRepaySummary.Rows[Idx]["CashFlow_Description"]))
+                {
+                    if (Convert.ToInt64(DtRepaySummary.Rows[Idx]["Amount"]) == Convert.ToInt64(DtRepaydetails.Rows[RowIdx]["Amount"]))
+                    {
+                        DtRepaySummary.Rows.RemoveAt(Idx);
+                        //gvRepaymentSummary.DataSource = DtRepaySummary;
+                        //gvRepaymentSummary.DataBind();
+                        ViewState["RepaymentSummary"] = DtRepaySummary;
+                    }
+                    else
+                    {
+                        DtRepaySummary.Rows[Idx]["Amount"] = Convert.ToInt64(DtRepaySummary.Rows[Idx]["Amount"]) - Convert.ToInt64(DtRepaydetails.Rows[RowIdx]["Amount"]);
+                        DtRepaySummary.AcceptChanges();
+                        //gvRepaymentSummary.DataSource = DtRepaySummary;
+                        //gvRepaymentSummary.DataBind();
+                        ViewState["RepaymentSummary"] = DtRepaySummary;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+
+ 
+    private void FunPriAssignRate(string strLobId)
+    {
+        try
+        {
+            DataTable dtPLR = (DataTable)ViewState["IRRDetails"];
+            dtPLR.DefaultView.RowFilter = "LOB_ID = " + strLobId;
+            dtPLR = dtPLR.DefaultView.ToTable();
+            if (dtPLR.Rows.Count > 0)
+            {
+                hdnCTR.Value = dtPLR.Rows[0]["Corporate_Tax_Rate"].ToString();
+                hdnPLR.Value = dtPLR.Rows[0]["Prime_Lending_Rate"].ToString();
+                ViewState["hdnRoundOff"] = dtPLR.Rows[0]["Roundoff"].ToString();
+                hdnRoundOff.Value = dtPLR.Rows[0]["Roundoff"].ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    protected void FunProGetIRRDetails()
+    {
+        try
+        {
+            DataTable dtIRRDetails = Utility.FunPubGetGlobalIRRDetails(intCompanyID, null);
+            ViewState["IRRDetails"] = dtIRRDetails;
+
+          
+           
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Error in fetching Global IRR Details");
+        }
+    }
+
+
+}

@@ -1,0 +1,161 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeFile="S3G_GPH_ProtfolioPerformance.aspx.cs" MasterPageFile="~/Common/S3GMasterPageCollapse.master" Inherits="Graphs_S3G_GPH_ProtfolioPerformance" %>
+<%@ Register Src="~/UserControls/S3GChartControl.ascx" TagName="S3GChart" TagPrefix="S3G" %>
+
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <script type="text/javascript">
+        var sClickValue = 1;
+        function LeftImage(Itype) {
+            if (Itype == "D") {
+                document.getElementById("<%=imgleft.ClientID %>").src = "../Images/slider_left_arrow.png";
+             }
+             else {
+                 //  document.getElementById("<%=imgleft.ClientID %>").src = "../Images/slider_left_arrow_Light.png";
+                 document.getElementById("<%=imgleft.ClientID %>").src = "../Images/slider_left_arrow_Light_End.png";
+             }
+         }
+         function RightImage(Itype) {
+             if (Itype == "D") {
+                 document.getElementById("<%=imgRight.ClientID %>").src = "../Images/slider_Right_arrow.png";
+            }
+            else {
+                // document.getElementById("<%=imgRight.ClientID %>").src = "../Images/slider_Right_arrow_Light.png";
+                document.getElementById("<%=imgRight.ClientID %>").src = "../Images/slider_Right_arrow_Light_End.png";
+            }
+        }
+        function ChangeChart(sType) {
+          
+            if (sType == "L") {
+                if (sClickValue == 1) {
+                    //  document.getElementById("<%=imgleft.ClientID %>").style.backgroundColor = "#e5e2eb";
+                    //  document.getElementById("<%=imgleft.ClientID %>").src = "../Images/slider_left_arrow_Light_End.png";
+                    document.getElementById("<%=imgleft.ClientID %>").src = "../Images/slider_left_arrow_Light.png";
+                }
+                else {
+                    sClickValue -= 1;
+                    document.getElementById("<%=hdnClick.ClientID %>").value = sClickValue;
+                    document.getElementById("<%=btnClick.ClientID %>").click();
+                }
+            }
+            else {
+                sClickValue += 1;
+                if (sClickValue == 2) {
+                    document.getElementById("<%=hdnClick.ClientID %>").value = sClickValue;
+                    document.getElementById("<%=btnClick.ClientID %>").click();
+                }
+                else {
+                    sClickValue -= 1;
+                    //  document.getElementById("<%=imgRight.ClientID %>").style.backgroundColor = "#e5e2eb";
+                    // document.getElementById("<%=imgRight.ClientID %>").src = "../Images/slider_Right_arrow_Light_End.png";
+                    document.getElementById("<%=imgRight.ClientID %>").src = "../Images/slider_Right_arrow_Light.png";
+                }
+            }
+        }
+
+        function GetSelectedvalue(svalue) {
+            var DataL = document.getElementById("<%=dlList.ClientID%>").childNodes[0];
+            var tb = DataL.getElementsByTagName("input");
+            var sp = DataL.getElementsByTagName("span");
+            //for (var intI = 0; intI < DataL.options.count - 1; intI++) {
+            //    if (DataL.options[intI].value == 'some value') {
+            //        DataL.options[intI].selected = true;
+            //    }}
+            for (var i = 0; i < tb.length; i++) {
+                if (svalue.innerText == sp[i].innerText) {
+                    try {
+                        document.getElementById("<%=hdnClick.ClientID %>").value = tb[i].value;
+                        sClickValue = parseInt(tb[i].value);
+                        document.getElementById("<%=btnClick.ClientID %>").click();
+                    }
+                    catch (e) {
+                    }
+                }
+
+            }
+        }
+
+
+    </script>
+
+    <style type="text/css">
+        .DatalistItem
+        {
+            cursor: pointer;
+        }
+    </style>
+    <asp:UpdatePanel ID="Upl" runat="server">
+        <ContentTemplate>
+            <table style="width: 100%;">
+                <tr>
+                    <td class="stylePageHeading">
+                        <asp:Label ID="lblHeader" runat="server" Text="Active Pipeline - Portfolio" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center">
+                        <table>
+                            <tr>
+                                <td></td>
+                                <td style="padding: 0px;" valign="bottom" align="center">
+                                    <asp:DataList ID="dlList" Width="90%" SelectedIndex="0" Autopostback="true" RepeatDirection="Horizontal" ShowHeader="false" runat="server" RepeatColumns="4">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblHierarchy" onclick="GetSelectedvalue(this)" Font-Bold="true" Width="100%" Text='<%# Eval("Heading") %>' runat="server"></asp:Label>
+                                            <asp:HiddenField ID="hdnHierarchycode" Value='<%# Eval("Heading_ID") %>' runat="server" />
+                                        </ItemTemplate>
+                                        <ItemStyle Font-Bold="true"  HorizontalAlign="Center" CssClass="DatalistItem" />
+                                        <SelectedItemStyle BackColor="#8C71AE" ForeColor="White" Font-Bold="true" />
+                                    </asp:DataList>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td valign="middle">
+                                    <img src="../Images/slider_left_arrow_Light_End.png" onclick="ChangeChart('L');" runat="server" id="imgleft" onmouseout="LeftImage('O');" onmouseover="LeftImage('D');" style="cursor: pointer;" />
+                                    <%--<img src="../Images/Left_Arrow.png" onclick="ChangeChart1('L');" runat="server" id="imgleft1" onmouseout="LeftImage1('O');" onmouseover="LeftImage1('D');" style="cursor: pointer; display: none;" />--%>
+                                </td>
+                                <td>
+                                    <S3G:S3GChart ID="S3GDrillChart" runat="server" />
+                                </td>
+                                <td valign="middle">
+                                    <img src="../Images/slider_Right_arrow_Light_End.png" onclick="ChangeChart('R');" runat="server" id="imgRight" onmouseout="RightImage('O');" onmouseover="RightImage('D');" style="cursor: pointer;" />
+                                    <%--   <img src="../Images/Right_Arrow.png" onclick="ChangeChart1('R');" runat="server" id="imgRight1" onmouseout="RightImage1('O');" onmouseover="RightImage1('D');" style="cursor: pointer; display: none;" />--%>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:GridView ID="gvDetails" runat="server" GridLines="None" Width="100%">
+                        </asp:GridView>
+                        <asp:Button ID="btnClick" Style="display: none;" runat="server" Text="Click" OnClick="btnClick_Click" />
+                        <asp:HiddenField ID="hdnClick" runat="server" Value="1" />
+                     <%--   <asp:HiddenField ID="hdnHTypeCode" runat="server" />--%>
+
+                    </td>
+                </tr>
+             <%--   <tr>
+                      <td>
+                                    <S3G:S3GChart ID="S3GChart1" runat="server" />
+                                </td>
+                </tr>
+                <tr>
+                    <td>
+                          <asp:GridView ID="GridView1" runat="server" GridLines="None" Width="100%">
+                        </asp:GridView>
+                    </td>
+                </tr>--%>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+    <%--<asp:UpdateProgress ID="Upprog" DisplayAfter="1" AssociatedUpdatePanelID="Upl"
+        runat="server">
+        <ProgressTemplate>
+
+            <div style="position: absolute; top: 50%; left: 50%; margin-top: -30px; margin-left: -30px; z-index: 100001; vertical-align: middle; text-align: left">
+                <%--<img src="../images/processing_new.gif" style="position:absolute; vertical-align:middle; padding-top:5px" />
+                <img src="../images/loading.gif" style="position: absolute; vertical-align: middle; padding-top: 8px; padding-left: 10px;" />
+
+            </div>
+        </ProgressTemplate>
+    </asp:UpdateProgress>--%>
+</asp:Content>

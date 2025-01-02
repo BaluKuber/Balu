@@ -1,0 +1,1403 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : ECS Process
+/// Created By                : VijayaKumar
+/// Created Date              : 12-Oct-2010
+
+/// Last Updated By           : Chandra Sekhar BS
+/// Update Date               : 18-Sep-2013
+/// Reason                    : SQL Performance
+
+/// <Program Summary>
+
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+#endregion
+
+public partial class Collection_S3GClnEcsProcess : ApplyThemeForProject
+{
+
+    #region Common Variable declaration
+    public static Collection_S3GClnEcsProcess obj_Page;
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> Procparam = null;
+    string strEcsNo = string.Empty;
+    int intErrCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string _DateFormat = "dd/MM/yyyy";
+    string strDateFormat = string.Empty;
+    StringBuilder strEcsBuilder = new StringBuilder();
+    StringBuilder strbuXML = new StringBuilder();
+    int intFBDate = 0;
+    string strErrorMessagePrefix = @"Correct the following validation(s): </br></br>   ";
+    static string strSuffix = string.Empty;
+    public string strProgram_ID = "111";
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objEcs_Client;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSDataTable objS3G_CLN_EcsDataTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSRow objS3G_CLN_EcsDataRow = null;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3gCLNTransLander.aspx?Code=CEM";
+
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnEcsProcess.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3gCLNTransLander.aspx?Code=CEM';";
+    static string strPageName = "ECS Process";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+
+    PagingValues ObjPaging = new PagingValues();
+    public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    public int ProPageNumRW
+    {
+        get;
+        set;
+    }
+
+    public int ProPageSizeRW
+    {
+        get;
+        set;
+    }
+
+    protected void AssignValue(int intPageNum, int intPageSize)
+    {
+        ProPageNumRW = intPageNum;
+        ProPageSizeRW = intPageSize;
+        FunPriGetLinesECSProcess();
+    }
+    //Code end
+    #endregion
+
+    #region [Event's]
+
+    #region [Page Event]
+
+    #region Page Load Event
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        try
+        {
+            FunPriPageLoad();
+            txtECSDate.Attributes.Add("Readonly", "true");
+            ddlLOB.Focus();
+            strSuffix = Utility.SetSuffix();
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = " Unable to Load the ECS Process";
+            cvECSProcess.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #endregion [Page Event]
+
+    #region [Button Event's]
+
+    #region "ECS Process"
+
+    protected void btnReceiptGen_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriReceiptGenECSProcess(e);
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = ex.Message;
+            cvECSProcess.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region  "Method ECS Listing"
+
+    protected void btnGetLines_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriGetLinesECSProcess();
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = " Unable to Get list the ECS Process";
+            cvECSProcess.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Method Delete Ecs
+
+    protected void btnDeleteECS_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriDeleteECSProcess();
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = " Unable to Delete the ECS Process";
+            cvECSProcess.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region  Cancel Methods
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+
+    #endregion
+
+    #region "Clear button Events"
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearECSProcess();
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = " Unable to Clear the ECS Process";
+            cvECSProcess.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #endregion [Button Event's]
+
+    #region [Grid Event's]
+
+    #region "Grid row Create Event"
+
+    protected void grvEcsProcess_RowCreated(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            FunPriSetGridColumnvisible(e);
+
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = " Unable to read the row.";
+            cvECSProcess.IsValid = false;
+        }
+    }
+
+
+    protected void grvEcsProcess_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            CheckBox chkGenStatus = (CheckBox)e.Row.FindControl("chkGenStatus");
+            CheckBox chkDelete = (CheckBox)e.Row.FindControl("chkDelete");
+            e.Row.Cells[5].Text = Convert.ToDecimal(e.Row.Cells[5].Text).ToString(strSuffix);
+            Label lblEcsStatus = (Label)e.Row.FindControl("lblEcsStatus");
+
+            if (chkGenStatus.Checked == true)
+                chkDelete.Enabled = false;
+            else
+                chkDelete.Enabled = true;
+
+            if (chkDelete.Checked == true)
+                chkGenStatus.Enabled = false;
+            else
+                chkGenStatus.Enabled = true;
+
+            //if (strMode == "Q")               //Commented and Modified on 05MAY2014
+            if (strMode == "Q" || strMode == "M")
+            {
+                if (lblEcsStatus.Text.Trim().ToUpper() == "TRUE")
+                    chkGenStatus.Checked = true;
+                else
+                    chkDelete.Checked = true;
+            }
+        }
+    }
+
+    #endregion
+
+    #endregion [Grid Event's]
+
+    #region [Check box Event's]
+
+    #region "Select All Methods"
+
+    protected void chkHrdGenStatus_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriSelectAll(sender);
+
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = " Unable to select the records";
+            cvECSProcess.IsValid = false;
+        }
+    }
+    protected void chkHrdDelete_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriDeleteAll(sender);
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = " Unable to select the records";
+            cvECSProcess.IsValid = false;
+        }
+    }
+
+
+    protected void chkGenStatus_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            CheckBox chk = (CheckBox)sender;
+            GridViewRow row = (GridViewRow)chk.Parent.Parent;
+            CheckBox chkHrdGenStatus = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdGenStatus");
+            CheckBox chkHrdDelete = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdDelete");
+            CheckBox chkGenStatus1 = (CheckBox)row.FindControl("chkGenStatus");
+            CheckBox chkDelete1 = (CheckBox)row.FindControl("chkDelete");
+
+            if (chkGenStatus1.Checked == true)
+            {
+                chkDelete1.Enabled = chkHrdGenStatus.Checked = chkHrdDelete.Checked = false;
+                chkHrdDelete.Enabled = true;
+            }
+            else
+            {
+                chkHrdGenStatus.Checked = chkHrdDelete.Checked = false;
+                chkDelete1.Enabled = chkHrdDelete.Enabled = true;
+            }
+            if (chkDelete1.Checked == true)
+            {
+                chkGenStatus1.Enabled = chkHrdGenStatus.Checked = chkHrdDelete.Checked = false;
+                chkHrdGenStatus.Enabled = true;
+            }
+            else
+            {
+                chkHrdGenStatus.Checked = chkHrdDelete.Checked = false;
+                chkGenStatus1.Enabled = chkHrdGenStatus.Enabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = "Unable to select the recod.";
+            cvECSProcess.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region GridRow Check box Change Events
+
+    protected void chkDelete_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            chkGenStatus_CheckedChanged(sender, e);
+            FunPriGetDeleteList(sender);
+        }
+        catch (Exception ex)
+        {
+            cvECSProcess.ErrorMessage = " Unable to read the grid list";
+            cvECSProcess.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #endregion [Check box Event's]
+
+    #endregion [Event's]
+
+    #region [Function's]
+
+    private void FunPriPageLoad()
+    {
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            _DateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strEcsNo = fromTicket.Name;
+            }
+
+            ProPageNumRW = 1;
+            TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+            if (txtPageSize.Text != "")
+                ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+            else
+                ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+            PageAssignValue obj = new PageAssignValue(this.AssignValue);
+            ucCustomPaging.callback = obj;
+            ucCustomPaging.ProPageNumRW = ProPageNumRW;
+            ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+            intFBDate = Convert.ToInt32(ConfigurationSettings.AppSettings["FBDate"].ToString());
+            if (!IsPostBack)
+            {
+                if (Request.QueryString["qsMode"] != null)
+                    strMode = Request.QueryString["qsMode"].ToString();
+
+                CalendarExtender2.Format = strDateFormat;
+                txtECSDate.Text = DateTime.Now.ToString(strDateFormat);
+                if (strMode != "Q") {
+                    PopulateLOBList();
+                    PopulateFixedBillingDate();
+                }
+                
+
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (strMode == "Q")
+                {
+                    FunECSProcessForModification_QueryMode(strEcsNo);
+                    //trStatus.Visible = false;
+                    FunPriDisableControls(-1);
+                }
+                else if (strMode == "M")
+                {
+                    FunECSProcessForModification(strEcsNo);
+                    //trStatus.Visible = false;
+                    FunPriDisableControls(1);
+                    btnReceiptGen.Visible = false;
+                    btnCancellation.Visible = true;
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ObjS3GSession = null;
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+    private void FunPriPageLoad_OLD()
+    {
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            _DateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strEcsNo = fromTicket.Name;
+            }
+
+            ProPageNumRW = 1;
+            TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+            if (txtPageSize.Text != "")
+                ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+            else
+                ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+            PageAssignValue obj = new PageAssignValue(this.AssignValue);
+            ucCustomPaging.callback = obj;
+            ucCustomPaging.ProPageNumRW = ProPageNumRW;
+            ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+            intFBDate = Convert.ToInt32(ConfigurationSettings.AppSettings["FBDate"].ToString());
+            if (!IsPostBack)
+            {
+                if (Request.QueryString["qsMode"] != null)
+                    strMode = Request.QueryString["qsMode"].ToString();
+
+                CalendarExtender2.Format = strDateFormat;
+                txtECSDate.Text = DateTime.Now.ToString(strDateFormat);
+                PopulateLOBList();
+                if (strMode == "Q")
+                {
+                    PopulateBranchList();
+                }
+                PopulateFixedBillingDate();
+
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (strMode == "Q")
+                {
+                    FunECSProcessForModification(strEcsNo);
+                    //trStatus.Visible = false;
+                    FunPriDisableControls(-1);
+                }
+                else if (strMode == "M")
+                {
+                    FunECSProcessForModification(strEcsNo);
+                    //trStatus.Visible = false;
+                    FunPriDisableControls(1);
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ObjS3GSession = null;
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+
+    private void FunPriReceiptGenECSProcess(EventArgs e)
+    {
+        string strECSNumber = "";
+        string[] strEcsday = txtECSDate.Text.Trim().Split('-');
+        DateTime FBDate = Utility.StringToDate(txtECSDate.Text.Trim()).AddDays(intFBDate);
+
+
+        /*
+                Commented By Senthil on 31/dec/2011.
+       
+        
+ 
+         if (FBDate.Day != Convert.ToInt32(ddlFixedBillDate.SelectedValue))  
+          {
+              cvECSProcess.ErrorMessage = strErrorMessagePrefix + " ECS should be processed " + intFBDate.ToString() + " days before Fixed Billing Date";
+              cvECSProcess.IsValid = false;
+              return;
+          }
+         
+       
+         */
+
+
+        /*string strFBDate = Convert.ToDateTime(DateTime.Now.Month + "-" + ddlFixedBillDate.SelectedValue + "-" + DateTime.Now.Year).ToString(strDateFormat);
+        if (strEcsNo == "")
+        {
+            if (Utility.IsDateTime(Utility.StringToDate(strFBDate).ToString()) == false)
+            {
+                cvECSProcess.ErrorMessage = strErrorMessagePrefix + "Fixed Billing Date is not valid";
+                cvECSProcess.IsValid = false;
+                return;
+            }
+            int intDtCom = Utility.CompareDates(txtECSDate.Text.Trim(), Utility.StringToDate(strFBDate).ToString(strDateFormat));
+            if (intDtCom == -1)
+            {
+                cvECSProcess.ErrorMessage = strErrorMessagePrefix + " ECS document date should be " + intFBDate.ToString() + " days less than Fixed Billing Date";
+                cvECSProcess.IsValid = false;
+                return;
+            }
+            if (intDtCom == 0)
+            {
+                cvECSProcess.ErrorMessage = strErrorMessagePrefix + " ECS document date cannot be Fixed Billing Date";
+                cvECSProcess.IsValid = false;
+                return;
+            }
+            if (intFBDate != 0)
+            {
+                DateTime dtFB = Utility.StringToDate(strFBDate).AddDays(Convert.ToDouble("-" + intFBDate));                
+                intDtCom = Utility.CompareDates(txtECSDate.Text.Trim(), dtFB.ToString(strDateFormat));
+                if (intDtCom == 1)
+                {
+                    cvECSProcess.ErrorMessage = strErrorMessagePrefix + " ECS should be processed " + intFBDate.ToString() + " days before Fixed Billing Date";
+                    cvECSProcess.IsValid = false;
+                    return;
+                }
+            }
+        }*/
+
+
+        if (grvEcsProcess.Rows.Count == 0)
+        {
+            cvECSProcess.ErrorMessage = strErrorMessagePrefix + " Records does not exists for the selected combination";
+            cvECSProcess.IsValid = false;
+            return;
+        }
+        else
+        {
+            int i = 0;
+            foreach (GridViewRow grvRow in grvEcsProcess.Rows)
+            {
+                CheckBox chkGen = (CheckBox)grvRow.FindControl("chkGenStatus");
+                CheckBox chkDelete = (CheckBox)grvRow.FindControl("chkDelete");
+
+                if (chkGen.Checked || chkDelete.Checked)
+                {
+                    i++;
+                    break;
+                }
+            }
+            if (i == 0 && strEcsNo == "")
+            {
+                cvECSProcess.ErrorMessage = strErrorMessagePrefix + " Check any one of the Generation Status";
+                cvECSProcess.IsValid = false;
+                return;
+            }
+        }
+        if (Page.IsValid)
+        {
+            if (strEcsNo == "") LoadXMLValues();
+            objEcs_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            try
+            {
+                objS3G_CLN_EcsDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSDataTable();
+                objS3G_CLN_EcsDataRow = objS3G_CLN_EcsDataTable.NewS3G_CLN_ECSRow();
+
+                objS3G_CLN_EcsDataRow.Company_ID = intCompanyID;
+                //objS3G_CLN_EcsDataRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                if (ddlLOB.SelectedValue != "All")
+                    objS3G_CLN_EcsDataRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                else
+                    objS3G_CLN_EcsDataRow.LOB_ID = 0;
+
+                if (ddlBranch.SelectedValue != "0")
+                    objS3G_CLN_EcsDataRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+                else
+                    objS3G_CLN_EcsDataRow.Branch_ID = 0;
+
+                objS3G_CLN_EcsDataRow.ECS_No = strEcsNo;
+                objS3G_CLN_EcsDataRow.ECS_DocDate = Utility.StringToDate(txtECSDate.Text.Trim()); // Convert.ToDateTime(strEcsday[1] + "/" + strEcsday[0] + "/" + strEcsday[2]);
+                //Source modified by Tamilselvan on 11/01/2011
+                objS3G_CLN_EcsDataRow.Fixed_Billing_date = Convert.ToDateTime(DateTime.Now.Month + "-" + ddlFixedBillDate.SelectedValue + "-" + DateTime.Now.Year);
+                objS3G_CLN_EcsDataRow.Authorized_By = intUserID;
+                objS3G_CLN_EcsDataRow.Authorized_Date = DateTime.Now;
+                objS3G_CLN_EcsDataRow.Authorization_Status = "0";
+                objS3G_CLN_EcsDataRow.FilePath = "";
+                objS3G_CLN_EcsDataRow.Account_Link_key = 1;
+                objS3G_CLN_EcsDataRow.Created_By = intUserID;
+                objS3G_CLN_EcsDataRow.Created_On = DateTime.Now;
+                objS3G_CLN_EcsDataRow.Modified_By = intUserID;
+                objS3G_CLN_EcsDataRow.Modified_On = DateTime.Now;
+                objS3G_CLN_EcsDataRow.Txn_ID = 1;
+                objS3G_CLN_EcsDataRow.XMLDetails = strEcsBuilder.ToString();
+                objS3G_CLN_EcsDataRow.XMLReceipt = strbuXML.ToString();
+                objS3G_CLN_EcsDataRow.Password = "";
+
+                objS3G_CLN_EcsDataTable.AddS3G_CLN_ECSRow(objS3G_CLN_EcsDataRow);
+                intErrCode = objEcs_Client.FunPubCreateECSProcess(out strECSNumber, ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_EcsDataTable, ObjSerMode));
+                if (intErrCode == 0)
+                {
+                    //To avoid double save click
+                    btnReceiptGen.Enabled = false;
+                    //End here
+
+                    if (strEcsNo == "")
+                    {
+                        strAlert = "ECS Receipt generated successfully - " + strECSNumber;
+                        strAlert += @"\n\nWould you like to add one more record?";
+                        strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                        strRedirectPageView = "";
+                    }
+                    else
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('ECS Authorized successfully');" + strRedirectPageView, true);
+                    }
+                }
+                else if (intErrCode == 1)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Document Control ID not defined yet for ECS Process');", true);
+                    return;
+                }
+                else if (intErrCode == 2)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Document Control ID not defined yet for Receipt Process');", true);
+                    return;
+                }
+                else if (intErrCode == 3)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('ECS Document Control ID reach the maximum defined');", true);
+                    return;
+                }
+                else if (intErrCode == 4)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Receipt Process Document Control ID reach the maximum defined');", true);
+                    return;
+                }
+                else if (intErrCode == 31)//define cashflow for Principal and interest for TL /TLE
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Cashflow not defined for Principal/Interest');", true);
+                    return;
+                }
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            }
+            catch (Exception ex)
+            {
+                  ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+                if (objEcs_Client != null)
+                {
+                    objEcs_Client.Close();
+                }
+                throw ex;
+            }
+            finally
+            {
+                if (objEcs_Client != null)
+                {
+                    objEcs_Client.Close();
+                }
+            }
+        }
+    }
+
+    private void FunPriGetLinesECSProcess()
+    {
+        DateTime FBDate = Utility.StringToDate(txtECSDate.Text.Trim()).AddDays(intFBDate);
+
+        if (FBDate.Day > Convert.ToInt32(ddlFixedBillDate.SelectedValue))
+        {
+            DateTime dtFBDate=Utility.StringToDate(ddlFixedBillDate.SelectedValue + "/" + (FBDate.Month) + "/" + FBDate.Year);
+            FBDate = dtFBDate.AddMonths(1);
+            //FBDate = Utility.StringToDate(ddlFixedBillDate.SelectedValue + "/" + (FBDate.Month + 1) + "/" + FBDate.Year);
+        }
+
+
+        /*  //  Modified By Senthilkumar on 31/dec/2011 UAT Bugs 
+        if (FBDate.Day != Convert.ToInt32(ddlFixedBillDate.SelectedValue))
+        {
+            cvECSProcess.ErrorMessage = strErrorMessagePrefix + " ECS should be processed " + intFBDate.ToString() + " days before Fixed Billing Date";
+            cvECSProcess.IsValid = false;
+            return;
+        }
+         */
+
+        DataTable dtECSListing = new DataTable();
+        try
+        {
+            int intTotalRecords = 0;
+            int intErrorCode = 0;
+            bool bIsNewRow = false;
+            ObjPaging.ProCompany_ID = intCompanyID;
+            ObjPaging.ProUser_ID = intUserID;
+            ObjPaging.ProTotalRecords = intTotalRecords;
+            ObjPaging.ProCurrentPage = ProPageNumRW;
+            ObjPaging.ProPageSize = ProPageSizeRW;
+            ObjPaging.ProSearchValue = hdnSearch.Value;
+            ObjPaging.ProOrderBy = hdnOrderBy.Value;
+            
+            Procparam = new Dictionary<string, string>();
+
+            if (ddlLOB.SelectedIndex > 0)       //  Modified By Senthilkumar Reg. UAT-- ECSG_001
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            if (ddlBranch.SelectedValue != "0")
+                Procparam.Add("@Location_Id", Convert.ToString(ddlBranch.SelectedValue));
+            Procparam.Add("@Program_Id", strProgram_ID);
+            Procparam.Add("@FB_Date", ddlFixedBillDate.SelectedValue);
+            dtECSListing = Utility.GetGridData(SPNames.S3G_CLN_GetECSListing, Procparam, out intTotalRecords, out intErrorCode, ObjPaging);
+            ViewState["dtECSListing"] = dtECSListing;
+
+            if (intErrorCode == 1)
+            {
+                cvECSProcess.ErrorMessage = " Ecs already processed for selected Fixed Billing Date";
+                cvECSProcess.IsValid = false;
+                return;
+            }
+
+            grvEcsProcess.DataSource = dtECSListing;
+            grvEcsProcess.DataBind();
+            hidDelete.Value = "0";
+
+            ucCustomPaging.Navigation(intTotalRecords, ProPageNumRW, ProPageSizeRW);
+            ucCustomPaging.setPageSize(ProPageSizeRW);
+
+            if (grvEcsProcess.Rows.Count > 0)
+            {
+                pnlGrid.Style.Add("display", "inline");
+                btnReceiptGen.Enabled = true;
+            }
+            else
+            {
+                btnReceiptGen.Enabled = false;
+                pnlGrid.Style.Add("display", "none");
+                //if((grvEcsProcess.HeaderRow.FindControl("chkHrdGenStatus") as CheckBox)
+                //(grvEcsProcess.HeaderRow.FindControl("chkHrdGenStatus") as CheckBox).Enabled = false;
+                cvECSProcess.ErrorMessage = " Record does not exists for selected combination";
+                cvECSProcess.IsValid = false;
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriDeleteECSProcess()
+    {
+        try
+        {
+            if (hidDelete.Value != "0")
+            {
+                DataTable dtDelete = new DataTable();
+                for (int i = grvEcsProcess.Rows.Count; i > 0; i--)
+                {
+                    CheckBox chkDelete = (CheckBox)grvEcsProcess.Rows[i - 1].FindControl("chkDelete");
+                    if (chkDelete.Checked)
+                    {
+                        dtDelete = (DataTable)ViewState["dtECSListing"];
+                        dtDelete.Rows.RemoveAt(i - 1);
+                        if (dtDelete != null && dtDelete.Rows.Count > 0)
+                            ViewState["dtECSListing"] = dtDelete;
+                    }
+                }
+                grvEcsProcess.DataSource = dtDelete;
+                grvEcsProcess.DataBind();
+                hidDelete.Value = "0";
+                if (grvEcsProcess.Rows.Count > 0) pnlGrid.Style.Add("display", "inline");  //pnlGrid.Visible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriClearECSProcess()
+    {
+        //ddlBranch.SelectedIndex = 
+        ddlBranch.Clear();
+        ddlFixedBillDate.SelectedIndex = ddlLOB.SelectedIndex = 0;
+        txtECSNo.Text = "";
+        funClearGrid();
+    }
+
+    private void FunPriSetGridColumnvisible(GridViewRowEventArgs e)
+    {
+        if (Request.QueryString["qsMode"] == "M")
+        {
+            e.Row.Cells[2].Visible = e.Row.Cells[3].Visible = false;
+            e.Row.Cells[8].Visible = e.Row.Cells[11].Visible = false;
+            e.Row.Cells[10].Visible = false;
+        }
+    }
+
+    private void FunPriSelectAll(object sender)
+    {
+        CheckBox chkHrdGenStatus = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdGenStatus");
+        CheckBox chkHrdDelete = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdDelete");
+        foreach (GridViewRow grvRow in grvEcsProcess.Rows)
+        {
+            CheckBox chkGenStatus = (CheckBox)grvRow.FindControl("chkGenStatus");
+            CheckBox chkDelete = (CheckBox)grvRow.FindControl("chkDelete");
+            CheckBox chkAll = (CheckBox)sender;
+
+            if (chkAll.Checked && chkGenStatus != null)
+            {
+                chkGenStatus.Checked = chkGenStatus.Enabled = true;
+                chkDelete.Enabled = chkDelete.Checked = chkHrdDelete.Checked = chkHrdDelete.Enabled = false;
+            }
+            else
+            {
+                chkGenStatus.Checked = false;
+                chkGenStatus.Enabled = chkDelete.Enabled = chkHrdDelete.Enabled = true;
+                chkDelete.Enabled = false;
+            }
+        }
+    }
+
+    private void FunPriDeleteAll(object sender)
+    {
+        CheckBox chkHrdGenStatus = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdGenStatus");
+        CheckBox chkHrdDelete = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdDelete");
+
+        foreach (GridViewRow grvRow in grvEcsProcess.Rows)
+        {
+            CheckBox chkDelete = (CheckBox)grvRow.FindControl("chkDelete");
+            CheckBox chkGenStatus = (CheckBox)grvRow.FindControl("chkGenStatus");
+            CheckBox chkAll = (CheckBox)sender;
+            if (chkAll.Checked && chkDelete != null)
+            {
+                chkDelete.Checked = chkDelete.Enabled = true;
+                chkGenStatus.Enabled = chkGenStatus.Checked = chkHrdGenStatus.Checked = chkHrdGenStatus.Enabled = false;
+            }
+            else
+            {
+                chkDelete.Checked = false;
+                chkDelete.Enabled = chkGenStatus.Enabled = chkHrdGenStatus.Enabled = true;
+            }
+        }
+    }
+
+    private void FunPriGetDeleteList(object sender)
+    {
+        try
+        {
+            CheckBox chkDelete = (CheckBox)sender;
+            if (chkDelete.Checked)
+                hidDelete.Value = (Convert.ToInt32(hidDelete.Value) + 1).ToString();
+            else
+                hidDelete.Value = (Convert.ToInt32(hidDelete.Value) - 1).ToString();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #region Edit For ECS Process
+    private void FunECSProcessForModification_QueryMode(string strEcsNo)
+    {
+        try
+        {
+            DataTable dtTable = new DataTable();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@ECS_No", strEcsNo);
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@User_ID", intUserID.ToString());
+            dtTable = Utility.GetDefaultData("S3G_CLN_GetECSProcess", Procparam);// true, "--All Customers--", new string[] { "Customer_ID", "Customer_Code", "Customer_Name" });
+
+            txtECSNo.Text = strEcsNo;
+
+            if (dtTable != null && dtTable.Rows.Count > 0)
+            {
+                ddlStaus.SelectedValue = dtTable.Rows[0]["Authorized_By"].ToString();
+                if (dtTable.Rows[0]["Location_ID"].ToString() == "" || dtTable.Rows[0]["Location_ID"].ToString() == "All" || dtTable.Rows[0]["Location_ID"].ToString() == "0")
+                {
+                    ddlBranch.SelectedText = "--All--";
+                    ddlBranch.SelectedValue = "0";
+                }
+                else {
+                    ddlBranch.SelectedText = dtTable.Rows[0]["Location_Name"].ToString();
+                    ddlBranch.SelectedValue = dtTable.Rows[0]["Location_ID"].ToString();
+                }
+
+                if (dtTable.Rows[0]["LOB_ID"].ToString() == "All" || dtTable.Rows[0]["LOB_ID"].ToString() == "" || dtTable.Rows[0]["LOB_ID"].ToString() == "0")
+                {
+                    ListItem Libr = new ListItem("--All--", "0");
+                    ddlLOB.Items.Add(Libr);
+                    ddlLOB.SelectedValue = "0";
+                }
+                else {
+                    ListItem Libr = new ListItem(dtTable.Rows[0]["LOB_Name"].ToString(), dtTable.Rows[0]["LOB_ID"].ToString());
+                    ddlLOB.Items.Add(Libr);
+                    ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                }
+                
+
+                //ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                if (dtTable.Rows[0]["FixedBillDate"].ToString() != "")
+                {
+                    ListItem Libr = new ListItem(dtTable.Rows[0]["FixedBillDate"].ToString(), dtTable.Rows[0]["FixedBillDate"].ToString());
+                    ddlFixedBillDate.Items.Add(Libr);
+                    ddlFixedBillDate.SelectedValue = dtTable.Rows[0]["FixedBillDate"].ToString();
+                }
+                else {
+                    ListItem Libr = new ListItem("--All--", "0");
+                    ddlFixedBillDate.Items.Add(Libr);
+                    ddlFixedBillDate.SelectedValue = "0";
+                }
+                
+                grvEcsProcess.DataSource = dtTable;
+                grvEcsProcess.DataBind();
+                txtECSDate.Text = DateTime.Parse(dtTable.Rows[0]["ECS_DocDate"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+            }
+            if (grvEcsProcess.Rows.Count > 0) pnlGrid.Style.Add("display", "inline");
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunECSProcessForModification(string strEcsNo)
+    {
+        try
+        {
+            DataTable dtTable = new DataTable();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@ECS_No", strEcsNo);
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@User_ID", intUserID.ToString());
+            dtTable = Utility.GetDefaultData(SPNames.S3G_CLN_GetECSProcess, Procparam);// true, "--All Customers--", new string[] { "Customer_ID", "Customer_Code", "Customer_Name" });
+
+            txtECSNo.Text = strEcsNo;
+
+            if (dtTable != null && dtTable.Rows.Count > 0)
+            {
+                ddlStaus.SelectedValue = dtTable.Rows[0]["Authorized_By"].ToString();
+                if (dtTable.Rows[0]["Location_ID"].ToString() == "")
+                    ddlBranch.SelectedValue = "0";
+                else
+                    ddlBranch.SelectedValue = dtTable.Rows[0]["Location_ID"].ToString();
+                if (dtTable.Rows[0]["LOB_ID"].ToString() == "")
+                    ddlLOB.SelectedValue = "All";
+                else
+                    ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+
+                //ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                ddlFixedBillDate.SelectedValue = dtTable.Rows[0]["FixedBillDate"].ToString();
+                grvEcsProcess.DataSource = dtTable;
+                grvEcsProcess.DataBind();
+                txtECSDate.Text = DateTime.Parse(dtTable.Rows[0]["ECS_DocDate"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+            }
+            if (grvEcsProcess.Rows.Count > 0) pnlGrid.Style.Add("display", "inline");
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To populate Branch Values
+    private void PopulateBranchList()
+    {
+        try
+        {
+            //if (Procparam != null)
+            //    Procparam.Clear();
+            //else
+            //    Procparam = new Dictionary<string, string>();
+            //if (strMode.ToUpper() == "C") Procparam.Add("@Is_Active", "1");
+            //Procparam.Add("@User_ID", intUserID.ToString());
+            //Procparam.Add("@Program_ID", strProgram_ID);
+            //Procparam.Add("@Company_ID", intCompanyID.ToString());
+            //Procparam.Add("@Lob_ID", ddlLOB.SelectedValue);
+            //ddlBranch.BindMemoDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+            ////ddlBranch.Items.Add(new ListItem("All", null));
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To populate Fixed Billing Date Values
+    private void PopulateFixedBillingDate()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            ddlFixedBillDate.BindDataTable(SPNames.S3G_CLN_GetFBDate, Procparam, new string[] { "FB_Date", "FB_Date" });
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region "User Authorization"
+    ////This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                if (!bCreate)
+                {
+                    //btnListing.Enabled = false;
+                }
+                break;
+            case 1: // Modify Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                if (!bModify)
+                {
+
+                }
+                Utility.ClearDropDownList(ddlFixedBillDate);
+                ddlBranch.Enabled = false;    
+            //Utility.ClearDropDownList(ddlBranch);
+                Utility.ClearDropDownList(ddlLOB);
+                Utility.ClearDropDownList(ddlStaus);
+                txtECSNo.Enabled = false;
+                CalendarExtender2.Enabled = btnClear.Enabled = txtECSDate.Enabled = btnGetLines.Enabled = btnDeleteECS.Enabled = false;
+                //btnReceiptGen.Text = "Authorize";
+                if (ddlStaus.SelectedValue == "A")
+                {
+                    btnReceiptGen.Enabled = false;
+                }
+
+                //Added on 05MAY2014 Starts Here
+                //foreach (GridViewRow gvRow in grvEcsProcess.Rows)
+                //{
+                //    CheckBox chkGenStatus = (CheckBox)gvRow.FindControl("chkGenStatus");
+                //    chkGenStatus.Enabled = false;
+                //}
+                //CheckBox chkHrdGenStatus1 = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdGenStatus");
+                //chkHrdGenStatus1.Enabled = false;
+                //Added on 05MAY2014 Ends Here
+                break;
+
+            case -1:// Query Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                //btnListing.Enabled = false;
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPage,false);
+                }
+                txtECSNo.Enabled = false;
+                CalendarExtender2.Enabled = btnClear.Enabled = txtECSDate.Enabled = btnGetLines.Enabled = btnDeleteECS.Enabled = btnReceiptGen.Enabled = false;
+                Utility.ClearDropDownList(ddlFixedBillDate);
+                ddlBranch.Enabled = false;
+                Utility.ClearDropDownList(ddlLOB);
+                Utility.ClearDropDownList(ddlStaus);
+
+                //grvEcsProcess.Columns[12].Visible = grvEcsProcess.Columns[13].Visible = false;
+                foreach (GridViewRow gvRow in grvEcsProcess.Rows)
+                {
+                    CheckBox chkGenStatus = (CheckBox)gvRow.FindControl("chkGenStatus");
+                    CheckBox chkDelete = (CheckBox)gvRow.FindControl("chkDelete");
+                    chkGenStatus.Enabled = chkDelete.Enabled = false;
+                }
+                CheckBox chkHrdGenStatus = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdGenStatus");
+                CheckBox chkHrdDelete = (CheckBox)grvEcsProcess.HeaderRow.FindControl("chkHrdDelete");
+                chkHrdGenStatus.Enabled = chkHrdDelete.Enabled = false;
+
+                //if (bClearList)
+                //{
+                //    ddlBranch.ClearDropDownList();
+                //    /*ddlLOB.ClearDropDownList();
+                //    ddlMLA.ClearDropDownList();
+                //    ddlSLA.ClearDropDownList();*/
+                //    //ddlInvoice.ClearDropDownList();
+                //}
+                break;
+        }
+    }
+    ////Code end
+    #endregion
+
+    #region To populate LOB List Values
+    private void PopulateLOBList()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            if (strMode.ToUpper() == "C") Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Program_ID", strProgram_ID);
+            ddlLOB.BindDataTable("S3G_CLN_GetECS_LOB", Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            //ddlLOB.Items.Add(new ListItem("All", null));
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region "ECS Receipt Generation stored in XML format"
+    /// <summary>
+    /// Storing the Values of the grid as XML Document for bulk insert in the Data base
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    private void LoadXMLValues()
+    {
+        //  Grid sent as XMl     
+        try
+        {
+            strEcsBuilder.Append("<Root>");
+            strbuXML.Append("<Root>");
+            foreach (GridViewRow grvRow in grvEcsProcess.Rows)
+            {
+                CheckBox chkGenStatus = (CheckBox)grvRow.FindControl("chkGenStatus");
+                CheckBox chkDelete = (CheckBox)grvRow.FindControl("chkDelete");
+                string strEcsStatus = "0";
+                if (chkGenStatus.Checked || chkDelete.Checked)
+                {
+                    Label lblSno = (Label)grvRow.FindControl("lblSno");
+                    Label lblRepayId = (Label)grvRow.FindControl("lblRepayId");
+                    Label lblCustomerId = (Label)grvRow.FindControl("lblCustomerId");
+                    Label lblBranchId = (Label)grvRow.FindControl("lblBranchId");
+                    if (chkGenStatus.Checked) strEcsStatus = "1";
+                    if (chkDelete.Checked) strEcsStatus = "0";
+
+                    string strPANum = grvRow.Cells[2].Text.Trim().Replace("&nbsp;", "");
+                    string strSANum = grvRow.Cells[3].Text.Trim().Replace("&nbsp;", "");
+                    if (strSANum == "")
+                        strSANum = strPANum.Trim() + "DUMMY";// grvRow.Cells[3].Text.Trim().Replace("&nbsp;", "");
+
+                    Label lblInstNo = (Label)grvRow.FindControl("lblInstallmentNo");
+                    string strInsAmount = grvRow.Cells[5].Text.Trim().Replace("&nbsp;", "");
+                    string strMICR_No = grvRow.Cells[6].Text.Trim().Replace("&nbsp;", "");
+                    //Code Commented and Added by saran to fix UAT on 19-Jul-2012 start
+                    //string strBank_Account_No = grvRow.Cells[7].Text.Trim().Replace("&nbsp;", "");
+                    string strBank_Account_No = grvRow.Cells[8].Text.Trim().Replace("&nbsp;", "");
+                    //Code Commented and Added by saran to fix UAT on 19-Jul-2012 end
+
+
+                    string strReceipt_No = grvRow.Cells[9].Text.Trim().Replace("&nbsp;", "");
+
+                    strEcsBuilder.Append("<Details  RowNo='" + lblSno.Text.Trim() + "' Company_ID ='" + Convert.ToString(intCompanyID) + "' ECS_No='" + strEcsNo + "'   ");
+                    strEcsBuilder.Append(" Customer_ID = '" + lblCustomerId.Text.Trim() + "' PANum='" + strPANum + "'  ");
+                    strEcsBuilder.Append(" SANum = '" + strSANum + "' Installment_Number='" + lblInstNo.Text.Trim() + "'  ");
+                    strEcsBuilder.Append(" MICR_No = '" + strMICR_No + "' Bank_Account_No='" + strBank_Account_No + "'  ");
+                    strEcsBuilder.Append(" Receipt_No = '" + strReceipt_No + "' Receipt_Date='" + DateTime.Now + "' Location='" + lblBranchId.Text.Trim() + "'  ");
+                    strEcsBuilder.Append(" Created_By = '" + intUserID + "' Created_On='" + DateTime.Now + "' InsAmount='" + strInsAmount + "' RepayId='" + lblRepayId.Text.Trim() + "'  ");
+                    strEcsBuilder.Append(" Account_Link_Key='1' Ecs_Status  ='" + strEcsStatus + "'  /> ");
+
+                    strbuXML.Append(" <Details  ");
+                    strbuXML.Append(" PRIMEACCOUNTNO ='" + strPANum + "' ");
+                    strbuXML.Append(" SUBACCOUNTNO ='" + strSANum + "' ");
+                    strbuXML.Append(" AMOUNT ='" + strInsAmount + "'  />");
+                }
+            }
+            strEcsBuilder.Append("</Root>");
+            strbuXML.Append("</Root>");
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region  DateFormat
+    public string FormatDate(string strDate)
+    {
+        if (strDate != "")
+            //return DateTime.Parse(strDate, CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+            return (Utility.StringToDate(strDate)).ToString(strDateFormat);
+        else
+            return "";
+    }
+    #endregion
+
+    private void funClearGrid()
+    {
+        grvEcsProcess.DataSource = null;
+        grvEcsProcess.DataBind();
+        pnlGrid.Style.Add("display", "none");
+        btnReceiptGen.Enabled = false;
+    }
+    #endregion [Function's]
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        funClearGrid();
+        PopulateBranchList();
+        ddlBranch.SelectedValue = "0";
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        funClearGrid();
+    }
+    protected void ddlFixedBillDate_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        funClearGrid();
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "100");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    //Added on 05MAY20014 Starts Here
+    protected void btnCancellation_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (Request.QueryString["qsMode"] == "M")
+            {
+
+                int i = 0;
+                foreach (GridViewRow grvRow in grvEcsProcess.Rows)
+                {
+                    CheckBox chkGen = (CheckBox)grvRow.FindControl("chkGenStatus");
+                    //CheckBox chkDelete = (CheckBox)grvRow.FindControl("chkDelete");
+
+                    if (!chkGen.Checked)
+                    {
+                        i++;
+                        break;
+                    }
+                }
+                if (i == 0)
+                {
+                    cvECSProcess.ErrorMessage = strErrorMessagePrefix + " UnCheck any one of the Generation Status";
+                    cvECSProcess.IsValid = false;
+                    return;
+                }
+
+                FunPriGetDeleteRecords();
+                string strEcsXml = strEcsBuilder.ToString();
+
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+                Procparam.Add("@ECS_No", Convert.ToString(strEcsNo));
+                Procparam.Add("@COMPANY_ID", intCompanyID.ToString());
+                Procparam.Add("@ECS_XML", strEcsXml);
+                DataTable dtable = Utility.GetDefaultData("S3G_CLN_ECSCancellation", Procparam);
+
+                strAlert = strAlert.Replace("__ALERT__", "ECS Process Updated successfully");
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            }
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+        }
+    }
+    //Added on 05MAY20014 Ends Here
+
+    private void FunPriGetDeleteRecords()
+    {
+        try
+        {
+            strEcsBuilder = new StringBuilder();
+            strEcsBuilder.Append("<Root>");
+
+            foreach (GridViewRow grvRow in grvEcsProcess.Rows)
+            {
+                CheckBox chkGenStatus = (CheckBox)grvRow.FindControl("chkGenStatus");
+
+                if (!chkGenStatus.Checked)
+                {
+
+                    Label lblSno = (Label)grvRow.FindControl("lblSno");
+                    Label lblRepayId = (Label)grvRow.FindControl("lblRepayId");
+                    string strPANum = grvRow.Cells[2].Text.Trim().Replace("&nbsp;", "");
+                    string strSANum = grvRow.Cells[3].Text.Trim().Replace("&nbsp;", "");
+                    if (strSANum == "")
+                        strSANum = strPANum.Trim() + "DUMMY";// grvRow.Cells[3].Text.Trim().Replace("&nbsp;", "");
+
+                    Label lblInstNo = (Label)grvRow.FindControl("lblInstallmentNo");
+
+                    strEcsBuilder.Append("<Details  RowNo='" + lblSno.Text.Trim() + "' Company_ID ='" + Convert.ToString(intCompanyID) + "' ECS_No='" + strEcsNo + "' ");
+                    strEcsBuilder.Append(" PANum='" + strPANum + "'  ");
+                    strEcsBuilder.Append(" SANum = '" + strSANum + "' Installment_Number='" + lblInstNo.Text.Trim() + "'");
+                    strEcsBuilder.Append(" RepayStructureID = '" + lblRepayId.Text + "'");
+                    strEcsBuilder.Append(" /> ");
+                }
+            }
+
+            strEcsBuilder.Append("</Root>");
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+   
+}

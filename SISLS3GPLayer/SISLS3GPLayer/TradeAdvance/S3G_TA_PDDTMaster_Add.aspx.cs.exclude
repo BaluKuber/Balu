@@ -1,0 +1,1634 @@
+﻿#region Page Header
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Origination
+/// Screen Name			: PRDDT Creation
+/// Created By			: Kannan RC
+/// Created Date		: 15-July-2010
+/// Purpose	            : 
+/// Last Updated By		: Kannan RC
+/// Last Updated Date   : 10-Aug-2010   
+/// <Program Summary>
+#endregion
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using System.ServiceModel;
+using System.Data;
+using System.Web.Security;
+using System.Configuration;
+using System.Globalization;
+using System.Resources;
+using System.Text;
+using System.Collections;
+using System.Web.UI.HtmlControls;
+using S3GBusEntity.Origination;
+using PRDDCMgtServicesReference;
+using System.IO;
+
+
+public partial class TradeAdvance_S3GTAPDDTMaster_Add : ApplyThemeForProject
+{
+    #region Intialization
+    public string Program_Id = "224";
+    int intCompanyId;
+    public int intUserId;
+    string strUserLogin = string.Empty;
+    int PRDDTransID = 0;
+    int intErrCode = 0;
+    public string strDateFormat = string.Empty;
+    string strMode = string.Empty;
+    int maxversion = 0;
+    bool chkbox = false;
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    bool bClearList = false;
+    bool bMod = false;
+    DataTable dt = new DataTable();
+    Dictionary<string, string> Procparam;
+    string strRedirectPage = "../TradeAdvance/S3G_TA_TransLander.aspx?Code=PRTT";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageAdd = "window.location.href='../TradeAdvance/S3G_TA_PDDTMaster_Add.aspx?qsMode=C';";
+    string strRedirectPageView = "window.location.href='../TradeAdvance/S3G_TA_PDDTMaster_View.aspx';";
+    string strRedirectHomePage = "window.location.href='../Common/HomePage.aspx';";
+    Dictionary<string, string> dictParam = null;
+    SerializationMode SerMode = SerializationMode.Binary;
+    bool blnIsWorkflowApplicable = Convert.ToBoolean(ConfigurationManager.AppSettings["IsWorkflowApplicable"]);
+    PRDDCMgtServicesClient objPRDDT_MasterClient;
+    S3GSession ObjS3GSession = new S3GSession();
+    UserInfo ObjUserInfo = new UserInfo();
+
+    //PRDDCMgtServices.S3G_ORG_PRDDCMasterDataTable ObjS3G_ORG_PRDDCMasterDataTable = new PRDDCMgtServices.S3G_ORG_PRDDCMasterDataTable();
+    //PRDDCMgtServices.S3G_ORG_GetPRDDTLookUpDataTable ObjS3G_PRDDTLookUpDataTable = new PRDDCMgtServices.S3G_ORG_GetPRDDTLookUpDataTable();
+
+    PRDDCMgtServices.S3G_ORG_PRDDCDocumentCategoryDataTable ObjS3G_PRDDDocCategoryDataTable = null;
+    PRDDCMgtServices.S3G_ORG_PPDDTransMasterDataTable ObjS3G_PRDDTransMasterDataTable = null;
+    PRDDCMgtServices.S3G_ORG_PRDDTransDocMasterDataTable ObjS3G_PRDDTransDocMasterDataTable = null;
+    PRDDCMgtServices.S3G_ORG_GetPRDDCTransDetailsDataTable ObjS3G_ORG_PRDDCTransMasterDataTable = null;
+    PRDDCMgtServices.S3G_ORG_GetPRDDCTransDocDetailsDataTable ObjS3G_ORG_PRDDCTransDocMasterDataTable = null;
+    PRDDCMgtServices.S3G_ORG_ExitsPRDDTMasterDataTable ObjS3G_ORG_ExitsPRDDCTransDocMasterDataTable = new PRDDCMgtServices.S3G_ORG_ExitsPRDDTMasterDataTable();
+    PRDDCMgtServices.S3G_ORG_ExitsPRDDTMasterRow ObjS3G_ORG_ExitsPRDDCTransRows;
+    //added by  saranya 
+    OrgMasterMgtServicesReference.OrgMasterMgtServicesClient ObjCustomerService;
+
+    #endregion
+
+    #region Page Events
+    protected void Page_Load(object sender, EventArgs e)
+    {
+
+
+        intCompanyId = ObjUserInfo.ProCompanyIdRW;
+        intUserId = ObjUserInfo.ProUserIdRW;
+        strUserLogin = ObjUserInfo.ProUserLoginRW;
+        //User Authorization
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        //Code end        
+        txtDate.Attributes.Add("readonly", "readonly");
+        //S3GSession ObjS3GSession = new S3GSession();
+        strDateFormat = ObjS3GSession.ProDateFormatRW;
+        txtDate.Text = DateTime.Today.ToString(strDateFormat);
+        ProgramCode = "041";
+        bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+
+        if (Request.QueryString["qsViewId"] != null)
+        {
+            FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            PRDDTransID = Convert.ToInt32(fromTicket.Name);
+            ViewState["PRDDTransID"] = PRDDTransID;
+        }
+
+        strMode = Request.QueryString["qsMode"];
+
+        if (strMode == "C")
+        {
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+            TextBox txtName = ucCustomerCodeLov.FindControl("txtName") as TextBox;
+            txtName.Attributes.Add("onfocus", "fnLoadCustomer()");
+        }
+
+        if (!IsPostBack)
+        {
+            FunPriBindLOB();
+
+            if ((PRDDTransID > 0) && (strMode == "M"))
+            {
+                FunPriDisableControls(1);
+            }
+            else if ((PRDDTransID > 0) && (strMode == "Q"))
+            {
+                FunPriDisableControls(-1);
+            }
+            else
+            {
+                FunPriDisableControls(0);
+            }
+            ddlLOB.ToolTip = ddlLOB.SelectedItem.Text;
+
+            // WF 
+            if (PageMode == PageModes.WorkFlow)
+            {
+                ViewState["PageMode"] = PageModes.WorkFlow;
+            }
+            if (ViewState["PageMode"] != null && ViewState["PageMode"].ToString() == PageModes.WorkFlow.ToString())
+            {
+                try
+                {
+                    //PreparePageForWorkFlowLoad();
+                }
+                catch (Exception ex)
+                {
+                      ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+                    Utility.FunShowAlertMsg(this.Page, "Invalid data to load, access from menu");
+                }
+            }
+        }
+        if (PageMode == PageModes.WorkFlow)
+        {
+            if (ViewState["PRDDTransID"] != null)
+                PRDDTransID = Convert.ToInt32(ViewState["PRDDTransID"]);
+        }
+
+        //if (!IsPostBack)
+        //{
+        foreach (GridViewRow grvData in gvPRDDT.Rows)
+        {
+            Label myThrobber = (Label)grvData.FindControl("myThrobber");
+            HiddenField hidThrobber = (HiddenField)grvData.FindControl("hidThrobber");
+
+            if (hidThrobber.Value != "")
+            {
+                myThrobber.Text = hidThrobber.Value;
+            }
+        }
+        //}
+
+
+
+    }
+    #endregion
+
+    #region "WF Code"
+    //void PreparePageForWorkFlowLoad()
+    //{
+    //    WorkflowMgtServiceReference.WorkflowMgtServiceClient objWorkflowServiceClient = new WorkflowMgtServiceReference.WorkflowMgtServiceClient();
+
+    //    try
+    //    {
+    //        WorkFlowSession WFSessionValues = new WorkFlowSession();
+    //        byte[] byte_PreDisDoc = objWorkflowServiceClient.FunPubLoadPreDisDocTransaction(WFSessionValues.WorkFlowDocumentNo, int.Parse(CompanyId), WFSessionValues.Document_Type);
+    //        DataSet dsWorkflow = (DataSet)S3GBusEntity.ClsPubSerialize.DeSerialize(byte_PreDisDoc, S3GBusEntity.SerializationMode.Binary, typeof(DataSet));
+
+    //        if (dsWorkflow.Tables.Count > 1)
+    //        {
+    //            if (dsWorkflow.Tables[1].Rows.Count > 0)
+    //            {
+    //                PRDDTransID = Convert.ToInt32(dsWorkflow.Tables[1].Rows[0]["Doc_Id"].ToString());
+    //                ViewState["PRDDTransID"] = PRDDTransID;
+    //                FunPriDisableControls(1);
+    //            }
+    //        }
+    //        else
+    //        {
+    //            if (dsWorkflow.Tables[0].Rows.Count > 0)
+    //            {
+    //                ddlLOB.SelectedValue = dsWorkflow.Tables[0].Rows[0]["LOB_ID"].ToString();
+    //                ddlLOB.ToolTip = ddlLOB.SelectedItem.Text;
+    //                ddlLOB.ClearDropDownList();
+
+    //                ddlBranch.SelectedValue = dsWorkflow.Tables[0].Rows[0]["Location_ID"].ToString();
+    //                ddlBranch.ClearDropDownList();
+    //                FunPriLoadConstitution(Convert.ToInt32(ddlLOB.SelectedValue));
+    //                ddlConstitition.SelectedValue = dsWorkflow.Tables[0].Rows[0]["Constitution_ID"].ToString();
+    //                ddlConstitition.ClearDropDownList();
+
+    //                ddlRefPoint.SelectedValue = dsWorkflow.Tables[0].Rows[0]["Document_Type"].ToString();
+    //                //FunPriLoadEnquiryNumber(Convert.ToInt32(ddlLOB.SelectedValue), Convert.ToInt32(ddlBranch.SelectedValue), Convert.ToInt32(ddlConstitition.SelectedValue), PRDDTransID);
+    //                FunPriBindRefNo();
+    //                ddlEnquiry.SelectedValue = dsWorkflow.Tables[0].Rows[0]["Document_Type_ID"].ToString();
+    //                FunPriGetCustomerDetails();
+
+
+
+    //                ddlRefPoint.ClearDropDownList();
+    //                ddlEnquiry.ClearDropDownList();
+    //                FunPriGetPRDDTransType();
+    //                tpPDDT.Enabled = true;
+    //            }
+    //        }
+
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //          ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+    //        lblErrorMessage.Text = ex.Message;
+    //    }
+    //    finally
+    //    {
+    //        objWorkflowServiceClient.Close();
+    //    }
+    //}
+    #endregion
+
+    public void read()
+    {
+        txtStatus.ReadOnly = true;
+        ddlLOB.Focus();
+    }
+
+    #region DDL
+    private void FunPriBindLOB()
+    {
+        try
+        {
+            Dictionary<string, string> Procparam = new Dictionary<string, string>();
+            if (PRDDTransID == 0)
+            {
+                Procparam.Add("@Is_Active", "1");
+            }
+            Procparam.Add("@User_Id", intUserId.ToString());
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@Program_Id", Program_Id);
+
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+        }
+        catch (FaultException<CompanyMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    protected void FunPriBindConstitutionProduct()
+    {
+        if (Convert.ToInt32(ddlLOB.SelectedValue) > 0)
+        {
+            //Product Code
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+            Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            if (PRDDTransID == 0)
+            {
+                Procparam.Add("@Is_Active", "1");
+            }
+
+            ddlProduct.BindDataTable(SPNames.TA_ProductMaster, Procparam, new string[] { "Product_ID", "Product_Code", "Product_Name" });
+
+
+            //Constitution
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+            Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            if (PRDDTransID == 0)
+            {
+                Procparam.Add("@Is_Active", "1");
+            }
+
+            ddlConstitition.BindDataTable(SPNames.S3G_Get_ConstitutionMaster, Procparam, new string[] { "Constitution_ID", "ConstitutionName" });
+        }
+        else
+        {
+            ddlConstitition.Items.Clear();
+            ddlProduct.Items.Clear();
+            tpPDDT.Enabled = false;
+        }
+    }
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            ddlLOB.ToolTip = ddlLOB.SelectedItem.Text;
+            FunPriBindConstitutionProduct();
+            FunPubFillLocations();
+            ddlLOB.Focus();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+
+    }
+
+    protected void FunPubFillLocations()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+        Procparam.Add("@User_Id", Convert.ToString(intUserId));
+        Procparam.Add("@Program_Id", "224");
+        if (PageMode == PageModes.Create)
+        {
+            Procparam.Add("@Is_Active", "1");
+        }
+        Procparam.Add("@LOB_Id", ddlLOB.SelectedValue.ToString());
+        ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location" });
+    }
+
+    #endregion
+
+   /// <summary>
+    /// This methode used in Get PRDDTransaction details
+    /// </summary>
+    #region Get PRDDTrans
+    /// <summary>
+    /// This methode used in Get PRDDocument Transaction  details
+    /// </summary>
+    private void FunGetPRDDTransDocDetatils()
+    {
+        objPRDDT_MasterClient = new PRDDCMgtServicesReference.PRDDCMgtServicesClient();
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@PreDisbursement_Doc_Tran_ID", PRDDTransID.ToString());
+            DataSet dsDetails = Utility.GetDataset("S3G_TA_GetPRDDCTransDocDetails", Procparam);
+
+            ViewState["dtIsDetails"] = dsDetails.Tables[1];
+
+            if (dsDetails.Tables[1].Rows.Count > 0)
+            {
+                ViewState["Docpath"] = dsDetails.Tables[1].Rows[0]["ViewDoc"].ToString();
+            }
+
+            ddlLOB.SelectedValue = dsDetails.Tables[0].Rows[0]["LOB_ID"].ToString();
+            FunPriBindConstitutionProduct();
+            FunPubFillLocations();
+            ddlProduct.SelectedValue = dsDetails.Tables[0].Rows[0]["Product_ID"].ToString();
+            ddlConstitition.SelectedValue = dsDetails.Tables[0].Rows[0]["Constitution_ID"].ToString();
+            ddlBranch.SelectedValue = dsDetails.Tables[0].Rows[0]["Location_ID"].ToString();
+            FunProLoadEntityDetails(dsDetails.Tables[0].Rows[0]["Entity_ID"].ToString());
+            txtPRDDC.Text = dsDetails.Tables[0].Rows[0]["PRDDC_Number"].ToString();
+            txtDate.Text = dsDetails.Tables[0].Rows[0]["PRDDC_Date"].ToString();
+            if (dsDetails.Tables[0].Rows[0]["Status"].ToString() == "1")
+            {
+                txtStatus.Text = "Null";
+            }
+            else if (dsDetails.Tables[0].Rows[0]["Status"].ToString() == "2")
+            {
+                txtStatus.Text = "Hold";
+            }
+            else
+            {
+                txtStatus.Text = "Process";
+            }
+
+            gvPRDDT.DataSource = dsDetails.Tables[1];// Modify 
+            gvPRDDT.DataBind();
+
+            for (int i = 0; i < gvPRDDT.Rows.Count; i++)
+            {
+                if (gvPRDDT.Rows[i].RowType == DataControlRowType.DataRow)
+                {
+                    int PRDDC_Doc_Cat_ID = Convert.ToInt32(gvPRDDT.DataKeys[i]["PRDDC_Doc_Cat_ID"].ToString());
+                    CheckBox Cbx1 = (CheckBox)gvPRDDT.Rows[i].FindControl("CbxCheck");
+                    //modified  and added by saranya for fixing observation on 01-Mar-2012
+                    DropDownList ddlScannedBy = (DropDownList)gvPRDDT.Rows[i].FindControl("ddlScannedBy");
+                    TextBox txtScanDate = (TextBox)gvPRDDT.Rows[i].FindControl("txtScannedDate");
+                    Label lblScannedBy = (Label)gvPRDDT.Rows[i].FindControl("lblScannedBy");
+
+                    DropDownList ddlCollectedBy = (DropDownList)gvPRDDT.Rows[i].FindControl("ddlCollectedBy");
+                    TextBox txtcolldate = (TextBox)gvPRDDT.Rows[i].FindControl("txtCollectedDate");
+                    Label lblCollectedBy = (Label)gvPRDDT.Rows[i].FindControl("lblCollectedBy");
+                    //end 
+
+                    TextBox txtScanRef = (TextBox)gvPRDDT.Rows[i].FindControl("txtScan");
+                    ImageButton Viewdoct = (ImageButton)gvPRDDT.Rows[i].FindControl("hyplnkView");
+                    TextBox txtRemarks = (TextBox)gvPRDDT.Rows[i].FindControl("txtRemarks");
+                    Label lblDesc = (Label)gvPRDDT.Rows[i].FindControl("lblDesc");
+                    TextBox txOD = (TextBox)gvPRDDT.Rows[i].FindControl("txOD");
+                    TextBox txtScan = (TextBox)gvPRDDT.Rows[i].FindControl("txtScan");
+                    Label lblColUser = (Label)gvPRDDT.Rows[i].FindControl("lblColUser");
+                    Label lblPath = (Label)gvPRDDT.Rows[i].FindControl("lblPath");
+                    Label myThrobber = (Label)gvPRDDT.Rows[i].FindControl("myThrobber");
+                    HiddenField hidThrobber = (HiddenField)gvPRDDT.Rows[i].FindControl("hidThrobber");
+
+                    if (!string.IsNullOrEmpty(lblPath.Text.Trim()))
+                    {
+                        if (lblPath.Text.Trim() == ViewState["Docpath"].ToString().Trim())
+                        {
+                            Viewdoct.Enabled = false;
+                            Viewdoct.CssClass = "styleGridEditDisabled";
+                        }
+                        else
+                        {
+                            Viewdoct.CssClass = "styleGridEdit";
+                        }
+                    }
+                    else
+                    {
+                        Viewdoct.Enabled = false;
+                        Viewdoct.CssClass = "styleGridEditDisabled";
+                    }
+
+                    AjaxControlToolkit.AsyncFileUpload asyFileUpload = (AjaxControlToolkit.AsyncFileUpload)gvPRDDT.Rows[i].FindControl("asyFileUpload");
+
+                    Label lblType = (Label)gvPRDDT.Rows[i].FindControl("lblType");
+
+                    Cbx1.Checked = false;
+                    if (PRDDC_Doc_Cat_ID == Convert.ToInt32(dsDetails.Tables[1].Rows[i]["PRDDC_Doc_Cat_ID"].ToString()))
+                    {
+                        //Commented and added by saranya
+                        //txtScanBy.Text = Convert.ToString(ObjS3G_ORG_PRDDCTransDocMasterDataTable.Rows[i]["Scandedby"]);
+                        if ((dsDetails.Tables[1].Rows[i]["Scanned_Date"].ToString()) != string.Empty)
+                        {
+                            txtScanDate.Text = Convert.ToDateTime(dsDetails.Tables[1].Rows[i]["Scanned_Date"].ToString()).ToString(strDateFormat);
+                        }
+                        else
+                        {
+                            txtScanDate.Text = "";
+                        }
+
+                        if ((Convert.ToString(dsDetails.Tables[1].Rows[i]["Scandedby"])) != string.Empty)
+                        {
+                            ddlScannedBy.SelectedValue = Convert.ToString(dsDetails.Tables[1].Rows[i]["Scanned_By"]);
+                            //ddlScannedBy.ClearDropDownList();
+                            lblScannedBy.Text = Convert.ToString(dsDetails.Tables[1].Rows[i]["Scanned_By"]);
+                        }
+                        else
+                        {
+                            ddlScannedBy.SelectedIndex = -1;
+                            lblScannedBy.Text = "";
+                        }
+
+
+                        if ((dsDetails.Tables[1].Rows[i]["Collected_Date"].ToString()) != string.Empty)
+                        {
+                            txtcolldate.Text = Convert.ToDateTime(dsDetails.Tables[1].Rows[i]["Collected_Date"].ToString()).ToString(strDateFormat);
+                        }
+                        else
+                        {
+                            txtcolldate.Text = "";
+                        }
+                        if ((Convert.ToString(dsDetails.Tables[1].Rows[i]["CollectedBy"])) != string.Empty)
+                        {
+                            ddlCollectedBy.SelectedValue = Convert.ToString(dsDetails.Tables[1].Rows[i]["Collected_By"]);
+                            //ddlCollectedBy.ClearDropDownList();
+                            lblCollectedBy.Text = Convert.ToString(dsDetails.Tables[1].Rows[i]["Collected_By"]);
+                        }
+                        else
+                        {
+                            ddlCollectedBy.SelectedIndex = -1;
+                            lblCollectedBy.Text = "";
+                        }
+                        //end
+                        maxversion = Convert.ToInt32(dsDetails.Tables[1].Rows[i]["Version_No"]);
+
+
+                        if (Convert.ToBoolean(dsDetails.Tables[1].Rows[i]["PRDDTrans"]) == true)
+                        {
+                            Cbx1.Checked = true;
+                            Cbx1.Enabled = false;
+                            //txtcollBy.Text = Convert.ToString(ObjS3G_ORG_PRDDCTransDocMasterDataTable.Rows[i]["CollectedBy"]);
+
+                        }
+                        //else
+                        //{
+                        //    txtcollBy.Text = ObjUserInfo.ProUserNameRW;
+                        //    lblColUser.Text = "";
+                        //}
+
+                        MaxVerChk.Value += maxversion + "@@" + chkbox;
+
+                        if (txtcolldate.Text == "")
+                        {
+                            txtcolldate.Text = "";
+                            Cbx1.Checked = false;
+                        }
+                        MaxVerChk.Value += "@@" + txtScanDate.Text;
+                        MaxVerChk.Value += "@@" + txtcolldate.Text;
+                        txtScanRef.Text = Convert.ToString(dsDetails.Tables[1].Rows[i]["Scanned_Ref_No"]);
+                        txtRemarks.Text = Convert.ToString(dsDetails.Tables[1].Rows[i]["Remarks"]);
+                        MaxVerChk.Value += "@@" + txtRemarks.Text;
+
+                        if (lblPath.Text.Trim() != ViewState["Docpath"].ToString().Trim())
+                        {
+                            string[] Path = Convert.ToString(dsDetails.Tables[1].Rows[i]["Scanned_Ref_No"]).Split('/');
+                            //hidThrobber.Value = Path[Path.Length - 1].ToString();
+                            myThrobber.Text = Path[Path.Length - 1].ToString();
+                            txOD.Text = Convert.ToString(dsDetails.Tables[1].Rows[i]["Scanned_Ref_No"]);
+                        }
+                        //else
+                        //{
+                        //    txtScanBy.Text = ObjUserInfo.ProUserNameRW;                            
+                        //}
+                    }
+
+                    if (dsDetails.Tables[1].Rows.Count == dsDetails.Tables[1].Rows.Count)
+                    {
+                        if ((dsDetails.Tables[1].Rows[i]["Is_NeedScanCopy"].ToString().ToLower() == "false")
+                            || (dsDetails.Tables[1].Rows[i]["Is_NeedScanCopy"].ToString() == "0"))
+                        // && dtIsDetails.Rows[i]["Is_Mandatory"].ToString() == "False")
+                        {
+                            //txtScanDate.Enabled = txtScanBy.Enabled = false;
+                            //txtScanDate.Text = "";
+                            //txtScanBy.Text = "";
+                            ddlScannedBy.Visible = txtScanDate.Visible = false;
+                            Viewdoct.Enabled = false;
+                            Viewdoct.CssClass = "styleGridEditDisabled";
+                            asyFileUpload.Enabled = false;
+                            myThrobber.Text = "";
+                            //Cbx1.Enabled = false;
+                        }
+                    }
+                    MaxVerChk.Value += "~~~";
+                }
+            }
+        }
+        catch (FaultException<CompanyMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            //if (objPRDDT_MasterClient != null)
+            objPRDDT_MasterClient.Close();
+        }
+    }
+    #endregion
+
+    protected void hyplnkView_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            string strFieldAtt = ((ImageButton)sender).ClientID;
+            int gRowIndex = Utility.FunPubGetGridRowID("gvPRDDT", strFieldAtt);
+            Label lblPath = (Label)gvPRDDT.Rows[gRowIndex].FindControl("lblPath");
+            if (lblPath.Text.Trim() != ViewState["Docpath"].ToString().Trim())
+            {
+                string strFileName = lblPath.Text.Replace("\\", "/").Trim();
+                string strScipt = "window.open('../Common/S3GViewFile.aspx?qsFileName=" + strFileName + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(this, "File not to be scanned yet");
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+
+    protected void asyncFileUpload_UploadedComplete(object sender, AjaxControlToolkit.AsyncFileUploadEventArgs e)
+    {
+
+    }
+
+    /// <summary>
+    /// This methode used in Get XML form for PRDDT
+    /// </summary>
+    #region Save/ Clear/ Cancel
+    protected string FunProFormMLAXML()
+    {
+        int enq = 1;
+
+        string[] temprow = null;
+        int Counts = 0;
+        int rowcount = 0;
+        int versionchk = 0;
+        string strVersionNo = "1";
+        StringBuilder strbuXML = new StringBuilder();
+        if (!string.IsNullOrEmpty(MaxVerChk.Value))
+        {
+            temprow = (MaxVerChk.Value).Split('~', '~', '~');
+            strVersionNo = Convert.ToString(temprow[0]).Substring(0, 1);
+        }
+        strbuXML.Append("<Root>");
+        foreach (GridViewRow grvData in gvPRDDT.Rows)
+        {
+            int fileIndex = 1;
+
+            string strlblPRTID = ((Label)grvData.FindControl("lblPRTID")).Text;
+            string strScanBy = "";//Convert.ToString(intUserId);
+            string strCollectdBy = "";
+            //Modified by saranya
+            //if(((Label)grvData.FindControl("lblColUser")).Text!="")
+            //    strCollectdBy = ((Label)grvData.FindControl("lblColUser")).Text;
+            //else
+            //    strCollectdBy = Convert.ToString(intUserId);
+
+            if (((DropDownList)grvData.FindControl("ddlCollectedBy")).SelectedIndex > 0)
+
+                strCollectdBy = ((Label)grvData.FindControl("lblCollectedBy")).Text;
+
+            else
+                strCollectdBy = ((DropDownList)grvData.FindControl("ddlCollectedBy")).SelectedValue;
+
+
+
+            //if (((Label)grvData.FindControl("lblScanUser")).Text != "")
+            //    strScanBy = ((Label)grvData.FindControl("lblScanUser")).Text;
+            //else
+            //    strScanBy = Convert.ToString(intUserId);    
+            if (((DropDownList)grvData.FindControl("ddlScannedBy")).Visible)
+            {
+                if (((DropDownList)grvData.FindControl("ddlScannedBy")).SelectedIndex > 0)
+                    strScanBy = ((Label)grvData.FindControl("lblScannedBy")).Text;
+                else
+                    strScanBy = ((DropDownList)grvData.FindControl("ddlScannedBy")).SelectedValue;
+            }
+            else
+            {
+                strScanBy = "-1";
+            }
+
+
+
+            string strCollectdDate = ((TextBox)grvData.FindControl("txtCollectedDate")).Text;
+            string strScanDate = "";
+            if (((TextBox)grvData.FindControl("txtScannedDate")).Visible)
+            {
+                strScanDate = ((TextBox)grvData.FindControl("txtScannedDate")).Text;
+            }
+            //End here
+
+            CheckBox CbxCheck = (CheckBox)grvData.FindControl("CbxCheck");
+            AjaxControlToolkit.AsyncFileUpload asyFileUpload = (AjaxControlToolkit.AsyncFileUpload)grvData.FindControl("asyFileUpload");
+
+            if (PRDDTransID != 0)
+            {
+                if (asyFileUpload.FileName.ToString() != "")
+                {
+                    //strScanBy = Convert.ToString(intUserId);
+                    strScanBy = ((Label)grvData.FindControl("lblScannedBy")).Text;
+                    //strScanDate = DateTime.Now.ToString(strDateFormat).ToString();
+                    strScanDate = ((TextBox)grvData.FindControl("txtScannedDate")).Text;
+                }
+            }
+
+            string strScanRefNo = ((TextBox)grvData.FindControl("txOD")).Text;
+            string strRemarks = ((TextBox)grvData.FindControl("txtRemarks")).Text.Replace("'", "\"").Replace(">", "").Replace("<", "").Replace("&", "");
+            string strPRDDTrans = Convert.ToString(((CheckBox)grvData.FindControl("CbxCheck")).Checked);
+            string[] temp;
+            if (!string.IsNullOrEmpty(MaxVerChk.Value))
+            {
+                temp = Convert.ToString(temprow[rowcount]).Split('@', '@');
+                maxversion = Convert.ToInt32(temp[0]);
+                chkbox = Convert.ToBoolean(temp[2]);
+                if (strPRDDTrans.ToLower() == Convert.ToString(chkbox).ToLower())
+                {
+                    //{ strVersionNo = Convert.ToString(maxversion);
+                    Counts = 0;
+                }
+                else
+                {
+
+                    versionchk = versionchk + 1;
+                    Counts = 1;
+                    bMod = true;
+                }
+                if (temp[4].ToString() == strScanDate.ToString() && temp[6].ToString() == strCollectdDate.ToString() && temp[8].ToString() == strRemarks.ToString())
+                {
+                    //Counts = 0;
+                }
+                else
+                {
+                    //Counts = 1;
+                    bMod = true;
+                }
+                if (versionchk > 0)
+                {
+                    maxversion = maxversion + 1;
+                    strVersionNo = Convert.ToString(maxversion);
+                }
+            }
+            strScanDate = strScanDate == string.Empty ? strScanDate : Utility.StringToDate(strScanDate).ToString();
+            strCollectdDate = strCollectdDate == string.Empty ? strCollectdDate : Utility.StringToDate(strCollectdDate).ToString();//Utility.StringToDate(DateTime.Now.ToString(strDateFormat)).ToString()
+            strbuXML.Append(" <Details  PRDDC_Doc_Cat_ID='" + strlblPRTID + "' Collected_By='" + strCollectdBy.ToString() + "' Collected_Date='" + strCollectdDate +
+                "' Scanned_By='" + strScanBy.ToString() + "' Scanned_Date='" + strScanDate + "' Scanned_Ref_No='" + strScanRefNo.ToString() + "' Remarks='" + strRemarks.ToString() + "' PRDDTrans='" + strPRDDTrans.ToString() + "' Version_No='" + "' Counts='" + Counts.ToString() + "'/>");
+            rowcount = rowcount + 3;
+
+        }
+        string tem = "Version_No='" + strVersionNo + "'";
+        strbuXML.Replace("Version_No=''", tem);
+        strbuXML.Append("</Root>");
+        return strbuXML.ToString();
+    }
+    #endregion
+
+    /// <summary>
+    /// This methode used in Insert and Update for PRDDT details
+    /// </summary>
+    #region Save and Update PRDDT
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+
+        string strPRDDT_No = string.Empty;
+        string strKey = "Insert";
+        string strAlert = "alert('__ALERT__');";
+        string strRedirectPageView = "window.location.href='../TradeAdvance/S3G_TA_TransLander.aspx?Code=PRTT';";
+        string strRedirectPageAdd = "window.location.href='../TradeAdvance/S3G_TA_PDDTMaster_Add.aspx';";
+
+        objPRDDT_MasterClient = new PRDDCMgtServicesReference.PRDDCMgtServicesClient();
+
+        try
+        {
+            DataTable dt1 = new DataTable();
+            PRDDTransID = Convert.ToInt32(ViewState["PRDDTransID"]);
+            if (PRDDTransID > 0)
+            {
+                dt1 = (DataTable)ViewState["dtIsDetails"];
+            }
+            else
+            {
+                dt1 = (DataTable)ViewState["dtPRDDTypeTrans"];
+                if ((DataTable)ViewState["dtPRDDTypeTrans"] == null)
+                {
+                    lblErrorMessage.Text = "";
+                    Utility.FunShowAlertMsg(this, "Document details not defined in Pre Disbursements Master");
+                    strRedirectPageView = strRedirectPageAdd;
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strRedirectPageView, true);
+                    return;
+                }
+            }
+
+            int counts = 0;
+            int Length = gvPRDDT.Rows.Count;
+
+            for (int i = 0; i < gvPRDDT.Rows.Count; i++)
+            {
+                if (gvPRDDT.Rows[i].RowType == DataControlRowType.DataRow)
+                {
+                    TextBox txtScanDate = (TextBox)gvPRDDT.Rows[i].FindControl("txtScannedDate");
+                    ImageButton hyplnkView = (ImageButton)gvPRDDT.Rows[i].FindControl("hyplnkView");
+                    AjaxControlToolkit.AsyncFileUpload asyFileUpload = (AjaxControlToolkit.AsyncFileUpload)gvPRDDT.Rows[i].FindControl("asyFileUpload");
+                    CheckBox CbxCheck = (CheckBox)gvPRDDT.Rows[i].FindControl("CbxCheck");
+                    Label lblType = (Label)gvPRDDT.Rows[i].FindControl("lblType");
+                    Label lblProgramName = (Label)gvPRDDT.Rows[i].FindControl("lblProgramName");
+                    HiddenField hidThrobber = (HiddenField)gvPRDDT.Rows[i].FindControl("hidThrobber");
+                    Label myThrobber = (Label)gvPRDDT.Rows[i].FindControl("myThrobber");
+                    //asyFilepath.Text = asyFileUpload.FileName;
+                    //Added by Senthil on Apr 16th 2012 Begin
+                    if (CbxCheck.Checked)
+                    {
+                        DropDownList ddlCollectedBy = gvPRDDT.Rows[i].FindControl("ddlCollectedBy") as DropDownList;
+                        DropDownList ddlScannedBy = gvPRDDT.Rows[i].FindControl("ddlScannedBy") as DropDownList;
+                        if (ddlCollectedBy.SelectedIndex == 0)
+                        {
+                            Utility.FunShowAlertMsg(this, " Select Collected By  ");
+                            return;
+                        }
+
+                        if (asyFileUpload.Enabled && ddlScannedBy.SelectedIndex == 0)
+                        {
+                            Utility.FunShowAlertMsg(this, " Select Scanned By  ");
+                            return;
+                        }
+
+
+                    }
+                    //End Here
+
+                    if (lblProgramName.Text.Trim() != "")
+                    {
+                        if ((dt1.Rows[i]["Is_Mandatory"].ToString().ToLower() == "true" ||
+                                dt1.Rows[i]["Is_Mandatory"].ToString().ToLower() == "1")
+                            && CbxCheck.Checked == false)
+                        {
+                            Utility.FunShowAlertMsg(this, "Pre Disbursements Document has to be collected for document type - " + lblType.Text.Trim().ToUpper());
+                            return;
+                        }
+                        if ((dt1.Rows[i]["Is_Mandatory"].ToString().ToLower() == "true"
+                            && dt1.Rows[i]["Is_NeedScanCopy"].ToString().ToLower() == "true") ||
+
+                            (dt1.Rows[i]["Is_Mandatory"].ToString().ToLower() == "1"
+                            && dt1.Rows[i]["Is_NeedScanCopy"].ToString().ToLower() == "1"))
+                        {
+                            if (myThrobber.Text.Trim() == "")
+                            {
+                                Utility.FunShowAlertMsg(this, "Pre Disbursements Document has to be scanned for document type - " + lblType.Text.Trim().ToUpper());
+                                return;
+                            }
+                        }
+                    }
+
+                    if (hidThrobber.Value.Trim() != "")
+                    {
+                        string fileExtension = asyFileUpload.FileName.Substring(asyFileUpload.FileName.LastIndexOf('.') + 1);
+                        if (fileExtension != "" && fileExtension.ToLower() != "bmp" && fileExtension.ToLower() != "jpeg" && fileExtension.ToLower() != "jpg" && fileExtension.ToLower() != "gif" && fileExtension.ToLower() != "png" && fileExtension.ToLower() != "pdf")
+                        {
+                            cvPRDTT.ErrorMessage = "File extension not supported, only image & pdf files should be uploaded.";
+                            cvPRDTT.IsValid = false;
+                            return;
+                        }
+                    }
+
+                    // Modified By Senthilkumar P , 24/Mar/2012
+                    // Reg. Document status not selected in Pre. Dis. Documents.
+
+                    // Validation Begin
+
+                    if (((dt1.Rows[i]["Is_Mandatory"].ToString().ToLower() == "false"
+                            && dt1.Rows[i]["Is_NeedScanCopy"].ToString().ToLower() == "false") ||
+
+                            (dt1.Rows[i]["Is_Mandatory"].ToString().ToLower() == "0"
+                            && dt1.Rows[i]["Is_NeedScanCopy"].ToString().ToLower() == "0"))
+                        && (!(CbxCheck.Checked)))
+                        counts++;
+
+                    // Validation End...
+
+                    if (CbxCheck.Checked) counts++;
+                }
+            }
+
+            if (Length == counts)
+                txtStatus.Text = "Process";
+            else if (counts < Length)
+                txtStatus.Text = "Hold";
+            else
+                txtStatus.Text = "Null";
+
+            int intRowindex = 0;
+            foreach (GridViewRow grv in gvPRDDT.Rows)
+            {
+                TextBox txOD = grv.FindControl("txOD") as TextBox;
+                //txOD.Text = ViewState["Docpath"].ToString().Trim();
+                //Commented and added by saranya
+                //Label txtCollected = grv.FindControl("txtColletedDate") as Label;
+                //Label txtCollectedBy = grv.FindControl("txtColletedBy") as Label;
+                //Label txtScaned = grv.FindControl("txtScannedDate") as Label;
+                //Label txtScanedBy = grv.FindControl("txtScannedBy") as Label;
+                //TextBox txtScan = grv.FindControl("txtScan") as TextBox;
+                TextBox txtCollected = grv.FindControl("txtColletedDate") as TextBox;
+                DropDownList ddlCollectedBy = grv.FindControl("ddlCollectedBy") as DropDownList;
+                Label lblCollectedBy = grv.FindControl("lblCollectedBy") as Label;
+                TextBox txtScaned = grv.FindControl("txtScannedDate") as TextBox;
+                DropDownList ddlScannedBy = grv.FindControl("ddlScannedBy") as DropDownList;
+                Label lblScannedBy = grv.FindControl("lblScannedBy") as Label;
+                TextBox txtScan = grv.FindControl("txtScan") as TextBox;
+                //End Here
+                TextBox txtRemark = grv.FindControl("txtRemarks") as TextBox;
+                ImageButton HypLnk = (ImageButton)grv.FindControl("hyplnkView");
+                HiddenField hidThrobber = (HiddenField)grv.FindControl("hidThrobber");
+
+                AjaxControlToolkit.AsyncFileUpload AsyncFileUpload1 = (AjaxControlToolkit.AsyncFileUpload)grv.FindControl("asyFileUpload");
+
+                string strPath = "";
+                string strNewFileName = AsyncFileUpload1.FileName;
+                string strEnqNumber = "";// ddlEnquiry.SelectedItem.Text.Replace("/", "-");
+
+                if (AsyncFileUpload1.FileName != "" && hidThrobber.Value.Trim() != "")
+                {
+                    if (AsyncFileUpload1.HasFile)
+                    {
+                        if (ViewState["Docpath"].ToString() != "")
+                        {
+                            strPath = Path.Combine(ViewState["Docpath"].ToString(), "COMPANY" + intCompanyId.ToString() + "/" + strEnqNumber + "/" + "PDDTC-" + intRowindex.ToString());
+                            if (Directory.Exists(strPath))
+                            {
+                                Directory.Delete(strPath, true);
+                            }
+                            Directory.CreateDirectory(strPath);
+                            strPath = strPath + "/" + strNewFileName;
+                        }
+                        txOD.Text = strPath;// txOD.Text + strEnqNumber + "\\" + "PDDTC-" + intRowindex.ToString() + "\\" + strNewFileName;
+
+                        FileInfo f1 = new FileInfo(strPath);
+
+                        if (f1.Exists == true)
+                            f1.Delete();
+
+                        AsyncFileUpload1.SaveAs(strPath);
+                    }
+                }
+
+                //if (((CheckBox)grv.FindControl("CbxCheck")).Checked)
+                //{                    
+                //    if (txtRemark.Text.Length == 0)
+                //    {
+                //        cvPRDTT.ErrorMessage = "Enter the Remarks";                        
+                //        cvPRDTT.IsValid = false;
+                //        return;
+                //    }
+                //}
+                intRowindex++;
+            }
+
+            ObjS3G_PRDDTransDocMasterDataTable = new PRDDCMgtServices.S3G_ORG_PRDDTransDocMasterDataTable();
+            PRDDCMgtServices.S3G_ORG_PRDDTransDocMasterRow objPRDDTransDocRow;
+            ObjS3G_PRDDTransMasterDataTable = new PRDDCMgtServices.S3G_ORG_PPDDTransMasterDataTable();
+            PRDDCMgtServices.S3G_ORG_PPDDTransMasterRow objPRDDTransRow;
+            objPRDDTransRow = ObjS3G_PRDDTransMasterDataTable.NewS3G_ORG_PPDDTransMasterRow();
+            objPRDDTransRow.Company_ID = intCompanyId;
+            PRDDTransID = Convert.ToInt32(ViewState["PRDDTransID"]);
+            objPRDDTransRow.PreDisbursement_Doc_Tran_ID = PRDDTransID;
+            objPRDDTransRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            objPRDDTransRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            objPRDDTransRow.Constitution_ID = Convert.ToInt32(ddlConstitition.SelectedValue);
+            objPRDDTransRow.Document_Type = Convert.ToInt32(ddlProduct.SelectedValue);
+            objPRDDTransRow.Enquiry_Response_ID = 0;
+            objPRDDTransRow.PRDDC_ID = Convert.ToInt32(ViewState["PRDDC_ID"]);
+            objPRDDTransRow.Customer_ID = Convert.ToInt64(txtCustomerID.Text);
+            if (PRDDTransID == 0)
+            {
+                objPRDDTransRow.PRDDC_Date = Utility.StringToDate(txtDate.Text);
+            }
+            else
+            {
+                objPRDDTransRow.PRDDC_Date = DateTime.Now;
+            }
+
+            if (txtStatus.Text == "Null")
+            {
+                objPRDDTransRow.Status = "1";
+            }
+            else if (txtStatus.Text == "Hold")
+            {
+                objPRDDTransRow.Status = "2";
+            }
+            else
+            {
+                objPRDDTransRow.Status = "3";
+            }
+
+            objPRDDTransRow.Created_By = intUserId;
+            objPRDDTransRow.Created_On = DateTime.Now;
+            objPRDDTransRow.Modified_By = intUserId;
+            objPRDDTransRow.Modified_On = DateTime.Now;
+            if (PRDDTransID == 0)
+            {
+                objPRDDTransRow.PRDDC_Number = "0";
+            }
+            else
+            {
+                objPRDDTransRow.PRDDC_Number = txtPRDDC.Text;
+            }
+            objPRDDTransRow.XML_PRDDTDeltails = FunProFormMLAXML();
+            ObjS3G_PRDDTransMasterDataTable.AddS3G_ORG_PPDDTransMasterRow(objPRDDTransRow);
+            byte[] ObjPRDDTDataTable = ClsPubSerialize.Serialize(ObjS3G_PRDDTransMasterDataTable, SerMode);
+
+            if (PRDDTransID > 0)
+            {
+                intErrCode = objPRDDT_MasterClient.FunPubModifyTAPRDDTransMaster(SerMode, ObjPRDDTDataTable);
+            }
+            else
+            {
+                intErrCode = objPRDDT_MasterClient.FunPubCreateTAPRDDTransMaster(out strPRDDT_No, SerMode, ObjPRDDTDataTable);
+
+            }
+
+            if (intErrCode == 0)
+            {
+                btnSave.Enabled = false;    
+                if (PRDDTransID > 0)
+                {
+                    strPRDDT_No = txtPRDDC.Text;
+                    strAlert = strAlert.Replace("__ALERT__", "Pre Disbursements Document Transaction details updated successfull");
+                    //strKey = "Modify";
+                    //strAlert = strAlert.Replace("__ALERT__", "Pre Disbursements Document Transaction details updated successfully");
+                    if (ViewState["PageMode"] != null && ViewState["PageMode"].ToString() == PageModes.WorkFlow.ToString())  //if (isWorkFlowTraveler)                       
+                    {
+                        try
+                        {
+                            WorkFlowSession WFValues = new WorkFlowSession();
+                            try
+                            {
+                                //int intWorkflowStatus = UpdateWorkFlowTasks(CompanyId.ToString(), UserId.ToString(), WFValues.LOBId, WFValues.BranchID, WFValues.WorkFlowDocumentNo, WFValues.WorkFlowProgramId, WFValues.WorkFlowStatusID.ToString(), WFValues.ProductId, int.Parse(ddlRefPoint.SelectedValue));
+                                strAlert = "";
+                            }
+                            catch (Exception ex)
+                            {
+                                strAlert = "Work Flow not Assigned";
+                            }
+                            ShowWFAlertMessage(strPRDDT_No, ProgramCode, strAlert);
+                            return;
+                        }
+                        catch
+                        {
+                            strAlert = "Pre Disbursements Document Transaction details updated successfull";
+
+                        }
+                    }
+                }
+                else
+                {
+                    if (ViewState["PageMode"] != null && ViewState["PageMode"].ToString() == PageModes.WorkFlow.ToString())  //if (isWorkFlowTraveler)                       
+                    {
+                        try
+                        {
+                            WorkFlowSession WFValues = new WorkFlowSession();
+                            try
+                            {
+                                //int intWorkflowStatus = UpdateWorkFlowTasks(CompanyId.ToString(), UserId.ToString(), WFValues.LOBId, WFValues.BranchID, WFValues.WorkFlowDocumentNo, WFValues.WorkFlowProgramId, WFValues.WorkFlowStatusID.ToString(), WFValues.ProductId, int.Parse(ddlRefPoint.SelectedValue));
+
+                                strAlert = "";
+
+                                //Added by Thangam M on 18/Oct/2012 to avoid double save click
+                                btnSave.Enabled = false;
+                                //End here
+                            }
+                            catch (Exception ex)
+                            {
+                                strAlert = "Work Flow not Assigned";
+                            }
+                            ShowWFAlertMessage(strPRDDT_No, ProgramCode, strAlert);
+                            return;
+                        }
+                        catch
+                        {
+                            //Added by Thangam M on 18/Oct/2012 to avoid double save click
+                            btnSave.Enabled = false;
+                            //End here
+
+                            strAlert = "Pre Disbursements Document Transaction " + strPRDDT_No + " details added successfully";
+                            strAlert += @"\n\n And Job not assigned to the next user.";
+                            strAlert += @"\n\nWould you like to add one more record?";
+                            strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                            strRedirectPageView = "";
+                            ddlLOB.Focus();
+                        }
+                    }
+                    else
+                    {
+                        DataTable WFFP = new DataTable();
+                        //if (CheckForForcePullOperation(null, ddlEnquiry.SelectedItem.Text.Trim(), ProgramCode, null, null, "O", CompanyId, int.Parse(ddlLOB.SelectedValue), null, null, txtProductName.Text.Trim(), out WFFP))
+                        //{
+                        //    DataRow dtrForce = WFFP.Rows[0];
+                        //    int intWorkflowStatus = UpdateWorkFlowTasks(CompanyId.ToString(), UserId.ToString(), int.Parse(dtrForce["LOBId"].ToString()), int.Parse(dtrForce["LocationID"].ToString()), ddlEnquiry.SelectedItem.Text.Trim(), int.Parse(dtrForce["WFPROGRAMID"].ToString()), dtrForce["WFSTATUSID"].ToString(), int.Parse(dtrForce["PRODUCTID"].ToString()), int.Parse(ddlRefPoint.SelectedValue));
+                        //}
+
+                        //Added by Thangam M on 18/Oct/2012 to avoid double save click
+                        btnSave.Enabled = false;
+                        //End here
+
+                        strAlert = "Pre Disbursements Document Transaction " + strPRDDT_No + " details added successfully";
+                        strAlert += @"\n\nWould you like to add one more record?";
+                        strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                        strRedirectPageView = "";
+                        ddlLOB.Focus();
+                    }
+                }
+            }
+            else if (intErrCode == 1)
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Pre Disbursements Document Transaction details already exists");
+            }
+            else if (intErrCode == -1)
+            {
+                if (PRDDTransID == 0)
+                {
+                    strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoNotDefined);
+                    strRedirectPageView = "";
+                    ddlLOB.Focus();
+                }
+            }
+            else if (intErrCode == -2)
+            {
+                if (PRDDTransID == 0)
+                {
+                    strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoExceeds);
+                    strRedirectPageView = "";
+                    ddlLOB.Focus();
+                }
+            }
+            ddlLOB.Focus();
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            lblErrorMessage.Text = string.Empty;
+        }
+        catch (FaultException<CompanyMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("Access to the path") && ex.Message.Contains("denied"))
+            {
+                cvPRDTT.ErrorMessage = "File Path not formed well or Access to the path is denied";
+                cvPRDTT.IsValid = false;
+                return;
+            }
+            else if (ex.Message.Contains("Could not find a part of the path"))
+            {
+                cvPRDTT.ErrorMessage = "File Path defined in Pre Disbursements Document Master is not avilable";
+                cvPRDTT.IsValid = false;
+                return;
+            }
+            else
+            {
+                cvPRDTT.ErrorMessage = "File Path defined in Pre Disbursements Document Master is not avilable ";//ex.Message;
+                cvPRDTT.IsValid = false;
+                return;
+            }
+        }
+        finally
+        {
+            //if (objPRDDT_MasterClient != null)
+            objPRDDT_MasterClient.Close();
+        }
+    }
+    #endregion
+
+    /* WorkFlow Properties */
+    private int WFLOBId { get { return int.Parse(ddlLOB.SelectedValue); } }
+    private int WFProduct { get { return 3; } }    /// <summary>
+    /// This methode used in Clear the all enterable data
+    /// </summary>
+    #region Clear
+    public void Clear()
+    {
+        try
+        {
+            ucCustomerCodeLov.FunPubClearControlValue();
+            ddlProduct.SelectedValue = "0";
+            txtStatus.Text = "";
+            S3GCustomerAddress1.ClearCustomerDetails();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+
+    }
+    #endregion
+
+    /// <summary>
+    /// This methode used in Cancel button event
+    /// </summary>
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        //wf Cancel
+        if (PageMode == PageModes.WorkFlow)
+            ReturnToWFHome();
+        else
+            Response.Redirect(strRedirectPage,false);
+    }
+
+    /// <summary>
+    /// This methode used in Tab Index Change event
+    /// </summary>
+    protected void tcPDDT_ActiveTabChanged(object sender, EventArgs e)
+    {
+        lblErrorMessage.Text = "";
+    }
+
+    /// <summary>
+    /// This methode used in Clear the value
+    /// </summary>
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            ddlConstitition.Items.Clear();// SelectedIndex = -1;
+            //ddlConstitition.ClearDropDownList();
+            Clear();
+            ddlLOB.SelectedValue = "0";
+
+            ucCustomerCodeLov.FunPubClearControlValue();
+            lblErrorMessage.Text = "";
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// This methode used  Create ,Modify and Query [User Role Access]
+    /// </summary>
+    #region Role Access Setup
+    private void FunPriDisableControls(int intModeID)
+    {
+
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                read();
+                if (!bCreate)
+                {
+                    btnSave.Enabled = false;
+                }
+                txtPRDDC.Enabled = false;
+                ddlLOB.Focus();
+                tpPDDT.Enabled = false;
+                break;
+
+            case 1: // Modify Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                btnSave.Enabled = true;
+                if (!bModify)
+                {
+                    btnSave.Enabled = false;
+                }
+                read();
+                txtPRDDC.ReadOnly = true;
+                FunGetPRDDTransDocDetatils();
+
+                if (ViewState["PageMode"] == null)
+                {
+//                    FunPriDeletePRDDT();
+                }
+                ddlLOB.ClearDropDownList();
+                ddlBranch.ClearDropDownList();
+                ddlProduct.ClearDropDownList();
+                ddlConstitition.ClearDropDownList();
+                ucCustomerCodeLov.ButtonEnabled = false;
+                txtDate.ReadOnly = true;
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                btnClear.Enabled = btnGo.Enabled = false;
+                tpPDDT.Enabled = true;
+                break;
+
+            case -1:// Query Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPageView);
+                }
+                read();
+                FunGetPRDDTransDocDetatils();
+                ddlProduct.ClearDropDownList();
+                txtPRDDC.ReadOnly = true;
+                txtPRDDC.Enabled = true;
+                btnClear.Enabled = false;
+                btnSave.Enabled = btnGo.Enabled = false;
+                tpPDDT.Enabled = true;
+                gvPRDDT.Columns[9].Visible = false;
+                foreach (GridViewRow grv in gvPRDDT.Rows)
+                {
+                    DropDownList ddlCollectedBy = (DropDownList)grv.FindControl("ddlCollectedBy");
+                    TextBox TxtCollectedDt = (TextBox)grv.FindControl("txtCollectedDate");
+                    DropDownList ddlScannedBy = (DropDownList)grv.FindControl("ddlScannedBy");
+                    TextBox TxtScannedDt = (TextBox)grv.FindControl("txtScannedDate");
+                    TextBox TxtScanRef = (TextBox)grv.FindControl("txtScan");
+                    TextBox TxtRemarks = (TextBox)grv.FindControl("txtRemarks");
+                    CheckBox CkBox = (CheckBox)grv.FindControl("CbxCheck");
+                    ImageButton hyplnkView = (ImageButton)grv.FindControl("hyplnkView");
+                    Label myThrobber = (Label)grv.FindControl("myThrobber");
+                    AjaxControlToolkit.CalendarExtender DtCollect = (AjaxControlToolkit.CalendarExtender)grv.FindControl("calCollectedDate");
+                    AjaxControlToolkit.CalendarExtender DtScan = (AjaxControlToolkit.CalendarExtender)grv.FindControl("calScannedDate");
+                    TxtScanRef.ReadOnly = true;
+                    TxtRemarks.ReadOnly = true;
+                    CkBox.Enabled = false;   //myThrobber.Visible 
+                    TxtCollectedDt.ReadOnly = true;
+
+                    TxtScannedDt.ReadOnly = true;
+                    DtCollect.Enabled = false;
+                    DtScan.Enabled = false;
+                    ddlCollectedBy.ClearDropDownList();
+                    ddlScannedBy.ClearDropDownList();
+                    //if (myThrobber.Text.Trim() == "")
+                    //{
+                    ////    TxtScannedDt.Text  = TxtScannedBy.Text = "";    
+                    //    TxtScannedDt.Visible = ddlScannedBy.Visible = false;
+                    //}
+                    //if (!CkBox.Checked)
+                    //{
+                    //    //TxtCollectedBy.Text = TxtCollectedDt.Text = "";
+                    //    ddlCollectedBy.Visible = TxtCollectedDt.Visible = false;
+                    //}
+                }
+
+                if (bClearList)
+                {
+                    ddlLOB.ClearDropDownList();
+                    ddlBranch.ClearDropDownList();
+                    ddlConstitition.ClearDropDownList();
+                    ddlProduct.ClearDropDownList();
+                    ucCustomerCodeLov.ButtonEnabled = false;
+                }
+                break;
+        }
+
+    }
+    #endregion
+
+    #region Exits PRDDTransaction
+    private void FunPriDeletePRDDT()
+    {
+        objPRDDT_MasterClient = new PRDDCMgtServicesReference.PRDDCMgtServicesClient();
+
+        try
+        {
+            ObjS3G_ORG_ExitsPRDDCTransRows = ObjS3G_ORG_ExitsPRDDCTransDocMasterDataTable.NewS3G_ORG_ExitsPRDDTMasterRow();
+            ObjS3G_ORG_ExitsPRDDCTransRows.Company_ID = intCompanyId;
+            //ObjS3G_ORG_ExitsPRDDCTransRows.Document_Type = Convert.ToInt32(ddlProduct.SelectedValue);
+            ObjS3G_ORG_ExitsPRDDCTransRows.PreDisbursement_Doc_Tran_ID = PRDDTransID;
+            ObjS3G_ORG_ExitsPRDDCTransDocMasterDataTable.AddS3G_ORG_ExitsPRDDTMasterRow(ObjS3G_ORG_ExitsPRDDCTransRows);
+            SerializationMode SerMode = SerializationMode.Binary;
+
+            intErrCode = objPRDDT_MasterClient.FunPubExitsPRDDTrans(SerMode, ClsPubSerialize.Serialize(ObjS3G_ORG_ExitsPRDDCTransDocMasterDataTable, SerMode));
+            if (intErrCode > 0)
+            {
+                btnSave.Enabled = false;
+                btnClear.Enabled = false;
+                Utility.FunShowAlertMsg(this, "Pre Disbursements Document Transaction details used in transaction");
+                return;
+            }
+
+            //objPRDDT_MasterClient.Close();
+        }
+        catch (FaultException<CompanyMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            objPRDDT_MasterClient.Close();
+        }
+    }
+    #endregion
+
+    protected void gvPRDDT_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        OrgMasterMgtServicesReference.OrgMasterMgtServicesClient ObjCustomerService = new OrgMasterMgtServicesReference.OrgMasterMgtServicesClient();
+        S3GBusEntity.S3G_Status_Parameters ObjStatus = new S3G_Status_Parameters();
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.Header)
+            {
+                ObjStatus.Option = 35;
+                ObjStatus.Param1 = intCompanyId.ToString();
+                ViewState["UserDetails"] = ObjCustomerService.FunPub_GetS3GStatusLookUp(ObjStatus);
+            }
+
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+
+                Label lblPath = (Label)e.Row.FindControl("lblPath");
+                Label lblmyThrobber = (Label)e.Row.FindControl("myThrobber");
+
+                //Added by saranya
+                DropDownList ddlCollectedby = (DropDownList)e.Row.FindControl("ddlCollectedby");
+                AjaxControlToolkit.CalendarExtender calCollectedDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("calCollectedDate");
+                AjaxControlToolkit.CalendarExtender calScannedDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("calScannedDate");
+                calScannedDate.Format = calCollectedDate.Format = strDateFormat;
+                TextBox txtColletedDate = (TextBox)e.Row.FindControl("txtCollectedDate");
+                //end
+                ImageButton Viewdoct = (ImageButton)e.Row.FindControl("hyplnkView");
+                CheckBox Cbx1 = (CheckBox)e.Row.FindControl("CbxCheck");
+                DropDownList ddlScannedby = (DropDownList)e.Row.FindControl("ddlScannedby");
+                TextBox txtScannedDate = (TextBox)e.Row.FindControl("txtScannedDate");
+                TextBox txtUpload = (TextBox)e.Row.FindControl("txOD");
+                //commented by saranya
+                //Label lblCollectedby = (Label)e.Row.FindControl("txtColletedBy");
+                //Label txtColletedDate = (Label)e.Row.FindControl("txtColletedDate");
+                //Label txtScannedDate = (Label)e.Row.FindControl("txtScannedDate");
+                //Label lblScanneddby = (Label)e.Row.FindControl("txtScannedBy");
+                //txtColletedDate.Attributes.Add("readonly", "readonly");
+                //txtScannedDate.Attributes.Add("readonly", "readonly");
+                //end
+
+                Utility.FillDLL(ddlCollectedby, (DataTable)ViewState["UserDetails"]);
+                Utility.FillDLL(ddlScannedby, (DataTable)ViewState["UserDetails"]);
+
+                //Added by saranya
+                /*
+                ObjStatus.Option = 35;
+                ObjStatus.Param1 = intCompanyId.ToString();
+                Utility.FillDLL(ddlCollectedby, ObjCustomerService.FunPub_GetS3GStatusLookUp(ObjStatus));
+
+                ObjStatus.Option = 35;
+                ObjStatus.Param1 = intCompanyId.ToString();
+                Utility.FillDLL(ddlScannedby, ObjCustomerService.FunPub_GetS3GStatusLookUp(ObjStatus));
+                */
+                //Label lblCollectedBy = e.Row.FindControl("lblCollectedBy") as Label;
+                //Label lblScannedBy = e.Row.FindControl("lblScannedBy") as Label;
+
+                //if (lblCollectedBy.Text != "")
+                //{
+                //    ddlCollectedby.SelectedValue = lblCollectedBy.Text;
+                //}
+                //if (lblScannedBy.Text != "")
+                //{
+                //    ddlScannedby.SelectedValue = lblScannedBy.Text;
+                //}
+                //end
+
+                if (txtColletedDate.Text.Contains("1900"))
+                {
+                    txtColletedDate.Text = "";
+
+                    //Viewdoct.Enabled = false;
+                }
+                if (PRDDTransID > 0)
+                {
+                    Viewdoct.Enabled = true;
+                    Viewdoct.CssClass = "styleGridEdit";
+                }
+                else
+                {
+                    Viewdoct.Enabled = false;
+                    Viewdoct.CssClass = "styleGridEditDisabled";
+                }
+
+                if (txtScannedDate.Text.Contains("1900"))
+                {
+                    Cbx1.Checked = false;
+                    txtScannedDate.Text = "";
+                    txtScannedDate.Visible = false; //added
+                    ddlScannedby.ClearDropDownList();
+                    ddlScannedby.Visible = false; //added   
+                }
+                if (ViewState["Docpath"] != null)
+                    txtUpload.Text = ViewState["Docpath"].ToString();
+
+                if (strMode == "M")
+                {
+                    txtUpload.Text = lblPath.Text;
+                    if (string.IsNullOrEmpty(txtUpload.Text))
+                    {
+                        Viewdoct.Enabled = false;
+                        Viewdoct.CssClass = "styleGridEditDisabled";
+                    }
+                }
+
+                //if (lblCollectedby.Text == "")
+                //    lblCollectedby.Text = ObjUserInfo.ProUserNameRW;
+
+                //if (lblScanneddby.Text == "")
+                //    lblScanneddby.Text = ObjUserInfo.ProUserNameRW;
+
+
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    protected void ddlCollectedBy_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        DropDownList ddlCollectedBy = sender as DropDownList;
+        if (ddlCollectedBy.SelectedIndex > 0)
+        {
+            int intCurrentRow = ((GridViewRow)ddlCollectedBy.Parent.Parent).RowIndex;
+            Label lblCollectedBy = (Label)gvPRDDT.Rows[intCurrentRow].FindControl("lblCollectedBy");
+            lblCollectedBy.Text = ddlCollectedBy.SelectedValue;
+        }
+
+    }
+
+    protected void ddlScannedBy_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        DropDownList ddlScannedBy = sender as DropDownList;
+        if (ddlScannedBy.SelectedIndex > 0)
+        {
+            int intCurrentRow = ((GridViewRow)ddlScannedBy.Parent.Parent).RowIndex;
+            Label lblScannedBy = (Label)gvPRDDT.Rows[intCurrentRow].FindControl("lblScannedBy");
+            lblScannedBy.Text = ddlScannedBy.SelectedValue;
+        }
+    }
+
+    protected void btnCreateCustomer_Click(object sender, EventArgs e)
+    {
+        try
+        {
+
+            HiddenField HdnId = ucCustomerCodeLov.FindControl("hdnID") as HiddenField;
+            if (HdnId != null)
+            {
+                ViewState["hdnEntityID"] = HdnId.Value;
+                FunProLoadEntityDetails(HdnId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+
+    }
+
+    protected void FunProLoadEntityDetails(string strEntityID)
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", intCompanyId.ToString());
+        Procparam.Add("@Entity_ID", strEntityID);
+
+        DataTable dt = Utility.GetDefaultData("S3G_TA_GetEntityDetails", Procparam);
+        if (dt.Rows.Count > 0)
+        {
+            S3GCustomerAddress1.SetCustomerDetails(dt.Rows[0], true);
+            txtCustomerID.Text = dt.Rows[0]["Customer_ID"].ToString();
+
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+            TextBox txtName = ucCustomerCodeLov.FindControl("txtName") as TextBox;
+            txtName.Text = dt.Rows[0]["Customer_Code"].ToString();
+        }
+    }
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        FunPriGetPRDDTransType();
+    }
+
+    private void FunPriGetPRDDTransType()
+    {
+        objPRDDT_MasterClient = new PRDDCMgtServicesReference.PRDDCMgtServicesClient();
+        try
+        {
+            PRDDCMgtServices.S3G_ORG_PRDDCDocumentCategoryRow ObjPRDDTypeTransRow;
+            ObjS3G_PRDDDocCategoryDataTable = new PRDDCMgtServices.S3G_ORG_PRDDCDocumentCategoryDataTable();
+            ObjPRDDTypeTransRow = ObjS3G_PRDDDocCategoryDataTable.NewS3G_ORG_PRDDCDocumentCategoryRow();
+            ObjPRDDTypeTransRow.Company_ID = intCompanyId;
+            ObjPRDDTypeTransRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjPRDDTypeTransRow.Constitution_ID = Convert.ToInt32(ddlConstitition.SelectedValue);
+            ObjPRDDTypeTransRow.Option = Convert.ToInt32(ddlProduct.SelectedValue);
+            ObjPRDDTypeTransRow.Ref_ID = 0;
+            ObjS3G_PRDDDocCategoryDataTable.AddS3G_ORG_PRDDCDocumentCategoryRow(ObjPRDDTypeTransRow);
+
+            byte[] bytePRDDTypeTrans = objPRDDT_MasterClient.FunPubGetTATypeTrans(SerMode, ClsPubSerialize.Serialize(ObjS3G_PRDDDocCategoryDataTable, SerMode));
+            PRDDCMgtServices.S3G_ORG_PRDDCDocumentCategoryDataTable dtPRDDTypeTrans = (PRDDCMgtServices.S3G_ORG_PRDDCDocumentCategoryDataTable)ClsPubSerialize.DeSerialize(bytePRDDTypeTrans, SerMode, typeof(PRDDCMgtServices.S3G_ORG_PRDDCDocumentCategoryDataTable));
+
+            if (dtPRDDTypeTrans.Rows.Count > 0)
+            {
+                gvPRDDT.DataSource = dtPRDDTypeTrans;
+                gvPRDDT.DataBind();
+                ViewState["dtPRDDTypeTrans"] = dtPRDDTypeTrans;
+                gvPRDDT.Visible = true;
+                tpPDDT.Visible = true;
+                ViewState["PRDDC_ID"] = dtPRDDTypeTrans.Rows[0]["PRDDC_ID"].ToString();
+                ViewState["Docpath"] = dtPRDDTypeTrans.Rows[0]["Document_Path"].ToString();
+
+                for (int i = 0; i < gvPRDDT.Rows.Count; i++)
+                {
+                    if (gvPRDDT.Rows[i].RowType == DataControlRowType.DataRow)
+                    {
+                        TextBox txtScanDate = (TextBox)gvPRDDT.Rows[i].FindControl("txtScannedDate");
+                        DropDownList ddlScannedBy = (DropDownList)gvPRDDT.Rows[i].FindControl("ddlScannedBy");
+                        Label lblScannedBy = (Label)gvPRDDT.Rows[i].FindControl("lblScannedBy");
+                        ImageButton hyplnkView = (ImageButton)gvPRDDT.Rows[i].FindControl("hyplnkView");
+                        AjaxControlToolkit.AsyncFileUpload asyFileUpload = (AjaxControlToolkit.AsyncFileUpload)gvPRDDT.Rows[i].FindControl("asyFileUpload");
+                        CheckBox CbxCheck = (CheckBox)gvPRDDT.Rows[i].FindControl("CbxCheck");
+
+                        if ((dtPRDDTypeTrans.Rows[i]["Is_NeedScanCopy"].ToString().ToLower() == "false")
+                             || (dtPRDDTypeTrans.Rows[i]["Is_NeedScanCopy"].ToString().ToLower() == "0"))
+                        {
+                            txtScanDate.Visible = ddlScannedBy.Visible = false;
+                            asyFileUpload.Enabled = false;
+                            hyplnkView.Enabled = false;
+                            hyplnkView.CssClass = "styleGridEditDisabled";
+                        }
+                    }
+                }
+
+                tpPDDT.Enabled = true;
+                tcPDDT.ActiveTabIndex = 1;
+                btnSave.Enabled = true;
+            }
+            else
+            {
+                tpPDDT.Enabled = false;
+                btnSave.Enabled = false;
+                gvPRDDT.DataSource = null;
+                gvPRDDT.DataBind();
+                Utility.FunShowAlertMsg(this, "Document details not defined in Pre Disbursements Master");
+                strRedirectPageView = ""; // strRedirectPageAdd;
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strRedirectPageView, true);
+                return;
+            }
+        }
+        catch (FaultException<CompanyMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, lblHeading.Text);
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            objPRDDT_MasterClient.Close();
+        }
+    }
+}
+

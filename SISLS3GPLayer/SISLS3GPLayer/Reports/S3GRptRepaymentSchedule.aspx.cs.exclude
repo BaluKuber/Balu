@@ -1,0 +1,693 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Reports
+/// Screen Name         :   Reayment Schedule
+/// Created By          :   Saranya I
+/// Created Date        :   24-Mar-2011
+/// Purpose             :   To Get the Complete Repayment Schedule of an account.
+/// Last Updated By		:   
+/// Last Updated Date   :   
+/// Reason              :  
+/// <Program Summary>
+#endregion
+
+#region Namespaces
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using S3GBusEntity;
+using ReportAccountsMgtServicesReference;
+using S3GBusEntity.Reports;
+#endregion
+
+public partial class Reports_S3GRptRepaymentSchedule : ApplyThemeForProject
+{
+    #region Variable Declaration
+    UserInfo ObjUserInfo;
+    S3GSession ObjS3GSession = new S3GSession();
+    int intCompanyId;
+    string intCustomerId;
+    int intUserId;
+    string PANum;
+    string SANum;
+    bool Is_Active;
+    int Active;
+    decimal TotalInstallmentAmount;
+    decimal TotalPrincipalAmount;
+    decimal TotalFinanceCharges;
+    decimal TotalInsuranceAmount;
+    decimal TotalOthers;
+    decimal TotalVatrecovery;
+    decimal TotalVatSetoff;
+    decimal TotalTax;
+    Dictionary<string, string> Procparam;
+    string strPageName = "Repayment Schedule";
+    DataTable dtTable = new DataTable();
+    ReportAccountsMgtServicesClient objSerClient;
+    #endregion
+
+    #region Page Load
+
+    /// <summary>
+    /// This event is handled for load the page
+    /// </summary>
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+        }
+        catch (Exception ex)
+        {
+            CVRepaymentSchedule.ErrorMessage = "Due to Data Problem, Unable to Load Repayment Schedule Page.";
+            CVRepaymentSchedule.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    # region Page Methods
+    /// <summary>
+    /// This Method is called when page is Loding
+    /// </summary>
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            objSerClient = new ReportAccountsMgtServicesClient();
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+            TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            txtName.Attributes.Add("onfocus", "fnLoadCustomer()");
+            txtName.Attributes.Add("ReadOnly", "ReadOnly");
+
+            ObjUserInfo = new UserInfo();
+
+            intCompanyId = ObjUserInfo.ProCompanyIdRW;
+            intUserId = ObjUserInfo.ProUserIdRW;
+
+            if (!IsPostBack)
+            {
+                FunPriLoadLob(intCompanyId, intUserId);
+                FunPriLoadBranch(intCompanyId, intUserId, Is_Active);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load Repayment Schedule page");
+        }
+    }
+
+    /// <summary>
+    /// This Method is called when page is Loading.
+    /// To Load the Line of Business in Dropdown List.
+    /// </summary>
+    /// <param name="intCompany_id"></param>
+    /// <param name="intUser_id"></param>
+    private void FunPriLoadLob(int intCompany_id, int intUser_id)
+    {
+        try
+        {
+            ddlLOB.Items.Clear();
+            byte[] byteLobs = objSerClient.FunPubGetLOB(intCompany_id, intUser_id);
+            List<ClsPubDropDownList> lobs = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlLOB.DataSource = lobs;
+            ddlLOB.DataTextField = "Description";
+            ddlLOB.DataValueField = "ID";
+            ddlLOB.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    ///  This Method is called when page is Loading.
+    ///  To Load the Branch in Dropdown List.
+    /// </summary>
+    /// <param name="intCompany_id"></param>
+    /// <param name="intUser_id"></param>
+    /// <param name="Is_active"></param>
+    private void FunPriLoadBranch(int intCompany_id, int intUser_id, bool Is_active)
+    {
+        try
+        {
+            ddlBranch.Items.Clear();
+            byte[] byteLobs = objSerClient.FunPubGetBranch(intCompany_id, intUser_id, true);
+            List<ClsPubDropDownList> Branch = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlBranch.DataSource = Branch;
+            ddlBranch.DataTextField = "Description";
+            ddlBranch.DataValueField = "ID";
+            ddlBranch.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// This Method is called after select the Customer Name.
+    /// To Load the Product in Dropdown List.
+    /// </summary>
+    /// <param name="intCompany_id"></param>
+    /// <param name="intcutomer_id"></param>
+    private void FunPriLoadProduct(int intCompany_id, string intcutomer_id)
+    {
+        try
+        {
+            ddlProduct.Items.Clear();
+            byte[] byteLobs = objSerClient.FunPubGetProduct(intCompanyId, hdnCustID.Value);
+            List<ClsPubDropDownList> product = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlProduct.DataSource = product;
+            ddlProduct.DataTextField = "Description";
+            ddlProduct.DataValueField = "ID";
+            ddlProduct.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    /// <summary>
+    /// This Method is called after select the Customer Name.
+    /// To Load the Prime Account Number in Dropdown List.
+    /// </summary>
+    private void FunPriLoadPrimeAccount()
+    {
+        try
+        {
+            ClsPubPrimeAccountDetails ObjPrimeAccounts = new ClsPubPrimeAccountDetails();
+            ObjPrimeAccounts.Type = "1";
+            ObjPrimeAccounts.CompanyId = intCompanyId;
+            ObjPrimeAccounts.IsActive = true;
+            ObjPrimeAccounts.CustomerId = hdnCustID.Value;
+            byte[] bytePrimeAccounts = ClsPubSerialize.Serialize(ObjPrimeAccounts, SerializationMode.Binary);
+
+            byte[] byteLobs = objSerClient.FunPubGetMLA(bytePrimeAccounts);
+            List<ClsPubDropDownList> PANum = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlPNum.DataSource = PANum;
+            ddlPNum.DataTextField = "Description";
+            ddlPNum.DataValueField = "ID";
+            ddlPNum.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// This Method is called after select the Customer Name.
+    /// To Load the Csutomer Informations in Appropriate Fields.
+    /// </summary>
+    /// <param name="CustomerID"></param>
+    private void FunPubGetCustomerDetails(string CustomerID)
+    {
+        try
+        {
+            DataTable dtCustomer = new DataTable();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Option", "56");
+            Procparam.Add("@Param1", CustomerID);
+            dtCustomer = Utility.GetDefaultData("S3G_ORG_GetCustomerLookUp", Procparam);
+
+            if (dtCustomer.Rows.Count > 0)
+            {
+                ucCustDetails.SetCustomerDetails(dtCustomer.Rows[0], true);
+                txtCustomerCode.Text = ucCustDetails.CustomerName;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to display Customer Details");
+        }
+    }
+
+    /// <summary>
+    /// This Method is called after Clicking the Ok button.
+    /// To Load the Repayment Details in Grid.
+    /// </summary>
+    /// <param name="PANum"></param>
+    /// <param name="SANum"></param>
+    private void FunPriLoadRepayDetails(string PANum, string SANum)
+    {
+        try
+        {
+            pnlRepayDetails.Visible = true;
+            divRepayDetails.Style.Add("display", "block");
+            string saNum = string.Empty;
+            if (ddlSNum.SelectedIndex != 0)
+            {
+                saNum = ddlSNum.SelectedValue;
+            }
+            byte[] byteLobs = objSerClient.FunPubGetRepayDetails(ddlPNum.SelectedValue, saNum);
+            List<ClsPubRepayDetails> repayDetails = (List<ClsPubRepayDetails>)DeSeriliaze(byteLobs);
+            TotalInstallmentAmount = repayDetails.Sum(ClsPubRepayDetails => ClsPubRepayDetails.InstallmentAmount);
+            TotalPrincipalAmount = repayDetails.Sum(ClsPubRepayDetails => ClsPubRepayDetails.PrincipalAmount);
+            TotalFinanceCharges = repayDetails.Sum(ClsPubRepayDetails => ClsPubRepayDetails.FinanceCharges);
+            TotalInsuranceAmount = repayDetails.Sum(ClsPubRepayDetails => ClsPubRepayDetails.InsuranceAmount);
+            TotalOthers = repayDetails.Sum(ClsPubRepayDetails => ClsPubRepayDetails.Others);
+            TotalVatrecovery = repayDetails.Sum(ClsPubRepayDetails => ClsPubRepayDetails.VatRecovery);
+            TotalVatSetoff = repayDetails.Sum(ClsPubRepayDetails => ClsPubRepayDetails.TaxSetOff);
+            TotalTax = repayDetails.Sum(ClsPubRepayDetails => ClsPubRepayDetails.Tax);
+
+            Session["Repay"] = repayDetails;
+            grvRepayDetails.DataSource = repayDetails;
+            grvRepayDetails.DataBind();
+
+
+            if (grvRepayDetails.Rows.Count != 0)
+            {
+                grvRepayDetails.HeaderRow.Style.Add("position", "relative");
+                grvRepayDetails.HeaderRow.Style.Add("z-index", "auto");
+                grvRepayDetails.HeaderRow.Style.Add("top", "auto");
+
+            }
+
+            if (grvRepayDetails.Rows.Count == 0)
+            {
+                Session["Repay"] = null;
+                grvRepayDetails.EmptyDataText = "No Repayment Details Found";
+
+                grvRepayDetails.DataBind();
+                //lblErrorMessage.Visible = true;
+                //lblErrorMessage.Text = "No Repayment Details Found";
+            }
+            else
+            {
+                FunPriDisplayTotal();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    ///  This Method is called after Clicking the Ok button.
+    ///  To Load the Asset Details in Grid.
+    /// </summary>
+    /// <param name="PANum"></param>
+    /// <param name="SANum"></param>
+    private void FunPriLoadAsset(string PANum, string SANum)
+    {
+        try
+        {
+            pnlAssetDetails.Visible = true;
+            string saNum = string.Empty;
+            if (ddlSNum.SelectedIndex != 0)
+            {
+                saNum = ddlSNum.SelectedValue;
+            }
+            byte[] byteLobs = objSerClient.FunPubGetAssestDetails(ddlPNum.SelectedValue, saNum);
+            List<ClsPubAssestDetails> assetDetails = (List<ClsPubAssestDetails>)DeSeriliaze(byteLobs);
+            Session["Asset"] = assetDetails;
+            grvAssetDetails.DataSource = assetDetails;
+            grvAssetDetails.DataBind();
+            if (grvAssetDetails.Rows.Count == 0)
+            {
+                Session["Asset"] = null;
+                grvAssetDetails.EmptyDataText = "No Asset Details Found";
+                grvAssetDetails.DataBind();
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private object DeSeriliaze(byte[] byteObj)
+    {
+        return ClsPubSerialize.DeSerialize(byteObj, SerializationMode.Binary, null);
+    }
+
+    /// <summary>
+    /// To assign the Repayment Details Total in footer row
+    /// </summary>
+    private void FunPriDisplayTotal()
+    {
+        ((Label)grvRepayDetails.FooterRow.FindControl("lblInstallmentAmount")).Text = TotalInstallmentAmount.ToString(Funsetsuffix());
+        ((Label)grvRepayDetails.FooterRow.FindControl("lblPrincipalAmount")).Text = TotalPrincipalAmount.ToString(Funsetsuffix());
+        ((Label)grvRepayDetails.FooterRow.FindControl("lblFinanceCharges")).Text = TotalFinanceCharges.ToString(Funsetsuffix());
+        ((Label)grvRepayDetails.FooterRow.FindControl("lblInsuranceAmount")).Text = TotalInsuranceAmount.ToString(Funsetsuffix());
+        ((Label)grvRepayDetails.FooterRow.FindControl("lblOthers")).Text = TotalOthers.ToString(Funsetsuffix());
+        ((Label)grvRepayDetails.FooterRow.FindControl("lblVatRecovery")).Text = TotalVatrecovery.ToString(Funsetsuffix());
+        ((Label)grvRepayDetails.FooterRow.FindControl("lblTaxSetOff")).Text = TotalVatSetoff.ToString(Funsetsuffix());
+        ((Label)grvRepayDetails.FooterRow.FindControl("lblTax")).Text = TotalTax.ToString(Funsetsuffix());
+    }
+
+    /// <summary>
+    /// To set the Suffix to total
+    /// </summary>
+    /// <returns></returns>
+    private string Funsetsuffix()
+    {
+
+        int suffix = 1;
+        S3GSession ObjS3GSession = new S3GSession();
+        suffix = ObjS3GSession.ProGpsSuffixRW;
+        string strformat = "0.";
+        for (int i = 1; i <= suffix; i++)
+        {
+            strformat += "0";
+        }
+        return strformat;
+    }
+
+    /// <summary>
+    /// This Method is called after Clicking the Clear Button
+    /// </summary>
+    private void FunPriClearRepayment()
+    {
+        try
+        {
+            ddlLOB.SelectedValue = "-1";
+            ddlBranch.SelectedValue = "-1";
+            if (ddlProduct.Items.Count > 0)
+            {
+                ddlProduct.Items.Clear();
+            }
+            if (ddlPNum.Items.Count > 0)
+            {
+                ddlPNum.Items.Clear();
+            }
+            if (ddlSNum.Items.Count > 0)
+            {
+                ddlSNum.Items.Clear();
+            }
+
+
+            ucCustDetails.ClearCustomerDetails();
+            ucCustomerCodeLov.FunPubClearControlValue();
+            FunPriValidateGrid();
+            //pnlAssetDetails.Visible = false;
+            //grvAssetDetails.DataSource = null;
+            //grvAssetDetails.DataBind();
+            //pnlRepayDetails.Visible = false;
+            //grvRepayDetails.DataSource = null;
+            //grvRepayDetails.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriValidateGrid()
+    {
+        pnlAssetDetails.Visible = false;
+        grvAssetDetails.DataSource = null;
+        grvAssetDetails.DataBind();
+        pnlRepayDetails.Visible = false;
+        grvRepayDetails.DataSource = null;
+        grvRepayDetails.DataBind();
+    }
+
+
+    #endregion
+
+    #region Page Events
+
+    #region DropdownList Events
+
+    /// <summary>
+    /// To Load the Prime Account Number
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            btnPrint.Visible = false;
+            FunPriValidateGrid();
+
+
+            ddlPNum.Items.Clear();
+            ddlSNum.Items.Clear();
+            ddlProduct.Items.Clear();
+            FunPriLoadProduct(intCompanyId, intCustomerId);
+            ClsPubPrimeAccountDetails ObjPrimeAccount = new ClsPubPrimeAccountDetails();
+            ObjPrimeAccount.Type = "1";
+            ObjPrimeAccount.CompanyId = intCompanyId;
+            ObjPrimeAccount.LobId = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjPrimeAccount.BranchId = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjPrimeAccount.IsActive = true;
+            ObjPrimeAccount.CustomerId = hdnCustID.Value;
+            byte[] bytePrimeAccounts = ClsPubSerialize.Serialize(ObjPrimeAccount, SerializationMode.Binary);
+            byte[] byteLobs = objSerClient.FunPubGetMLA(bytePrimeAccounts);
+            List<ClsPubDropDownList> PANum = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlPNum.DataSource = PANum;
+            ddlPNum.DataTextField = "Description";
+            ddlPNum.DataValueField = "ID";
+            ddlPNum.DataBind();
+        }
+        catch (Exception ex)
+        {
+            CVRepaymentSchedule.ErrorMessage = "Due to Data Problem, Unable to Load Prime Account Number.";
+            CVRepaymentSchedule.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// To Load Branch and Product after selecting the LOB
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            btnPrint.Visible = false;
+            ddlBranch.Items.Clear();
+            FunPriLoadBranch(intCompanyId, intUserId, Is_Active);
+            ddlProduct.Items.Clear();
+            FunPriLoadProduct(intCompanyId, intCustomerId);
+            ddlPNum.Items.Clear();
+            ddlSNum.Items.Clear();
+            FunPriValidateGrid();
+            //pnlAssetDetails.Visible = false;
+            //grvAssetDetails.DataSource = null;
+            //grvAssetDetails.DataBind();
+            //pnlRepayDetails.Visible = false;
+            //grvRepayDetails.DataSource = null;
+            //grvRepayDetails.DataBind();
+            //ddlPNum.Items.Clear();
+            if (ddlLOB.SelectedValue == "-1")
+            {
+                FunPriLoadPrimeAccount();
+            }
+        }
+        catch (Exception ex)
+        {
+            CVRepaymentSchedule.ErrorMessage = "Due to Data Problem, Unable to Load Branch.";
+            CVRepaymentSchedule.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// To Load Sub account Number
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlPNum_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //SLA
+            //pnlAssetDetails.Visible = false;
+            //grvAssetDetails.DataSource = null;
+            //grvAssetDetails.DataBind();
+            //pnlRepayDetails.Visible = false;
+            //grvRepayDetails.DataSource = null;
+            //grvRepayDetails.DataBind();
+            FunPriValidateGrid();
+            btnPrint.Visible = false;
+            ddlSNum.Items.Clear();
+            lblSNum.CssClass = "styleDisplayLabel";
+            byte[] byteLobs = objSerClient.FunPubGetSLA("2", intCompanyId, true, hdnCustID.Value, ddlPNum.SelectedValue);
+            List<ClsPubDropDownList> SANum = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlSNum.DataSource = SANum;
+            ddlSNum.DataTextField = "Description";
+            ddlSNum.DataValueField = "ID";
+            ddlSNum.DataBind();
+            byteLobs = null;
+            byteLobs = objSerClient.FunPunGetHeaderLobBranchProductDetails(ddlPNum.SelectedValue);
+            ClsPubHeaderLobBranchProductDetails headerLobBranchProductDetails = (ClsPubHeaderLobBranchProductDetails)DeSeriliaze(byteLobs);
+
+            //Lob
+            //Branch
+            //Product
+
+            ddlLOB.SelectedIndex = ddlLOB.Items.IndexOf(ddlLOB.Items.FindByValue(headerLobBranchProductDetails.LobId.ToString()));
+            Session["lob"] = ddlLOB.SelectedValue;
+            ddlBranch.SelectedIndex = ddlBranch.Items.IndexOf(ddlBranch.Items.FindByValue(headerLobBranchProductDetails.BranchId.ToString()));
+            ddlProduct.SelectedIndex = ddlProduct.Items.IndexOf(ddlProduct.Items.FindByValue(headerLobBranchProductDetails.ProductId.ToString()));
+            if (ddlSNum.Items.Count > 1)
+            {
+                lblSNum.CssClass = "styleReqFieldLabel";
+                rfvSNum.Enabled = true;
+            }
+            else
+            {
+                rfvSNum.Enabled = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            CVRepaymentSchedule.ErrorMessage = "Due to Data Problem, Unable to Load Sub Account Number.";
+            CVRepaymentSchedule.IsValid = false;
+        }
+    }
+
+
+
+    #endregion
+
+    #region Button (Customer / Ok / Clear / Print)
+
+    /// <summary>
+    /// To Load the Customer Details
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField hdnCustomerId = (HiddenField)ucCustomerCodeLov.FindControl("hdnID");
+            if (hdnCustomerId != null && hdnCustomerId.Value != "")
+            {
+                hdnCustID.Value = hdnCustomerId.Value;
+                FunPubGetCustomerDetails(hdnCustID.Value);
+            }
+            ddlPNum.Items.Clear();
+            ddlSNum.Items.Clear();
+            lblSNum.CssClass = "styleDisplayLabel";
+            FunPriLoadPrimeAccount();
+            FunPriLoadProduct(intCompanyId, intCustomerId);
+            FunPriLoadLob(intCompanyId, intUserId);
+            FunPriLoadBranch(intCompanyId, intUserId, true);
+            //pnlAssetDetails.Visible = false;
+            //grvAssetDetails.DataSource = null;
+            //grvAssetDetails.DataBind();
+            //pnlRepayDetails.Visible = false;
+            //grvRepayDetails.DataSource = null;
+            //grvRepayDetails.DataBind();
+            FunPriValidateGrid();
+        }
+        catch (Exception ex)
+        {
+            CVRepaymentSchedule.ErrorMessage = "Due to Data Problem, Unable to Load Customer Informations.";
+            CVRepaymentSchedule.IsValid = false;
+        }
+
+    }
+
+    /// <summary>
+    /// To bind the Repayment and Asset Details Grid
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnOk_Click(object sender, EventArgs e)
+    {
+        try
+        {
+
+            FunPriLoadRepayDetails(PANum, SANum);
+            FunPriLoadAsset(PANum, SANum);
+            ClsPubHeaderDetails objHeader = new ClsPubHeaderDetails();
+            objHeader.Lob = ddlLOB.SelectedItem.ToString();
+            objHeader.Branch = ddlBranch.SelectedItem.ToString();
+            objHeader.PANum = ddlPNum.SelectedItem.ToString();
+            if (ddlSNum.Items.Count > 1)
+            {
+                objHeader.SANum = ddlSNum.SelectedItem.ToString();
+
+            }
+            else
+            {
+                objHeader.SANum = "";
+            }
+            objHeader.Product = ddlProduct.SelectedItem.ToString();
+            objHeader.Customer = ucCustDetails.CustomerName;
+            Session["Header"] = objHeader;
+            if (grvRepayDetails.Rows.Count > 0 || grvAssetDetails.Rows.Count > 0)
+            {
+                btnPrint.Visible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            CVRepaymentSchedule.ErrorMessage = "Due to Data Problem, Unable to Load Asset/Repayment Details Grid.";
+            CVRepaymentSchedule.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// To clear the fields
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearRepayment();
+
+        }
+        catch (Exception ex)
+        {
+            CVRepaymentSchedule.ErrorMessage = "Error in Clear.";
+            CVRepaymentSchedule.IsValid = false;
+        }
+    }
+
+
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        if (chkPoff.Checked)
+        {
+            Session["IsAssetPrintOff"] = "1";
+        }
+        else
+        {
+            Session["IsAssetPrintOff"] = "0";
+        }
+        Response.Redirect("S3GRepaymentScheduleReport.aspx");
+    }
+
+    #endregion
+
+    #endregion
+}

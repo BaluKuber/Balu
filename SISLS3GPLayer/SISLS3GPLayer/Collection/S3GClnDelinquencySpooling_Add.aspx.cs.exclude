@@ -1,0 +1,795 @@
+﻿#region Page Header
+
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Collection
+/// Screen Name			: Memorandum Booking
+/// Created By			: Ramesh and Thangam M
+/// Created Date		: 22-Oct-2010
+/// Purpose	            : To fetch Delinquency Spooling information
+/// Modified By         : --
+/// Modified Date       : --
+///  
+///
+
+#endregion
+
+#region Namespaces
+
+using System;
+using System.Data;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Collections.Generic;
+using S3GBusEntity;
+using System.Web.Security;
+using System.IO;
+using System.Text;
+using CrystalDecisions.Shared;
+using CrystalDecisions.CrystalReports.Engine;
+
+
+#endregion
+
+public partial class Collection_S3GClnDelinquencySpooling_Add : ApplyThemeForProject
+{
+    #region Initialization
+    public static Collection_S3GClnDelinquencySpooling_Add obj_Page;
+    int intCompanyID = 0;
+    int intUserID = 0;
+    int intDelinqSpoolID = 0;
+    bool bModify = false;
+    UserInfo ObjUserInfo = new UserInfo();
+    Dictionary<string, string> dictDropdownListParam;
+    S3GSession ObjS3GSession = new S3GSession();
+    S3GBusEntity.Collection.ClnReceivableMgtServices.S3G_CLN_DelinquencySpoolingDataTable objDelinquencySpoolingDataTable = new S3GBusEntity.Collection.ClnReceivableMgtServices.S3G_CLN_DelinquencySpoolingDataTable();
+    ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient objDelinquencySpooling;
+    string strMode = string.Empty;
+
+    #endregion
+
+    #region PageLoad
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        intCompanyID = ObjUserInfo.ProCompanyIdRW;
+        intUserID = ObjUserInfo.ProUserIdRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        lblErrorMessage.InnerText = "";
+
+        if (Request.QueryString["qsMode"] != null)
+            strMode = Request.QueryString["qsMode"];
+
+        if (Request.QueryString["qsViewId"] != null)
+        {
+            FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            if (fromTicket != null)
+            {
+                intDelinqSpoolID = Convert.ToInt32(fromTicket.Name);
+            }
+        }
+
+        if (!IsPostBack)
+        {
+            if (!bModify)
+            {
+                btnSave.Enabled = false;
+            }
+
+            if (strMode == "C")
+            {
+                FunPubpriComboLoad();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                pnlSpoolingDetails.Visible = false;
+            }
+            else
+            {
+                FunProLoadDelinqSpool();
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                btnClear.Enabled = btnSave.Enabled = btnReport.Enabled = rdDelintype.Enabled = ddlBranch.Enabled = false ;
+            }
+            
+            
+        }
+
+        ScriptManager.RegisterStartupScript(this, GetType(), "te", "Resize();", true);
+
+    }
+
+    #endregion
+
+    #region Page Methods
+
+    public void FunPubpriComboLoad()
+    {
+        dictDropdownListParam = new Dictionary<string, string>();
+        dictDropdownListParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        dictDropdownListParam.Add("@User_Id", Convert.ToString(intUserID));
+        dictDropdownListParam.Add("@Is_Active", "1");
+        dictDropdownListParam.Add("@Program_ID", "101");
+        //dictDropdownListParam.Add("@LOB_ID", "0");
+        if (strMode != "C")
+        {
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, dictDropdownListParam, new string[] { "Location_ID", "Location_CODE", "Location_Name" });
+        }
+        dictDropdownListParam.Add("@FilterOption", "'TL' ,'FL', 'OL', 'TE', 'LN', 'HP'");
+        dictDropdownListParam.Remove("@LOB_ID");
+        ddllLineOfBusiness.BindDataTable(SPNames.LOBMaster, dictDropdownListParam, new string[] { "LOB_ID", "LOB_CODE", "LOB_NAME" });
+        
+        ObjUserInfo = null;
+        dictDropdownListParam = null;
+    }
+
+    public void FunFillDelinqMonth()
+    {
+        dictDropdownListParam = new Dictionary<string, string>();
+        dictDropdownListParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+        {
+            dictDropdownListParam.Add("@Location_ID", ddlBranch.SelectedValue);
+        }
+        dictDropdownListParam.Add("@LOB_ID", ddllLineOfBusiness.SelectedValue);
+        ddlYearMonth.BindDataTable("S3G_CLN_GetDelinquencyMonth", dictDropdownListParam, new string[] { "Demand_Month", "Demand_Month" });
+    }
+
+    public DataTable FunGridCalculate(DataTable DT)
+    {
+        foreach (DataRow DRow in DT.Rows)
+        {
+            DRow["Net_Stock"] = Convert.ToDouble(DRow["Stock_on_Hire"].ToString()) -
+                Convert.ToDouble(DRow["Finance_charge_Arrears"].ToString()) -
+                Convert.ToDouble(DRow["Finance_charge_Future_Dues"].ToString());
+
+            DRow["Total_Due"] = Convert.ToDouble(DRow["Net_Stock"].ToString()) +
+                Convert.ToDouble(DRow["Incidental_Balance"].ToString()) +
+                Convert.ToDouble(DRow["Insurance_Balance"].ToString());
+
+            DRow["SLM"] = Convert.ToDouble(DRow["Original_Invoice_Amount"].ToString()) * (20.00 / 100.00);
+
+            if (Convert.ToDouble(DRow["Total_Due"].ToString()) < Convert.ToDouble(DRow["SLM"].ToString()))
+            {
+                DRow["Shortfall"] = "0";
+            }
+            else
+            {
+                DRow["Shortfall"] = Convert.ToDouble(DRow["Total_Due"].ToString()) - Convert.ToDouble(DRow["SLM"].ToString());
+            }
+
+            DRow["Secured_Pricipal"] = Convert.ToDouble(DRow["Total_Due"].ToString());
+            DRow["Unsecured_Pricipal"] = Convert.ToDouble(DRow["Shortfall"].ToString());
+
+            DRow["Secure_Provision"] = Convert.ToDouble(DRow["Secured_Pricipal"].ToString()) * (Convert.ToDouble(DRow["Secure_Provision_Per"].ToString()) / 100.00);
+            DRow["Unsecure_Provision"] = Convert.ToDouble(DRow["Unsecured_Pricipal"].ToString()) * (Convert.ToDouble(DRow["Unsecure_Provision_Per"].ToString()) / 100.00);
+
+            DRow["Total_Provision"] = Convert.ToDouble(DRow["Secure_Provision"].ToString()) +
+                Convert.ToDouble(DRow["Unsecure_Provision"].ToString());
+        }
+
+        for (int i = 0; i <= DT.Columns.Count - 1; i++)
+        {
+            DT.Columns[i].ColumnName = DT.Columns[i].Caption.Replace("_", " ");
+        }
+
+        DataRow Dr = DT.NewRow();
+        DT.Rows.Add(Dr);
+
+        Dr[0] = "Total";
+
+        for (int i = 2; i <= DT.Columns.Count - 1; i++)
+        {
+            DT.Rows[DT.Rows.Count - 1][i] = "0";
+        }
+
+        for (int i = 0; i <= DT.Rows.Count - 2; i++)
+        {
+            for (int j = 2; j <= DT.Columns.Count - 1; j++)
+            {
+                DT.Rows[DT.Rows.Count - 1][j] = Convert.ToDouble(DT.Rows[DT.Rows.Count - 1][j].ToString()) +
+                    Convert.ToDouble(DT.Rows[i][j].ToString());
+            }
+        }
+
+        return DT;
+    }
+
+    public void FunAllignGrid()
+    {
+        for (int i = 0; i <= grvDelinquencyspooling.Columns.Count - 1; i++)
+        {
+            grvDelinquencyspooling.Columns[i].ItemStyle.Font.Bold = true;
+            grvDelinquencyspooling.Columns[i].ItemStyle.HorizontalAlign = HorizontalAlign.Right;
+        }
+    }
+
+    protected void FunProLoadDelinqSpool()
+    {
+        dictDropdownListParam = new Dictionary<string, string>();
+        dictDropdownListParam.Add("@DelinquencySpool_ID", intDelinqSpoolID.ToString());
+        DataSet dsDS = Utility.GetDataset("S3G_CLN_Get_DelinqSpoolView", dictDropdownListParam);
+
+        if (dsDS != null && dsDS.Tables[0].Rows.Count > 0)
+        {
+            ListItem lstLOB = new ListItem(dsDS.Tables[0].Rows[0]["LOB"].ToString(), dsDS.Tables[0].Rows[0]["LOB_ID"].ToString());
+            ddllLineOfBusiness.Items.Add(lstLOB);
+            ddllLineOfBusiness.SelectedValue = dsDS.Tables[0].Rows[0]["LOB_ID"].ToString();
+
+            ddlBranch.SelectedText=dsDS.Tables[0].Rows[0]["Location"].ToString();
+            ddlBranch.SelectedValue = dsDS.Tables[0].Rows[0]["Location_ID"].ToString();
+
+            ListItem lstMnth = new ListItem(dsDS.Tables[0].Rows[0]["Delinquency_Month"].ToString(), dsDS.Tables[0].Rows[0]["Delinquency_Month"].ToString());
+            ddlYearMonth.Items.Add(lstMnth);
+            ddlYearMonth.SelectedValue = dsDS.Tables[0].Rows[0]["Delinquency_Month"].ToString();
+
+            rdDelintype.SelectedValue = dsDS.Tables[0].Rows[0]["Delinquency_Type"].ToString();
+
+            grvDelinquencyspooling.DataSource = ViewState["GrdData"] = dsDS.Tables[1];
+            grvDelinquencyspooling.DataBind();
+        }
+
+    }
+
+    #endregion
+
+    #region Page Events
+
+    protected void btnReport_Click(object sender, EventArgs e)
+    {
+        try
+        {
+          //else if (intErrorcode == 0 || intErrorcode == 1)
+            //{
+            dictDropdownListParam = new Dictionary<string, string>();
+            dictDropdownListParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+            {
+                dictDropdownListParam.Add("@Location_ID", ddlBranch.SelectedValue);
+            }
+            dictDropdownListParam.Add("@LOB_ID", ddllLineOfBusiness.SelectedValue);
+
+            string strDate = "";
+            strDate = DateTime.DaysInMonth(Convert.ToInt32(ddlYearMonth.SelectedValue.Substring(0, 4)), Convert.ToInt32(ddlYearMonth.SelectedValue.Substring(4))).ToString();
+
+            strDate = ddlYearMonth.SelectedValue.Substring(4) + "/" + strDate + "/" + ddlYearMonth.SelectedValue.Substring(0, 4);
+
+            dictDropdownListParam.Add("@DelinqDate", Convert.ToDateTime(strDate).ToString("dd/MMM/yyy")); ;
+            dictDropdownListParam.Add("@MonthYear", ddlYearMonth.SelectedValue.ToString());
+            dictDropdownListParam.Add("@DelinqType", rdDelintype.SelectedItem.Text);
+            DataSet ds = Utility.GetDataset("S3G_CLN_GetDelinquencySpooling", dictDropdownListParam);
+            DataTable dtCheck = ds.Tables[0];
+
+            if (dtCheck.Rows[0][0].ToString() != "0")
+            {
+                Utility.FunShowAlertMsg(this, dtCheck.Rows[0][1].ToString());
+                pnlSpoolingDetails.Visible = false;
+                return;
+            }
+
+            DataTable Dt = ds.Tables[1];
+            DataTable DtSaved = ds.Tables[2];
+
+            //Dt = FunGridCalculate(Utility.GetDefaultData("S3G_CLN_GetDelinquencySpooling", dictDropdownListParam));
+
+            if (Dt.Rows.Count > 0)
+            {
+                pnlSpoolingDetails.Visible = true;
+                //lblErrorMessage.InnerText = "";
+            }
+            else
+            {
+                pnlSpoolingDetails.Visible = false;
+                cvDelinq.ErrorMessage = "No records found.";
+                cvDelinq.IsValid = false;
+                //lblErrorMessage.InnerText = "";
+            }
+
+            if (Dt.Rows.Count > 0)
+            {
+                Dt.Rows.Add(Dt.NewRow());
+                Dt.Rows[Dt.Rows.Count - 1]["No_of_Installment"] = "Total";
+                Dt.Rows[Dt.Rows.Count - 1]["Due_Amount"] = Dt.Compute("Sum(Due_Amount)", "1=1");
+                Dt.Rows[Dt.Rows.Count - 1]["Secured"] = Dt.Compute("Sum(Secured)", "1=1");
+                Dt.Rows[Dt.Rows.Count - 1]["Unsecured"] = Dt.Compute("Sum(Unsecured)", "1=1");
+                Dt.Rows[Dt.Rows.Count - 1]["Income_Deferred"] = Dt.Compute("Sum(Income_Deferred)", "1=1");
+                Dt.Rows[Dt.Rows.Count - 1]["PrincipalDue"] = Dt.Compute("Sum(PrincipalDue)", "1=1");
+                Dt.Rows[Dt.Rows.Count - 1]["FutPrincipal"] = Dt.Compute("Sum(FutPrincipal)", "1=1");
+                Dt.Rows[Dt.Rows.Count - 1]["Secure_Amt"] = Dt.Compute("Sum(Secure_Amt)", "1=1");
+                Dt.Rows[Dt.Rows.Count - 1]["Unsecure_Amt"] = Dt.Compute("Sum(Unsecure_Amt)", "1=1");
+                Dt.Rows[Dt.Rows.Count - 1]["Provision"] = Dt.Compute("Sum(Provision)", "1=1");
+            }
+
+            grvDelinquencyspooling.DataSource = ViewState["GrdData"] = Dt;
+            grvDelinquencyspooling.DataBind();
+            //FunProFreezeGridviewHeader(grvDelinquencyspooling, tblHeader);            
+
+            if (Dt.Rows.Count > 1)
+            {
+                grvDelinquencyspooling.Rows[grvDelinquencyspooling.Rows.Count - 1].Font.Bold = true;
+            }
+
+            if (DtSaved.Rows[0][0].ToString() == "1")
+            {
+                btnSave.Enabled = false;
+                //btnExecl.Enabled = btnFlatFile.Enabled = btnSave.Enabled = btnEmail.Enabled =  false;
+            }
+            else
+            {
+                btnExecl.Enabled = btnFlatFile.Enabled = btnEmail.Enabled = true;
+                if (bModify)
+                {
+                    btnSave.Enabled = true;
+                }
+            }
+
+            //FunAllignGrid();
+
+            //grvDelinquencyspooling.BindGridView("S3G_CLN_GetDelinquencySpooling", dictDropdownListParam); 
+            //}
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        rdDelintype.SelectedValue = "0";
+        ddllLineOfBusiness.SelectedIndex = 0;
+        //ddlBranch.SelectedIndex = 0;
+        ddlBranch.Clear();
+        ddlYearMonth.Items.Clear();
+        pnlSpoolingDetails.Visible = false;
+        btnSave.Enabled = true;
+    }
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect("~/Collection/S3GClnTransLander.aspx?Code=CDS");
+    }
+
+    protected void btnExecl_Click(object sender, EventArgs e)
+    {
+        DataTable dtgridDate= new DataTable();
+        if (ViewState["GrdData"] != null)
+        {
+            dtgridDate = (DataTable)ViewState["GrdData"];
+        }
+
+        if (dtgridDate.Rows.Count > 1)
+        {
+            dtgridDate.Rows[dtgridDate.Rows.Count - 1].Delete();
+
+            ReportDocument rptd = new ReportDocument();           
+            rptd.Load(Server.MapPath("Delinquency.rpt"));
+            rptd.SetDataSource(dtgridDate);
+            
+
+            rptd.ExportToHttpResponse(ExportFormatType.Excel, Response, false, "DelinquencySpooling");
+        }
+
+        //string attachment = "attachment; filename=DelinquencySpooling.xls";
+        //Response.ClearContent();
+        //Response.AddHeader("content-disposition", attachment);
+        //Response.ContentType = "application/vnd.xls";
+        //StringWriter sw = new StringWriter();
+        //HtmlTextWriter htw = new HtmlTextWriter(sw);
+        //grvDelinquencyspooling.RenderControl(htw);
+        //Response.Write(sw.ToString());
+        //Response.End();
+    }
+
+    protected string FunProFormatedSpace(string strVal, int intFxdLength, int intAlign)
+    {
+        //intAlign | 1 - left , 2 - right, 3 - Center 
+        int intLen = 0;
+        string strRetValue = string.Empty;
+        intLen = strVal.Length;
+        strRetValue = strVal;
+
+        if (intAlign == 3)
+        {
+            int intStartPoint = 0;
+            intStartPoint = (intFxdLength - intLen) / 2;
+
+            for (int i = 0; i < intStartPoint; i++)
+            {
+                strRetValue = " " + strRetValue;
+            }
+            for (int i = 0; i < (intFxdLength - intLen) - intStartPoint; i++)
+            {
+                strRetValue = strRetValue + " ";
+            }
+        }
+
+        for (int i = 0; i < intFxdLength - intLen; i++)
+        {
+            if (intAlign == 1)
+            {
+                strRetValue = strRetValue + " ";
+            }
+            else if (intAlign == 2)
+            {
+                strRetValue = " " + strRetValue;
+            }
+        }
+
+        return strRetValue;
+    }
+
+
+    protected void btnFlatFile_Click(object sender, EventArgs e)
+    {
+        //grvDelinquencyspooling.FunPubExportGrid("DelinquencySpooling", enumFileType.FlatFile);     
+
+        string strServerPath = Server.MapPath(".").ToString() + "\\PDF Files\\Delinquency.txt";
+
+        if (System.IO.File.Exists(strServerPath))
+        {
+            System.IO.File.Delete(strServerPath);
+        }
+
+        DataTable dt = (DataTable)ViewState["GrdData"];
+        string[] strColumns = new string[] { "Branch_ID", "Branch", "LOB" };
+        DataTable dtLocations = dt.DefaultView.ToTable(true, strColumns);
+
+        StreamWriter sWriter = new StreamWriter(strServerPath, false);
+        sWriter.WriteLine("Delinquency Report for the period ending " + dt.Rows[0]["OnDate"].ToString() + "\t\t\t\t\t\t\t (Recommended view : Font - Lucida Console | Size - 9)");
+        sWriter.WriteLine();
+
+        for (int intLocation = 0; intLocation <= dtLocations.Rows.Count - 1; intLocation++)
+        {
+            if (!string.IsNullOrEmpty(dtLocations.Rows[intLocation]["Branch_ID"].ToString()))
+            {
+                DataRow[] DLocationRows = dt.Select("Branch_ID='" + dtLocations.Rows[intLocation]["Branch_ID"].ToString() + "'");
+                sWriter.WriteLine("Location : " + dtLocations.Rows[intLocation]["Branch"].ToString());
+                sWriter.WriteLine("Line of Business : " + dtLocations.Rows[intLocation]["LOB"].ToString());
+
+                sWriter.WriteLine("_________________________________________________________________________________________________________________________________________________________________________");
+                sWriter.WriteLine(FunProFormatedSpace(" ", 4, 1) + " " + FunProFormatedSpace(" ", 22, 1) + " " + FunProFormatedSpace(" ", 16, 1) + " " + FunProFormatedSpace("No of", 5, 1) +
+                   " " + FunProFormatedSpace("Principal", 12, 1) + " " + FunProFormatedSpace("Interst", 12, 1) + " " + FunProFormatedSpace("Future", 12, 1) +
+                   " " + FunProFormatedSpace(" ", 14, 1) + " " + FunProFormatedSpace("Market", 12, 1) + " " + FunProFormatedSpace("Secure", 12, 1) +
+                   " " + FunProFormatedSpace("Unsecure", 12, 1) + " " + FunProFormatedSpace(" ", 12, 1) + " " + FunProFormatedSpace("Income", 12, 1));
+
+                sWriter.WriteLine(FunProFormatedSpace("Sl", 4, 1) + " " + FunProFormatedSpace("Customer", 22, 1) + " " + FunProFormatedSpace("Account", 16, 1) + " " + FunProFormatedSpace("Inst", 5, 1) +
+                    " " + FunProFormatedSpace("Due", 12, 1) + " " + FunProFormatedSpace("Due", 12, 1) + " " + FunProFormatedSpace("Principal", 12, 1) +
+                    " " + FunProFormatedSpace("Total Dues", 14, 1) + " " + FunProFormatedSpace("/SLM Value", 12, 1) + " " + FunProFormatedSpace("Principal", 12, 1) +
+                    " " + FunProFormatedSpace("Principal", 12, 1) + " " + FunProFormatedSpace("Provision", 12, 1) + " " + FunProFormatedSpace("Deferred", 12, 1));
+                sWriter.WriteLine("_________________________________________________________________________________________________________________________________________________________________________");
+
+                int intCount = 1;
+                decimal decPrincDue = 0;
+                decimal decIntrDue = 0;
+                decimal decFutPrinc= 0;
+                decimal decTotalDue = 0;
+                decimal decSecPrinc = 0;
+                decimal decUnsecPrinc = 0;
+                decimal decProvision = 0;
+                decimal decIncDef = 0;
+
+                foreach (DataRow dRow in DLocationRows)
+                {
+
+                    sWriter.WriteLine(FunProFormatedSpace(intCount.ToString(), 4, 1) + " " + FunProFormatedSpace(dRow["Customer"].ToString(), 22, 1) + " " + FunProFormatedSpace(dRow["SANum"].ToString().Trim().ToString() == "" ? dRow["PANum"].ToString().Trim() : dRow["SANum"].ToString().Trim(), 16, 1) +
+                    " " + FunProFormatedSpace(dRow["No_of_Installment"].ToString(), 5, 1) +
+                    " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["PrincipalDue"].ToString()), 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["Income_Deferred"].ToString()), 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["FutPrincipal"].ToString()), 2).ToString(), 12, 2) +
+                    " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["Due_Amount"].ToString()), 2).ToString(), 14, 2) + " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["TotalAssetValue"].ToString()), 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["Secure_Amt"].ToString()), 2).ToString(), 12, 2) +
+                    " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["Unsecure_Amt"].ToString()), 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["Provision"].ToString()), 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(Convert.ToDecimal(dRow["Income_Deferred"].ToString()), 2).ToString(), 12, 2));
+
+                    intCount++;
+                    decPrincDue = decPrincDue + Convert.ToDecimal(dRow["PrincipalDue"].ToString());
+                    decIntrDue = decIntrDue + Convert.ToDecimal(dRow["Income_Deferred"].ToString());
+                    decFutPrinc = decFutPrinc + Convert.ToDecimal(dRow["FutPrincipal"].ToString());
+                    decTotalDue = decTotalDue + Convert.ToDecimal(dRow["Due_Amount"].ToString());
+                    decSecPrinc = decSecPrinc + Convert.ToDecimal(dRow["Secure_Amt"].ToString());
+                    decUnsecPrinc = decUnsecPrinc + Convert.ToDecimal(dRow["Unsecure_Amt"].ToString());
+                    decProvision = decProvision + Convert.ToDecimal(dRow["Provision"].ToString());
+                    decIncDef = decIncDef + Convert.ToDecimal(dRow["Income_Deferred"].ToString());
+                }
+
+                sWriter.WriteLine("_________________________________________________________________________________________________________________________________________________________________________");
+
+                sWriter.WriteLine(FunProFormatedSpace(" ", 4, 1) + " " + FunProFormatedSpace(" ", 22, 1) + " " + FunProFormatedSpace("Total : ", 16, 1) +
+                    " " + FunProFormatedSpace(" ", 5, 1) +
+                    " " + FunProFormatedSpace(Math.Round(decPrincDue, 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(decIntrDue, 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(decFutPrinc, 2).ToString(), 12, 2) +
+                    " " + FunProFormatedSpace(Math.Round(decTotalDue, 2).ToString(), 14, 2) + " " + FunProFormatedSpace(" ", 12, 2) + " " + FunProFormatedSpace(Math.Round(decSecPrinc, 2).ToString(), 12, 2) +
+                    " " + FunProFormatedSpace(Math.Round(decUnsecPrinc, 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(decProvision, 2).ToString(), 12, 2) + " " + FunProFormatedSpace(Math.Round(decIncDef, 2).ToString(), 12, 2));
+
+                sWriter.WriteLine("_________________________________________________________________________________________________________________________________________________________________________");
+
+            }
+            sWriter.WriteLine();
+        }
+
+        sWriter.Flush();
+        sWriter.Close();
+
+        if (!string.IsNullOrEmpty(strServerPath))
+        {
+            string strFileName = strServerPath.Replace("\\", "/").Trim();
+
+            Response.Clear();
+            Response.AppendHeader("content-disposition", "attachment; filename=" + ".." + strFileName);
+            Response.ContentType = "application/octet-stream";
+            Response.WriteFile(strFileName);
+            Response.End();
+            
+            //string strScipt = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + strServerPath + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+            //ScriptManager.RegisterStartupScript(this, this.GetType(), "View", strScipt, true);
+        }
+        else
+        {
+            Utility.FunShowAlertMsg(this, "File not to be scanned yet");
+        }  
+
+        //StringBuilder strBuild = new StringBuilder();
+
+        //DataTable dt = (DataTable)ViewState["GrdData"];
+        //for (int i = 0; i <= dt.Rows.Count - 1; i++)
+        //{
+        //    for (int j = 0; j <= dt.Columns.Count - 1; j++)
+        //    {
+        //        strBuild.Append(dt.Rows[i][j].ToString());
+        //        strBuild.Append("\t");
+        //    }
+        //    strBuild.Append(Environment.NewLine);
+        //}
+
+        //string attachment = "attachment; filename=DelinquencySpooling.txt";
+        //Response.ClearContent();
+        //Response.AddHeader("content-disposition", attachment);
+        //Response.Cache.SetCacheability(System.Web.HttpCacheability.NoCache);
+        //Response.ContentType = "application/vnd.text";
+        //StringWriter sw = new StringWriter();
+        //HtmlTextWriter htw = new HtmlTextWriter(sw);
+        ////grvDelinquencyspooling.RenderControl(htw);
+        ////Response.Write(sw.ToString());
+
+        //Response.Write(strBuild.ToString());
+        //Response.End();
+    }
+
+    public override void VerifyRenderingInServerForm(Control control)
+    {
+        //base.VerifyRenderingInServerForm(control);
+    }
+
+
+    protected void btnEmail_Click(object sender, EventArgs e)
+    {
+        txtTo.Text = "ToAddress@sundaraminfotech.in";
+        txtBody.Text = "Respected Sir/Madam, \n\n\t";
+        txtBody.Text += "\n\nWith thanks and regards,\n";
+        txtBody.Text += "Body";
+
+
+        if (ModalPopupExtenderMailPreview.Enabled == false)
+        {
+            ModalPopupExtenderMailPreview.Enabled = true;
+
+        }
+
+        ModalPopupExtenderMailPreview.Show();
+    }
+
+    protected void btnSendMail_Click(object sender, EventArgs e)
+    {
+
+        ModalPopupExtenderMailPreview.Hide();
+
+        try
+        {
+            string body;
+            body = "Respected Sir/Madam, <br/> <br/> &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp ";
+                       // txtFieldRequest.Text;
+            body += "<br/><br/>With thanks and regards,<br/>";
+            body += "";//txtRequestBy.Text;
+
+
+            CommonMailServiceReference.CommonMailClient ObjCommonMail = new CommonMailServiceReference.CommonMailClient();
+            ClsPubCOM_Mail ObjCom_Mail = new ClsPubCOM_Mail();
+            ObjCom_Mail.ProFromRW = "s3g@sundaraminfotech.in";
+            ObjCom_Mail.ProTORW = "To@sundaraminfotech.in";
+
+            ObjCom_Mail.ProSubjectRW = "Delinquency Spooling";
+            ObjCom_Mail.ProMessageRW = body;
+            ObjCommonMail.FunSendMail(ObjCom_Mail);
+            Utility.FunShowAlertMsg(this, "Mail sent successfully");
+        }
+        //catch (FaultException<EnquiryResponseServiceReference.ClsPubFaultException> objFaultExp)
+        //{
+        //    lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        //}
+        catch (Exception ex)
+        {
+            //lblErrorMessage.Text = ex.Message;
+        }
+    }
+
+    protected void btnClosePreview_Click(object sender, EventArgs e)
+    {
+        ModalPopupExtenderMailPreview.Hide();
+    }
+
+    protected void ddllLineOfBusiness_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        dictDropdownListParam = new Dictionary<string, string>();
+        dictDropdownListParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        dictDropdownListParam.Add("@User_Id", Convert.ToString(intUserID));
+        dictDropdownListParam.Add("@Is_Active", "1");
+        dictDropdownListParam.Add("@Program_ID", "101");
+        dictDropdownListParam.Add("@LOB_ID", ddllLineOfBusiness.SelectedValue.ToString());
+        //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, dictDropdownListParam, new string[] { "Location_ID", "Location_CODE", "Location_Name" });       
+
+        pnlSpoolingDetails.Visible = false;
+
+        ddlBranch.Clear();
+        FunFillDelinqMonth();
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        pnlSpoolingDetails.Visible = false;
+        FunFillDelinqMonth();
+    }
+
+    protected void ddlYearMonth_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        pnlSpoolingDetails.Visible = false;
+        pnlSpoolingDetails.Visible = false;
+    }
+
+    #endregion
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            S3GBusEntity.Collection.ClnReceivableMgtServices.S3G_CLN_DelinquencySpoolingRow objSpoolingRow;
+            objSpoolingRow = objDelinquencySpoolingDataTable.NewS3G_CLN_DelinquencySpoolingRow();
+
+            if (ViewState["GrdData"] == null || ((DataTable)ViewState["GrdData"]).Rows.Count == 0)
+            {
+                cvDelinq.ErrorMessage = "Delinquency records needed to save.";
+                cvDelinq.IsValid = false;
+                return;
+            }
+            objSpoolingRow.Company_ID = intCompanyID;
+            objSpoolingRow.LOB_ID = Convert.ToInt32(ddllLineOfBusiness.SelectedValue);
+            objSpoolingRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            objSpoolingRow.DelinquencySpool_Date = DateTime.Today;
+            objSpoolingRow.Delinquency_Month = ddlYearMonth.SelectedItem.Text.Trim();
+            objSpoolingRow.Delinquency_Type = rdDelintype.SelectedValue;
+            objSpoolingRow.Total_Principal_Provisioning_Secured = Convert.ToDecimal(((DataTable)ViewState["GrdData"]).Rows[((DataTable)ViewState["GrdData"]).Rows.Count - 1]["Secured"].ToString());
+            objSpoolingRow.Total_Principal_Provisioning_UnSecured = Convert.ToDecimal(((DataTable)ViewState["GrdData"]).Rows[((DataTable)ViewState["GrdData"]).Rows.Count - 1]["Unsecured"].ToString());
+            objSpoolingRow.Total_Income_Deffered = Convert.ToDecimal(((DataTable)ViewState["GrdData"]).Rows[((DataTable)ViewState["GrdData"]).Rows.Count - 1]["Income_Deferred"].ToString());
+            objSpoolingRow.DelinquencySpool_By = intUserID;
+            ((DataTable)ViewState["GrdData"]).Rows.RemoveAt(((DataTable)ViewState["GrdData"]).Rows.Count - 1);
+            objSpoolingRow.XMLSpoolDetails = ((DataTable)ViewState["GrdData"]).FunPubFormXml();
+            objSpoolingRow.Txn_ID = 0;
+
+            objDelinquencySpoolingDataTable.AddS3G_CLN_DelinquencySpoolingRow(objSpoolingRow);
+            objDelinquencySpooling = new ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient();
+            SerializationMode SerMode = SerializationMode.Binary;
+            int intErrorcode = objDelinquencySpooling.FunPubCreateDelinquencySpooling(SerMode, ClsPubSerialize.Serialize(objDelinquencySpoolingDataTable, SerMode));
+            if (intErrorcode == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                Utility.FunShowAlertMsg(this, "Delinquency Spooling details added successfully", "../Collection/S3GClnTransLander.aspx?Code=CDS");
+            }
+            else if (intErrorcode == 20)
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Delinquency Spooling details added failed.');", true);
+                pnlSpoolingDetails.Visible = false;
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+        }
+        finally
+        {
+            if (objDelinquencySpooling != null)
+            {
+                objDelinquencySpooling.Close();
+            }
+        }
+    }
+
+    protected void grvDelinquencyspooling_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblDueAmount = (Label)e.Row.FindControl("lblDueAmount");
+                Label lblSecuredPrincipal = (Label)e.Row.FindControl("lblSecuredPrincipal");
+                Label lblUnSecurePrincipal = (Label)e.Row.FindControl("lblUnSecurePrincipal");
+                Label lblIncomeDeferred = (Label)e.Row.FindControl("lblIncomeDeferred");
+                //Label lblOtherIncome = (Label)e.Row.FindControl("lblOtherIncome");
+                Label lblPrincipalDue = (Label)e.Row.FindControl("lblPrincipalDue");
+                Label lblInterestDue = (Label)e.Row.FindControl("lblInterestDue");
+                Label lblFuturePrincipal = (Label)e.Row.FindControl("lblFuturePrincipal");
+                Label lblMarketValue = (Label)e.Row.FindControl("lblMarketValue");
+                Label lblProvision = (Label)e.Row.FindControl("lblProvision");
+
+                string strFormat ="";
+                strFormat = Utility.SetSuffix();
+
+                lblDueAmount.Text = Convert.ToDecimal(lblDueAmount.Text).ToString(strFormat);
+                lblSecuredPrincipal.Text = Convert.ToDecimal(lblSecuredPrincipal.Text).ToString(strFormat);
+                lblUnSecurePrincipal.Text = Convert.ToDecimal(lblUnSecurePrincipal.Text).ToString(strFormat);
+                lblIncomeDeferred.Text = Convert.ToDecimal(lblIncomeDeferred.Text).ToString(strFormat);
+                //lblOtherIncome.Text = Convert.ToDecimal(lblOtherIncome.Text).ToString(strFormat);
+                lblPrincipalDue.Text = Convert.ToDecimal(lblPrincipalDue.Text).ToString(strFormat);
+                lblInterestDue.Text = Convert.ToDecimal(lblInterestDue.Text).ToString(strFormat);
+                lblFuturePrincipal.Text = Convert.ToDecimal(lblFuturePrincipal.Text).ToString(strFormat);
+                if (e.Row.RowIndex != ((DataTable)ViewState["GrdData"]).Rows.Count - 1)
+                {
+                    lblMarketValue.Text = Convert.ToDecimal(lblMarketValue.Text).ToString(strFormat);
+                }
+                lblProvision.Text = Convert.ToDecimal(lblProvision.Text).ToString(strFormat);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    protected void rdDelintype_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        pnlSpoolingDetails.Visible = false;
+        ddllLineOfBusiness.SelectedValue = "0";
+        ddlBranch.SelectedValue = "0";
+        ddlYearMonth.Items.Clear();
+    }
+
+    protected void FunProFreezeGridviewHeader(GridView gvDetails, System.Web.UI.WebControls.Table tbHeader)
+    {
+        Page.EnableViewState = false;
+
+        tbHeader.Rows.Add(gvDetails.HeaderRow);
+        tbHeader.Rows[0].ControlStyle.CopyFrom(gvDetails.HeaderStyle);
+        tbHeader.GridLines = GridLines.Vertical;
+        tbHeader.CellPadding = gvDetails.CellPadding;
+        tbHeader.CellSpacing = gvDetails.CellSpacing;
+        tbHeader.BorderWidth = gvDetails.BorderWidth;
+
+        int Count = 0;
+        for (Count = 0; Count < gvDetails.HeaderRow.Cells.Count - 1; Count++)
+        {
+            tbHeader.Rows[0].Cells[Count].Width = gvDetails.Columns[Count].ItemStyle.Width;
+            tbHeader.Rows[0].Cells[Count].BorderWidth =
+                gvDetails.Columns[Count].HeaderStyle.BorderWidth;
+            tbHeader.Rows[0].Cells[Count].BorderStyle =
+                gvDetails.Columns[Count].HeaderStyle.BorderStyle;
+        }
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "101");
+        Procparam.Add("@Lob_Id", obj_Page.ddllLineOfBusiness.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+}

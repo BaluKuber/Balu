@@ -1,0 +1,894 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Collection
+/// Screen Name         :   DC Commision Percentage View(DC Incentive Processing View)
+/// Created By          :   M.Saran
+/// Created Date        :   NULL
+/// Purpose             :   
+/// Last Updated By		:   NULL
+/// Last Updated Date   :   NULL
+/// Reason              :   NULL
+/// <Program Summary>
+#endregion
+
+
+
+#region Namespaces
+
+using System;
+using System.Data;
+using System.Web.UI.WebControls;
+using System.Collections.Generic;
+using S3GBusEntity;
+using S3GBusEntity.Collection;
+using System.Configuration;
+using ClnDebtMgtServicesReference;
+using System.Web.UI;
+using System.Web.Security;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.IO;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using System.Collections;
+using System.Collections.Generic;
+using System.ServiceModel;
+#endregion
+
+public partial class Collection_S3GClnDCIncentive_Processing_View : ApplyThemeForProject
+{
+    #region Variable Declaration Region
+    Dictionary<string, string> ObjDictParams = null;
+    Dictionary<string, string> Procparam = null;
+    string[] DemandArrayList = new string[12];
+    Dictionary<int, string> dictDemandmonth = new Dictionary<int, string>();
+
+    UserInfo ObjUserInfo = new UserInfo();
+    S3GSession ObjS3GSession = new S3GSession();
+    SerializationMode SerMode = SerializationMode.Binary;
+    string strDateFormat;
+    DataSet DS = new DataSet();
+
+
+    string strDCIncentiveProcessing_ID;
+    int intErrCode = 0;
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    int intCompanyID = 0;
+    //Code end
+
+    const string strvalidationmsgname = "CDI";
+    string strRedirectPage = "S3GClnDCIncentive_Processing_View.aspx";
+    string strRedirectPageView = "S3GClnDCIncentive_Processing_View.aspx";
+    string strRedirectCreatePage = "~/Collection/S3GClnDCIncentive_Processing.aspx";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    static string strPageName = "DC Incentive Processing View";
+
+    //Service
+    ClnDebtMgtServices.S3G_CLN_DebtCollectorCommissionDataTable objS3G_CLN_DebtCollectorCommission = null;
+    ClnDebtMgtServices.S3G_CLN_DebtCollectorCommissionPaymentDetailsDataTable S3G_CLN_DebtCollectorCommissionPaymentDetails = null;
+    ClnDebtMgtServicesClient objDebtServices = new ClnDebtMgtServicesClient();
+
+    #endregion
+
+
+    #region "Events"
+
+    #region "Page Load Events"
+
+    /// <summary>
+    /// This event fires when Page Loads.
+    /// It calls the function "FunPriLoadPage" to set the default functionality for the DC Incentive Processing based on the mode.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+
+        }
+        catch (Exception ex)
+        {
+            CVDCIncentiveProcessingView.ErrorMessage = "Due to Data Problem, Unable to Load.";
+            CVDCIncentiveProcessingView.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region "DropDown Events"
+
+    /// <summary>
+    /// This Event fires when dropdown selectedIndex changed.
+    /// This calls the functions called "FunProLoadDebtCollectorCodes" to load the Debtcollector based on Line of business and Branch.
+    /// This calls the functions called "FunProClearForLOB" to clear the form.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlLineofBusiness_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProClearForLOB();
+            FunProLoadBranch();
+        }
+        catch (Exception ex)
+        {
+            CVDCIncentiveProcessingView.ErrorMessage = "Due to Data Problem, Unable to Load Debt Collector.";
+            CVDCIncentiveProcessingView.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// This Event fires when dropdown selectedIndex changed.
+    /// This calls the function called "FunProLoadDebtCollectorCodes" to load the Debtcollector based on Line of business and Branch.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+
+        }
+        catch (Exception ex)
+        {
+            CVDCIncentiveProcessingView.ErrorMessage = "Due to Data Problem, Unable to Load Debt Collector.";
+            CVDCIncentiveProcessingView.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlFinacialYear_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriFillDemandMonth();
+        FunPriFillArrayDemandMonth();
+    }
+
+    private void FunPriFillDemandMonth()
+    {
+        if (ddlFinacialYear.SelectedIndex > 0)
+        {
+
+            if (ddlFrequency.SelectedIndex > 0)
+                ddlDemandMonth.FillFinancialMonth(ddlFinacialYear.SelectedItem.Text, Convert.ToInt32(ddlFrequency.SelectedValue));
+            else
+                ddlDemandMonth.FillFinancialMonth(ddlFinacialYear.SelectedItem.Text);
+            return;
+        }
+        else
+        {
+            if (ddlDemandMonth.Items.Count > 0)
+            {
+                ddlDemandMonth.SelectedIndex = -1;
+                ddlDemandMonth.ClearDropDownList();
+            }
+
+        }
+    }
+
+
+    private void FunPriFillArrayDemandMonth()
+    {
+        int intActualMonth = Convert.ToInt32(ClsPubConfigReader.FunPubReadConfig("StartMonth"));
+        string[] Years = ddlFinacialYear.SelectedItem.Text.Split('-');
+        string strActualYear = Years[0].ToString();
+        for (int intMonthCnt = 1; intMonthCnt <= 12; intMonthCnt++)
+        {
+            if (intActualMonth >= 13)
+            {
+                intActualMonth = 1;
+                strActualYear = Years[1].ToString();
+            }
+            System.Web.UI.WebControls.ListItem liPSelect = new System.Web.UI.WebControls.ListItem(strActualYear + intActualMonth.ToString("00"), strActualYear + intActualMonth.ToString("00"));
+            DemandArrayList[intMonthCnt - 1] = liPSelect.Text;
+            dictDemandmonth.Add(intMonthCnt, liPSelect.Text);
+            intActualMonth = intActualMonth + 1;
+        }
+        ViewState["DemandMonth"] = dictDemandmonth;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void ddlFrequency_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriFillDemandMonth();
+    }
+
+    #endregion
+
+
+    #region "Button Events"
+
+  
+
+    /// <summary>
+    /// This event fires when Button Clear clicked. 
+    /// It calls the Function called "FunProClearForm" to clear the DC Incentive Processing form.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProClearForm();
+        }
+        catch (Exception ex)
+        {
+            CVDCIncentiveProcessingView.ErrorMessage = "Unable To clear.";
+            CVDCIncentiveProcessingView.IsValid = false;
+        }
+    }
+/// <summary>
+    /// This event fires when Button Create clicked. 
+    /// 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnCreate_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect(strRedirectCreatePage);
+        }
+        catch (Exception ex)
+        {
+            CVDCIncentiveProcessingView.ErrorMessage = "Unable to redirect to create page.";
+            CVDCIncentiveProcessingView.IsValid = false;
+        }
+    }
+    /// <summary>
+    /// This event fires when Button Process clicked. 
+    /// It calls the Function called "FunProSearchIncentiveDetails" to process the DC Incentive Processing for the Debt Collector.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnSearch_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriBindGrid();
+        }
+        catch (Exception ex)
+        {
+            CVDCIncentiveProcessingView.ErrorMessage = "Unable To Load grid.";
+            CVDCIncentiveProcessingView.IsValid = false;
+        }
+    }
+
+
+    /// <summary>
+    /// This event fires when Button Excel clicked. 
+    /// It calls the Function called "FunProGenerateToExcel" to generate the Report.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnExcel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProGenerateToExcel();
+        }
+        catch (DirectoryNotFoundException dnfe)
+        {
+            //CDI_1
+            //Utility.FunShowAlertMsg(this, "The target directory was not found");
+            Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 1);
+        }
+        catch (Exception ex)
+        {
+            CVDCIncentiveProcessingView.ErrorMessage = "Unable To genereate excel, Due to Data Problem";
+            CVDCIncentiveProcessingView.IsValid = false;
+        }
+
+    }
+
+    #endregion
+
+
+
+    #region "Checkbox Events"
+
+    #endregion
+
+    #endregion
+
+
+
+    #region "Page Methods"
+
+
+    /// <summary>
+    /// This method is responsible to generate the Excel file. It contains required function definitions For Excel Generation.
+    /// </summary>
+
+    protected void FunProGenerateToExcel()
+    {
+        try
+        {
+
+            if (grvDCIncentiveProcessingExcel == null)
+            {
+                //CDI_2
+               //Utility.FunShowAlertMsg(this, "No records found to generate Excel.");
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 2);
+                return;
+            }
+            if (grvDCIncentiveProcessingExcel.Rows.Count > 0)
+            {
+
+                //FunProExport(grvDCIncentiveProcessingExcel);
+                grvDCIncentiveProcessingExcel.FunPubExportGrid("DCIncentiveProcessed", enumFileType.Excel);
+
+
+            }
+            else
+            {
+                //CDI_2
+                //Utility.FunShowAlertMsg(this, "No records found to generate Excel.");
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 2);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    protected void FunProExport(GridView Grv)
+    {
+        try
+        {
+            Type ExcellType = Type.GetTypeFromProgID("Excel.Application");
+            if (ExcellType == null)
+            {
+                //CDI_3
+               // Utility.FunShowAlertMsg(this, "Cannot export file. MS-Excel is not available.");
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 3);
+                return;
+            }
+
+
+            string attachment = "attachment; filename=DCIncentiveProcessed"+ddlDemandMonth.SelectedItem.Text+".xls";
+            Response.ClearContent();
+
+            Response.AddHeader("content-disposition", attachment);
+            Response.ContentType = "application/vnd.xls";
+            StringWriter sw = new StringWriter();
+            HtmlTextWriter htw = new HtmlTextWriter(sw);
+            if (Grv.Rows.Count > 0)
+            {
+                Grv.RenderControl(htw);
+                Response.Write(sw.ToString());
+                Response.End();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Export into Excel");
+        }
+    }
+
+
+    public override void VerifyRenderingInServerForm(Control control)
+    {
+        //base.VerifyRenderingInServerForm(control);
+    }
+
+
+    /// <summary>
+    /// This method is used to Load the page.this method is responsible to capture the mode of the form and the Id's passed in the querystring.
+    /// </summary>
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            
+            //Code end
+
+            #region Paging Config
+            arrSearchVal = new ArrayList(intNoofSearch);
+            ProPageNumRW = 1;
+            TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+            if (txtPageSize.Text != "")
+                ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+            else
+                ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+            PageAssignValue obj = new PageAssignValue(this.AssignValue);
+            ucCustomPaging.callback = obj;
+            ucCustomPaging.ProPageNumRW = ProPageNumRW;
+            ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+            #endregion
+
+
+            if (!IsPostBack)
+            {
+                ucCustomPaging.Visible =
+                    gvDCIncentiveProcessing.Visible = false;
+                FunProLoadDetails();
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPage,false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+   
+    /// <summary>
+    /// This method is used to Load the details in query mode based on the Debt Collector code.
+    /// </summary>
+    /// <param name="strDCIncentiveProcessing_ID"></param>
+
+  
+
+    /// <summary>
+    /// This method is used to Load the function calling definitions of Line of Business,Branchs,DebtCollector codes.
+    /// </summary>
+    protected void FunProLoadDetails()
+    {
+
+        try
+        {
+            FunProLoadLOB();
+            FunProLoadBranch();
+            ddlFinacialYear.FillFinancialYears();
+            FunProLoadFrequencyType();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// This method is used to load the Frequency as same as Debt Collector master.
+    /// </summary>
+    protected void FunProLoadFrequencyType()
+    {
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            ObjDictParams.Add("@LookupType_Code", "76");
+            ddlFrequency.BindDataTable(SPNames.S3G_LOANAD_GetLookupTypeDescription, ObjDictParams, new string[] { "Lookup_Code", "Lookup_Description" });
+            ObjDictParams = null;
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// This methods is used to Load the Active Luine of Business.
+    /// </summary>
+    protected void FunProLoadLOB()
+    {
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            ObjDictParams.Add("@User_Id", ObjUserInfo.ProUserIdRW.ToString());
+            ObjDictParams.Add("@Is_Active", "1");
+            ObjDictParams.Add("@Program_ID", "107");
+            ddlLineofBusiness.BindDataTable(SPNames.LOBMaster, ObjDictParams, true, "All", new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            ObjDictParams = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    /// <summary>
+    /// This method is used to load the active branches.
+    /// </summary>
+    protected void FunProLoadBranch()
+    {
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            ObjDictParams.Add("@User_ID", ObjUserInfo.ProUserIdRW.ToString());
+            ObjDictParams.Add("@Is_Active", "1");
+            ObjDictParams.Add("@Program_ID", "107");
+            if (ddlLineofBusiness.SelectedIndex > 0)
+            {
+                ObjDictParams.Add("@Lob_Id", ddlLineofBusiness.SelectedValue);
+            }
+            ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, ObjDictParams, true, "All", new string[] { "Location_ID", "Location_CODE", "Location_NAME" });
+            ObjDictParams = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+
+
+    /// <summary>
+    /// This method is used to clear the Form if Line of Business is changed.
+    /// </summary>
+
+    protected void FunProClearForLOB()
+    {
+        try
+        {
+            ddlBranch.SelectedIndex = -1;
+            ddlFinacialYear.SelectedIndex = -1;
+            //txtDemandMonth.Text = "";
+            ddlDemandMonth.SelectedIndex = -1;
+            ddlFrequency.SelectedIndex = -1;
+            if (ddlDemandMonth.Items.Count > 1)
+            {
+                ddlDemandMonth.Items.Clear();
+            }
+            gvDCIncentiveProcessing.DataSource = null;
+            gvDCIncentiveProcessing.DataBind();
+            grvDCIncentiveProcessingExcel.DataSource = null;
+            grvDCIncentiveProcessingExcel.DataBind();
+            ucCustomPaging.Visible = false;
+            
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    /// <summary>
+    /// This method is used to clear the Form.
+    /// </summary>
+    protected void FunProClearForm()
+    {
+        try
+        {
+            ddlLineofBusiness.SelectedIndex = -1;
+            FunProClearForLOB();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+ 
+  
+
+   
+
+    #region "paging"
+    int intNoofSearch = 3;
+    //string[] arrSortCol = new string[] { "LM.LOB_Code + ' - ' +LM.LOB_Name", " BM.Branch_Code + ' - ' + BM.Branch_Name", "S3G_CLN_DebtCollectorCommission.DebtCollector_Code" };
+    //Code changed for Location change in both SQL & Oracle Dataflow- Kuppusamy.B - 04/April/2012
+    string[] arrSortCol = new string[] { "LM.LOB_Code + ' - ' +LM.LOB_Name", " LOCM.LOCATION_CODE + ' - ' + LOCCAT.LOCATIONCAT_DESCRIPTION", "S3G_CLN_DebtCollectorCommission.DebtCollector_Code" };
+    string strProcName = "S3G_CLN_GetDCIncentiveProcessing_Paging";
+    ArrayList arrSearchVal = new ArrayList(1);
+    PagingValues ObjPaging = new PagingValues();
+    public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    public int ProPageNumRW
+    {
+        get;
+        set;
+    }
+
+    public int ProPageSizeRW
+    {
+        get;
+        set;
+
+    }
+
+    protected void AssignValue(int intPageNum, int intPageSize)
+    {
+        ProPageNumRW = intPageNum;
+        ProPageSizeRW = intPageSize;
+        FunPriBindGrid();
+    }
+
+    #region Paging and Searching Methods For Grid
+
+
+    private void FunPriGetSearchValue()
+    {
+        arrSearchVal = gvDCIncentiveProcessing.FunPriGetSearchValue(arrSearchVal, intNoofSearch);
+    }
+
+    private void FunPriClearSearchValue()
+    {
+        gvDCIncentiveProcessing.FunPriClearSearchValue(arrSearchVal);
+    }
+
+    private void FunPriSetSearchValue()
+    {
+        gvDCIncentiveProcessing.FunPriSetSearchValue(arrSearchVal);
+    }
+
+    protected void FunProHeaderSearch(object sender, EventArgs e)
+    {
+
+        string strSearchVal = string.Empty;
+        TextBox txtboxSearch;
+        try
+        {
+            txtboxSearch = ((TextBox)sender);
+
+            FunPriGetSearchValue();
+            //Replace the corresponding fields needs to search in sqlserver
+
+            for (int iCount = 0; iCount < arrSearchVal.Capacity; iCount++)
+            {
+                if (arrSearchVal[iCount].ToString() != "")
+                {
+                    strSearchVal += " and " + arrSortCol[iCount].ToString() + " like '%" + arrSearchVal[iCount].ToString() + "%'";
+                }
+            }
+
+            hdnSearch.Value = strSearchVal;
+            FunPriBindGrid();
+            FunPriSetSearchValue();
+            if (txtboxSearch.Text != "")
+                ((TextBox)gvDCIncentiveProcessing.HeaderRow.FindControl(txtboxSearch.ID)).Focus();
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    private string FunPriGetSortDirectionStr(string strColumn)
+    {
+        string strSortDirection = string.Empty;
+        string strSortExpression = string.Empty;
+        // By default, set the sort direction to ascending.
+        string strOrderBy = string.Empty;
+        strSortDirection = "DESC";
+        try
+        {
+
+            strSortExpression = hdnSortExpression.Value;
+            if ((strSortExpression != "") && (strSortExpression == strColumn) && (hdnSortDirection.Value != null) && (hdnSortDirection.Value == "DESC"))
+            {
+                strSortDirection = "ASC";
+            }
+            // Save new values in hidden control.
+            hdnSortDirection.Value = strSortDirection;
+            hdnSortExpression.Value = strColumn;
+            strOrderBy = " " + strColumn + " " + strSortDirection;
+            hdnOrderBy.Value = strOrderBy;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+        return strSortDirection;
+    }
+
+
+
+    protected void FunProSortingColumn(object sender, EventArgs e)
+    {
+        arrSearchVal = new ArrayList(intNoofSearch);
+        var imgbtnSearch = string.Empty;
+        try
+        {
+            LinkButton lnkbtnSearch = (LinkButton)sender;
+            string strSortColName = string.Empty;
+            //To identify image button which needs to get chnanged
+            imgbtnSearch = lnkbtnSearch.ID.Replace("lnkbtn", "imgbtn");
+
+            for (int iCount = 0; iCount < arrSearchVal.Capacity; iCount++)
+            {
+                if (lnkbtnSearch.ID == "lnkbtnSort" + (iCount + 1).ToString())
+                {
+                    strSortColName = arrSortCol[iCount].ToString();
+                    break;
+                }
+            }
+
+            string strDirection = string.Empty;
+            string strSortDirection = string.Empty;
+
+            if (((ImageButton)gvDCIncentiveProcessing.HeaderRow.FindControl(imgbtnSearch)).CssClass == "styleImageSortingAsc")
+            {
+                strSortDirection = "DESC";
+            }
+            else
+            {
+                strDirection = "ASC";
+            }
+
+            hdnSortDirection.Value = strSortDirection;
+            hdnSortExpression.Value = strSortColName;
+            hdnOrderBy.Value = " " + strSortColName + " " + strSortDirection;
+
+            FunPriBindGrid();
+
+            if (strDirection == "ASC")
+            {
+                ((ImageButton)gvDCIncentiveProcessing.HeaderRow.FindControl(imgbtnSearch)).CssClass = "styleImageSortingAsc";
+            }
+            else
+            {
+
+                ((ImageButton)gvDCIncentiveProcessing.HeaderRow.FindControl(imgbtnSearch)).CssClass = "styleImageSortingDesc";
+            }
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            //lblErrorMessage.InnerText = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+
+
+    private void FunPriBindGrid()
+    {
+        try
+        {
+            int intTotalRecords = 0;
+            bool bIsNewRow = false;
+            ObjPaging.ProCompany_ID = ObjUserInfo.ProCompanyIdRW;
+            ObjPaging.ProUser_ID = ObjUserInfo.ProUserIdRW; 
+            ObjPaging.ProTotalRecords = intTotalRecords;
+            ObjPaging.ProCurrentPage = ProPageNumRW;
+            ObjPaging.ProPageSize = ProPageSizeRW;
+            ObjPaging.ProSearchValue = hdnSearch.Value;
+            ObjPaging.ProOrderBy = hdnOrderBy.Value;
+
+            FunPriGetSearchValue();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Demand_Month",ddlDemandMonth.SelectedItem.Text);
+            if(ddlBranch.SelectedIndex > 0)
+                Procparam.Add("@Location_Id", ddlBranch.SelectedValue);
+            if(ddlLineofBusiness.SelectedIndex > 0)
+                Procparam.Add("@LOB_ID", ddlLineofBusiness.SelectedValue);
+            if (ddlFrequency.SelectedIndex > 0)
+                Procparam.Add("@Frequency_Type", ddlFrequency.SelectedValue);
+            DataSet ObjDataSet = GetGridDataSet(strProcName, Procparam, out intTotalRecords, ObjPaging);
+
+            DataView dvResult = ObjDataSet.Tables[0].DefaultView;
+            if (dvResult.Count == 0)
+            {
+                dvResult.AddNew();
+                bIsNewRow = true;
+            }
+            gvDCIncentiveProcessing.Visible = true;
+            gvDCIncentiveProcessing.DataSource = dvResult;
+            gvDCIncentiveProcessing.DataBind();
+            if (bIsNewRow)
+            {
+                gvDCIncentiveProcessing.Rows[0].Visible = false;
+            }
+            //this is used to spool the records to excel
+            if (ObjDataSet.Tables[1].Rows.Count > 0)
+            {
+                grvDCIncentiveProcessingExcel.DataSource = ObjDataSet.Tables[1];
+                grvDCIncentiveProcessingExcel.DataBind();
+            }
+            else
+            {
+                grvDCIncentiveProcessingExcel.DataSource = null;
+                grvDCIncentiveProcessingExcel.DataBind();
+            }
+            
+
+            FunPriSetSearchValue();
+            ucCustomPaging.Visible = true;
+            ucCustomPaging.Navigation(intTotalRecords, ProPageNumRW, ProPageSizeRW);
+            ucCustomPaging.setPageSize(ProPageSizeRW);
+
+            //Paging Config End
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+
+    }
+
+    /// <summary>
+    /// Method will return a dataset by passing procedure name and 
+    /// parameters as dictionary for paging and non paging records
+    /// </summary>
+    /// <param name="strProcName"></param>
+    /// <param name="dictProcParam"></param>
+    /// <returns></returns>
+    public static DataSet GetGridDataSet(string strProcName, Dictionary<string, string> dictProcParam, out int intTotalRecords, PagingValues ObjPaging)
+    {
+        intTotalRecords = 0;
+        ClnDebtMgtServicesReference.ClnDebtMgtServicesClient ObjClnDebtMgtService = null;
+        DataSet ObjDataSet = null;
+        try
+        {
+            ObjClnDebtMgtService = new ClnDebtMgtServicesReference.ClnDebtMgtServicesClient();
+
+            byte[] byteRoleDetails = ObjClnDebtMgtService.FunPubGetDatasetGridPaging(out intTotalRecords, strProcName, dictProcParam, ObjPaging);
+            ObjDataSet = (DataSet)ClsPubSerialize.DeSerialize(byteRoleDetails, SerializationMode.Binary, typeof(DataSet));
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+        finally
+        {
+            ObjClnDebtMgtService.Close();
+        }
+        return ObjDataSet;
+    }
+
+
+    #endregion
+
+
+    #endregion
+
+
+    #endregion
+}

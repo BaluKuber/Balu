@@ -1,0 +1,367 @@
+<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnChequeReturn_Add.aspx.cs" Inherits="Collection_S3GClnChequeReturn_Add"
+    EnableEventValidation="false" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register Src="~/UserControls/S3GCustomerAddress.ascx" TagName="CustomerDetails"
+    TagPrefix="CD" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script language="javascript" type="text/javascript">
+        function cvReceiptCheque_Number_ClientValidate(source, args) {
+            var varchequeNo = document.getElementById('<%=txtChequeNo.ClientID %>')
+            //            var comboHidden = $get('ctl00_ContentPlaceHolder1_ddlReceiptNo_HiddenField');  
+            var comboHidden = $get('ctl00_ContentPlaceHolder1_txtReceiptNumber');
+            if (varchequeNo.value != "" || comboHidden.value != "") {
+                args.IsValid = true;
+            }
+            else {
+                args.IsValid = false;
+            }
+        }
+
+        function ChequeCancelmsg() {
+            if (confirm('Do you want to cancel the Cheque return?')) {
+                return true;
+            }
+            else
+                return false;
+        }
+        function itemchanged() {
+            var lst = document.getElementById('ctl00_ContentPlaceHolder1_ddlReasons'); //You would need the Rendered ASP.NET ClientID instead of this one
+            lst.title = lst.options[lst.selectedIndex].text;
+        }
+    </script>
+
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading" colspan="4">
+                        <table style="width: 100%">
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="Cheque Returns" ID="lblHeading" CssClass="styleDisplayLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign="top" colspan="4">
+                        <table cellpadding="0" cellspacing="0" style="width: 100%">
+                            <tr>
+                                <td colspan="4">
+                                    <asp:RequiredFieldValidator ID="rfvLOB" runat="server" SetFocusOnError="true" ValidationGroup="btnSave"
+                                        ControlToValidate="ddlLOB" InitialValue="0" ErrorMessage="Select the Line of Business"
+                                        Display="None"></asp:RequiredFieldValidator>
+                                   <%-- <asp:RequiredFieldValidator ID="rfvBranch" runat="server" SetFocusOnError="true"
+                                        ControlToValidate="ddlBranch" InitialValue="0" ErrorMessage="Select the Location"
+                                        Display="None" ValidationGroup="btnSave"></asp:RequiredFieldValidator>--%>
+                                    <%--<asp:RequiredFieldValidator ID="rfvReceipt_Cheque_No" BackColor="White" runat="server"
+                                        ValidationGroup="btnSave" ControlToValidate="ddlReceiptNo" InitialValue="-- Select --"
+                                        ErrorMessage="Enter the Receipt number or Cheque number" Display="None"></asp:RequiredFieldValidator>--%>
+                                    <asp:CustomValidator ID="custOption" runat="server" ValidationGroup="btnSave" OnServerValidate="custOption_ServerValidate"
+                                        Display="None"></asp:CustomValidator>
+                                    <asp:CustomValidator ID="cvReceiptCheque_Number" runat="server" ErrorMessage="" Display="None"
+                                        ControlToValidate="txtReceiptNumber" ClientValidationFunction="cvReceiptCheque_Number_ClientValidate" />
+                                    <asp:RequiredFieldValidator ID="rfvChequeReceiptNoDuplicate" BackColor="White" runat="server"
+                                        ValidationGroup="btnSave" ControlToValidate="txtChequeNo" InitialValue="" ErrorMessage="Enter either a Receipt Number or Cheque Number"
+                                        Display="None"></asp:RequiredFieldValidator>
+                                    <asp:RequiredFieldValidator ID="rqvCharges" runat="server" SetFocusOnError="true"
+                                        ControlToValidate="txtBnkCharges" ErrorMessage="Enter the Bank Charges" Display="None"
+                                        ValidationGroup="btnSave"></asp:RequiredFieldValidator>
+                                    <asp:RequiredFieldValidator ID="rqvAdvice" runat="server" SetFocusOnError="true"
+                                        ControlToValidate="txtBankAdviceNo" ErrorMessage="Enter the Bank Advice Number"
+                                        Display="None" ValidationGroup="btnSave"></asp:RequiredFieldValidator>
+                                    <asp:RequiredFieldValidator ID="rqvReasons" runat="server" SetFocusOnError="true"
+                                        ValidationGroup="btnSave" ControlToValidate="ddlReasons" InitialValue="0" ErrorMessage="Select the Reason for Return"
+                                        Display="None"></asp:RequiredFieldValidator>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+            <div style="margin-left: 3px;">
+                <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td valign="top" colspan="4">
+                            <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                <tr>
+                                    <td style="width: 50%;">
+                                        <asp:Panel ID="Panel2" runat="server" GroupingText="Cheque/Receipt Information" CssClass="stylePanel">
+                                            <div style="margin-bottom: 10px;">
+                                                <table width="100%">
+                                                    <tr>
+                                                        <td class="styleFieldLabel" width="50%">
+                                                            <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleReqFieldLabel">
+                                                            </asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign" align="left" width="50%">
+                                                            <asp:DropDownList ID="ddlLOB" runat="server" Width="200" ToolTip="Line of Business"
+                                                                AutoPostBack="true" Visible="true" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged">
+                                                            </asp:DropDownList>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td width="50%" class="styleFieldLabel">
+                                                            <asp:Label ID="lblBranch" runat="server" Text="Location" CssClass="styleReqFieldLabel"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign" width="50%">
+                                                            <uc:Suggest ID="ddlBranch" ToolTip="Location" runat="server" AutoPostBack="True"
+                                                                OnItem_Selected="ddlBranch_SelectedIndexChanged" IsMandatory="true" ErrorMessage="Select a Location"
+                                                                ValidationGroup="btnSave" ServiceMethod="GetBranchList" WatermarkText="--Select--" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel" width="50%">
+                                                            <asp:Label runat="server" Text="Receipt Number" ID="lblReceiptNo">
+                                                            </asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign" align="left" width="50%">
+                                                            <cc1:ComboBox ID="ddlReceiptNo" AutoPostBack="true" ValidationGroup="RFVDTransLander"
+                                                                ToolTip="Receipt Number" runat="server" AutoCompleteMode="SuggestAppend" DropDownStyle="DropDownList"
+                                                                MaxLength="0" CssClass="WindowsStyle" OnSelectedIndexChanged="ddlReceiptNo_SelectedIndexChanged"
+                                                                Visible="false">
+                                                            </cc1:ComboBox>
+                                                            <%--<asp:DropDownList ID="ddlReceiptNo" runat="server" Width="200" AutoPostBack="true"
+                                                                ToolTip="Receipt Number" OnSelectedIndexChanged="ddlReceiptNo_SelectedIndexChanged">
+                                                                <asp:ListItem Selected="True" Text="--Select--" Value="0"></asp:ListItem>
+                                                            </asp:DropDownList>--%>
+                                                            <asp:Panel ID="pnlReceiptNumber" runat="server">
+                                                                <asp:TextBox ID="txtReceiptNumber" runat="server" MaxLength="50" OnTextChanged="txtReceiptNumber_OnTextChanged"
+                                                                    AutoPostBack="true" Width="190px" ToolTip="Receipt Number"></asp:TextBox>
+                                                                <cc1:AutoCompleteExtender ID="auceReceiptNumber" runat="server" TargetControlID="txtReceiptNumber"
+                                                                    ServiceMethod="GetReceiptNumberList" MinimumPrefixLength="4" CompletionSetCount="15"
+                                                                    Enabled="True" CompletionInterval="100" FirstRowSelected="true">
+                                                                </cc1:AutoCompleteExtender>
+                                                                <cc1:TextBoxWatermarkExtender ID="tbwmeReceiptNumber" runat="server" TargetControlID="txtReceiptNumber"
+                                                                    WatermarkText="Enter Receipt Number">
+                                                                </cc1:TextBoxWatermarkExtender>
+                                                                <cc1:FilteredTextBoxExtender ID="ftbeReceiptNumber" runat="server" TargetControlID="txtReceiptNumber"
+                                                                    FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" Enabled="True"
+                                                                    ValidChars="/">
+                                                                </cc1:FilteredTextBoxExtender>
+                                                            </asp:Panel>
+                                                        </td>
+                                                        <td colspan="2">
+                                                            &nbsp;
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td width="50%" class="styleFieldLabel">
+                                                            <asp:Label ID="lblChequeNo" runat="server" Text="Instrument Number"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign">
+                                                            <asp:TextBox ID="txtChequeNo" runat="server" ToolTip="Instrument Number" MaxLength="10"
+                                                                AutoPostBack="true" onblur="ChkIsZero(this,'Instrument Number');" OnTextChanged="txtChequeNo_TextChanged"
+                                                                Width="190"></asp:TextBox>
+                                                            <cc1:FilteredTextBoxExtender runat="server" ID="FilteredTextBoxExtender1" FilterType="Numbers"
+                                                                TargetControlID="txtChequeNo">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                            <cc1:TextBoxWatermarkExtender ID="TextBoxWatermarkExtender1" runat="server" TargetControlID="txtChequeNo"
+                                                                WatermarkText="Enter Instrument Number">
+                                                            </cc1:TextBoxWatermarkExtender>
+                                                            <asp:RangeValidator ID="rngChequeNo" runat="server" MinimumValue="1" MaximumValue="9999999"
+                                                                Type="Double" ControlToValidate="txtChequeNo" ValidationGroup="btnSave" Display="None"
+                                                                ErrorMessage="The number can be of 7 digits only"></asp:RangeValidator>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel" width="50%">
+                                                            <asp:Label runat="server" Text="Cheque Return Number" ID="lblChkRetNo">
+                                                            </asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign" align="left" width="50%">
+                                                            <asp:TextBox ID="txtChequeRetNo" runat="server" Width="190" ContentEditable="false"
+                                                                ToolTip="Cheque Return Number"></asp:TextBox>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel" width="50%">
+                                                            <asp:Label runat="server" Text="Document Date" ID="lblDocuDate">
+                                                            </asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign" align="left" width="50%">
+                                                            <asp:TextBox ID="txtDocuDate" runat="server" Width="80" ContentEditable="false" ToolTip="Document Date"></asp:TextBox>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td width="50%" class="styleFieldLabel">
+                                                            <asp:Label ID="lblChequeDate" runat="server" Text="Cheque Return Value Date"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign">
+                                                            <asp:TextBox ID="txtChequeDate" Width="80" runat="server" ContentEditable="false"
+                                                                ToolTip="Cheque Return Value Date"></asp:TextBox>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td width="50%" class="styleFieldLabel">
+                                                            <asp:Label ID="Label3" runat="server" Text="View Receipt"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign">
+                                                            <input type="hidden" value="0" runat="server" id="hdnReptID" />
+                                                            <asp:LinkButton Text="Click Here" CausesValidation="false" runat="server" ID="ReceiptID" ToolTip="View Receipt"
+                                                                OnClick="ReceiptID_serverclick" Enabled="false"></asp:LinkButton>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </asp:Panel>
+                                    </td>
+                                    <td style="width: 50%;">
+                                        <asp:Panel ID="pnluserControlSample" runat="server" GroupingText="Customer Information"
+                                            CssClass="stylePanel">
+                                            <div style="margin-bottom: 10px;">
+                                                <CD:CustomerDetails ID="ucdCustomer" runat="server" ActiveViewIndex="0" />
+                                            </div>
+                                        </asp:Panel>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td valign="top" colspan="4">
+                            <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                <tr>
+                                    <td colspan="4">
+                                        <asp:Panel ID="Panel3" runat="server" GroupingText="Bank Information" CssClass="stylePanel">
+                                            <table width="100%">
+                                                <tr>
+                                                    <td class="styleFieldLabel" width="23%">
+                                                        <asp:Label runat="server" Text="Deposit Bank" ID="Label1">
+                                                        </asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign" align="left" width="23%">
+                                                        <asp:TextBox ID="txtDepositBank" runat="server" ContentEditable="false" ToolTip="Deposit Bank"></asp:TextBox>
+                                                    </td>
+                                                    <td width="23%" class="styleFieldLabel">
+                                                        <asp:Label ID="Label2" runat="server" Text="Bank Account Number"></asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtAcNo" runat="server" ContentEditable="false" ToolTip="Bank Account Number"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="styleFieldLabel" width="23%">
+                                                        <asp:Label runat="server" Text="Instrument Amount" ID="Label4">
+                                                        </asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign" align="left" width="23%">
+                                                        <asp:TextBox ID="txtChkAmt" runat="server" ContentEditable="false" Style="text-align: right;"
+                                                            ToolTip="Instrument Amount"></asp:TextBox>
+                                                    </td>
+                                                    <td width="23%" class="styleFieldLabel">
+                                                        <asp:Label ID="Label5" runat="server" Text="Bank Charges" CssClass="styleReqFieldLabel"></asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtBnkCharges" runat="server" ToolTip="Bank Charges" Style="text-align: right;"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender runat="server" ID="FilteredTextBoxExtender2" FilterType="Numbers"
+                                                            TargetControlID="txtBnkCharges">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                        <%--   <asp:RangeValidator ID="rgvbnkChnarges" runat="server" MinimumValue="0"
+                                                        MaximumValue="9999999999" ControlToValidate="txtBnkCharges"></asp:RangeValidator>--%>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="styleFieldLabel" width="23%">
+                                                        <asp:Label runat="server" Text="Bank Advice Number" ID="Label7" CssClass="styleReqFieldLabel">
+                                                        </asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtBankAdviceNo" runat="server" MaxLength="25" ToolTip="Bank Advice Number"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender runat="server" ID="FilteredTextBoxExtender3" FilterType="LowercaseLetters,Numbers,UppercaseLetters,Custom"
+                                                            TargetControlID="txtBankAdviceNo" ValidChars=" \/-()">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                    </td>
+                                                    <td class="styleFieldLabel" width="23%">
+                                                        <asp:Label runat="server" Text="Reason for Return" ID="Label6" CssClass="styleReqFieldLabel">
+                                                        </asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:DropDownList ID="ddlReasons" runat="server" Width="85%" ToolTip="Reason for Return"
+                                                            onchange="itemchanged()">
+                                                        </asp:DropDownList>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td valign="top" colspan="4">
+                                                        <asp:Panel ID="Panel4" runat="server" GroupingText="Account Level Cheque Amount"
+                                                            CssClass="stylePanel" Style="display: none;">
+                                                            <div class="container" style="width: 100%; height: 110px; overflow-x: auto; overflow-y: auto;">
+                                                                <asp:GridView ID="grvCheque" runat="server" Width="98%" AutoGenerateColumns="false"
+                                                                    HeaderStyle-CssClass="styleGridHeader" RowStyle-HorizontalAlign="Center" OnRowDataBound="grvCheque_RowDataBound">
+                                                                    <Columns>
+                                                                        <asp:BoundField HeaderText="Account No" DataField="PANum" ItemStyle-HorizontalAlign="Left" />
+                                                                        <asp:BoundField HeaderText="Sub Account No" DataField="SANum" ItemStyle-HorizontalAlign="Left" />
+                                                                        <asp:BoundField HeaderText="Account Description" DataField="Account Description"
+                                                                            ItemStyle-HorizontalAlign="Left" />
+                                                                        <asp:TemplateField HeaderText="Cheque Amount" ItemStyle-HorizontalAlign="Right">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblchequeAmt" runat="server" Text='<%#Bind("Transaction_Amount") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+                                                                        <asp:BoundField HeaderText="Cheque Amount" DataField="Transaction_Amount" ItemStyle-HorizontalAlign="Right"
+                                                                            Visible="false" />
+                                                                    </Columns>
+                                                                </asp:GridView>
+                                                            </div>
+                                                        </asp:Panel>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="4">
+                                                        &nbsp;
+                                                    </td>
+                                                </tr>
+                                                <tr class="styleButtonArea" style="padding-left: 4px">
+                                                    <td colspan="4" align="center">
+                                                        <asp:Button runat="server" ID="btnSave" CssClass="styleSubmitButton" Text="Save" ToolTip="Save"
+                                                            OnClick="btnSave_Click" ValidationGroup="btnSave" OnClientClick="return fnCheckPageValidators('btnSave');" />
+                                                        <asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton" ToolTip="Clear"
+                                                            Text="Clear" OnClick="btnClear_Click" OnClientClick="return fnConfirmClear();" />
+                                                        <asp:Button runat="server" ID="btnCancel" Text="Cancel" CausesValidation="false" ToolTip="Cancel"
+                                                            CssClass="styleSubmitButton" OnClick="btnCancel_Click" />
+                                                        <asp:Button runat="server" ID="btnPDF" Text="Print" CausesValidation="false" CssClass="styleSubmitButton"
+                                                            OnClick="btnPDF_Click" Enabled="false" ToolTip="Print" />
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="4">
+                                                        &nbsp;
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </asp:Panel>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" colspan="4">
+                            <asp:CustomValidator ID="cvChequeReturn" runat="server" CssClass="styleMandatoryLabel"
+                                Enabled="true" Width="98%" />
+                            <asp:ValidationSummary ID="vsUTPA" runat="server" CssClass="styleMandatoryLabel"
+                                HeaderText="Correct the following validation(s):" ShowSummary="true" ValidationGroup="btnSave" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <asp:Button runat="server" ID="Button1" Text="Print" CausesValidation="false" CssClass="styleSubmitButton"
+                                OnClick="Button1_Click" Style="display: none;" />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </ContentTemplate>
+        <Triggers>
+            <asp:PostBackTrigger ControlID="Button1" />
+            <asp:PostBackTrigger ControlID="btnSave" />
+        </Triggers>
+    </asp:UpdatePanel>
+</asp:Content>

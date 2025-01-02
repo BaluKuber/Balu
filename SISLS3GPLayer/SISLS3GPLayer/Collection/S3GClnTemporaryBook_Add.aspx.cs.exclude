@@ -1,0 +1,1518 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+
+/// Last Updated By		:   Chandra Sekhar BS
+/// Last Updated Date   :   18-Sep-2013
+/// Reason              :   SQL Performance
+/// <Program Summary>
+#endregion
+
+#region NameSpaces
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using CLN = S3GBusEntity.Collection;
+using CLNSERVICE = ClnReceiptMgtServicesReference;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+
+#endregion
+
+public partial class Collection_S3GClnTemporaryBook_Add : ApplyThemeForProject
+{
+    #region Initialization
+    public static Collection_S3GClnTemporaryBook_Add obj_Page;
+    int intCompanyId = 0;
+    int intUserId = 0;
+    static string strPageName = "Temporary Book Maintenance";
+    int intErrorCode = 0;
+    string Temp_ReceiptBook_No = string.Empty;
+    Dictionary<string, string> Procparam;
+
+    UserInfo ObjUserInfo;
+    CLN.ClnReceiptMgtServices.S3G_CLN_TempReceiptBookMasterDataTable objTempReceBookDataTable;
+    CLNSERVICE.ClnReceiptMgtServicesClient objReceMgtServicesClient;
+    S3GAdminServicesReference.S3GAdminServicesClient objS3GAdminServicesClient = new S3GAdminServicesReference.S3GAdminServicesClient();
+
+    StringBuilder strbTemporaryBook = new StringBuilder();
+    S3GSession objS3GSession = new S3GSession();
+
+    string strLOB_ID = "";
+    string strBranch_ID = "";
+    string strLOB_Name = "";
+    string strBranchName = "";
+    public string strDateFormat;
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTemporaryBook_View.aspx';";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnTemporaryBook_Add.aspx';";
+    string strRedirectPage = "../Collection/S3GClnTemporaryBook_View.aspx";
+
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    bool bClearList = false;
+    bool bModify = false;
+
+    #endregion
+
+    #region Initialze Paging Properties
+
+    PagingValues ObjPaging = new PagingValues();
+
+    public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    public int ProPageNumRW
+    {
+        get;
+        set;
+    }
+
+    public int ProPageSizeRW
+    {
+        get;
+        set;
+    }
+
+    #endregion
+
+    #region PageLoad
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        try
+        {
+            ObjUserInfo = new UserInfo();
+            intCompanyId = ObjUserInfo.ProCompanyIdRW;
+            intUserId = ObjUserInfo.ProUserIdRW;
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            strDateFormat = objS3GSession.ProDateFormatRW;
+            //lblErrorMessage.InnerText = "";
+            bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+            //Code end
+            if (Request.QueryString["qsMode"] != null)
+                strMode = Request.QueryString["qsMode"];
+            if (Request.QueryString["qsLOBID"] != null)
+            {
+                FormsAuthenticationTicket tktLOBID = FormsAuthentication.Decrypt(Request.QueryString.Get("qsLOBID"));
+                FormsAuthenticationTicket tktBranchID = FormsAuthentication.Decrypt(Request.QueryString.Get("qsBranchID"));
+
+                /// Added By Chandra Sekhar BS 19-Sep-2013
+                FormsAuthenticationTicket tktBranchName = FormsAuthentication.Decrypt(Request.QueryString.Get("qsBranchName"));
+                FormsAuthenticationTicket tktLOBName = FormsAuthentication.Decrypt(Request.QueryString.Get("qsLOBName"));
+                if (tktLOBID != null)
+                {
+                    strLOB_ID = tktLOBID.Name;
+                    strBranch_ID = tktBranchID.Name;
+                    strLOB_Name = tktLOBName.Name;
+                    strBranchName = tktBranchName.Name;
+                }
+                else
+                {
+                    throw new ApplicationException("Invalid Temporary Book Details");
+                }
+            }
+
+            ProPageNumRW = 1;
+            TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+            if (txtPageSize.Text != "")
+                ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+            else
+                ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+            PageAssignValue obj = new PageAssignValue(this.AssignValue);
+            ucCustomPaging.callback = obj;
+            ucCustomPaging.ProPageNumRW = ProPageNumRW;
+            ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+            if (!IsPostBack)
+            {
+                FunProIntializeGridData();
+
+                if (strMode == "")
+                {
+                    FunPriLoadLob();
+                    FunPriLoadBranch();
+                }
+                if (strMode == "Q")
+                {
+                    FunPriSetLOBLocation();
+                    FunProDisableControls(-1);
+                }
+                else if (strMode == "M")
+                {
+                    FunPriSetLOBLocation();
+                    FunProDisableControls(1);
+                }
+                else
+                    FunProDisableControls(0);
+            }
+
+            //ScriptManager.RegisterStartupScript(this, GetType(), "te", "Resize();", true);
+        }
+        catch (Exception)
+        {
+
+        }
+    }
+    private void FunPriSetLOBLocation()
+    {
+        ListItem LIL = new ListItem(strLOB_Name, strLOB_ID);
+        ddlLOB.Items.Add(LIL);
+
+        //ListItem LIB = new ListItem(strBranchName, strBranch_ID);
+        //ddlBranch.Items.Add(LIB);
+        ddlBranch.SelectedText = strBranchName;
+        ddlBranch.SelectedValue = strBranch_ID;
+
+    }
+    private void FunPriLoadLob()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Clear();
+        if (PageMode == PageModes.Create)
+        {
+            Procparam.Add("@Is_Active", "1");
+        }
+        Procparam.Add("@Company_Id", Convert.ToString(intCompanyId));
+        Procparam.Add("@User_Id", Convert.ToString(intUserId));
+        Procparam.Add("@Program_Id", "120");
+        ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+    }
+
+    private void FunPriLoadBranch()
+    {
+        //ddlBranch.Clear();
+
+
+        //Procparam = new Dictionary<string, string>();
+        //Procparam.Clear();
+        //Procparam.Add("@Company_Id", Convert.ToString(intCompanyId));
+        //Procparam.Add("@User_ID", Convert.ToString(intUserId));
+        //if (PageMode == PageModes.Create)
+        //{
+        //    Procparam.Add("@Is_Active", "1");
+        //}
+        //Procparam.Add("@Program_Id", "120");
+        //Procparam.Add("@Lob_Id", ddlLOB.SelectedValue);
+        //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location" });
+    }
+
+    #endregion
+
+    #region Grid Events
+
+    protected void grvTemp_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+
+            Label lblUserID = (Label)e.Row.FindControl("lblUserID");
+            Label lblUserLevelID = (Label)e.Row.FindControl("lblUserLevelID");
+            ImageButton imgbtnQuery = (ImageButton)e.Row.FindControl("imgbtnQuery");
+            if (PageMode == PageModes.Modify)
+            {
+                if (lblUserID.Text != "")
+                {
+                    if ((bModify) && (ObjUserInfo.IsUserLevelUpdate(Convert.ToInt32(lblUserID.Text), Convert.ToInt32(lblUserLevelID.Text))))
+                    {
+                        imgbtnQuery.Enabled = true;
+                    }
+                    else
+                    {
+                        imgbtnQuery.Enabled = false;
+                        imgbtnQuery.CssClass = "styleGridEditDisabled";
+                    }
+                }
+            }
+            else
+            {
+                imgbtnQuery.CssClass = "styleGridQuery";
+            }
+
+            Label lblDateofIssue = (Label)e.Row.FindControl("lblDateofIssue");
+            DataTable dt = (DataTable)ViewState["TempBookGridDetails"];
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                //ddlDebtcollector.SelectedValue = dt.Rows[e.Row.RowIndex]["DebtCollector_ID"].ToString();
+            }
+
+            if (lblDateofIssue != null && lblDateofIssue.Text.Trim() != "")
+            {
+                lblDateofIssue.Text = Utility.StringToDate(lblDateofIssue.Text).ToString(strDateFormat);
+            }
+
+            Label lblFddlDebtcollectorId = (Label)e.Row.FindControl("lblFddlDebtcollectorId");
+            DropDownList ddlDebtcollector = (DropDownList)e.Row.FindControl("ddlDebtcollector");
+
+            if (lblFddlDebtcollectorId != null && ddlDebtcollector != null)
+            {
+                FunProPopulateDC(ddlDebtcollector);
+                ddlDebtcollector.SelectedValue = lblFddlDebtcollectorId.Text;
+            }
+
+            AjaxControlToolkit.CalendarExtender CEDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("CEDate");
+            if (CEDate != null)
+            {
+                CEDate.Format = strDateFormat;
+            }
+        }
+
+        if (e.Row.RowType == DataControlRowType.Footer)
+        {
+            TextBox txtDate = (TextBox)e.Row.FindControl("txtDate");
+            txtDate.Text = DateTime.Parse(DateTime.Today.ToString(), CultureInfo.CurrentCulture).ToString(objS3GSession.ProDateFormatRW);
+
+            //txtDate.Attributes.Add("readonly", "readonly");
+            txtDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtDate.ClientID + "','" + strDateFormat + "',true,  false);");
+
+            AjaxControlToolkit.CalendarExtender CEDate = (AjaxControlToolkit.CalendarExtender)e.Row.FindControl("CEDate");
+            CEDate.Format = strDateFormat;
+            DropDownList ddlDebtcollector = (DropDownList)e.Row.FindControl("ddlDebtcollector");
+            FunProPopulateDC(ddlDebtcollector);
+        }
+    }
+
+    protected void grvTemp_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        DataTable dtTable = new DataTable();
+        dtTable = (DataTable)ViewState["TempBookGridDetails"];
+
+        if (dtTable.Rows.Count > 0)
+        {
+            dtTable.Rows.RemoveAt(e.RowIndex);
+
+            if (dtTable.Rows.Count <= 0)
+            {
+                FunProIntializeGridData();
+            }
+            else
+            {
+                grvTemp.DataSource = dtTable;
+                grvTemp.DataBind();
+                ViewState["TempBookGridDetails"] = dtTable;
+            }
+        }
+    }
+
+    protected void grvTemp_RowEditing(object sender, GridViewEditEventArgs e)
+    {
+        grvTemp.EditIndex = e.NewEditIndex;
+        DataTable dtGrid = (DataTable)ViewState["TempBookGridDetails"];
+        //if (!FunPriIsDebtCollectorActive())
+        //{
+        //    Utility.FunShowAlertMsg(this, "");
+        //    return;
+
+        //}
+        grvTemp.DataSource = dtGrid;
+        grvTemp.DataBind();
+        DropDownList ddlDebtcollector = (DropDownList)grvTemp.Rows[e.NewEditIndex].FindControl("ddlDebtcollector");
+        FunProPopulateDC(ddlDebtcollector);
+        grvTemp.FooterRow.Visible = false;
+    }
+
+    protected void grvTemp_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+    {
+        grvTemp.EditIndex = -1;
+        DataTable dtGrid = (DataTable)ViewState["TempBookGridDetails"];
+
+        grvTemp.DataSource = dtGrid;
+        grvTemp.DataBind();
+        grvTemp.FooterRow.Visible = true;
+    }
+
+    protected void grvTemp_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+        try
+        {
+            DataTable dtTemporaryBookDetails = (DataTable)ViewState["TempBookGridDetails"];
+
+            TextBox txtBookNo = (TextBox)grvTemp.Rows[e.RowIndex].FindControl("txtBookNo");
+            TextBox txtStartNo = (TextBox)grvTemp.Rows[e.RowIndex].FindControl("txtStartNo");
+            TextBox txtEndNo = (TextBox)grvTemp.Rows[e.RowIndex].FindControl("txtEndNo");
+            TextBox txtLastNumber = (TextBox)grvTemp.Rows[e.RowIndex].FindControl("txtLastNumber");
+            TextBox txtDate = (TextBox)grvTemp.Rows[e.RowIndex].FindControl("txtDate");
+            DropDownList ddlDebtcollector = (DropDownList)grvTemp.Rows[e.RowIndex].FindControl("ddlDebtcollector");
+            TextBox txtDCName = (TextBox)grvTemp.Rows[e.RowIndex].FindControl("txtDCName");
+            TextBox txtRemarks = (TextBox)grvTemp.Rows[e.RowIndex].FindControl("txtRemarks");
+
+            dtTemporaryBookDetails = (DataTable)ViewState["TempBookGridDetails"];
+            if (dtTemporaryBookDetails.Rows.Count > 0)
+            {
+
+                for (int i = 0; i <= dtTemporaryBookDetails.Rows.Count - 1; i++)
+                {
+                    if (i != e.RowIndex && dtTemporaryBookDetails.Rows[i]["Temp_ReceiptBook_No"].ToString() == txtBookNo.Text.Trim())
+                    {
+                        Utility.FunShowAlertMsg(this, "Temporary Book Number already exists");
+                        return;
+                    }
+                }
+            }
+
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", intCompanyId.ToString());
+            dictParam.Add("@Temp_ReceiptBook_No", txtBookNo.Text.Trim());
+            DataTable defaultdata = Utility.GetDefaultData("S3G_CLN_GetTempReceptBookNo", dictParam);
+
+            if (defaultdata.Rows.Count > 0)
+            {
+                Utility.FunShowAlertMsg(this, "Temporary Book Number already exists for the selected Location");
+                return;
+            }
+            dictParam.Clear();
+            dictParam.Add("@Option", "1");
+            dictParam.Add("@CompanyID", intCompanyId.ToString());
+            dictParam.Add("@UserId", ddlDebtcollector.SelectedValue);
+            DataTable dtDebtCollector = Utility.GetDefaultData("S3G_CLN_CheckUserActive", dictParam);
+            if (dtDebtCollector.Rows.Count > 0)
+            {
+                if (Utility.StringToDate(dtDebtCollector.Rows[0]["CreationDate"].ToString()) > Utility.StringToDate(txtDate.Text))
+                {
+                    Utility.FunShowAlertMsg(this, "Date of Issue should be greater than Joining Date of selected Debt Collector ");
+                    return;
+                }
+            }
+            if (Convert.ToInt32(txtStartNo.Text) >= Convert.ToInt32(txtEndNo.Text))
+            {
+                txtEndNo.Focus();
+                cvTempBook.ErrorMessage = "End Number should be greater than Start Number";
+                cvTempBook.IsValid = false;
+                return;
+            }
+            if (Convert.ToDouble(txtEndNo.Text) - Convert.ToDouble(txtStartNo.Text) > 999)
+            {
+                txtEndNo.Focus();
+                cvTempBook.ErrorMessage = "The difference between the Start Number and End Number should not be greater than 1000";
+                cvTempBook.IsValid = false;
+                return;
+            }
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            if (ddlLOB.SelectedValue.ToString() != "0")
+            {
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            }
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@Closure_Date", Utility.StringToDate(txtDate.Text).ToString());
+            DataTable chkmonthendclosure = new DataTable();
+            chkmonthendclosure = Utility.GetDefaultData("S3G_LOANAD_ValidateMonthClosureDT", Procparam);
+            if (chkmonthendclosure != null && chkmonthendclosure.Rows.Count > 0 && chkmonthendclosure.Rows[0][0].ToString() == "5")
+            {
+                txtDate.Focus();
+                cvTempBook.ErrorMessage = "Date of Issue cannot be assigned in Closed Month";
+                cvTempBook.IsValid = false;
+                return;
+            }
+
+            dtTemporaryBookDetails.BeginInit();
+            dtTemporaryBookDetails.Rows[e.RowIndex]["Temp_ReceiptBook_No"] = txtBookNo.Text.Trim();
+            dtTemporaryBookDetails.Rows[e.RowIndex]["Temp_Receipt_Start_No"] = txtStartNo.Text.Trim();
+            dtTemporaryBookDetails.Rows[e.RowIndex]["Temp_Receipt_End_No"] = txtEndNo.Text.Trim();
+            dtTemporaryBookDetails.Rows[e.RowIndex]["DebtCollector_ID"] = ddlDebtcollector.SelectedValue;
+            dtTemporaryBookDetails.Rows[e.RowIndex]["DebtCollector_Code"] = ddlDebtcollector.SelectedItem.Text;
+            dtTemporaryBookDetails.Rows[e.RowIndex]["DebtCollector_Name"] = txtDCName.Text;
+            dtTemporaryBookDetails.Rows[e.RowIndex]["Issued_Date"] = txtDate.Text;
+            dtTemporaryBookDetails.Rows[e.RowIndex]["Closed_Date"] = txtDate.Text;
+            dtTemporaryBookDetails.Rows[e.RowIndex]["Remarks"] = txtRemarks.Text.Trim();
+
+            dtTemporaryBookDetails.EndInit();
+
+            grvTemp.EditIndex = -1;
+            grvTemp.DataSource = dtTemporaryBookDetails;
+            grvTemp.DataBind();
+
+            ViewState["TempBookGridDetails"] = dtTemporaryBookDetails;
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    protected void grvLeaf_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblLeafID = (Label)e.Row.FindControl("lblLeafID");
+                Label lblStatus = (Label)e.Row.FindControl("lblStatus");
+                Label lblCancelDate = (Label)e.Row.FindControl("lblCancelDate");
+                Label lblReason = (Label)e.Row.FindControl("lblReason");
+                CheckBox chkUnused = (CheckBox)e.Row.FindControl("chkUnused");
+                CheckBox chkCancel = (CheckBox)e.Row.FindControl("chkCancel");
+                DropDownList ddlReason = (DropDownList)e.Row.FindControl("ddlReason");
+                Label lblReceiptNo = (Label)e.Row.FindControl("lblReceiptNo");
+
+                if (lblStatus.Text.ToLower() == "unused" || lblStatus.Text.ToLower() == "missing")
+                {
+                    chkUnused.Checked = false;
+                    chkUnused.Enabled = false;
+
+                    chkCancel.Enabled = true;
+                    DataRow[] drReasons = ((DataTable)ViewState["dtReasons"]).Select("ID <> 6");
+                    DataSet dsReason = new DataSet();
+                    dsReason.Merge(drReasons);
+                    ddlReason.BindDataTable(dsReason.Tables[0]);
+                    ddlReason.SelectedValue = lblReason.Text;
+                    ddlReason.Visible = false;
+                    lblCancelDate.Text = Convert.ToDateTime(DateTime.Today).ToString(strDateFormat);
+                    lblCancelDate.Visible = false;
+                }
+                else if (lblStatus.Text.ToLower() == "cancelled" && lblReceiptNo.Text == "")
+                {
+                    chkUnused.Enabled = true;
+                    chkCancel.Enabled = false;
+
+                    lblCancelDate.Text = Convert.ToDateTime(lblCancelDate.Text).ToString(strDateFormat);
+                    ddlReason.BindDataTable((DataTable)ViewState["dtReasons"]);
+                    ddlReason.SelectedValue = lblReason.Text;
+                    ddlReason.Visible = true;
+                    lblCancelDate.Visible = true;
+                    ddlReason.ClearDropDownList();
+                }
+                else
+                {
+                    chkUnused.Enabled = chkCancel.Enabled = ddlReason.Visible = false;
+                    if (lblCancelDate.Text != "")
+                    {
+                        lblCancelDate.Text = Convert.ToDateTime(lblCancelDate.Text).ToString(strDateFormat);
+                        ddlReason.BindDataTable((DataTable)ViewState["dtReasons"]);
+                        ddlReason.SelectedValue = lblReason.Text;
+                        ddlReason.Visible = true;
+                        lblCancelDate.Visible = true;
+                        ddlReason.ClearDropDownList();
+                    }
+                }
+
+                if (ViewState["dtModifeidLeaf"] != null)
+                {
+                    DataRow[] DRow = ((DataTable)ViewState["dtModifeidLeaf"]).Select("Temp_RecieptBook_Details_Id = " + lblLeafID.Text);
+
+                    if (DRow.Length > 0)
+                    {
+                        if (chkCancel.Enabled)
+                        {
+                            chkCancel.Checked = true;
+                            ddlReason.Visible = true;
+                            ddlReason.SelectedValue = DRow[0].ItemArray.GetValue(3).ToString();
+                            lblCancelDate.Visible = true;
+                        }
+                        else if (chkUnused.Enabled)
+                        {
+                            chkUnused.Checked = true;
+                        }
+                    }
+                }
+
+                //chkCancel.Attributes.Add("onclick", "javascript:fnGridToggleReason('" + chkCancel.ClientID + "','" + ddlReason.ClientID + "','" + lblCancelDate.ClientID + "');");
+            }
+
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+
+    }
+
+    #endregion
+
+    #region Other Controls Events
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
+        try
+        {
+            FunPriLoadBranch();
+            FunProIntializeGridData();
+            DropDownList ddlDebtcollector = (DropDownList)grvTemp.FooterRow.FindControl("ddlDebtcollector");
+            FunProPopulateDC(ddlDebtcollector);
+            ddlLOB.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvTempBook.ErrorMessage = ex.Message;
+            cvTempBook.IsValid = false;
+        }
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProIntializeGridData();
+            DropDownList ddlDebtcollector = (DropDownList)grvTemp.FooterRow.FindControl("ddlDebtcollector");
+            FunProPopulateDC(ddlDebtcollector);
+            ddlBranch.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvTempBook.ErrorMessage = ex.Message;
+            cvTempBook.IsValid = false;
+        }
+    }
+
+    protected void ddlDebtcollector_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            DropDownList ddlDebtcollector = (DropDownList)grvTemp.FooterRow.FindControl("ddlDebtcollector");
+            TextBox txtDCName = (TextBox)grvTemp.FooterRow.FindControl("txtDCName");
+            txtDCName.Text = FunProGetDebitCollectorCode(ddlDebtcollector.SelectedValue);
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    protected void ddlDebtcollectorEdit_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            int intRowID = Utility.FunPubGetGridRowID("grvTemp", ((DropDownList)sender).ClientID.ToString());
+
+            DropDownList ddlDebtcollector = (DropDownList)grvTemp.Rows[intRowID].FindControl("ddlDebtcollector");
+            TextBox txtDCName = (TextBox)grvTemp.Rows[intRowID].FindControl("txtDCName");
+            txtDCName.Text = FunProGetDebitCollectorCode(ddlDebtcollector.SelectedValue);
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    protected void ddlDebtcollectorItem_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+
+            int intRowID = Utility.FunPubGetGridRowID("grvTemp", ((DropDownList)sender).ClientID.ToString());
+
+            DropDownList ddlDebtcollector = (DropDownList)grvTemp.Rows[intRowID].FindControl("lblddlDebtcollector");
+            TextBox TxtDCName = (TextBox)grvTemp.Rows[intRowID].FindControl("lblDCName");
+            TxtDCName.Text = FunProGetDebitCollectorCode(ddlDebtcollector.SelectedValue);
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    protected void btnAdd_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            DataTable dtTemporaryBookDetails = (DataTable)ViewState["TempBookGridDetails"];
+
+            TextBox txtBookNo = (TextBox)grvTemp.FooterRow.FindControl("txtBookNo");
+            TextBox txtStartNo = (TextBox)grvTemp.FooterRow.FindControl("txtStartNo");
+            TextBox txtEndNo = (TextBox)grvTemp.FooterRow.FindControl("txtEndNo");
+            TextBox txtLastNumber = (TextBox)grvTemp.FooterRow.FindControl("txtLastNumber");
+            TextBox txtDate = (TextBox)grvTemp.FooterRow.FindControl("txtDate");
+            DropDownList ddlDebtcollector = (DropDownList)grvTemp.FooterRow.FindControl("ddlDebtcollector");
+            TextBox txtDCName = (TextBox)grvTemp.FooterRow.FindControl("txtDCName");
+            TextBox txtRemarks = (TextBox)grvTemp.FooterRow.FindControl("txtRemarks");
+
+            dtTemporaryBookDetails = (DataTable)ViewState["TempBookGridDetails"];
+            if (dtTemporaryBookDetails.Rows.Count > 0)
+            {
+
+                for (int i = 0; i <= dtTemporaryBookDetails.Rows.Count - 1; i++)
+                {
+                    if (dtTemporaryBookDetails.Rows[i]["Temp_ReceiptBook_No"].ToString() == txtBookNo.Text.Trim())
+                    {
+                        Utility.FunShowAlertMsg(this, "Temporary Book Number already exists");
+                        return;
+                    }
+                }
+            }
+
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", intCompanyId.ToString());
+            dictParam.Add("@Temp_ReceiptBook_No", txtBookNo.Text.Trim());
+            DataTable defaultdata = Utility.GetDefaultData("S3G_CLN_GetTempReceptBookNo", dictParam);
+
+            if (defaultdata.Rows.Count > 0)
+            {
+                Utility.FunShowAlertMsg(this, "Temporary Book Number already exists for the selected Location");
+                return;
+            }
+
+            dictParam.Clear();
+            dictParam.Add("@Option", "1");
+            dictParam.Add("@CompanyID", intCompanyId.ToString());
+            dictParam.Add("@UserId", ddlDebtcollector.SelectedValue);
+            DataTable dtDebtCollector = Utility.GetDefaultData("S3G_CLN_CheckUserActive", dictParam);
+            if (dtDebtCollector.Rows.Count > 0)
+            {
+                if (Utility.StringToDate(dtDebtCollector.Rows[0]["CreationDate"].ToString()) > Utility.StringToDate(txtDate.Text))
+                {
+                    Utility.FunShowAlertMsg(this, "Date of Issue should be greater than Joining Date of selected Debt Collector ");
+                    return;
+                }
+            }
+
+            DataRow DRow;
+            DRow = dtTemporaryBookDetails.NewRow();
+            DRow["Temp_Receipt_Book_Id"] = "0";
+            DRow["Temp_ReceiptBook_No"] = txtBookNo.Text.Trim();
+            //DRow["Temp_ReceiptBook"] = txtBookNo.Text.Trim();
+            DRow["Temp_Receipt_Start_No"] = txtStartNo.Text.Trim();
+            DRow["Temp_Receipt_End_No"] = txtEndNo.Text.Trim();
+            DRow["Temp_Receipt_Last_Used_No"] = txtLastNumber.Text.Trim();
+            // DRow["Issued_To"] = ddlIssuedTo.SelectedItem.Text;
+            DRow["DebtCollector_ID"] = ddlDebtcollector.SelectedValue;
+            DRow["DebtCollector_Code"] = ddlDebtcollector.SelectedItem.Text;
+            DRow["DebtCollector_Name"] = txtDCName.Text;
+            //DRow["User_Entity"] = ddlDCName.SelectedItem.Text;
+
+            DRow["Issued_Date"] = DateTime.Parse(DateTime.Today.ToString(), CultureInfo.CurrentCulture).ToString(objS3GSession.ProDateFormatRW);
+            DRow["Closed_Date"] = txtDate.Text;
+            DRow["Remarks"] = txtRemarks.Text.Trim();
+            DRow["Created_By"] = ObjUserInfo.ProUserIdRW.ToString();
+            DRow["User_Level_ID"] = ObjUserInfo.ProUserLevelIdRW.ToString();
+
+            if (Convert.ToInt32(txtStartNo.Text) >= Convert.ToInt32(txtEndNo.Text))
+            {
+                txtEndNo.Focus();
+                cvTempBook.ErrorMessage = "End Number should be greater than Start Number";
+                cvTempBook.IsValid = false;
+                return;
+            }
+            if (Convert.ToDouble(txtEndNo.Text) - Convert.ToDouble(txtStartNo.Text) > 999)
+            {
+                txtEndNo.Focus();
+                cvTempBook.ErrorMessage = "The difference between the Start Number and End Number should not be greater than 1000";
+                cvTempBook.IsValid = false;
+                return;
+            }
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            if (ddlLOB.SelectedValue.ToString() != "0")
+            {
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            }
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@Closure_Date", Utility.StringToDate(txtDate.Text).ToString());
+            DataTable chkmonthendclosure = new DataTable();
+            chkmonthendclosure = Utility.GetDefaultData("S3G_LOANAD_ValidateMonthClosureDT", Procparam);
+            if (chkmonthendclosure != null && chkmonthendclosure.Rows.Count > 0 && chkmonthendclosure.Rows[0][0].ToString() == "5")
+            {
+                txtDate.Focus();
+                cvTempBook.ErrorMessage = "Date of Issue cannot be assigned in Closed Month";
+                cvTempBook.IsValid = false;
+                return;
+            }
+
+
+            dtTemporaryBookDetails.Rows.Add(DRow);
+
+            grvTemp.DataSource = dtTemporaryBookDetails;
+            grvTemp.DataBind();
+            grvTemp.EditIndex = -1;
+
+            ViewState["TempBookGridDetails"] = dtTemporaryBookDetails;
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    protected void imgView_Click(object sender, EventArgs e)
+    {
+        ProPageNumRW = 1;
+        ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+        ucCustomPaging.Navigation(0, ProPageNumRW, ProPageSizeRW);
+        ucCustomPaging.setPageSize(ProPageSizeRW);
+
+        ViewState["dtModifeidLeaf"] = null;
+        grvLeaf.DataSource = null;
+        grvLeaf.DataBind();
+
+        int intRowIndex = Utility.FunPubGetGridRowID("grvTemp", ((ImageButton)sender).ClientID);
+        Label lblBookID = (Label)grvTemp.Rows[intRowIndex].FindControl("lblBookID");
+        Label lblBookNo = (Label)grvTemp.Rows[intRowIndex].FindControl("lblBookNo");
+        Label lblddlDebtcollectorId = (Label)grvTemp.Rows[intRowIndex].FindControl("lblddlDebtcollectorId");
+        txtBookNo.Text = lblBookNo.Text;
+        FunProFillLeafs(Convert.ToInt32(lblBookID.Text));
+        if (lblddlDebtcollectorId != null)
+        {
+            if (!FunPriIsDebtCollectorActive(Convert.ToInt32(lblddlDebtcollectorId.Text)))
+            {
+                Utility.FunShowAlertMsg(this, "Debt Collector is not active for the Selected BookNo");
+                grvLeaf.Enabled = false;
+                btnSave.Enabled = false;
+                return;
+            }
+            else
+            {
+                grvLeaf.Enabled = true;
+            }
+
+        }
+
+
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            DataTable GridDt = new DataTable();
+            GridDt = (DataTable)ViewState["TempBookGridDetails"];
+            GridDt.Rows.Clear();
+            grvTemp.ClearGrid();
+            FunProIntializeGridData();
+
+            ddlLOB.SelectedIndex = 0;
+            //ddlBranch.SelectedIndex = 0;
+            ddlBranch.Clear();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to clear the value");
+        }
+    }
+
+    protected void Unused_OnCheckedChanged(object sender, EventArgs e)
+    {
+        int intRowIndex = Utility.FunPubGetGridRowID("grvLeaf", ((CheckBox)sender).ClientID);
+        FunProModifyLeafTable(intRowIndex, 1);
+    }
+
+    protected void Cancel_OnCheckedChanged(object sender, EventArgs e)
+    {
+        int intRowIndex = Utility.FunPubGetGridRowID("grvLeaf", ((CheckBox)sender).ClientID);
+        FunProModifyLeafTable(intRowIndex, 2);
+    }
+
+    protected void ddlReason_OnSelectedIndexChanged(object sender, EventArgs e)
+    {
+        int intRowIndex = Utility.FunPubGetGridRowID("grvLeaf", ((DropDownList)sender).ClientID);
+
+        Label lblLeafID = (Label)grvLeaf.Rows[intRowIndex].FindControl("lblLeafID");
+        DropDownList ddlReason = (DropDownList)grvLeaf.Rows[intRowIndex].FindControl("ddlReason");
+
+        DataTable dtModified = (DataTable)ViewState["dtModifeidLeaf"];
+        foreach (DataRow DRow in dtModified.Rows)
+        {
+            if (DRow["Temp_RecieptBook_Details_Id"].ToString() == lblLeafID.Text)
+            {
+                DRow["Reason"] = ddlReason.SelectedValue.ToString();
+                dtModified.AcceptChanges();
+            }
+        }
+
+        ViewState["dtModifeidLeaf"] = dtModified;
+    }
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect("../Collection/S3GClnTemporaryBook_View.aspx");
+    }
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        objReceMgtServicesClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        try
+        {
+            DataTable dtTempBookGridDetails = new DataTable();
+            dtTempBookGridDetails = (DataTable)ViewState["TempBookGridDetails"];
+            if (dtTempBookGridDetails.Rows.Count == 0)
+            {
+                cvTempBook.ErrorMessage = "Add atleast one Temporary Book Details";
+                cvTempBook.IsValid = false;
+                return;
+            }
+            //if (!FunPriIsUserActive())
+            //{
+            //    cvTempBook.ErrorMessage = " ";
+            //    cvTempBook.IsValid = false;
+            //    return;
+            //}
+
+            objTempReceBookDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_TempReceiptBookMasterDataTable();
+            CLN.ClnReceiptMgtServices.S3G_CLN_TempReceiptBookMasterRow ObjTempReceiptBookMasterRow;
+            ObjTempReceiptBookMasterRow = objTempReceBookDataTable.NewS3G_CLN_TempReceiptBookMasterRow();
+            //objReceMgtServicesClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            SerializationMode SerMode = SerializationMode.Binary;
+
+            FunProGenerateXMLAddDetail();
+
+            ObjTempReceiptBookMasterRow.Company_ID = intCompanyId;
+            ObjTempReceiptBookMasterRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjTempReceiptBookMasterRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjTempReceiptBookMasterRow.Created_By = intUserId;
+            ObjTempReceiptBookMasterRow.Created_On = Utility.StringToDate(DateTime.Now.ToString());
+            ObjTempReceiptBookMasterRow.Modified_By = intUserId;
+            ObjTempReceiptBookMasterRow.Modified_On = Utility.StringToDate(DateTime.Now.ToString());
+            if (PageMode == PageModes.Create)
+            {
+                ObjTempReceiptBookMasterRow.XMLAddDetail = (((((grvTemp.Rows.Count > 0) ? grvTemp.FunPubFormXml(true) : "<Root></Root>").Replace("LASTUSEDNO.", "LASTUSEDNO")).Replace("ENDNO.", "ENDNO")).Replace("STARTNO.", "STARTNO")).Replace("BOOKNO.", "BOOKNO");
+                ObjTempReceiptBookMasterRow.Temp_Receipt_Book_Id = 0;
+            }
+            else
+            {
+                string strLeafXML = "";
+                if (FunProFormXML(out strLeafXML))
+                {
+                    ObjTempReceiptBookMasterRow.XMLAddDetail = strLeafXML;
+                }
+                else
+                {
+                    return;
+                }
+                ObjTempReceiptBookMasterRow.Temp_Receipt_Book_Id = Convert.ToInt32(ViewState["Temp_Receipt_Book_Id"].ToString());
+            }
+
+            objTempReceBookDataTable.AddS3G_CLN_TempReceiptBookMasterRow(ObjTempReceiptBookMasterRow);
+
+            if (PageMode == PageModes.Create)
+            {
+                intErrorCode = objReceMgtServicesClient.FunPubCreateTempBookDetails(SerMode, ClsPubSerialize.Serialize(objTempReceBookDataTable, SerMode));
+
+                if (intErrorCode == 0)
+                {
+                    strAlert = "Temporary Book Details added successfully";
+                    if (strMode != "M")
+                    {
+                        //To avoid double save click
+                        btnSave.Enabled = false;
+                        //End here
+
+                        strAlert += @"\n\nWould you like to add one more Temporary Book Details?";
+                        strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                        strRedirectPageView = "";
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                        lblErrorMessage.Text = string.Empty;
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageAdd, true);
+                    }
+                    else
+                    {
+                        strAlert = strAlert.Replace("__ALERT__", "Book No for the Temporary Book Maintenance already exists");
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageAdd, true);
+                    }
+
+                }
+                else
+                {
+                    Utility.FunShowAlertMsg(this, "Due to Data Problem, Unable to create the Temp.Book");
+                }
+            }
+            else
+            {
+                string Usedleafsnumbers = "";
+
+
+                intErrorCode = objReceMgtServicesClient.FunPubUpdateTempBookDetails(out Usedleafsnumbers, SerMode, ClsPubSerialize.Serialize(objTempReceBookDataTable, SerMode));
+                if (intErrorCode == 0)
+                {
+                    //To avoid double save click
+                    btnSave.Enabled = false;
+                    //End here
+
+                    Utility.FunShowAlertMsg(this, "Temporary Book Leaf Details updated successfully", strRedirectPage);
+                }
+                else if (intErrorCode == -3)
+                {
+                    if (!string.IsNullOrEmpty(Usedleafsnumbers))
+                    {
+                        Usedleafsnumbers = Usedleafsnumbers.Substring(0, Usedleafsnumbers.Length - 1);
+
+                        strAlert = strAlert.Replace("__ALERT__", "Already selected Page No " + Usedleafsnumbers + " was used/cancelled by another user");
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageAdd, true);
+                    }
+                }
+                else
+                {
+                    Utility.FunShowAlertMsg(this, "Unable to update Leaf details");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+        finally
+        {
+            //if (objReceMgtServicesClient != null)
+            //{
+            objReceMgtServicesClient.Close();
+            //}
+        }
+    }
+
+    #endregion
+
+    #region User defined Methods
+
+    protected void FunProDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                if (!bCreate)
+                {
+                    btnSave.Enabled = false;
+                }
+
+                grvTemp.Columns[0].Visible = false;
+                pnlLeaf.Visible = false;
+                break;
+
+            case 1:// Modify Mode
+                FunProGetTempBook();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                if (!bModify)
+                {
+                    Response.Redirect(strRedirectPageView);
+                }
+                if (bClearList)
+                {
+                    ddlLOB.ClearDropDownList();
+                    ddlBranch.Enabled=false;
+                }
+                grvTemp.FooterRow.Visible = false;
+                grvTemp.Columns[10].Visible = false;
+
+                Label lblView = (Label)grvTemp.HeaderRow.FindControl("lblView");
+                lblView.Text = "Edit";
+
+                btnClear.Enabled = false;
+                pnlLeaf.Visible = false;
+
+                Procparam = new Dictionary<string, string>();
+                ViewState["dtReasons"] = Utility.GetDefaultData("S3G_CLN_GetTB_Leafs_CanceledStatus", Procparam);
+
+                break;
+
+            case -1:// Query Mode
+                FunProGetTempBook();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPageView);
+                }
+                if (bClearList)
+                {
+                    ddlLOB.ClearDropDownList();
+                    ddlBranch.Enabled=false;
+                }
+                grvTemp.FooterRow.Visible = false;
+                grvTemp.Columns[10].Visible = false;
+
+                btnClear.Enabled = btnSave.Enabled = false;
+                pnlLeaf.Visible = false;
+
+                grvLeaf.Columns[4].Visible = grvLeaf.Columns[5].Visible = false;
+
+                Procparam = new Dictionary<string, string>();
+                ViewState["dtReasons"] = Utility.GetDefaultData("S3G_CLN_GetTB_Leafs_CanceledStatus", Procparam);
+
+                break;
+        }
+    }
+
+    protected void AssignValue(int intPageNum, int intPageSize)
+    {
+        ProPageNumRW = intPageNum;
+        ProPageSizeRW = intPageSize;
+        if (string.IsNullOrEmpty(ViewState["Temp_Receipt_Book_Id"].ToString()))
+        {
+            ViewState["Temp_Receipt_Book_Id"] = "0";
+        }
+        FunProFillLeafs(Convert.ToInt32(ViewState["Temp_Receipt_Book_Id"].ToString()));
+    }
+
+    protected void FunProIntializeGridData()
+    {
+        try
+        {
+            DataTable dtTempBookDetails;
+            dtTempBookDetails = new DataTable();
+            dtTempBookDetails.Columns.Add("Temp_Receipt_Book_Id");
+            dtTempBookDetails.Columns.Add("Temp_ReceiptBook_No");
+            dtTempBookDetails.Columns.Add("Temp_Receipt_Start_No");
+            dtTempBookDetails.Columns.Add("Temp_Receipt_End_No");
+            dtTempBookDetails.Columns.Add("Temp_Receipt_Last_Used_No");
+            dtTempBookDetails.Columns.Add("DebtCollector_ID");
+            dtTempBookDetails.Columns.Add("DebtCollector_Code");
+            dtTempBookDetails.Columns.Add("DebtCollector_Name");
+            dtTempBookDetails.Columns.Add("Issued_Date");
+            dtTempBookDetails.Columns.Add("Closed_Date");
+            dtTempBookDetails.Columns.Add("Remarks");
+            dtTempBookDetails.Columns.Add("Txn_ID");
+            dtTempBookDetails.Columns.Add("Created_By");
+            dtTempBookDetails.Columns.Add("User_Level_ID");
+
+            DataRow DRow = dtTempBookDetails.NewRow();
+            DRow["Temp_Receipt_Book_Id"] = "";
+            DRow["Temp_ReceiptBook_No"] = "";
+            DRow["Temp_Receipt_Start_No"] = "";
+            DRow["Temp_Receipt_End_No"] = "";
+            DRow["Temp_Receipt_Last_Used_No"] = "";
+            DRow["DebtCollector_ID"] = "";
+            DRow["DebtCollector_Code"] = "";
+            DRow["DebtCollector_Name"] = "";
+            DRow["Issued_Date"] = "";
+            DRow["Closed_Date"] = "";
+            DRow["Remarks"] = "";
+            DRow["Txn_ID"] = "";
+            DRow["Created_By"] = "";
+            DRow["User_Level_ID"] = "";
+
+            dtTempBookDetails.Rows.Add(DRow);
+            grvTemp.DataSource = dtTempBookDetails;
+            grvTemp.DataBind();
+            grvTemp.Rows[0].Cells.Clear();
+            grvTemp.Rows[0].Visible = false;
+
+            dtTempBookDetails.Rows[0].Delete();
+            ViewState["TempBookGridDetails"] = dtTempBookDetails;
+        }
+
+        catch (Exception ex)
+        {
+            cvTempBook.ErrorMessage = ex.Message;
+            cvTempBook.IsValid = false;
+        }
+    }
+
+    protected void FunProGenerateXMLAddDetail()
+    {
+        try
+        {
+            DataTable dttable = new DataTable();
+            dttable = (DataTable)ViewState["TempBookGridDetails"];
+            dttable.FunPubFormXml(true);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    protected void FunProGetTempBook()
+    {
+        try
+        {
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", intCompanyId.ToString());
+            dictParam.Add("@LOB_ID", strLOB_ID.ToString());
+            dictParam.Add("@Location_ID", strBranch_ID.ToString());
+
+            DataSet dstTemp = Utility.GetDataset("S3G_CLN_GetTempBookDetails", dictParam);
+
+            DataTable dtTempDetails = dstTemp.Tables[0];
+            DataRow dtRow = dtTempDetails.Rows[0];
+            ddlLOB.SelectedValue = dtRow["LOB_ID"].ToString();
+            ddlBranch.SelectedValue = dtRow["Location_ID"].ToString();
+
+            grvTemp.DataSource = ViewState["TempBookGridDetails"] = dstTemp.Tables[0];
+            grvTemp.DataBind();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+
+        }
+    }
+
+    protected void FunProPopulateDC(DropDownList src)
+    {
+
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", intCompanyId.ToString());
+        if (ddlLOB.SelectedValue != "0")
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+        Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+        Procparam.Add("@IsActive", "1");
+        if (ddlBranch.SelectedValue != "0" & ddlBranch.SelectedValue != string.Empty)
+            src.BindDataTable("S3G_CLN_GetDC_Code", Procparam, new string[] { "DebtCollector_ID", "DebtCollector_Code" });
+
+
+    }
+
+    protected string FunProGetDebitCollectorCode(string strDcCode)
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            Procparam.Add("@DCode", strDcCode);
+            string StrRetval = objS3GAdminServicesClient.FunGetScalarValue("S3G_CLN_GetDebtCollectorName", Procparam);
+            //ddlLineofBusiness.BindDataTable("", ObjDictParams, new string[] { "LOB_ID", "LOB_CODE", "LOB_NAME" });
+            Procparam = null;
+            return StrRetval;
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (objS3GAdminServicesClient != null)
+                objS3GAdminServicesClient.Close();
+        }
+    }
+
+    protected void FunProFillLeafs(int Receipt_Book_Id)
+    {
+        int intTotalRecords = 0;
+        ObjPaging.ProCompany_ID = intCompanyId;
+        ObjPaging.ProTotalRecords = intTotalRecords;
+        ObjPaging.ProCurrentPage = ProPageNumRW;
+        ObjPaging.ProPageSize = ProPageSizeRW;
+
+        ViewState["Temp_Receipt_Book_Id"] = Receipt_Book_Id.ToString();
+
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Temp_Receipt_Book_Id", Receipt_Book_Id.ToString());
+        DataTable dtGrid = Utility.GetGridData("S3G_CLN_GetTempBook_Leafs", Procparam, out intTotalRecords, ObjPaging);
+
+        if (ViewState["DtLeaf"] == null || ((DataTable)ViewState["DtLeaf"]) == null || ((DataTable)ViewState["DtLeaf"]).Rows.Count == 0)
+        {
+            ViewState["DtLeaf"] = dtGrid;
+        }
+        else
+        {
+            //dtTable = FunPubSetSelectedRows(dtTable);
+        }
+
+        if (dtGrid.Rows.Count == 0)
+        {
+            //Empty Row
+        }
+
+        if (ViewState["dtModifeidLeaf"] != null)
+        {
+            DataTable Dt;
+            if (((DataTable)ViewState["dtModifeidLeaf"]).Select("Is_Midified = 1").Length > 0)
+            {
+                Dt = ((DataTable)ViewState["dtModifeidLeaf"]).Select("Is_Midified = 1").CopyToDataTable();
+            }
+            else
+            {
+                Dt = FunProInitialiseTempDt();
+            }
+            ViewState["dtModifeidLeaf"] = Dt;
+        }
+
+        grvLeaf.DataSource = dtGrid;
+        grvLeaf.DataBind();
+
+        ucCustomPaging.Navigation(intTotalRecords, ProPageNumRW, ProPageSizeRW);
+        ucCustomPaging.setPageSize(ProPageSizeRW);
+
+        lblBookNo1.Visible = txtBookNo.Visible = true;
+        pnlLeaf.Visible = true;
+    }
+
+    protected bool FunProIsEmptyCheck()
+    {
+        bool blnResult = true;
+        foreach (GridViewRow grBook in grvTemp.Rows)
+        {
+            TextBox lblBookNo = (TextBox)grBook.FindControl("lblBookNo");
+            TextBox lblStartNo = (TextBox)grBook.FindControl("lblStartNo");
+            TextBox lblEndNo = (TextBox)grBook.FindControl("lblEndNo");
+            TextBox lblDateofIssue = (TextBox)grBook.FindControl("lblDateofIssue");
+            DropDownList lblddlDebtcollector = (DropDownList)grBook.FindControl("lblddlDebtcollector");
+            TextBox lblDCName = (TextBox)grBook.FindControl("lblDCName");
+            if (string.IsNullOrEmpty(lblBookNo.Text))
+            {
+                lblBookNo.Focus();
+                cvTempBook.ErrorMessage = "Enter the Book Number";
+                cvTempBook.IsValid = false;
+                return false;
+            }
+            if (string.IsNullOrEmpty(lblStartNo.Text))
+            {
+                lblStartNo.Focus();
+                cvTempBook.ErrorMessage = "Enter the Start Number";
+                cvTempBook.IsValid = false;
+                return false;
+            }
+            if (string.IsNullOrEmpty(lblEndNo.Text))
+            {
+                lblEndNo.Focus();
+                cvTempBook.ErrorMessage = "Enter the End Number";
+                cvTempBook.IsValid = false;
+                return false;
+            }
+            if (string.IsNullOrEmpty(lblDateofIssue.Text))
+            {
+                lblDateofIssue.Focus();
+                cvTempBook.ErrorMessage = "Enter the Date of Issue";
+                cvTempBook.IsValid = false;
+                return false;
+            }
+            if (lblddlDebtcollector.SelectedIndex == 0)
+            {
+                lblddlDebtcollector.Focus();
+                cvTempBook.ErrorMessage = "Select  the debt collector";
+                cvTempBook.IsValid = false;
+                return false;
+            }
+            if (lblDCName.Text == string.Empty)
+            {
+                // lblDCName.Focus();
+                cvTempBook.ErrorMessage = "Enter the debt collector";
+                cvTempBook.IsValid = false;
+                return false;
+            }
+            if (Convert.ToInt32(lblStartNo.Text) >= Convert.ToInt32(lblEndNo.Text))
+            {
+                lblEndNo.Focus();
+                cvTempBook.ErrorMessage = "End Number Value should be greater than Start Number Value";
+                cvTempBook.IsValid = false;
+                blnResult = false;
+            }
+            DataTable dtTemporaryBookDetails = (DataTable)ViewState["TempBookGridDetails"];
+            if (dtTemporaryBookDetails.Rows.Count > 0)
+            {
+
+                for (int i = 0; i <= dtTemporaryBookDetails.Rows.Count - 1; i++)
+                {
+                    if (dtTemporaryBookDetails.Rows[i]["Temp_ReceiptBook_No"].ToString() == txtBookNo.Text.Trim())
+                    {
+                        cvTempBook.ErrorMessage = "Temporary Book Number already exists";
+                        cvTempBook.IsValid = false;
+                        blnResult = false;
+                    }
+                }
+            }
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", intCompanyId.ToString());
+            dictParam.Add("@Temp_ReceiptBook_No", lblBookNo.Text.Trim());
+            DataTable defaultdata = Utility.GetDefaultData("S3G_CLN_GetTempReceptBookNo", dictParam);
+
+            if (defaultdata.Rows.Count > 0)
+            {
+                cvTempBook.ErrorMessage = "Temporary Book Number already exists for the selected Location";
+                cvTempBook.IsValid = false;
+                blnResult = false;
+            }
+        }
+        return blnResult;
+    }
+
+    protected bool FunProFormXML(out string strReturnXML)
+    {
+        try
+        {
+            StringBuilder strXMLLeaf = new StringBuilder();
+            strReturnXML = "";
+
+            strXMLLeaf.Append("<Root>");
+
+            DataTable dtModifeid = new DataTable();
+
+            if (ViewState["dtModifeidLeaf"] != null && ((DataTable)ViewState["dtModifeidLeaf"]).Select("Is_Midified = 1").Length > 0)
+            {
+                dtModifeid = ((DataTable)ViewState["dtModifeidLeaf"]).Select("Is_Midified = 1").CopyToDataTable();
+            }
+            else
+            {
+                dtModifeid = FunProInitialiseTempDt();
+            }
+
+            if (dtModifeid.Rows.Count > 0)
+            {
+                for (int i = 0; i <= dtModifeid.Rows.Count - 1; i++)
+                {
+                    string strStatus = "";
+                    string strReason = "";
+
+                    if (dtModifeid.Rows[i]["Modified_Option"].ToString() == "2")
+                    {
+                        if (dtModifeid.Rows[i]["Reason"].ToString() == "0")
+                        {
+                            Utility.FunShowAlertMsg(this, "Select the Cancellation Reason for Leaf Number : " + dtModifeid.Rows[i]["Page_Number"].ToString());
+                            return false;
+                        }
+                        else
+                        {
+                            strReason = " Reason = '" + dtModifeid.Rows[i]["Reason"].ToString() + "' Cancel_Date = '" + DateTime.Today + "'";
+                            strStatus = "4";       // Update as Cancelled
+                        }
+                    }
+                    else if (dtModifeid.Rows[i]["Modified_Option"].ToString() == "1")
+                    {
+                        strStatus = "1";           // Update as Un-Used
+                    }
+
+                    strXMLLeaf.Append("<Details Temp_ReceiptBook_Details_Id ='" + dtModifeid.Rows[i]["Temp_RecieptBook_Details_Id"].ToString() + "' Status ='" + strStatus + "'" + strReason + "/> ");
+                }
+
+                strXMLLeaf.Append("</Root>");
+
+                strReturnXML = strXMLLeaf.ToString();
+                return true;
+            }
+            else
+            {
+                strReturnXML = "";
+                Utility.FunShowAlertMsg(this, "There is no leaf affected to save.");
+                return false;
+            }
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    protected void FunProModifyLeafTable(int intRowIndex, int Type)
+    {
+        // 1 - Unused | 2 - Canceled 
+
+        DataTable dtModified = new DataTable();
+        if (ViewState["dtModifeidLeaf"] == null)
+        {
+            dtModified = FunProInitialiseTempDt();
+        }
+        else
+        {
+            dtModified = (DataTable)ViewState["dtModifeidLeaf"];
+        }
+
+        Label lblLeafID = (Label)grvLeaf.Rows[intRowIndex].FindControl("lblLeafID");
+        DropDownList ddlReason = (DropDownList)grvLeaf.Rows[intRowIndex].FindControl("ddlReason");
+        Label lblCancelDate = (Label)grvLeaf.Rows[intRowIndex].FindControl("lblCancelDate");
+        Label lblLeafNumber = (Label)grvLeaf.Rows[intRowIndex].FindControl("lblLeafNumber");
+
+        CheckBox chkBox;
+        if (Type == 1)
+        {
+            chkBox = (CheckBox)grvLeaf.Rows[intRowIndex].FindControl("chkUnused");
+        }
+        else
+        {
+            chkBox = (CheckBox)grvLeaf.Rows[intRowIndex].FindControl("chkCancel");
+        }
+
+        if (chkBox.Checked)
+        {
+            if (Type == 2)
+            {
+                ddlReason.Visible = lblCancelDate.Visible = true;
+                ddlReason.SelectedValue = "0";
+            }
+
+            DataRow DRow = dtModified.NewRow();
+            DRow["Temp_RecieptBook_Details_Id"] = lblLeafID.Text;
+            DRow["Page_Number"] = lblLeafNumber.Text;
+            DRow["Cancel_Date"] = DateTime.Today.ToString(strDateFormat);
+            DRow["Reason"] = ddlReason.SelectedValue.ToString();
+            DRow["Is_Midified"] = "1";
+            DRow["Modified_Option"] = Type.ToString();
+
+            dtModified.Rows.Add(DRow);
+        }
+        else
+        {
+
+            if (Type == 2)
+            {
+                ddlReason.Visible = lblCancelDate.Visible = false;
+            }
+
+            foreach (DataRow DRow in dtModified.Rows)
+            {
+                if (DRow["Temp_RecieptBook_Details_Id"].ToString() == lblLeafID.Text)
+                {
+                    DRow["Is_Midified"] = "0";
+                    dtModified.AcceptChanges();
+                }
+            }
+
+        }
+
+        ViewState["dtModifeidLeaf"] = dtModified;
+    }
+
+    protected DataTable FunProInitialiseTempDt()
+    {
+        DataTable dt = new DataTable();
+
+        dt.Columns.Add("Temp_RecieptBook_Details_Id");
+        dt.Columns.Add("Page_Number");
+        dt.Columns.Add("Cancel_Date");
+        dt.Columns.Add("Reason");
+        dt.Columns.Add("Is_Midified");
+        dt.Columns.Add("Modified_Option");
+
+        return dt;
+    }
+    private bool FunPriIsDebtCollectorActive(int intDebtCollectorId)
+    {
+        Dictionary<string, string> Procparm = new Dictionary<string, string>();
+        Procparm.Add("@Option", "1");
+        Procparm.Add("@CompanyID", intCompanyId.ToString());
+        Procparm.Add("@UserId", intDebtCollectorId.ToString());
+        DataTable dtBool = Utility.GetDefaultData("S3G_CLN_CheckUserActive", Procparm);
+        if (dtBool.Rows[0]["EXISTS"].ToString() == "False")
+            return false;
+        else
+            return true;
+
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyId.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", obj_Page.intUserId.ToString());
+        Procparam.Add("@Program_Id", "120");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+    #endregion
+}
+
+
+
+
+

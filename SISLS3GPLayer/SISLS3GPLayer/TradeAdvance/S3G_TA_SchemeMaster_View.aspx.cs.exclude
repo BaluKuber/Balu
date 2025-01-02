@@ -1,0 +1,419 @@
+﻿/// Module Name     :   TradeAdvance
+/// Screen Name     :   TradeAdvance_S3G_TA_SchemeMaster_View
+/// Created By      :   SATHISH R
+/// Created Date    :   6-Nov-2012
+/// Purpose         :   To view SchemeMaster_View details
+
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using System.ServiceModel;
+using System.Data;
+using System.Web.Security;
+using System.Configuration;
+using System.Collections;
+
+
+#endregion
+
+
+public partial class TradeAdvance_S3G_TA_SchemeMaster_View : ApplyThemeForProject
+{
+    #region Initialization
+    string strRedirectPage = "~/TradeAdvance/S3G_TA_SchemeMaster_Add.aspx";
+    int intNoofSearch = 4;
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bIsActive = false;
+    bool bMakerChecker = false;
+    UserInfo ObjUserInfo = null;
+    string strRedirectPageAdd = "~/TradeAdvance/S3G_TA_SchemeMaster_Add.aspx";
+    string[] arrSortCol = new string[] { "LOB_Name", "Product_Code", "Product_Desc", "Name" };
+    string strProcName = "S3G_TA_GetSchemeMaster_Paging";
+    
+    Dictionary<string, string> Procparam = null;
+
+    ArrayList arrSearchVal = new ArrayList(1);
+    int intUserID = 0;
+    int intCompanyID = 0;
+    PagingValues ObjPaging = new PagingValues();
+
+    public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    public int ProPageNumRW
+    {
+        get;
+        set;
+    }
+
+    public int ProPageSizeRW
+    {
+        get;
+        set;
+
+    }
+
+    protected void AssignValue(int intPageNum, int intPageSize)
+    {
+        ProPageNumRW = intPageNum;
+        ProPageSizeRW = intPageSize;
+        FunPriBindGrid();
+    }
+
+    #endregion
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+       #region Paging Config
+        ProPageNumRW = 1;
+        TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+        if (txtPageSize.Text != "")
+            ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+        else
+            ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+        
+        PageAssignValue obj = new PageAssignValue(this.AssignValue);
+        ucCustomPaging.callback = obj;
+        ucCustomPaging.ProPageNumRW = ProPageNumRW;
+        ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+        #endregion
+        ObjUserInfo = new UserInfo();
+        intCompanyID = ObjUserInfo.ProCompanyIdRW;
+        intUserID = ObjUserInfo.ProUserIdRW;
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        bIsActive = ObjUserInfo.ProIsActiveRW;
+        bMakerChecker = ObjUserInfo.ProMakerCheckerRW;
+        if (!IsPostBack)
+        {
+            lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+            FunPriBindGrid();
+
+            if (!bIsActive)
+            {
+                grvSchemeMasterView.Columns[1].Visible = false;
+                grvSchemeMasterView.Columns[0].Visible = false;
+                btnCreate.Enabled = false;
+                return;
+            }
+            if (!bModify)
+            {
+                grvSchemeMasterView.Columns[1].Visible = false;
+            }
+
+            if (!bQuery)
+            {
+                grvSchemeMasterView.Columns[0].Visible = false;
+            }
+            if (!bCreate)
+            {
+                btnCreate.Enabled = false;
+            }
+
+
+            
+
+        
+    }
+
+
+    }
+
+    #region unused
+   
+    #endregion
+    protected void grvSchemeMasterView_DataBound(object sender, EventArgs e)
+    {
+
+    }
+    protected void grvSchemeMasterView_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+
+        FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(e.CommandArgument.ToString(), false, 0);
+        switch (e.CommandName.ToLower())
+        {
+            case "modify":
+                Response.Redirect(strRedirectPageAdd + "?qsID=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=M");
+                break;
+            case "query":
+                Response.Redirect(strRedirectPageAdd + "?qsID=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=Q");
+                break;
+
+        }
+
+    }
+    protected void grvSchemeMasterView_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+
+    }
+    private void FunPriBindGrid()
+    {
+        try
+        {
+            bool bIsNewRow = false;
+            int intTotalRecords = 0;
+            ObjPaging.ProCompany_ID = intCompanyID;
+            ObjPaging.ProUser_ID = intUserID;
+            ObjPaging.ProTotalRecords = intTotalRecords;
+            ObjPaging.ProCurrentPage = ProPageNumRW;
+            ObjPaging.ProPageSize = ProPageSizeRW;
+            ObjPaging.ProSearchValue = hdnSearch.Value;
+            ObjPaging.ProOrderBy = hdnOrderBy.Value;
+            FunPriGetSearchValue();
+            Procparam = new Dictionary<string, string>();
+            grvSchemeMasterView.BindGridView(strProcName, Procparam, out intTotalRecords, ObjPaging, out bIsNewRow);
+
+            
+            if (bIsNewRow)
+            {
+                grvSchemeMasterView.Rows[0].Visible = false;
+            }
+
+            FunPriSetSearchValue();
+
+            ucCustomPaging.Navigation(intTotalRecords, ProPageNumRW, ProPageSizeRW);
+            ucCustomPaging.setPageSize(ProPageSizeRW);
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.InnerText = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.InnerText = ex.Message;
+        }
+    }
+    #region Paging and Searching Methods For Grid
+
+
+
+    
+    private void FunPriClearSearchValue()
+    {
+        grvSchemeMasterView.FunPriClearSearchValue(arrSearchVal);
+    }
+   
+    private void FunPriSetSearchValue()
+    {
+        grvSchemeMasterView.FunPriSetSearchValue(arrSearchVal);
+    }
+   
+
+    private void FunPriGetSearchValue()
+    {
+        arrSearchVal = grvSchemeMasterView.FunPriGetSearchValue(arrSearchVal, intNoofSearch);
+    }
+
+   
+    protected void FunProHeaderSearch(object sender, EventArgs e)
+    {
+        string strSearchVal = string.Empty;
+        TextBox txtboxSearch;
+        try
+        {
+            txtboxSearch = ((TextBox)sender);
+
+            FunPriGetSearchValue();
+          
+            for (int iCount = 0; iCount < arrSearchVal.Capacity; iCount++)
+            {
+                if (arrSearchVal[iCount].ToString() != "")
+                {
+                    strSearchVal += " and " + arrSortCol[iCount].ToString() + " like '" + arrSearchVal[iCount].ToString() + "%'";
+                }
+            }
+            if (strSearchVal.StartsWith(" and "))
+            {
+                strSearchVal = strSearchVal.Remove(0, 5);
+            }
+
+            hdnSearch.Value = strSearchVal;
+            FunPriBindGrid();
+            FunPriSetSearchValue();
+            if (txtboxSearch.Text != "")
+                ((TextBox)grvSchemeMasterView.HeaderRow.FindControl(txtboxSearch.ID)).Focus();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    
+    private string FunPriGetSortDirectionStr(string strColumn)
+    {
+        string strSortDirection = string.Empty;
+        string strSortExpression = string.Empty;
+        string strOrderBy = string.Empty;
+        strSortDirection = "DESC";
+        try
+        {
+            
+            strSortExpression = hdnSortExpression.Value;
+            if ((strSortExpression != "") && (strSortExpression == strColumn) && (hdnSortDirection.Value != null) && (hdnSortDirection.Value == "DESC"))
+            {
+                strSortDirection = "ASC";
+            }
+           
+            hdnSortDirection.Value = strSortDirection;
+            hdnSortExpression.Value = strColumn;
+            string strSplitColumn = "";
+            if (strColumn.Contains("+"))
+            {
+                strSplitColumn = strColumn.Substring(0, strColumn.IndexOf("+"));
+            }
+            else
+            {
+                strSplitColumn = strColumn;
+            }
+            strOrderBy = " " + strSplitColumn + " " + strSortDirection;
+            hdnOrderBy.Value = strOrderBy;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+        return strSortDirection;
+    }
+
+   
+
+    protected void FunProSortingColumn(object sender, EventArgs e)
+    {
+        arrSearchVal = new ArrayList(intNoofSearch);
+        var imgbtnSearch = string.Empty;
+        try
+        {
+            LinkButton lnkbtnSearch = (LinkButton)sender;
+            string strSortColName = string.Empty;
+            
+            imgbtnSearch = lnkbtnSearch.ID.Replace("lnkbtn", "imgbtn");
+            for (int iCount = 0; iCount < arrSearchVal.Capacity; iCount++)
+            {
+                if (lnkbtnSearch.ID == "lnkbtnSort" + (iCount + 1).ToString())
+                {
+                    strSortColName = arrSortCol[iCount].ToString();
+                    break;
+                }
+            }
+
+            string strDirection = FunPriGetSortDirectionStr(strSortColName);
+            FunPriBindGrid();
+
+            if (strDirection == "ASC")
+            {
+                ((ImageButton)grvSchemeMasterView.HeaderRow.FindControl(imgbtnSearch)).CssClass = "styleImageSortingAsc";
+            }
+            else
+            {
+
+                ((ImageButton)grvSchemeMasterView.HeaderRow.FindControl(imgbtnSearch)).CssClass = "styleImageSortingDesc";
+            }
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.InnerText = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.InnerText = ex.Message;
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    #endregion
+
+    #region Page Events
+
+    protected void grvMemoMaster_DataBound(object sender, EventArgs e)
+    {
+
+    }
+    protected void grvMemoMaster_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+       
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            Label lblActive = (Label)e.Row.FindControl("lblActive");
+            CheckBox chkAct = (CheckBox)e.Row.FindControl("chkActive");
+            if (lblActive.Text == "True")
+            {
+                chkAct.Checked = true;
+            }
+
+           
+            Label lblUserID = (Label)e.Row.FindControl("lblUserID");
+            Label lblUserLevelID = (Label)e.Row.FindControl("lblUserLevelID");
+            ImageButton imgbtnEdit = (ImageButton)e.Row.FindControl("imgbtnEdit");
+            if (lblUserID.Text != "")
+            {
+                if ((bModify) && (ObjUserInfo.IsUserLevelUpdate(Convert.ToInt32(lblUserID.Text), Convert.ToInt32(lblUserLevelID.Text))))
+                {
+                    imgbtnEdit.Enabled = true;
+                }
+                else
+                {
+                    imgbtnEdit.Enabled = false;
+                    imgbtnEdit.CssClass = "styleGridEditDisabled";
+                }
+            }
+           
+
+        }
+
+    }
+   
+   
+    protected void btnShow_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            ProPageNumRW = 1;
+            hdnSearch.Value = "";
+            hdnOrderBy.Value = "";
+            FunPriClearSearchValue();
+            FunPriBindGrid();
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            lblErrorMessage.InnerText = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.InnerText = ex.Message;
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+    #endregion
+
+    
+    #region Paging and Searching Methods For Grid
+
+
+    protected void btnCreate_Click(object sender, EventArgs e)
+    {
+
+        Response.Redirect(strRedirectPage,false);
+    }
+    
+}
+
+    
+
+    #endregion
+
+
+
+
+
+

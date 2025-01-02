@@ -1,0 +1,467 @@
+<%@ Page Title="Enquiry Assignment" Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master"
+    AutoEventWireup="true" CodeFile="S3G_ORG_EnquiryAssignment.aspx.cs" Inherits="Origination_EnquiryAssignment"
+    EnableEventValidation="false" %>
+
+<%@ Register Assembly="iCONWebComponents" Namespace="iCON.Web.Components" TagPrefix="cc2" %>
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register Src="../UserControls/S3GCustomerAddress.ascx" TagName="S3GCustomerAddress"
+    TagPrefix="uc1" %>
+<%@ Register TagPrefix="uc2" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <table width="100%" align="center" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td valign="top">
+                <table class="stylePageHeading" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td>
+                            <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">
+                            </asp:Label>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top">
+                <cc1:TabContainer ID="TCEnqu" runat="server" ActiveTabIndex="0" CssClass="styleTabPanel"
+                    AutoPostBack="true" Width="100%" ScrollBars="None" OnActiveTabChanged="TCEnqu_ActiveTabChanged">
+                    <cc1:TabPanel runat="server" ID="tbEnquAssign" CssClass="tabpan" BackColor="Red">
+                        <HeaderTemplate>
+                            Enquiry Assignment
+                        </HeaderTemplate>
+                        <ContentTemplate>
+                            <%--<asp:UpdatePanel ID="UpdatePanel21" runat="server">
+                                <ContentTemplate>--%>
+                            <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                <tr>
+                                    <td colspan="4">
+                                        <asp:CustomValidator ID="cvQuery" runat="server" CssClass="styleMandatoryLabel"></asp:CustomValidator>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="18%" align="left" style="padding-left: 10px">
+                                        <asp:Label runat="server" ID="lblEnquiryNo" CssClass="styleDisplayLabel"></asp:Label>
+                                        <span class="styleMandatory">*</span>
+                                    </td>
+                                    <td width="34%" align="left">
+                                        <cc1:ComboBox ID="ddlEnquiryNo" AutoPostBack="true" runat="server" AutoCompleteMode="SuggestAppend"
+                                            DropDownStyle="DropDownList" OnSelectedIndexChanged="ddlEnquiryNo_SelectedIndexChanged">
+                                        </cc1:ComboBox>
+                                        <asp:TextBox ID="txtEnqRefNo" runat="server" Visible="false" ReadOnly="True"></asp:TextBox>
+                                    </td>
+                                    <td width="18%" align="left">
+                                        <asp:Label ID="lblEnqDate" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                    </td>
+                                    <td width="30%" align="left">
+                                        <asp:TextBox ID="txtEnqDate" runat="server" ReadOnly="True" Width="30%"></asp:TextBox>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table width="100%">
+                                <tr>
+                                    <td width="45%">
+                                        <asp:Panel Width="99%" ID="Panel2" runat="server" GroupingText="Customer Information"
+                                            CssClass="stylePanel">
+                                            <table width="100%" cellspacing="0">
+                                                <tr>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label runat="server" ID="lblNewCustomer" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtNewCustomer" runat="server" ReadOnly="True" Width="17%"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblConstitution" runat="server" CssClass="styleDisplayLabel" Text="Constitution"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtConstitution" runat="server" ReadOnly="True"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="2">
+                                                        <uc1:S3GCustomerAddress ID="S3GCustomerAddress1" runat="server" />
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblCustomerReference" runat="server" CssClass="styleDisplayLabel"
+                                                            Text="Customer Code"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtCustomerReference" runat="server" ReadOnly="True" Width="80%"
+                                                            ToolTip="Customer Code"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblName" runat="server" CssClass="styleDisplayLabel">Customer 
+                                                                Name</asp:Label>
+                                                        &nbsp;
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtName" runat="server" ReadOnly="True" Width="195px" ToolTip="Customer Name"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblAddress" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtAddress" runat="server" ReadOnly="True" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblAddress2" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtAddress2" runat="server" ReadOnly="True" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblCity" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtCity" runat="server" ReadOnly="True" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblState" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtState" runat="server" ReadOnly="True" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblCountry" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtCountry" runat="server" ReadOnly="True" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblPincode" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtPinCode" runat="server" ReadOnly="True" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblComAddress" runat="server" CssClass="styleDisplayLabel">Address</asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox runat="server" ReadOnly="true" Rows="4" TextMode="MultiLine" ID="txtComAddress"
+                                                            runat="server" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblMobile" runat="server" CssClass="styleDisplayLabel">Mobile</asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtMobile" runat="server" ReadOnly="True" Width="60%"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblEmail" runat="server" CssClass="styleDisplayLabel">Email Id</asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtEmail" runat="server" ReadOnly="True" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr style="display: none">
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblWebsite" runat="server" CssClass="styleDisplayLabel">Web Site</asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtWebSite" runat="server" ReadOnly="True" Width="195px"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </asp:Panel>
+                                    </td>
+                                    <td width="45%" valign="top">
+                                        <asp:Panel Width="99%" ID="Panel1" runat="server" GroupingText="Financial Information"
+                                            CssClass="stylePanel">
+                                            <table width="99%">
+                                                <tr>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblFacilityType" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left" colspan="3">
+                                                        <asp:TextBox ID="txtFacilityType" runat="server" ReadOnly="True" Width="80%"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblFacilityAmount" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="30%" align="left" colspan="3">
+                                                        <asp:TextBox ID="txtFacilityAmount" runat="server" ReadOnly="True" Style="width: 30%;
+                                                            text-align: right"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td width="28%" align="left">
+                                                        <asp:Label ID="lblCurrencyCode" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left" colspan="3">
+                                                        <asp:TextBox ID="txtCurrencyCode" runat="server" ReadOnly="True" Style="width: 70%"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblTenureType" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtTenureType" runat="server" ReadOnly="True" Style="width: 85%"></asp:TextBox>
+                                                    </td>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblTenure" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="32%" align="left">
+                                                        <asp:TextBox ID="txtTenure" runat="server" ReadOnly="True" Style="width: 90%; text-align: right"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblInterestType" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtInterestType" runat="server" ReadOnly="True" Width="85%"></asp:TextBox>
+                                                    </td>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblInterestPercentage" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="30%" align="left">
+                                                        <asp:TextBox ID="txtInterestPercentage" runat="server" ReadOnly="True" Style="width: 95%;
+                                                            text-align: right"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td width="18%" align="left"">
+                                                        <asp:Label ID="lblMargineAmount" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left">
+                                                        <asp:TextBox ID="txtMargine" runat="server" ReadOnly="True" Style="width: 85%; text-align: right"></asp:TextBox>
+                                                    </td>
+                                                    <td width="30%" align="left">
+                                                        <asp:Label ID="lblResidualValue" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="30%" align="left">
+                                                        <asp:TextBox ID="txtResidualValue" runat="server" ReadOnly="True" Style="width: 95%;
+                                                            text-align: right"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td width="18%" align="left">
+                                                        <asp:Label ID="lblAssetDetails" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td width="34%" align="left" colspan="3">
+                                                        <asp:TextBox ID="txtAssetDetails" runat="server" ReadOnly="True" Width="95%"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td width="18%" valign="top" align="left">
+                                                        <asp:Label ID="lblRemarks" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td colspan="3" width="34%">
+                                                        <asp:TextBox Width="90%" ID="txtRemarks" TextMode="MultiLine" runat="server" ReadOnly="True"
+                                                            Height="50px"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <%--<tr>
+                                                            <td width="18%" align="left">
+                                                                &nbsp;
+                                                            </td>
+                                                            <td width="30%" align="left">
+                                                                &nbsp;
+                                                            </td>
+                                                            <td width="18%" align="left">
+                                                                <asp:Label ID="lblShowSchedule" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                                            </td>
+                                                            <td width="30%" align="left">
+                                                                <asp:Button ID="btnSchedule" runat="server" CssClass="styleSubmitButton" CausesValidation="False"
+                                                                    OnClick="btnSchedule_Click" Width="245px" />
+                                                            </td>
+                                                        </tr>--%>
+                                            </table>
+                                        </asp:Panel>
+                                    </td>
+                                </tr>
+                            </table>
+                            <asp:Panel Width="99%" ID="pnlAssinment" runat="server" GroupingText="Assignment details"
+                                CssClass="stylePanel">
+                                <table width="100%">
+                                    <tr>
+                                        <td width="18%" align="left">
+                                            <asp:Label ID="lblLOB" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                            <span class="styleMandatory">*</span>
+                                        </td>
+                                        <td width="34%" align="left">
+                                            <asp:DropDownList Style="width: 80%" ID="ddlLOB" runat="server" TabIndex="2" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged"
+                                                AutoPostBack="True">
+                                            </asp:DropDownList>
+                                        </td>
+                                        <td width="18%" align="left">
+                                            <asp:Label ID="lblworkflowSeq" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                        </td>
+                                        <td width="30%" align="left">
+                                            <asp:TextBox ID="txtWorkflowSeq" Style="width: 75%" ContentEditable="false" runat="server"
+                                                TabIndex="5"></asp:TextBox>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td width="18%" align="left">
+                                            <asp:Label ID="lblBranch" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                            <span class="styleMandatory">*</span>
+                                        </td>
+                                        <td width="34%" align="left">
+                                            <uc2:Suggest ID="ddlBranch" runat="server" ServiceMethod="GetBranchList" AutoPostBack="true"
+                                                OnItem_Selected="ddlBranch_SelectedIndexChanged" ErrorMessage="Select a Location"
+                                                ValidationGroup="tbEnquAssign" IsMandatory="true" Width="200px" />
+                                           <%-- <asp:DropDownList Style="width: 80%" ID="ddlBranch" runat="server" TabIndex="3" AutoPostBack="True"
+                                                OnSelectedIndexChanged="ddlBranch_SelectedIndexChanged">
+                                            </asp:DropDownList>--%>
+                                        </td>
+                                        <td width="18%" align="left">
+                                            <asp:Label ID="lblUserName" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                        </td>
+                                        <td width="34%" align="left">
+                                            <asp:TextBox ID="txtUserName" runat="server" ReadOnly="True" Width="75%"></asp:TextBox>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td width="18%" align="left">
+                                            <asp:Label ID="lblProductCode" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                            <span class="styleMandatory">*</span>
+                                        </td>
+                                        <td width="30%" align="left">
+                                            <asp:DropDownList Style="width: 80%" ID="ddlProductCode" runat="server" TabIndex="4"
+                                                OnSelectedIndexChanged="ddlProductCode_SelectedIndexChanged" AutoPostBack="True">
+                                            </asp:DropDownList>
+                                        </td>
+                                        <td width="18%" align="left">
+                                            <asp:Label ID="lblTransactionDate" runat="server" CssClass="styleDisplayLabel"></asp:Label>
+                                        </td>
+                                        <td width="30%" align="left">
+                                            <asp:TextBox ID="txtTransDate" runat="server" ReadOnly="True" Width="75%"></asp:TextBox>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </asp:Panel>
+                            <table width="100%">
+                                <tr>
+                                    <td width="34%" align="left">
+                                        <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="100%" align="center">
+                                        <asp:Button ID="btnSave" runat="server" CssClass="styleSubmitButton" TabIndex="5"
+                                            OnClick="btnSave_Click" ValidationGroup="tbEnquAssign" OnClientClick="return fnCheckPageValidators();" />
+                                        <asp:Button ID="btnCancel" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                                            OnClick="btnCancel_Click" />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="left">
+                                        <asp:RequiredFieldValidator ID="RFVComboLOB" ValidationGroup="tbEnquAssign" InitialValue="-- Select --"
+                                            CssClass="styleMandatoryLabel" runat="server" ControlToValidate="ddlEnquiryNo"
+                                            SetFocusOnError="True" ErrorMessage="Select an Enquiry Number" Display="None"></asp:RequiredFieldValidator>
+                                        <asp:RequiredFieldValidator ID="rfvddlLOB" runat="server" ControlToValidate="ddlLOB"
+                                            CssClass="styleMandatoryLabel" Display="None" InitialValue="0" SetFocusOnError="True"
+                                            ValidationGroup="tbEnquAssign"></asp:RequiredFieldValidator>
+                                        <asp:RequiredFieldValidator ID="rfvddlProductCode" runat="server" ControlToValidate="ddlProductCode"
+                                            CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Select a Product"
+                                            InitialValue="0" SetFocusOnError="True" ValidationGroup="tbEnquAssign"></asp:RequiredFieldValidator>
+                                       <%-- <asp:RequiredFieldValidator ID="rfvddlBranch" runat="server" ControlToValidate="ddlBranch"
+                                            CssClass="styleMandatoryLabel" Display="None" InitialValue="0" SetFocusOnError="True"
+                                            ValidationGroup="tbEnquAssign"></asp:RequiredFieldValidator>--%>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="100%">
+                                        <br />
+                                        <%-- <div id="div1" style="overflow: None; height: 100%; width: 800px">--%>
+                                        <asp:ValidationSummary ID="vsEnquiryAssignmentQry" runat="server" HeaderText="Correct the following validation(s):"
+                                            CssClass="styleMandatoryLabel" ValidationGroup="tbEnquAssign" />
+                                        <%--</div>--%>
+                                    </td>
+                                </tr>
+                                <tr class="styleButtonArea">
+                                    <td width="100%">
+                                        <asp:CustomValidator ID="cvEnquiryAssignment" runat="server" CssClass="styleMandatoryLabel"
+                                            Visible="False"></asp:CustomValidator>
+                                        <br />
+                                        &nbsp;&nbsp;
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        &nbsp;
+                                    </td>
+                                </tr>
+                            </table>
+                            <%-- </ContentTemplate>
+                            </asp:UpdatePanel>--%>
+                        </ContentTemplate>
+                    </cc1:TabPanel>
+                    <cc1:TabPanel runat="server" ID="tbLoanSchedule" CssClass="tabpan" BackColor="Red">
+                        <HeaderTemplate>
+                            Repayment Schedule
+                        </HeaderTemplate>
+                        <ContentTemplate>
+                            <%-- <asp:UpdatePanel ID="UpdatePanel2" runat="server">
+                                <ContentTemplate>--%>
+                            <table cellpadding="0" cellspacing="0" width="100%" align="left">
+                                <tr>
+                                    <td>
+                                        <br />
+                                    </td>
+                                </tr>
+                                <tr align="center">
+                                    <td>
+                                        <asp:GridView ID="gvSchedule" AllowPaging="True" runat="server" AutoGenerateColumns="False"
+                                            Width="35%" OnPageIndexChanging="gvSchedule_PageIndexChanging" PageSize="20">
+                                            <PagerSettings FirstPageText="First" LastPageText="Last" Mode="NextPreviousFirstLast"
+                                                NextPageText="Next" PreviousPageText="Prev" PageButtonCount="10" />
+                                            <Columns>
+                                                <asp:BoundField DataField="SerialNumber" HeaderText="Sl.No.">
+                                                    <ItemStyle HorizontalAlign="Center" />
+                                                </asp:BoundField>
+                                                <%--<asp:BoundField DataField="InstallmentDate" HeaderText="Instalment Date">
+                                                            <HeaderStyle />
+                                                            <ItemStyle HorizontalAlign="Center" Width="40%" />
+                                                        </asp:BoundField>--%>
+                                                <asp:TemplateField HeaderText="Installment Date">
+                                                    <HeaderStyle Font-Bold="True" />
+                                                    <ItemStyle HorizontalAlign="Center" Width="40%" />
+                                                    <ItemTemplate>
+                                                        <%# FormatDate(Eval("InstallmentDate").ToString())%>
+                                                    </ItemTemplate>
+                                                </asp:TemplateField>
+                                                <asp:BoundField DataField="InstallmentAmount" HeaderText="Amount">
+                                                    <ItemStyle HorizontalAlign="Right" />
+                                                </asp:BoundField>
+                                            </Columns>
+                                        </asp:GridView>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        &nbsp;
+                                    </td>
+                                </tr>
+                            </table>
+                            <%--</ContentTemplate>
+                            </asp:UpdatePanel>--%>
+                        </ContentTemplate>
+                    </cc1:TabPanel>
+                </cc1:TabContainer>
+            </td>
+        </tr>
+    </table>
+</asp:Content>

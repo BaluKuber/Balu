@@ -1,0 +1,190 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeFile="S3GClnManualBucketClassification_View.aspx.cs"
+    Inherits="Collection_S3GClnManualBucketClassification_View" MasterPageFile="~/Common/S3GMasterPageCollapse.master" %>
+
+<%@ Register TagPrefix="uc1" TagName="PageNavigator" Src="~/UserControls/PageNavigator.ascx" %>
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel21" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" ID="lblHeading" CssClass="styleInfoLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <table cellpadding="2" cellspacing="0" border="0" width="100%">
+                            <tr>
+                                <td>
+                                    <asp:Panel ID="Panel1" runat="server" GroupingText="Demand Account Manager Informations"
+                                        CssClass="stylePanel">
+                                        <table width="100%">
+                                            <tr>
+                                                <td style="width: 15%">
+                                                    <asp:Label ID="lblLineOfBusiness" runat="server" Text="Line of Business"></asp:Label>
+                                                </td>
+                                                <td style="width: 35%">
+                                                    <asp:DropDownList ID="ddlLineofBusiness" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlLineofBusiness_SelectedIndexChanged">
+                                                    </asp:DropDownList>
+                                                    <%-- <asp:TextBox ID="txtLOB" runat="server" ReadOnly="true"></asp:TextBox>--%>
+                                                </td>
+                                                <td style="width: 15%">
+                                                    <asp:Label ID="lblBranch" runat="server" Text="State"></asp:Label>
+                                                </td>
+                                                <td style="width: 35%">
+                                                   <uc:Suggest ID="ddlBranch" ToolTip="State" runat="server" AutoPostBack="True"
+                                                                                OnItem_Selected="ddlBranch_SelectedIndexChanged"  ServiceMethod="GetBranchList"
+                                                                                WatermarkText="--Select--" />
+                                                    <%--<asp:TextBox ID="txtBranch" runat="server" ReadOnly="true"></asp:TextBox>--%>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="width: 18%">
+                                                    &nbsp;
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="width: 16%">
+                                                    <asp:Label ID="lblDemandMonth" runat="server" Text="Demand Month"></asp:Label>
+                                                </td>
+                                                <td style="width: 25%">
+                                                    <%--<asp:TextBox ID="txtDemandMonth" runat="server" ReadOnly="true" Width="40%"></asp:TextBox>--%>
+                                                    <asp:DropDownList ID="ddlDemandMonth" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlDemandMonth_SelectedIndexChanged">
+                                                    </asp:DropDownList>
+                                                </td>
+                                                <td style="width: 18%">
+                                                    <asp:Label ID="lblDebtCollector" runat="server" Text="Account Manager"></asp:Label>
+                                                </td>
+                                                <td style="width: 25%">
+                                                    <%--<asp:TextBox ID="txtCurrentDebtCollector" runat="server" ReadOnly="true"></asp:TextBox>--%>
+                                                    <asp:DropDownList ID="ddlDebtCollector" runat="server">
+                                                    </asp:DropDownList>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </asp:Panel>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:GridView ID="grvPaging" runat="server" Width="100%" AutoGenerateColumns="false"
+                            OnRowDataBound="grvPaging_RowDataBound" OnRowCommand="grvPaging_RowCommand">
+                            <Columns>
+                                <asp:TemplateField>
+                                    <HeaderTemplate>
+                                        <asp:Label ID="lblQuery" runat="server" Text="Query"></asp:Label>
+                                    </HeaderTemplate>
+                                    <ItemTemplate>
+                                        <asp:ImageButton ID="imgbtnQuery" ImageUrl="~/Images/spacer.gif" CssClass="styleGridQuery"
+                                            CommandArgument='<%# Bind("ID") %>' CommandName="Query" runat="server" />
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" />
+                                    <ItemStyle HorizontalAlign="Center" />
+                                </asp:TemplateField>
+                                <asp:TemplateField>
+                                    <HeaderTemplate>
+                                        <asp:Label ID="lblEdit" runat="server" Text="Modify"></asp:Label>
+                                    </HeaderTemplate>
+                                    <ItemTemplate>
+                                        <asp:ImageButton ID="imgbtnEdit" runat="server" CssClass="styleGridEdit" ImageUrl="~/Images/spacer.gif"
+                                            CommandArgument='<%# Bind("ID") %>' CommandName="Modify" />
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" Width="10%" />
+                                    <ItemStyle HorizontalAlign="Center" />
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText="Account Manager Code" SortExpression="DebtCollector Code">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblDebtCollectorCode" runat="server" Text='<%# Bind("DebtCollector_Code") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader"></HeaderStyle>
+                                    <ItemStyle HorizontalAlign="Left" />
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText="Demand Month" SortExpression="Demand_Month">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblROIRulenumber" runat="server" Text='<%# Bind("Demand_Month") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader"></HeaderStyle>
+                                    <ItemStyle HorizontalAlign="Left" />
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText="Line of Business" SortExpression="LOB" Visible="false">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblLOBCode" runat="server" Text='<%# Bind("LOB") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" Width="20%"></HeaderStyle>
+                                    <ItemStyle HorizontalAlign="Left" />
+                                </asp:TemplateField>
+                                <%--<asp:TemplateField HeaderText="Branch" SortExpression="Branch">
+                                  <ItemTemplate>
+                                        <asp:Label ID="lblBranch" runat="server" Text='<%# Bind("Branch") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" Width="20%"></HeaderStyle>
+                                    <ItemStyle HorizontalAlign="Left" />
+                                </asp:TemplateField>--%>
+                                <asp:TemplateField HeaderText="State" SortExpression="State">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblBranch" runat="server" Text='<%# Bind("Location") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" Width="20%"></HeaderStyle>
+                                    <ItemStyle HorizontalAlign="Left" />
+                                </asp:TemplateField>
+                                <asp:TemplateField Visible="false">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblUserID" Visible="false" runat="server" Text='<%#Eval("Created_By")%>'></asp:Label>
+                                        <asp:Label ID="lblUserLevelID" Visible="false" runat="server" Text='<%#Eval("User_Level_ID")%>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader"></HeaderStyle>
+                                    <ItemStyle HorizontalAlign="Center"></ItemStyle>
+                                </asp:TemplateField>
+                                <asp:TemplateField Visible="false">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblActive" Visible="false" runat="server" Text='<%#Bind("Active")%>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader"></HeaderStyle>
+                                    <ItemStyle HorizontalAlign="Center"></ItemStyle>
+                                </asp:TemplateField>
+                            </Columns>
+                        </asp:GridView>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" valign="top">
+                        <uc1:PageNavigator ID="ucCustomPaging" runat="server"></uc1:PageNavigator>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-top: 5px; padding-left: 5px;" align="Center">
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-top: 5px; padding-left: 5px;" align="Center">
+                        <asp:Button ID="btnSearch" OnClick="btnSearch_Click" CssClass="styleSubmitButton"
+                            Text="Search" runat="server"></asp:Button>
+                        <asp:Button ID="btnclear" OnClick="btnclear_Click" runat="server" Text="Clear" CssClass="styleSubmitButton" />
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-top: 5px; padding-left: 5px;" align="Center">
+                        <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                        <asp:CustomValidator ID="CVBucketClassificationView" runat="server" Display="None"></asp:CustomValidator>
+                    </td>
+                </tr>
+            </table>
+            <input type="hidden" id="hdnSortDirection" runat="server" />
+            <input type="hidden" id="hdnSortExpression" runat="server" />
+            <input type="hidden" id="hdnSearch" runat="server" />
+            <input type="hidden" id="hdnOrderBy" runat="server" />
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

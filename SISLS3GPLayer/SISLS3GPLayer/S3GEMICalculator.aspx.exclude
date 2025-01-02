@@ -1,0 +1,399 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GEMICalculator.aspx.cs" Inherits="Common_S3GEMICalculator" Title="EMI Calculator" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading" colspan="4">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="EMI Calculator" ID="lblHeading" CssClass="styleDisplayLabel"> </asp:Label>
+                                    <input id="hdnCTR" type="hidden" runat="server" /><input id="hdnPLR" type="hidden"
+                                        runat="server" /><input id="hdnTenure" type="hidden" runat="server" /><input id="hdnRoundOff"
+                                            type="hidden" runat="server" />
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Prospect Name" ID="lblProspectName" CssClass="styleDisplayLabel"></asp:Label>
+                        <span class="styleMandatory">*</span>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="txtProspectName" runat="server"></asp:TextBox>
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Mobile" ID="lblMobile" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="txtMobile" runat="server"></asp:TextBox>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Address" ID="lblAddress" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="TxtAddress" runat="server" TextMode="MultiLine"></asp:TextBox>
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="E-Mail" ID="lblEmail" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="txtEmail" runat="server"></asp:TextBox>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Activity" ID="lblActivity" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlActivity" runat="server" Width="165px" AutoPostBack="True"
+                            OnSelectedIndexChanged="ddlActivity_SelectedIndexChanged">
+                        </asp:DropDownList>
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Date" ID="lblDate" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="txtDate" runat="server"></asp:TextBox>
+                        <asp:Image ID="Image1" runat="server" ImageUrl="~/Images/calendaer.gif" />
+                        <cc1:CalendarExtender runat="server" Format="dd/MM/yyyy" OnClientDateSelectionChanged="checkDate_OnlyPrevSystemDate"
+                            TargetControlID="txtDate" PopupButtonID="Image1" ID="ceDate" Enabled="true">
+                        </cc1:CalendarExtender>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Corporate Tax" ID="lblCorporateTax" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="txtCorporateTax" runat="server"></asp:TextBox>
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Amount" ID="lblAmount" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="txtAmount" runat="server"></asp:TextBox>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Asset Register" ID="lblAssetRegister" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlAssetRegister" runat="server" Width="165px" AutoPostBack="True">
+                        </asp:DropDownList>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label ID="lblRateType" runat="server" Text="Rate Type" ToolTip="Rate Type"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlRateType" runat="server" AutoPostBack="false" ToolTip="Rate Type"
+                            Width="50%">
+                        </asp:DropDownList>
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label ID="lblReturnPattern" runat="server" Text="Return Pattern" ToolTip="Return Pattern"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlReturnPattern" runat="server" Width="165px" AutoPostBack="true"
+                            ToolTip="Return Pattern" OnSelectedIndexChanged="ddlReturnPattern_SelectedIndexChanged">
+                        </asp:DropDownList>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Tenure Type / Tenure" ID="Label2" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlTenureType" runat="server" Width="100px" AutoPostBack="true"
+                            ToolTip="Tenure Type">
+                        </asp:DropDownList>
+                        <asp:TextBox ID="txtTenure" runat="server" Width="60px"></asp:TextBox>
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label ID="lblTime" runat="server" Text="Time" ToolTip="Time" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlTime" runat="server" ToolTip="Time" Width="165px">
+                        </asp:DropDownList>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label ID="lblRepaymentMode" runat="server" Text="Repayment Mode" CssClass="styleDisplayLabel"
+                            ToolTip="Repayment Mode"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:DropDownList ID="ddlRepaymentMode" runat="server" Width="165px" AutoPostBack="true"
+                            ToolTip="Repayment Mode" OnSelectedIndexChanged="ddlRepaymentMode_SelectedIndexChanged">
+                        </asp:DropDownList>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Residual Value%" ID="lblResidualPer" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="TxtResidualPer" runat="server"></asp:TextBox>
+                    </td>
+                    <td class="styleFieldLabel">
+                        <asp:Label runat="server" Text="Residual Value Amount" ID="lblResidualValueAmt" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                    <td class="styleFieldAlign">
+                        <asp:TextBox ID="txtResidualValueAmt" runat="server"></asp:TextBox>
+                    </td>
+                </tr>
+                <tr style="height: 1px;">
+                    <td colspan="4">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td class="styleFieldLabel">
+                        <asp:Label ID="Label1" runat="server" Text="Recovery Pattern"></asp:Label>
+                    </td>
+                    <td colspan="3" class="styleFieldLabel">
+                        <table class="styleContentTable" width="100%" style="text-align: left">
+                            <tr class="styleGridHeader">
+                                <td width="25%">
+                                    <asp:Label ID="lblRecoveryPatternYear1" runat="server" Text="Year 1" ToolTip="Year1"></asp:Label>
+                                    <asp:TextBox ID="txtRecoveryPatternYear1" runat="server" Style="text-align: right"
+                                        onkeypress="fnAllowNumbersOnly(true,false,this)" Width="40%" MaxLength="10" ToolTip="Year1"></asp:TextBox>
+                                </td>
+                                <td width="25%">
+                                    <asp:Label ID="Label3" runat="server" Text="Year 2" ToolTip="Year2"></asp:Label>
+                                    <asp:TextBox ID="txtRecoveryPatternYear2" runat="server" Style="text-align: right"
+                                        onkeypress="fnAllowNumbersOnly(true,false,this)" Width="40%" MaxLength="10" ToolTip="Year2"></asp:TextBox>
+                                </td>
+                                <td width="25%">
+                                    <asp:Label ID="Label4" runat="server" Text="Year 3" ToolTip="Year3"></asp:Label>
+                                    <asp:TextBox ID="txtRecoveryPatternYear3" runat="server" Style="text-align: right"
+                                        onkeypress="fnAllowNumbersOnly(true,false,this)" Width="40%" MaxLength="10" ToolTip="Year 3"></asp:TextBox>
+                                </td>
+                                <td width="25%">
+                                    <asp:Label ID="Label5" runat="server" Text="Rest" ToolTip="Rest"></asp:Label>
+                                    <asp:TextBox ID="txtRecoveryPatternYearRest" runat="server" Style="text-align: right"
+                                        Width="40%" MaxLength="10" ToolTip="Rest" onkeypress="fnAllowNumbersOnly(true,false,this)"></asp:TextBox>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr style="height: 1px;">
+                    <td colspan="4">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5" align="center">
+                        <table class="styleContentTable" width="90%" style="text-align: center">
+                            <tr class="styleGridHeader">
+                                <td width="25%">
+                                    <asp:Label ID="lblFlatRate" runat="server" Text="Flat Rate" ToolTip="Flat Rate" Font-Bold="true"></asp:Label>
+                                    <asp:TextBox ID="txtFlatRate" runat="server" Style="text-align: right" Width="40%"
+                                        MaxLength="10" ToolTip="Flat Rate"></asp:TextBox>
+                                </td>
+                                <td width="25%">
+                                    <asp:Label ID="lblAccIRR" runat="server" Text="Accounting IRR" ToolTip="Accounting IRR"
+                                        Font-Bold="true"></asp:Label>
+                                    <asp:TextBox ID="txtAccIRR" runat="server" Style="text-align: right" Width="40%"
+                                        MaxLength="10" ToolTip="Accounting IRR"></asp:TextBox>
+                                </td>
+                                <td width="25%">
+                                    <asp:Label ID="lblBusinessIRR" runat="server" Text="Business IRR" ToolTip="Business IRR"
+                                        Font-Bold="true"></asp:Label>
+                                    <asp:TextBox ID="txtBusinessIRR" runat="server" Style="text-align: right" Width="40%"
+                                        MaxLength="10" ToolTip="Business IRR"></asp:TextBox>
+                                </td>
+                                <td width="25%">
+                                    <asp:Label ID="lblCompanyIRR" runat="server" Text="Company IRR" ToolTip="Company IRR"
+                                        Font-Bold="true"></asp:Label>
+                                    <asp:TextBox ID="txtCompanyIRR" runat="server" Style="text-align: right" Width="40%"
+                                        MaxLength="10" ToolTip="Company IRR"></asp:TextBox>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4">
+                        <div id="div6" style="overflow: auto; height: auto; width: 100%; padding-left: 10px;"
+                            runat="server">
+                            <asp:GridView ID="gvRepaymentDetails" runat="server" AutoGenerateColumns="False"
+                                ShowFooter="True" OnRowDeleting="gvRepaymentDetails_RowDeleting" OnRowDataBound="gvRepaymentDetails_RowDataBound"
+                                OnRowCreated="gvRepaymentDetails_RowCreated" Width="1057px">
+                                <Columns>
+                                    <asp:BoundField DataField="slno" HeaderText="Sl.No" />
+                                    <asp:TemplateField HeaderText="Repayment CashFlowId" Visible="False">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblCashFlowId" runat="server" Text='<%# Bind("CashFlowId") %>'></asp:Label>
+                                        </ItemTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Repayment CashFlow">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblCashFlow" runat="server" Text='<%# Bind("CashFlow") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:DropDownList ID="ddlRepaymentCashFlow_RepayTab" runat="server" Width="200px"
+                                                AutoPostBack="true" OnSelectedIndexChanged="ddlRepaymentCashFlow_RepayTab_SelectedIndexChanged">
+                                            </asp:DropDownList>
+                                            <asp:RequiredFieldValidator ID="rfvddlRepaymentCashFlow_RepayTab" runat="server"
+                                                ControlToValidate="ddlRepaymentCashFlow_RepayTab" CssClass="styleMandatoryLabel"
+                                                Display="None" ValidationGroup="TabRepayment1" SetFocusOnError="True" InitialValue="-1"
+                                                ErrorMessage="Select a Repayment cashflow">
+                                            </asp:RequiredFieldValidator>
+                                        </FooterTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Per Installment Amount" ItemStyle-HorizontalAlign="Right">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblPerInstallmentAmount_RepayTab" runat="server" Text='<%# Bind("PerInstall") %>'
+                                                Style="text-align: right"></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:TextBox ID="txtPerInstallmentAmount_RepayTab" runat="server" Width="120px" MaxLength="7"
+                                                Style="text-align: right"> </asp:TextBox>
+                                            <cc1:FilteredTextBoxExtender ID="ftextExtxtPerInstallmentAmount_RepayTab" runat="server"
+                                                FilterType="Numbers" TargetControlID="txtPerInstallmentAmount_RepayTab">
+                                            </cc1:FilteredTextBoxExtender>
+                                            <asp:RequiredFieldValidator ID="rfvtxtPerInstallmentAmount_RepayTab" runat="server"
+                                                ControlToValidate="txtPerInstallmentAmount_RepayTab" CssClass="styleMandatoryLabel"
+                                                Display="None" ValidationGroup="TabRepayment1" SetFocusOnError="True" ErrorMessage="Enter the Per installment amount"></asp:RequiredFieldValidator>
+                                        </FooterTemplate>
+                                        <ItemStyle HorizontalAlign="Right" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Breakup Percentage" ItemStyle-HorizontalAlign="Right">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblBreakup_RepayTab" runat="server" Text='<%# Bind("Breakup") %>'>
+                                            </asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:TextBox ID="txtBreakup_RepayTab" runat="server" Width="100px" onkeypress="fnAllowNumbersOnly(true,false,this)"
+                                                Style="text-align: right"> </asp:TextBox>
+                                        </FooterTemplate>
+                                        <ItemStyle HorizontalAlign="Right" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="From Installment" ItemStyle-HorizontalAlign="Right">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblFromInstallment_RepayTab" runat="server" Text='<%# Bind("FromInstall") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:TextBox ID="txtFromInstallment_RepayTab" runat="server" Width="80px" MaxLength="3"
+                                                Text="1" ReadOnly="true" Style="text-align: right"> </asp:TextBox>
+                                            <cc1:FilteredTextBoxExtender ID="ftextExtxtFromInstallment_RepayTab" runat="server"
+                                                FilterType="Numbers" TargetControlID="txtFromInstallment_RepayTab">
+                                            </cc1:FilteredTextBoxExtender>
+                                            <asp:RequiredFieldValidator ID="rfvtxtFromInstallment_RepayTab" runat="server" ControlToValidate="txtFromInstallment_RepayTab"
+                                                CssClass="styleMandatoryLabel" Display="None" ValidationGroup="TabRepayment1"
+                                                SetFocusOnError="True" ErrorMessage="Enter the From installment"></asp:RequiredFieldValidator>
+                                        </FooterTemplate>
+                                        <ItemStyle HorizontalAlign="Right" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="To Installment" ItemStyle-HorizontalAlign="Right">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblToInstallment_RepayTab" runat="server" Text='<%# Bind("ToInstall") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:TextBox ID="txtToInstallment_RepayTab" runat="server" Width="80px" MaxLength="3"
+                                                Style="text-align: right"> </asp:TextBox>
+                                            <cc1:FilteredTextBoxExtender ID="ftextExtxtToInstallment_RepayTab" runat="server"
+                                                FilterType="Numbers" TargetControlID="txtToInstallment_RepayTab">
+                                            </cc1:FilteredTextBoxExtender>
+                                            <asp:RequiredFieldValidator ID="rfvtxtToInstallment_RepayTab" runat="server" ControlToValidate="txtToInstallment_RepayTab"
+                                                CssClass="styleMandatoryLabel" Display="None" ValidationGroup="TabRepayment1"
+                                                SetFocusOnError="True" ErrorMessage="Enter the To installment"></asp:RequiredFieldValidator>
+                                            <asp:CompareValidator ID="cmpvFromTOInstall" runat="server" ErrorMessage="To installment should be greater than From installment"
+                                                ControlToValidate="txtToInstallment_RepayTab" ControlToCompare="txtFromInstallment_RepayTab"
+                                                Display="None" ValidationGroup="TabRepayment1" Type="Currency" Operator="GreaterThanEqual"></asp:CompareValidator>
+                                        </FooterTemplate>
+                                        <ItemStyle HorizontalAlign="Right" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="From Date">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblfromdate_RepayTab" runat="server" Text='<%#Convert.ToDateTime(DataBinder.Eval(Container.DataItem,"FromDate")).ToString(strDateFormat) %> '></asp:Label>
+                                            <asp:TextBox ID="txRepaymentFromDate" runat="server" Visible="false" BackColor="Navy"
+                                                ForeColor="White" Font-Names="calibri" Font-Size="12px" Width="100px" Style="color: White"
+                                                Text='<%#Convert.ToDateTime(DataBinder.Eval(Container.DataItem,"FromDate")).ToString(strDateFormat) %> '
+                                                AutoPostBack="True" OnTextChanged="txRepaymentFromDate_TextChanged"></asp:TextBox>
+                                            <cc1:CalendarExtender ID="calext_FromDate" runat="server" Enabled="True" OnClientDateSelectionChanged="checkDate_OnlyPrevSystemDate"
+                                                TargetControlID="txRepaymentFromDate">
+                                            </cc1:CalendarExtender>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:TextBox ID="txtfromdate_RepayTab" runat="server" Width="100px"> </asp:TextBox>
+                                            <cc1:CalendarExtender ID="CalendarExtenderSD_fromdate_RepayTab" runat="server" Enabled="True"
+                                                OnClientDateSelectionChanged="checkDate_OnlyPrevSystemDate" TargetControlID="txtfromdate_RepayTab">
+                                            </cc1:CalendarExtender>
+                                        </FooterTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="To Date">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblTODate_ReapyTab" runat="server" Text='<%#Convert.ToDateTime(DataBinder.Eval(Container.DataItem,"ToDate")).ToString(strDateFormat) %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:TextBox ID="txtToDate_RepayTab" runat="server" Width="100px" Visible="false"> </asp:TextBox>
+                                            <cc1:CalendarExtender ID="CalendarExtenderSD_ToDate_RepayTab" runat="server" Enabled="True"
+                                                OnClientDateSelectionChanged="checkDate_PrevSystemDate" TargetControlID="txtToDate_RepayTab">
+                                            </cc1:CalendarExtender>
+                                        </FooterTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField>
+                                        <ItemTemplate>
+                                            <asp:LinkButton ID="lnRemoveRepayment" CausesValidation="false" runat="server" CommandName="Delete"
+                                                Text="Remove" Visible="false">
+                                            </asp:LinkButton>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:Button ID="btnAddRepayment" runat="server" Text="Add" CausesValidation="true"
+                                                CssClass="styleGridShortButton" OnClick="Repayment_AddRow_OnClick" ValidationGroup="TabRepayment1"
+                                                Width="50px"></asp:Button>
+                                        </FooterTemplate>
+                                    </asp:TemplateField>
+                                    <%-- Columns to be added for IRR Calculation--%>
+                                    <asp:TemplateField Visible="False">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblAccountingIRR" runat="server" Text='<%# Bind("Accounting_IRR") %>'></asp:Label>
+                                        </ItemTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField Visible="False">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblBusinessIRR" runat="server" Text='<%# Bind("Business_IRR") %>'></asp:Label>
+                                        </ItemTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField Visible="False">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblComapnyIRR" runat="server" Text='<%# Bind("Company_IRR") %>'></asp:Label>
+                                        </ItemTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField Visible="False">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblCashFlow_Flag_ID" runat="server" Text='<%# Bind("CashFlow_Flag_ID") %>'></asp:Label>
+                                        </ItemTemplate>
+                                    </asp:TemplateField>
+                                    <%-- Columns to be added for IRR Calculation--%>
+                                </Columns>
+                            </asp:GridView>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" colspan="4">
+                        <asp:ValidationSummary ID="vsEMICalculator" runat="server" CssClass="styleMandatoryLabel"
+                            HeaderText="Correct the following validation(s):" ShowSummary="true" ValidationGroup="btnGeneration" />
+                        <asp:CustomValidator ID="cvEMICalculator" runat="server" CssClass="styleMandatoryLabel"
+                            Enabled="true" Width="98%" />
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

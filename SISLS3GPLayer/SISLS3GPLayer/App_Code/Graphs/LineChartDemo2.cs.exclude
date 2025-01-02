@@ -1,0 +1,34 @@
+namespace Ujihara.Demo
+{
+    using org.jfree.chart;
+    using org.jfree.chart.plot;
+    using org.jfree.chart.renderer.category;
+
+    using System.Drawing;
+
+    public class LineChartDemo2 : ChartCreator
+    {
+        public override JFreeChart CreateChart()
+        {
+            JFreeChart chart = ChartFactory.createLineChart(
+                Name,
+                "Categoly", "USD",
+                DatasetCreator.createDefaultCategoryDataset(),
+                PlotOrientation.VERTICAL,
+                true,
+                false,
+                false);
+
+            CategoryPlot plot = (CategoryPlot)chart.getPlot();
+            plot.getDomainAxis().setTickLabelFont(new Font(FontFamily.GenericSerif, 12, FontStyle.Italic));
+            plot.getDomainAxis().setMaximumCategoryLabelLines(2);
+
+            LineAndShapeRenderer renderer = (LineAndShapeRenderer)plot.getRenderer();
+            renderer.setShapesVisible(true);
+            renderer.setDrawOutlines(true);
+            renderer.setUseFillPaint(true);
+            renderer.setFillPaint(Color.Red);
+            return chart;
+        }
+    }
+}

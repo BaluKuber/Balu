@@ -1,0 +1,174 @@
+﻿#region Header
+
+//Module Name      :   Dashboard
+//Screen Name      :   DrillDownChartDetails.aspx
+//Created By       :   Shibu 
+//Created Date     :   03-Feb-2014
+//Purpose          :   
+
+#endregion
+
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using System.Globalization;
+using System.Web.UI.WebControls;
+using System.Web.UI.DataVisualization.Charting;
+using System.Web.UI.DataVisualization.Charting.Utilities;
+using System.Web;
+using System.Text;
+using System.Net;
+
+#endregion
+
+public partial class Dashboard_DrillDownChartDetails : ApplyThemeForProject
+{
+    #region Declaration
+
+    int intCompanyID, intUserID = 0, intErrCode = 0;
+    public Dictionary<string, string> Procparam = null;
+    string intAssetVerificationNo = string.Empty;
+    int ProgCode = 262;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Dashboard/DrillDownChartDetails.aspx";
+    string sSeriesValue = string.Empty;
+    #endregion      
+
+ 
+    protected void Page_Load(object sender, EventArgs e)
+    {
+
+        //divChart.InnerHtml = "<img src=DrillChart.aspx?sSeriesName=" + Request.QueryString["sSeries"].ToString() + "&region=" + Request.QueryString["region"].ToString() + "&region_ID=" + Request.QueryString["region_ID"].ToString() + "&Size=Y>";
+        //divChart.InnerHtml = "<img src=DrillChart.aspx?SeriesValue=" + Request.QueryString["SeriesValue"].ToString() + "&Size=Y/>";
+        if (!IsPostBack)
+        {
+            lblHeader.Text = Request.QueryString["SeriesValue"].ToString() +" - " + Request.QueryString["SeriesName"].ToString();            
+            hdnHTypeCode.Value = Request.QueryString["HType"].ToString();
+            FunLoadFilter();
+            LoadChart();
+        }
+    }
+    protected void LoadChart()
+    {
+        DataSet ds = new DataSet();
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", "1");
+        Procparam.Add("@HierarchyLevel", Convert.ToString(Convert.ToInt32(hdnHTypeCode.Value)+1));
+
+        ds = Utility.GetDataset("S3G_GRP_GetHierarchyList_Account", Procparam);
+        S3GDrillChart.showChartTitle = "Hierachy - " + Request.QueryString["HName"].ToString();
+        S3GDrillChart.setChartWidth = 500;
+        S3GDrillChart.setChartHeight = 400;
+        S3GDrillChart.showChartType = SeriesChartType.Column;
+        S3GDrillChart.setChartFontSize = 9;
+        S3GDrillChart.setLableValue = true;
+        S3GDrillChart.setLegendsValue = true;
+        S3GDrillChart.setChartMultipleSeries = true;
+        S3GDrillChart.setCustomePalette = true;
+        S3GDrillChart.showCustomesPaletteColor = "#00A0B1~#2E8DEF~#A700AE~#643EBF~#BF1E4B~#DC572E~#00A600~#0A5BC4";
+        S3GDrillChart.setMaximumChartColor = true;
+        S3GDrillChart.showMaximumChartColor = "#1e7145";
+        S3GDrillChart.setToolTipValues = true;
+        S3GDrillChart.setClickDrillChartDetails = false;
+        S3GDrillChart.setDataTableSeries1 = ds.Tables[0];
+        S3GDrillChart.setSaveChartImage = true;
+        S3GDrillChart.BindChart();
+        //DataSet ds = new DataSet();
+        //Procparam = new Dictionary<string, string>();
+        //Procparam.Add("@Location_Id", Request.QueryString["region_ID"].ToString());
+        //Procparam.Add("@Month", Request.QueryString["Month"].ToString());
+        //ds = Utility.GetDataset("s3g_GetDrillChartGVValue", Procparam);
+        gvDetails.DataSource = ds.Tables[1];
+        gvDetails.DataBind();
+    }
+
+    private void FunLoadFilter()
+    {
+        DataSet ds = new DataSet();
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", "1");
+        ds = Utility.GetDataset("S3G_GRP_GetHierachyList", Procparam);
+
+        dlHierarchyList.DataSource = ds.Tables[0];
+        dlHierarchyList.DataBind();
+
+    }
+
+
+    protected void FunLoadDrillChart()
+    {
+
+       dlHierarchyList.SelectedIndex=Convert.ToInt32(hdnClick.Value) - 2;
+        DataSet ds = new DataSet();
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", "1");
+        Procparam.Add("@HierarchyLevel", hdnClick.Value);
+
+        ds = Utility.GetDataset("S3G_GRP_GetHierarchyList_Account", Procparam);
+        if (ds.Tables[0].Rows.Count<=0)
+            return;
+        S3GDrillChart.showChartTitle = "Hierachy - " + Request.QueryString["HName"].ToString();
+        S3GDrillChart.setChartWidth = 500;
+        S3GDrillChart.setChartHeight = 400;
+
+        if (hdnClick.Value == "2")
+        {
+            S3GDrillChart.showChartType = SeriesChartType.Column;
+        }
+        else if (hdnClick.Value == "3")
+        { S3GDrillChart.showChartType = SeriesChartType.Bar; }
+        else if (hdnClick.Value == "4")
+        { 
+            S3GDrillChart.showChartType = SeriesChartType.Column;
+            //S3GDrillChart.setChart3D = true;
+        }
+        else if (hdnClick.Value == "5")
+        { S3GDrillChart.showChartType = SeriesChartType.Bar; }
+       
+        S3GDrillChart.setChartFontSize = 9;
+        S3GDrillChart.setLableValue = true;
+        S3GDrillChart.setLegendsValue = true;
+        S3GDrillChart.setChartMultipleSeries = true;
+        S3GDrillChart.setCustomePalette = true;
+        S3GDrillChart.showCustomesPaletteColor = "#00A0B1~#2E8DEF~#A700AE~#643EBF~#BF1E4B~#DC572E~#00A600~#0A5BC4";
+        //S3GDrillChart.setMaximumChartColor = true;
+        //S3GDrillChart.showMaximumChartColor = "#1e7145";
+        S3GDrillChart.setToolTipValues = true;
+        S3GDrillChart.setClickDrillChartDetails = false;
+        S3GDrillChart.setDataTableSeries1 = ds.Tables[0];
+        S3GDrillChart.setSaveChartImage = true;
+        S3GDrillChart.BindChart();
+        //DataSet ds = new DataSet();
+        //Procparam = new Dictionary<string, string>();
+        //Procparam.Add("@Location_Id", Request.QueryString["region_ID"].ToString());
+        //Procparam.Add("@Month", Request.QueryString["Month"].ToString());
+        //ds = Utility.GetDataset("s3g_GetDrillChartGVValue", Procparam);
+        gvDetails.DataSource = ds.Tables[1];
+        gvDetails.DataBind();
+    }
+    protected void btnClick_Click(object sender, EventArgs e)
+    {
+        FunLoadDrillChart();
+    }
+
+}

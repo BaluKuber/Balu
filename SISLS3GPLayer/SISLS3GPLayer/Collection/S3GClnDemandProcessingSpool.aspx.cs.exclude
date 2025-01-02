@@ -1,0 +1,804 @@
+﻿#region Page Header
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Origination
+/// Screen Name			: Pricing
+/// Created By			: Nataraj Y
+/// Created Date		: 
+/// Purpose	            : 
+/// Last Updated By		:  
+/// Last Updated Date   : 
+/// Purpose	            : 
+/// Last Updated By		: 
+/// Last Updated Date   :   
+/// <Program Summary>
+#endregion
+
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using System.Globalization;
+using System.Data;
+using S3GBusEntity.Origination;
+using System.Web.Security;
+using System.Configuration;
+using System.Data.Common;
+using System.IO;
+using System.Linq;
+using CrystalDecisions.Shared;
+using System.ServiceModel;
+using System.ServiceProcess;
+using CrystalDecisions.CrystalReports.Engine;
+using System.Collections;
+using System.Text;
+#endregion
+
+public partial class Collection_S3GClnDemandProcessingSpool : ApplyThemeForProject
+{
+    #region Variable declaration
+    public static Collection_S3GClnDemandProcessingSpool obj_Page;
+    Dictionary<string, string> Procparam;
+    int intResult;
+    static string strMode;
+    string strErrorMessagePrefix = @"Please correct the following validation(s): </br></br> ";
+    public string strDateFormat;
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectHomePage = "window.location.href='../Common/HomePage.aspx';";
+    public string strProgramId = "158";
+    //Code end
+
+    string strPageName = "Demand Processing Spooling";
+    DataTable dt = new DataTable();
+    #endregion
+
+    #region Page Load
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            obj_Page = this;
+            if (!IsPostBack)
+            {
+                FunPriLoadCategory();
+                FunPriLoadPage();   // This Screen
+            }
+            if (ddlDCCode.SelectedIndex > 0)
+            {
+                btnEmail.Enabled = true;
+            }
+            else
+                btnEmail.Enabled = false;
+
+        }
+        catch (Exception ex)
+        {
+            CVDemandProcessingSpool.ErrorMessage = "Due to Data Problem, Unable to Load the Delinquent Parameter.";
+            CVDemandProcessingSpool.IsValid = false;
+
+        }
+    }
+
+    #endregion
+
+    #region Page Methods
+
+    /// <summary>
+    /// This method will execute when page Loads
+    /// </summary>
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            if (!IsPostBack)
+            {
+                FunPriLoadLobandBranch(UserId, CompanyId);
+                //FunPriLoadDemandSpoolDetails();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable Load Demand Processing page");
+        }
+    }
+
+    /// <summary>
+    ///This method is used to Load the Line of Business and Branch to a dropdown from stored Procedure using BindDatatable option..
+    /// </summary>
+    private void FunPriLoadLobandBranch(string strUserId, string strCompanyId)
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Clear();
+            Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@User_Id", strUserId);
+            Procparam.Add("@Company_ID", CompanyId);
+            Procparam.Add("@Program_ID", strProgramId);
+
+            ddlLOB.BindDataTable("S3G_Cln_GetDemandLOB", Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+
+            ddlDemandMonth.FillFinancialMonth(FinancialYear);
+            ddlDemandMonth.SelectedValue = FinancialMonth;
+
+            ddlLOB.SelectedIndex = 1;
+            ddlLOB.ClearDropDownList();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Error in loading Lob");
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadCategory()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Option", "3");
+        Procparam.Add("@Company_Id", CompanyId);
+        Procparam.Add("@Program_Id", strProgramId);
+        Procparam.Add("@User_Id", UserId);
+
+        DataTable dtCategory = Utility.GetDefaultData(SPNames.S3g_CLN_DemandProcessing_List, Procparam);
+        grvDemandProcessSpool.DataSource = dtCategory;
+        grvDemandProcessSpool.DataBind();
+
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadDemandSpoolDetails()
+    {
+        //chkDebtCollector.Checked = false;
+
+        //if (chkDebtCollector.Checked == true)
+        //{
+        //    ddlDCCode.Enabled = true;
+        //    ddlDCCode.SelectedIndex = 0;
+        //}
+        //else
+        //{
+        //    ddlDCCode.Enabled = false;
+        //}
+
+        grvSpoolFile.Visible = true;
+        string strCategory = FunPriFormCategory();
+        Procparam = new Dictionary<string, string>();
+        Procparam.Clear();
+        Procparam.Add("@Option", "4");
+        Procparam.Add("@Spoolt_Type", rbtlSpoolBasis.SelectedValue);
+        Procparam.Add("@Company_Id", CompanyId);
+        Procparam.Add("@Program_Id", strProgramId);
+        Procparam.Add("@User_Id", UserId);
+        if (chkDebtCollector.Checked) Procparam.Add("@IsDC", "1");
+        if (ddlBranch.SelectedValue != "0" && ddlBranch.SelectedValue != "")
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+        if (ddlLOB.SelectedIndex > 0)
+            Procparam.Add("@Lob_ID", ddlLOB.SelectedValue);
+        if (ddlDCCode.SelectedIndex > 0)
+        {
+            Procparam.Add("@DC_ID", ddlDCCode.SelectedValue);
+        }
+        if (strCategory != string.Empty)
+            Procparam.Add("@Category", strCategory);
+        if (ddlDemandMonth.SelectedIndex > 0)
+            Procparam.Add("@DemandMonth", ddlDemandMonth.SelectedItem.Text);
+        else
+        {
+            Utility.FunShowAlertMsg(this, "Select a demand month");
+            return;
+        }
+        DataTable dtSpoolTable = Utility.GetDefaultData(SPNames.S3g_CLN_DemandProcessing_List, Procparam);
+        ViewState["dtSpoolTable"] = dtSpoolTable;
+        if (ddlBranch.SelectedText == "")
+            grvSpoolFile.Caption = "Demand Spooling for - " + ddlDemandMonth.SelectedItem.Text + " (Location - All)";
+        else
+            grvSpoolFile.Caption = "Demand Spooling for - " + ddlDemandMonth.SelectedItem.Text + " (Location - " + ddlBranch.SelectedText + ")";
+        grvSpoolFile.DataSource = dtSpoolTable;
+        grvSpoolFile.DataBind();
+    }
+
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="gridView"></param>
+    public static void MergeRows(GridView gridView)
+    {
+        for (int rowIndex = gridView.Rows.Count - 2; rowIndex >= 0; rowIndex--)
+        {
+            GridViewRow row = gridView.Rows[rowIndex];
+            GridViewRow previousRow = gridView.Rows[rowIndex + 1];
+
+            for (int i = 0; i < row.Cells.Count; i++)
+            {
+                if (row.Cells[i].Text == previousRow.Cells[i].Text)
+                {
+                    row.Cells[i].RowSpan = previousRow.Cells[i].RowSpan < 2 ? 2 :
+                                           previousRow.Cells[i].RowSpan + 1;
+                    previousRow.Cells[i].Visible = false;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    private void FunPriLoadDebtCollector()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Program_Id", strProgramId);
+        Procparam.Add("@Option", "5");
+        Procparam.Add("@Company_Id", CompanyId);
+        Procparam.Add("@User_Id", UserId);
+        if (ddlLOB.SelectedIndex > 0)
+            Procparam.Add("@Lob_ID", ddlLOB.SelectedValue);
+        if (ddlBranch.SelectedValue != "0" && ddlBranch.SelectedValue != "")
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+        ddlDCCode.BindDataTable(SPNames.S3g_CLN_DemandProcessing_List, Procparam, new string[] { "User_Code", "User_Name" });
+    }
+
+    private string FunPriFormCategory()
+    {
+        string strCategory = string.Empty;
+        int i = 0;
+        foreach (GridViewRow grvRow in grvDemandProcessSpool.Rows)
+        {
+            CheckBox chkSelect = (CheckBox)grvRow.FindControl("chkCategory");
+            if (chkSelect.Checked)
+            {
+                if (i == 0)
+                    strCategory += ((Label)grvRow.FindControl("lblCategoryID")).Text;
+                else
+                    strCategory += "," + ((Label)grvRow.FindControl("lblCategoryID")).Text;
+                i++;
+            }
+
+        }
+        return strCategory;
+    }
+    #endregion
+
+    #region Buttons
+
+    #region Flat File
+    protected void btnFlatFile_Click(object sender, EventArgs e)
+    {
+        FunPriLoadDemandSpoolDetails();
+        if (grvSpoolFile.Rows.Count > 0)
+        {
+            FunPubExportGrid_DemandSpooling1(grvSpoolFile,(DataTable)ViewState["dtSpoolTable"],"DemandSpooling-" + ddlDemandMonth.Text, enumFileType.FlatFile);
+        }
+        else
+        {
+            Utility.FunShowAlertMsg(this, "No data available to export");
+        }
+    }
+    #endregion
+
+    #region Excel
+    protected void btnExcel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadDemandSpoolDetails();
+            if (grvSpoolFile.Rows.Count > 0)
+            {
+                FunPubExportGrid_DemandSpooling1(grvSpoolFile,(DataTable)ViewState["dtSpoolTable"],"DemandSpooling-" + ddlDemandMonth.Text, enumFileType.Excel);
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(this, "No data available to export");
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+        finally
+        {
+            //HttpContext.Current.Response.End();
+        }
+    }
+    #endregion
+
+    #region Spool
+    protected void btnSpool_Click(object sender, EventArgs e)
+    {
+        string IsAddressReq = "False";
+        if (rbtlSpoolBasis.SelectedValue == "0") IsAddressReq = "True";
+        string strCategory = FunPriFormCategory();
+        string strDC = "";
+        if (chkDebtCollector.Checked) strDC = "1";
+        Guid objGuid;
+        objGuid = Guid.NewGuid();
+        string strScipt = "window.open('../Reports/S3GDemandSpooling.aspx?qsCompanyId=" + CompanyId + "&qsDemandMonth=" + ddlDemandMonth.SelectedItem.Text + "&qsGuid=" + objGuid.ToString() + "&qsLobId=" + ddlLOB.SelectedItem.Value + "&qsIsAddressReq=" + IsAddressReq + "&qsBranchId=" + ddlBranch.SelectedValue + "&qsBranch=" + ddlBranch.SelectedText + "&qsLobName=" + ddlLOB.SelectedItem.Text.Split('-')[1] + "&qsDebtCollectorCode=" + ddlDCCode.SelectedValue + "&qsCategory=" + strCategory + "&qsDC=" + strDC + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "Repay", strScipt, true);
+    }
+    #endregion
+
+    #endregion
+
+    #region Events
+
+    protected void chkDebtCollector_CheckedChanged(object sender, EventArgs e)
+    {
+        FunPriAssignDCCode();
+    }
+
+    private void FunPriAssignDCCode()
+    {
+        if (chkDebtCollector.Checked == true)
+        {
+            ddlDCCode.Enabled = true;
+            lblDCCode.CssClass = "styleReqFieldLabel";
+            rfvDCCode.Enabled = true;
+            FunPriLoadDebtCollector();
+            btnEmail.Enabled = true;
+        }
+        else
+        {
+
+            ddlDCCode.Enabled = false;
+            lblDCCode.CssClass = "";
+            rfvDCCode.Enabled = false;
+            ddlDCCode.Items.Clear();
+            btnEmail.Enabled = false;
+        }
+    }
+
+    protected void rbtlSpoolBasis_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriLoadDemandSpoolDetails();
+    }
+
+    /// <summary>
+    /// Method in cluded for utilizing export option in grid to excel and text file.
+    /// </summary>
+    /// <param name="control"></param>
+    public override void VerifyRenderingInServerForm(Control control)
+    {
+        //base.VerifyRenderingInServerForm(control);
+
+    }
+
+    protected void ddlDemandMonth_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        //FunPriLoadDemandSpoolDetails();
+    }
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //Procparam = new Dictionary<string, string>();
+            //Procparam.Clear();
+            //Procparam.Add("@Is_Active", "1");
+            //Procparam.Add("@User_Id", UserId);
+            //Procparam.Add("@Company_ID", CompanyId);
+            //Procparam.Add("@Program_ID", strProgramId);
+            //if (ddlLOB.SelectedValue != "0") Procparam.Add("@Lob_ID", ddlLOB.SelectedValue);
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+
+            ddlDemandMonth.FillFinancialMonth(FinancialYear);
+            ddlDemandMonth.SelectedValue = FinancialMonth;
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Error in loading Lob");
+        }
+        chkDebtCollector.Checked = false;
+        FunPriAssignDCCode();
+        //FunPriLoadDemandSpoolDetails();
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        chkDebtCollector.Checked = false;
+        FunPriAssignDCCode();
+        //FunPriLoadDemandSpoolDetails();
+    }
+
+
+
+    protected void ddlDCCode_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        //FunPriLoadDemandSpoolDetails();
+    }
+
+    protected void chkCategory_CheckedChanged(object sender, EventArgs e)
+    {
+        //FunPriLoadDemandSpoolDetails();
+    }
+
+    #endregion
+
+
+
+    protected void btnEmail_Click(object sender, EventArgs e)
+    {
+        FunPriLoadDemandSpoolDetails();
+        grvSpoolFile.FunPubExportGrid("DemandSpooling-" + ddlDemandMonth.Text, enumFileType.FlatFile, true, Server.MapPath("."));
+        ArrayList ar = new ArrayList();
+        ar.Add(Server.MapPath(".") + "\\DemandSpooling-" + ddlDemandMonth.Text + ".txt");
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@DC_ID", ddlDCCode.SelectedValue);
+        Procparam.Add("@Option", "6");
+        Procparam.Add("@Company_Id", CompanyId);
+        Procparam.Add("@User_Id", UserId);
+        Procparam.Add("@Program_Id", strProgramId);
+        DataTable dt = Utility.GetDefaultData(SPNames.S3g_CLN_DemandProcessing_List, Procparam);
+        try
+        {
+            FunPubSentMail(ar, dt.Rows[0]["EMAIL"].ToString(), dt.Rows[0]["NAME"].ToString());
+        }
+        catch (System.Net.Mail.SmtpException)
+        {
+            Utility.FunShowAlertMsg(this, "Unable to send mail");
+        }
+        catch
+        {
+
+        }
+        try
+        {
+            File.Delete(Server.MapPath(".") + "\\DemandSpooling-" + ddlDemandMonth.Text + ".txt");
+        }
+        catch
+        {
+        }
+
+    }
+
+    private void FunPubSentMail(ArrayList strAttachment, string strToMailId, string strDebtCollector)
+    {
+        if (strToMailId != "")
+        {
+            CommonMailServiceReference.CommonMailClient ObjCommonMail = new CommonMailServiceReference.CommonMailClient();
+            try
+            {
+                string body;
+                body = GetHTMLText(strDebtCollector);
+                ClsPubCOM_Mail ObjCom_Mail = new ClsPubCOM_Mail();
+                ObjCom_Mail.ProFromRW = "s3g@sundaraminfotech.in";
+                ObjCom_Mail.ProTORW = strToMailId;
+                ObjCom_Mail.ProSubjectRW = "Demand Spooling Report";
+                ObjCom_Mail.ProMessageRW = body;
+                ObjCom_Mail.ProFileAttachementRW = strAttachment;
+                ObjCommonMail.FunSendMail(ObjCom_Mail);
+                Utility.FunShowAlertMsg(this, Resources.ValidationMsgs.S3G_SucMsg_MailSent);
+            }
+            catch (FaultException<CommonMailServiceReference.ClsPubFaultException> ex)
+            {
+                if (ObjCommonMail != null)
+                    ObjCommonMail.Close();
+                  ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                if (ObjCommonMail != null)
+                    ObjCommonMail.Close();
+                  ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+                throw;
+            }
+            finally
+            {
+                if (ObjCommonMail != null)
+                    ObjCommonMail.Close();
+            }
+        }
+    }
+
+
+    private void FunPubExportGrid_DemandSpooling1(GridView Grv, DataTable DTGrv, string strFileName, enumFileType FileType)
+    {
+        try
+        {
+            string attachment = "";
+            StringBuilder str = new StringBuilder();
+            if (FileType == enumFileType.Excel)
+            {
+                //attachment = "attachment; filename=" + strFileName + ".xls";
+
+                #region For Excel
+                str.Append("<table border='1' width='100%'>");
+
+                if (Grv.Caption != string.Empty)
+                {                    
+                    str.Append("<tr><td align='center' style=' font-weight:bold;' colspan='" + (Grv.HeaderRow.Cells.Count - 1).ToString() + "' >");
+                    str.Append(Grv.Caption);
+                    str.Append("</td></tr>");                    
+                }                
+
+                string strPreLine = "";
+                DataTable DTLOBList = new DataTable();
+                DTLOBList = DTGrv.DefaultView.ToTable("LOB", true, "LINE OF BUSINESS");
+                for (int ROWID = 0; ROWID < DTLOBList.Rows.Count; ROWID++)
+                {
+                    string strLine = "";
+                    strLine = DTLOBList.Rows[ROWID][0].ToString();
+                    if (strLine != strPreLine)
+                    {
+                        if (strLine != "")
+                        {
+                            str.Append("<tr><td align='center' colspan='" + (Grv.HeaderRow.Cells.Count - 1).ToString() + "' style=' font-weight:bold;'>");
+                            str.Append("Line Of Business - " + strLine);
+                            str.Append("</td></tr>");
+                        }
+                        str.Append(System.Environment.NewLine);
+                        str.Append("<tr>");
+                        for (int i = 0; i < DTGrv.Columns.Count; i++)
+                        {
+                            string strHeaderText = DTGrv.Columns[i].Caption.ToString();
+                            if (strHeaderText == "")
+                            {
+                                strHeaderText = DTGrv.Columns[i].Caption.ToString();
+                            }
+
+                            //str.Append(strHeaderText);
+                            if (strHeaderText.ToUpper() != "LINE OF BUSINESS")
+                            {
+                                str.Append("<td align='center' style=' font-weight:bold;' >");
+                                if (strHeaderText.Contains("Amount"))
+                                    str.AppendFormat("{0,-10}", strHeaderText);
+                                else
+                                    str.AppendFormat("{0,-20}", strHeaderText);
+                                str.Append("</td>");
+                            }
+                            //str.Append("\t");
+                        }
+                        str.Append("</tr>");                        
+                    }
+                    //str.Append(System.Environment.NewLine);
+                    //str.Append("----------------------------------------------------------------------------------------------------------------------------------------------------------------");
+                    //str.Append(System.Environment.NewLine);
+                    DataRow[] DRDET = DTGrv.Select("[LINE OF BUSINESS]='" + strLine.ToString() + "'");
+
+                    for (int i = 0; i < DRDET.Length; i++)
+                    {
+                        str.Append("<tr>");
+                        GridViewRow grvRow = Grv.Rows[i];
+                        string strColValue;
+                        for (int j = 0; j < DTGrv.Columns.Count; j++)
+                        {
+                            strColValue = DRDET[i][j].ToString();                                                     
+                            if (j != 0 && Grv.HeaderRow.Cells[j].Text.ToUpper() != "LINE OF BUSINESS")
+                            {
+                                str.Append("<td>");
+                                decimal decColValue; int intColValue;
+                                if (decimal.TryParse(strColValue, out decColValue) || int.TryParse(strColValue, out intColValue))
+                                {
+                                    str.AppendFormat("{0,8}", strColValue);
+                                }
+                                else
+                                {
+                                    str.AppendFormat("{0,-20}", strColValue.Trim().Replace("&nbsp;", ""));
+                                }
+                                str.Append("</td>");
+                            }
+
+                            //str.Append("\t");
+                        }
+                        str.Append("</tr>");
+                        str.Append(System.Environment.NewLine);
+                        strPreLine = strLine;
+                        str.Append(System.Environment.NewLine);
+                    }
+                }               
+                str.Append("</table>");
+                //attachment = "attachment; filename=" + strFileName + ".xls";
+
+                #endregion
+            }
+            if (FileType == enumFileType.Word)
+                attachment = "attachment; filename=" + strFileName + ".doc";
+
+            if (FileType == enumFileType.Excel)
+                attachment = "attachment; filename=" + strFileName + ".xls";
+            if (FileType == enumFileType.FlatFile)
+            {
+                if (Grv.Caption != string.Empty)
+                {
+                    str.Append("----------------------------------------------------------------------------------------------------------------------------------------------------------------");
+                    str.Append(System.Environment.NewLine);
+                    str.Append("|" + Grv.Caption + "|");
+                    str.Append(System.Environment.NewLine);
+                }
+                str.Append("----------------------------------------------------------------------------------------------------------------------------------------------------------------");
+                str.Append(System.Environment.NewLine);
+
+                string strPreLine = "";
+                DataTable DTLOBList = new DataTable();
+                DTLOBList = DTGrv.DefaultView.ToTable("LOB", true, "LINE OF BUSINESS");
+
+                for (int DRLOB = 0; DRLOB < DTLOBList.Rows.Count; DRLOB++)
+                {
+                    string strLine = "";
+                    strLine = DTLOBList.Rows[DRLOB][0].ToString();
+
+                    if (strLine != strPreLine)
+                    {
+                        if (strLine != "")
+                        {
+                            str.Append(System.Environment.NewLine);
+                            str.Append("Line Of Business - " + strLine);
+                            str.Append(System.Environment.NewLine);
+                        }
+                        str.Append(System.Environment.NewLine);
+
+
+
+                        for (int i = 0; i <= DTGrv.Columns.Count - 1; i++)
+                        {
+                            string strHeaderText = DTGrv.Columns[i].Caption.ToString();
+                            if (strHeaderText == "")
+                            {
+                                strHeaderText = DTGrv.Columns[i].Caption.ToString();
+
+                            }
+                            //str.Append(strHeaderText);
+                            if (strHeaderText.ToUpper() != "LINE OF BUSINESS")
+                            {
+                                if (strHeaderText.Contains("Amount"))
+                                {
+                                    str.AppendFormat("{0,-12}", strHeaderText);
+                                    str.Append(" ");
+                                    str.Append(" ");                                    
+                                }
+                                else
+                                    str.AppendFormat("{0,-20}", strHeaderText);
+                            }
+                            //str.Append("\t");
+                        }
+
+                    }
+                    str.Append(System.Environment.NewLine);
+                    str.Append("----------------------------------------------------------------------------------------------------------------------------------------------------------------");
+                    str.Append(System.Environment.NewLine);
+
+                    //DTGrv.DefaultView.ToTable("LOB", true, "LINE OF BUSINESS");
+                    DataRow[] DRDET = DTGrv.Select("[LINE OF BUSINESS]='" + strLine.ToString() + "'");
+
+                    for (int i = 0; i < DRDET.Length; i++)
+                    {
+                        string strColValue;
+                        for (int j = 0; j < DTGrv.Columns.Count; j++)
+                        {
+                            strColValue = DRDET[i][j].ToString();
+                            
+                            if (j != 0 && DTGrv.Columns[j].Caption.ToUpper() != "LINE OF BUSINESS")
+                            {
+                                decimal decColValue; int intColValue;
+                                if (decimal.TryParse(strColValue, out decColValue) || int.TryParse(strColValue, out intColValue))
+                                {
+                                    str.AppendFormat("{0,10}", strColValue);
+                                    str.Append(" ");
+                                    str.Append(" ");                       
+                                    
+                                }
+                                else
+                                {
+                                    str.AppendFormat("{0,-20}", strColValue.Trim().Replace("&nbsp;", ""));
+                                }
+                            }
+                        }
+                        str.Append(System.Environment.NewLine);
+                        strPreLine = strLine;
+                        str.Append(System.Environment.NewLine);
+                    }
+                    attachment = "attachment; filename=" + strFileName + ".txt";
+                }
+            }
+            HttpContext.Current.Response.ClearContent();
+            HttpContext.Current.Response.AddHeader("content-disposition", attachment);
+            HttpContext.Current.Response.Charset = "";
+            HttpContext.Current.Response.Cache.SetCacheability(HttpCacheability.NoCache);
+
+            if (FileType == enumFileType.Excel)
+                HttpContext.Current.Response.ContentType = "application/vnd.xls";
+            if (FileType == enumFileType.Word)
+                HttpContext.Current.Response.ContentType = "application/vnd.doc";
+            if (FileType == enumFileType.FlatFile)
+                HttpContext.Current.Response.ContentType = "application/vnd.text";
+
+            StringWriter sw = new StringWriter();
+            HtmlTextWriter htw = new HtmlTextWriter(sw);
+            //string strStyle = @"<style>.text { mso-number-format:\@; } </style>";
+
+            if (FileType == enumFileType.FlatFile || FileType == enumFileType.Excel)
+            {
+                if (Grv.Rows.Count > 0)
+                {
+
+                    HttpContext.Current.Response.Write(str.ToString());
+                }
+            }
+
+            else
+            {
+                if (Grv.Rows.Count > 0)
+                {
+                    Grv.RenderControl(htw);
+                    // HttpContext.Current.Response.Write(strStyle);
+                    HttpContext.Current.Response.Write(sw.ToString());
+
+                }
+            }
+            HttpContext.Current.Response.End();
+        }
+
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Export the Grid");
+        }
+
+    }
+
+    private string GetHTMLText(string strDebtCollector)
+    {
+        return
+           "<font size=\"1\"  color=\"black\" face=\"Verdana\">" +
+
+          " <table width=\"100%\">" +
+
+       "<tr >" +
+           "<td  align=\"Left\" >" +
+               "<font size=\"1\"  color=\"Black\" face=\"Verdana\" >" + "<b>" + "Dear M/s" + strDebtCollector + ",</font></b></br>" +
+           "</td>" +
+      " </tr>" +
+
+       "<tr >" +
+           "<td  align=\"Left\" >" +
+               "<font size=\"1\"  color=\"Black\" face=\"Verdana\" >" + "<b>" + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Please find attached  the demand spool report.Attached with this mail  </font> " + "</b>" +
+           "</td>" +
+      " </tr>" +
+      "<tr >" +
+           "<td  align=\"Left\" >" +
+               "<font size=\"1\"  color=\"Black\" face=\"Verdana\" >" + " Yours Truly," + "</font> " +
+           "</td>" +
+      " </tr>" +
+   "</table>" + "</font>";
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "158");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+
+}

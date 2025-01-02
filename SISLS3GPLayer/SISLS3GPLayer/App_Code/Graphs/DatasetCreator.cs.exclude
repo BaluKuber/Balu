@@ -1,0 +1,371 @@
+namespace Ujihara.Demo
+{
+
+    using org.jfree.data.category;
+    using org.jfree.data.general;
+    using org.jfree.data.gantt;
+    using org.jfree.data.time;
+    using org.jfree.data.xy;
+    using org.jfree.data.statistics;
+    using System;
+
+    public class DatasetCreator
+    {
+        public DatasetCreator()
+        {
+        }
+
+        public const string cars = "Cars";
+        public const string trucks = "Trucks";
+        public const string buses = "Buses";
+
+        public const string newCarSales = "New car sales";
+        public const string usedCarSales = "Used car sales";
+        public const string leasing = "Leasing";
+        public const string service = "Service";
+        public const string others = "Others";
+
+        private static string[] seriesArray = { cars, trucks, buses, };
+        private static string[] categoriesArray = { newCarSales, usedCarSales, leasing, service, others };
+        private static double[][] valuesArray = {
+            new double[] {50000, 25000, 30000, 40000, 5000, },
+            new double[] {20000, 30000, 15000, 25000, 10000,},
+            new double[] {10000, 1000, 20000, 25000, 2000, },
+        };
+
+        public static DefaultCategoryDataset createDefaultCategoryDataset()
+        {
+            return createDefaultCategoryDataset(-1, -1);
+        }
+
+        public static TableXYDataset createTableXYDataset()
+        {
+            return createTableXYDataset(seriesArray.Length);
+        }
+
+        public static TableXYDataset createTableXYDataset(int seriesCount)
+        {
+            DefaultTableXYDataset dataset = new DefaultTableXYDataset();
+            for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++)
+            {
+                XYSeries series = new XYSeries(seriesArray[seriesIndex], true, false);
+                for (int i = 0; i < 10; i++)
+                {
+                    series.add((double)i, Math.Sin(0.3 * (seriesIndex + 1) + 0.5 * (i + 1)) + 1);
+                }
+                dataset.addSeries(series);
+            }
+
+            return dataset;
+        }
+
+        public static DefaultCategoryDataset createDefaultCategoryDataset(int start, int end)
+        {
+            if (start == -1 && end == -1)
+            {
+                start = 0;
+                end = seriesArray.Length;
+            }
+            if (start < 0)
+                throw new ArgumentException();
+
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+            for (int i = start; i < end; i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                    case 1:
+                    case 2:
+                        for (int j = 0; j < categoriesArray.Length; j++)
+                            dataset.addValue(valuesArray[i][j], seriesArray[i], categoriesArray[j]);
+                        break;
+                    default:
+                        for (int j = 0; j < categoriesArray.Length; j++)
+                            dataset.addValue(10000.0 * (Math.Sin((0.1 + 0.3 * j) * i) + 1), i.ToString(), categoriesArray[j]);
+                        break;
+                }
+            }
+            return dataset;
+        }
+
+        public static PieDataset createPieDataset()
+        {
+            PieDataset dataset = DatasetUtilities.createPieDatasetForRow(createDefaultCategoryDataset(), "Cars");
+            return dataset;
+        }
+
+        public static DefaultHighLowDataset createDefaultHighLowDataset(int size)
+        {
+            java.util.Date[] adate = new java.util.Date[size];
+            double[] high = new double[size];
+            double[] low = new double[size];
+            double[] open = new double[size];
+            double[] close = new double[size];
+            double[] volume = new double[size];
+
+            for (int i = 0; i < size; i++)
+            {
+                adate[i] = date(2006, 1, i + 1);
+                double b = 1000 + (Math.Sin(0.1 * i) + 1) * 2000;
+                double udiff = (0.1 + (Math.Sin(11.0 * i) + 1)) * 500;
+                double bdiff = ((Math.Sin(29.0 * i) + 1)) * 500;
+                double diff = udiff - bdiff;
+                high[i] = b + udiff;
+                low[i] = b + bdiff;
+                open[i] = low[i] + ((Math.Sin(103 * i) + 1) / 2) * diff;
+                close[i] = low[i] + ((Math.Sin(137 * i) + 1) / 2) * diff;
+                volume[i] = 10000 + (Math.Sin(0.1 * i) + Math.Sin(7 * i) + 2) * 7000;
+            }
+
+            return new DefaultHighLowDataset("foo Inc.", adate, high, low, open, close, volume);
+        }
+
+        private static java.util.Date date(int year, int month, int day)
+        {
+            java.util.Calendar calendar = java.util.Calendar.getInstance();
+            calendar.set(year, month, day);
+            return calendar.getTime();
+        }
+
+        public static IntervalCategoryDataset createTaskSeriesCollection()
+        {
+            string Task1 = "Task 1";
+            string Task2 = "Task 2";
+            string Task3 = "Task 3";
+            string Task4 = "Task 4";
+            TaskSeriesCollection collection = new TaskSeriesCollection();
+            {
+                TaskSeries s = new TaskSeries("Scheduled");
+                s.add(new Task(Task1, new SimpleTimePeriod(new DateTime(2006, 3, 1), new DateTime(2006, 3, 15))));
+                s.add(new Task(Task2, new Day(new DateTime(2006, 3, 20))));
+                s.add(new Task(Task3, new DateTime(2006, 3, 25), new DateTime(2006, 4, 10)));
+                s.add(new Task(Task4, new DateTime(2006, 4, 13), new DateTime(2006, 4, 15)));
+                collection.add(s);
+            }
+            {
+                TaskSeries s = new TaskSeries("Actual");
+                s.add(new Task(Task1, new SimpleTimePeriod(new DateTime(2006, 3, 1), new DateTime(2006, 3, 20))));
+                s.add(new Task(Task2, new Day(new DateTime(2006, 4, 7))));
+                s.add(new Task(Task3, new DateTime(2006, 4, 10), new DateTime(2006, 4, 20)));
+                s.add(new Task(Task4, new DateTime(2006, 4, 21), new DateTime(2006, 4, 23)));
+                collection.add(s);
+            }
+
+            return collection;
+        }
+
+        public static BoxAndWhiskerCategoryDataset createBoxAndWhiskerCategoryDataset(int rowCount, int columnCount)
+        {
+            const int entityCount = 10;
+
+            DefaultBoxAndWhiskerCategoryDataset dataset = new DefaultBoxAndWhiskerCategoryDataset();
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
+            {
+                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
+                {
+                    java.util.List list = new java.util.ArrayList();
+                    for (int entityIndex = 0; entityIndex < entityCount; entityIndex++)
+                    {
+                        double v = 100.0
+                            + ((rowIndex + columnIndex * 11 + entityIndex * 13) % 7) * 10
+                            + Math.Sin(rowIndex * 0.1 + columnIndex * 0.3 + entityIndex * 0.5) * 50.0;
+                        list.add(new java.lang.Double(v));
+                    }
+                    dataset.add(list, "Row " + rowIndex.ToString(), "Column " + columnIndex.ToString());
+                }
+            }
+
+            return dataset;
+        }
+
+        public static IntervalXYDataset createIntervalXYDataset()
+        {
+            return new SampleIntervalXYDataset();
+        }
+
+        private class SampleIntervalXYDataset : AbstractIntervalXYDataset, IntervalXYDataset
+        {
+            private java.lang.Double[][] starts;
+            private java.lang.Double[][] ends;
+            private java.lang.Double[][] values;
+
+            public SampleIntervalXYDataset()
+                : this(1)
+            {
+            }
+
+            public SampleIntervalXYDataset(int seriesCount)
+                : this(seriesCount, 10)
+            {
+            }
+
+            public SampleIntervalXYDataset(int seriesCount, int itemCount)
+            {
+                starts = new java.lang.Double[seriesCount][];
+                ends = new java.lang.Double[seriesCount][];
+                values = new java.lang.Double[seriesCount][];
+
+                for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++)
+                {
+                    starts[seriesIndex] = new java.lang.Double[itemCount];
+                    ends[seriesIndex] = new java.lang.Double[itemCount];
+                    values[seriesIndex] = new java.lang.Double[itemCount];
+
+                    int xstart = 1;
+                    int xend = 2;
+                    for (int itemIndex = 0; itemIndex < itemCount; itemIndex++)
+                    {
+                        values[seriesIndex][itemIndex] = new java.lang.Double(Math.Sin(0.1 + 0.3 * seriesIndex + 0.5 * (seriesIndex + itemIndex)) + 1);
+                        starts[seriesIndex][itemIndex] = new java.lang.Double(xstart);
+                        ends[seriesIndex][itemIndex] = new java.lang.Double(xend);
+                        xstart = xend;
+                        xend += itemIndex;
+                    }
+                }
+            }
+
+            public override int getSeriesCount()
+            {
+                return values.Length;
+            }
+
+            public override java.lang.Comparable getSeriesKey(int i)
+            {
+                return new jp.ujihara.jsharp.lang.StringWrapper("Series " + i.ToString());
+            }
+
+            public override int getItemCount(int series)
+            {
+                return values[series].Length;
+            }
+
+            public override java.lang.Number getX(int series, int item)
+            {
+                return starts[series][item];
+            }
+
+            public override java.lang.Number getY(int series, int item)
+            {
+                return values[series][item];
+            }
+
+            public override java.lang.Number getStartX(int series, int item)
+            {
+                return starts[series][item];
+            }
+
+            public override java.lang.Number getEndX(int series, int item)
+            {
+                return ends[series][item];
+            }
+
+            public override java.lang.Number getStartY(int series, int item)
+            {
+                return values[series][item];
+            }
+
+            public override java.lang.Number getEndY(int series, int item)
+            {
+                return values[series][item];
+            }
+
+            public override void addChangeListener(DatasetChangeListener datasetchangelistener)
+            {
+            }
+
+            public override void removeChangeListener(DatasetChangeListener datasetchangelistener)
+            {
+            }
+        }
+
+        public static XYZDataset createXYZDataset()
+        {
+            return new SampleXYZDataset();
+        }
+
+        public static XYZDataset createXYZDataset(int seriesCount, int itemCount)
+        {
+            return new SampleXYZDataset(seriesCount, itemCount);
+        }
+
+        private class SampleXYZDataset : AbstractXYZDataset, XYZDataset, TableXYDataset
+        {
+            private int seriesCount;
+            private int itemCount;
+
+            public SampleXYZDataset()
+                : this(3, 10)
+            {
+            }
+
+            public SampleXYZDataset(int seriesCount, int itemCount)
+            {
+                this.seriesCount = seriesCount;
+                this.itemCount = itemCount;
+            }
+
+            public int getItemCount()
+            {
+                return itemCount;
+            }
+
+            public override int getSeriesCount()
+            {
+                return seriesCount;
+            }
+
+            public string getSeriesName(int series)
+            {
+                return "Series " + series.ToString();
+            }
+
+            public override int getItemCount(int series)
+            {
+                return itemCount;
+            }
+
+            public override double getXValue(int series, int item)
+            {
+                item++;
+                return 4 * ((double)(item - itemCount / 2) / itemCount) + Math.Sin(series + item);
+                //return item;
+            }
+
+            public override double getYValue(int series, int item)
+            {
+                item++;
+                return 20 * ((double)item / itemCount) + Math.Sin(series * 2 + item * 3);
+               // return item + 1;
+            }
+
+            public override double getZValue(int series, int item)
+            {
+                item++;
+                return Math.Sin(series * 5 + item * 7);
+            }
+
+            public override java.lang.Comparable getSeriesKey(int series)
+            {
+                return new jp.ujihara.jsharp.lang.StringWrapper("Series " + series.ToString());
+            }
+
+            public override java.lang.Number getX(int series, int item)
+            {
+                return new java.lang.Double(getXValue(series, item));
+            }
+
+            public override java.lang.Number getY(int series, int item)
+            {
+                return new java.lang.Double(getYValue(series, item));
+            }
+
+            public override java.lang.Number getZ(int series, int item)
+            {
+                return new java.lang.Double(getZValue(series, item));
+            }
+        }
+    }
+}
+

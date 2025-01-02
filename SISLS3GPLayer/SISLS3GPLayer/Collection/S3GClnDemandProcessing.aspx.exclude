@@ -1,0 +1,290 @@
+<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnDemandProcessing.aspx.cs" Inherits="Collection_S3GClnDemandProcessing" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table width="100%">
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="Demand Processing" ID="lblHeading" CssClass="styleDisplayLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign="middle">
+                        <%--  <asp:Panel runat="server" ID="Panel1" CssClass="stylePanel" GroupingText="Demand Type"
+                            Width="100%">--%>
+                        <table cellpadding="0" cellspacing="0" style="width: 100%">
+                            <tr>
+                                <td colspan="2" style="padding-top: 20px">
+                                    <cc1:TabContainer ID="tcDemandType" runat="server" CssClass="styleTabPanel" AutoPostBack="true" OnActiveTabChanged="tcDemandType_ActiveTabChanged"
+                                        ActiveTabIndex="0">
+                                        <cc1:TabPanel ID="tpRegular" runat="server" CssClass="tabpan" HeaderText="Regular Demand">
+                                        </cc1:TabPanel>
+                                        <cc1:TabPanel ID="tpAsonDate" runat="server" CssClass="tabpan" HeaderText="Current Status">
+                                        </cc1:TabPanel>
+                                    </cc1:TabContainer>
+                                </td>
+                            </tr>
+                            <tr id="trFrequency" runat="server">
+                                <td class="styleFieldLabel" width="20%">
+                                    <asp:Label ID="lblFrequency" runat="server" CssClass="styleReqFieldLabel" Text="Frequency"></asp:Label>
+                                </td>
+                                <td class="styleFieldAlign" align="left" width="30%">
+                                    <asp:DropDownList ID="ddlFrequency" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlDemandMonth_SelectedIndexChanged"
+                                        Visible="true">
+                                    </asp:DropDownList>
+                                    <asp:RequiredFieldValidator ID="rfvFrequency" runat="server" ControlToValidate="ddlFrequency"
+                                        CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Select a Frequency"
+                                        InitialValue="0" ValidationGroup="Save"></asp:RequiredFieldValidator>
+                                </td>
+                                <%-- <td>
+                                            &nbsp
+                                        </td>--%>
+                            </tr>
+                            <tr>
+                                <td class="styleFieldLabel" width="20%">
+                                    <asp:Label ID="lblDemandMonth" runat="server" CssClass="styleReqFieldLabel" Text="Demand Month">
+                                    </asp:Label>
+                                </td>
+                                <td align="left" class="styleFieldAlign" width="30%">
+                                    <asp:DropDownList ID="ddlDemandMonth" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlDemandMonth_SelectedIndexChanged"
+                                        TabIndex="1" Visible="true">
+                                    </asp:DropDownList>
+                                    <asp:RequiredFieldValidator ID="rfvDemandMonth" runat="server" ControlToValidate="ddlDemandMonth"
+                                        CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Select a Demand Month"
+                                        InitialValue="0" ValidationGroup="Save"></asp:RequiredFieldValidator>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="styleFieldLabel" width="20%">
+                                    <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleReqFieldLabel">
+                                    </asp:Label>
+                                </td>
+                                <td class="styleFieldAlign" align="left" width="30%">
+                                    <asp:DropDownList ID="ddlLOB" runat="server" Visible="true" AutoPostBack="true" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged"
+                                        TabIndex="2">
+                                    </asp:DropDownList>
+                                    <asp:RequiredFieldValidator ID="rfvLOB" CssClass="styleMandatoryLabel" runat="server"
+                                        ControlToValidate="ddlLOB" InitialValue="0" ErrorMessage="Select Line of Business"
+                                        Display="None" ValidationGroup="Save"></asp:RequiredFieldValidator>
+                                </td>
+                            </tr>
+                            <tr id="trAsondate" runat="server">
+                                <td class="styleFieldLabel" width="20%">
+                                    <asp:Label runat="server" Text="As on Date" ID="lblCutoffDate" CssClass="styleReqFieldLabel"></asp:Label>
+                                </td>
+                                <td class="styleFieldAlign" align="left" width="30%">
+                                    <asp:TextBox ID="txtCutoffDate" runat="server" Enabled="false" TabIndex="3"></asp:TextBox>
+                                    <asp:Image ID="imgCutoffDate" runat="server" ImageUrl="~/Images/calendaer.gif" />
+                                    <cc1:CalendarExtender runat="server" Enabled="false" Format="dd/MM/yyyy" TargetControlID="txtCutoffDate"
+                                        OnClientDateSelectionChanged="checkDate_NextSystemDate" PopupButtonID="imgCutoffDate"
+                                        ID="CalendarExtender1">
+                                    </cc1:CalendarExtender>
+                                    <asp:RequiredFieldValidator ID="rfvCutoffDate" runat="server" ErrorMessage="Enter the As on Date"
+                                        ValidationGroup="Save" Display="None" SetFocusOnError="True" ControlToValidate="txtCutoffDate"
+                                        Enabled="false"></asp:RequiredFieldValidator>
+                                    <cc1:FilteredTextBoxExtender ID="fltCutoffDate" FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters"
+                                        TargetControlID="txtCutoffDate" ValidChars=" -,/" runat="server" Enabled="True">
+                                    </cc1:FilteredTextBoxExtender>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" align="center" style="padding-top: 5px">
+                                    <asp:Button ID="btnGo" runat="server" CausesValidation="True" CssClass="styleSubmitButton"
+                                        OnClick="btnGo_Click" Text="Go" ValidationGroup="Save" TabIndex="4" />
+                                </td>
+                            </tr>
+                        </table>
+                        <%--  </asp:Panel>--%>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:Panel runat="server" ID="pnlDemandProcess" CssClass="stylePanel" GroupingText="Demand Processing"
+                            Width="100%">
+                            <asp:GridView ShowFooter="true" runat="server" AutoGenerateColumns="false" Width="100%"
+                                ID="grvDemandProcess" HeaderStyle-CssClass="styleGridHeader" HeaderStyle-HorizontalAlign="Center"
+                                RowStyle-HorizontalAlign="Center" FooterStyle-HorizontalAlign="Center" OnRowDataBound="grvDemandProcess_RowDataBound">
+                                <Columns>
+                                    <asp:TemplateField HeaderText="Sellect All" SortExpression="Sellect All">
+                                        <HeaderTemplate>
+                                            <table>
+                                                <tr>
+                                                    <td>
+                                                        <span id="spnAll">Select All</span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <asp:CheckBox ID="chkAll" runat="server"></asp:CheckBox>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </HeaderTemplate>
+                                        <HeaderStyle Width="10%" />
+                                        <ItemTemplate>
+                                            <asp:CheckBox ID="chkSelectBranch" runat="server" Checked='<%#bool.Parse(Convert.ToString(DataBinder.Eval(Container.DataItem, "SelectLocation")))%> ' />
+                                        </ItemTemplate>
+                                        <ItemStyle HorizontalAlign="Center" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Location">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblBranch" runat="server" Text='<%# Bind("Location") %>'></asp:Label>
+                                            <asp:Label ID="lblProcess" runat="server" Text="0" Visible="false"></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:Label ID="lblGrandTotal" runat="server" Text="Total" MaxLength="3"></asp:Label>
+                                        </FooterTemplate>
+                                        <HeaderStyle Width="30%" />
+                                        <ItemStyle HorizontalAlign="left" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="LocationId" Visible="false">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblBranch_Id" runat="server" Text='<%# Bind("Location_id") %>'></asp:Label>
+                                        </ItemTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="No of Accounts">
+                                        <ItemTemplate>
+                                            <asp:Label Style="text-align: right" Width="100%" ID="lblNoofAccounts" runat="server"
+                                                Text='<%# Bind("No_of_Accounts") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:Label ID="txtNoofAcc" runat="server" Style="text-align: right;"></asp:Label>
+                                        </FooterTemplate>
+                                        <HeaderStyle Width="15%" />
+                                        <FooterStyle HorizontalAlign="Right" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Arrear Due">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblArrearsAmount" runat="server" Text='<%# Bind("Arrears_Amount") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:Label ID="txtArrearsAmount" runat="server" Style="text-align: right"></asp:Label>
+                                        </FooterTemplate>
+                                        <HeaderStyle Width="15%" />
+                                        <ItemStyle HorizontalAlign="Right" />
+                                        <FooterStyle HorizontalAlign="Right" />
+                                    </asp:TemplateField>                                    
+                                    <asp:TemplateField HeaderText="Current Due">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblAmount" runat="server" Text='<%# Bind("Current_Due") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <FooterTemplate>
+                                            <asp:Label ID="txtAmount" runat="server" Style="text-align: right"></asp:Label>
+                                        </FooterTemplate>
+                                        <ItemStyle HorizontalAlign="Right" />
+                                        <FooterStyle HorizontalAlign="Right" />
+                                        <HeaderStyle Width="15%" />
+                                    </asp:TemplateField>
+                                    <%--<asp:TemplateField HeaderText="Assign DC">
+                                        <HeaderTemplate>
+                                            <table width="100%">
+                                                <tr>
+                                                    <td align="center">
+                                                        Assign DC
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td align="center">
+                                                        <asp:CheckBox ID="chkAll_DC" runat="server"></asp:CheckBox>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </HeaderTemplate>
+                                        <ItemTemplate>
+                                            <asp:CheckBox ID="chkAssignDC" runat="server" />
+                                        </ItemTemplate>
+                                        <ItemStyle HorizontalAlign="Center" />
+                                        <HeaderStyle Width="10%" />
+                                    </asp:TemplateField>--%>
+                                    <asp:TemplateField HeaderText="Status">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblStatus" runat="server" Text='<%# Bind("Status") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <HeaderStyle Width="15%" />
+                                        <ItemStyle HorizontalAlign="left" />
+                                    </asp:TemplateField>
+                                </Columns>
+                            </asp:GridView>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center">
+                        <asp:Button ID="btnProcess" runat="server" CausesValidation="true" CssClass="styleSubmitButton"
+                            OnClick="btnProcess_Click" Text="Process" ValidationGroup="Save" />
+                        &nbsp;<asp:Button ID="btnSave" runat="server" CausesValidation="true" Visible ="false" CssClass="styleSubmitButton"
+                            OnClick="btnSave_Click" Text="Save" ValidationGroup="Save" OnClientClick="return fnCheckPageValidators(Save);" />
+                        &nbsp;<asp:Button ID="btnClear" runat="server" CausesValidation="false" CssClass="styleSubmitButton"
+                            OnClick="btnClear_Click" Text="Clear" />
+                        &nbsp;<asp:Button ID="btnCancel" runat="server" CausesValidation="false" CssClass="styleSubmitButton"
+                            OnClick="btnCancel_Click" Text="Cancel" />
+                        &nbsp;<asp:Button ID="btnAssignDC" runat="server" CausesValidation="false" CssClass="styleSubmitButton"
+                            Text="Assign DC" OnClick="btnAssignDC_Click" Visible="false" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:CustomValidator ID="CVDemandProcessing" runat="server" Display="None" ValidationGroup="Save"></asp:CustomValidator>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:ValidationSummary ID="vsDemandProcess" runat="server" CssClass="styleSummaryStyle"
+                            HeaderText="Correct the following validation(s):" ShowMessageBox="false" ShowSummary="true"
+                            ValidationGroup="Save" />
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+    <%--<script type="text/javascript" language="javascript">
+        var tab ;
+
+        function pageLoad() {
+            tab = $find('ctl00_ContentPlaceHolder1_tcDemandType');
+            var querymode = location.search.split("qsMode=");
+            if (querymode.length > 1) {
+                if (querymode[1].length > 1) {
+                    querymode = querymode[1].split("&");
+                    querymode = querymode[0];
+                }
+                else {
+                    querymode = querymode[1];
+                }
+                if (querymode != 'Q') {
+                    tab.add_activeTabChanged(on_Change);
+                    var newindex = tab.get_activeTabIndex(index);
+                }
+            }
+            }
+            
+            var index = 0;
+            function on_Change(sender, e) {
+                index = tab.get_activeTabIndex(index);
+                if (index == 0) {
+                    document.getElementById("trFrequency").style.display = 'block';
+                    document.getElementById("trAsondate").style.display = 'none';
+                }
+                if (index == 1) {
+                    document.getElementById("trFrequency").style.display = 'none';
+                    document.getElementById("trAsondate").style.display = 'block';
+                }
+            }
+        
+    </script>--%>
+</asp:Content>

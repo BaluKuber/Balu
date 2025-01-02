@@ -1,0 +1,813 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Reports
+/// Screen Name         :   Journal Query Report
+/// Created By          :   Saranya I
+/// Created Date        :   09-Aug-2011
+/// Purpose             :   To Get the Journal Details.
+/// Last Updated By		:   
+/// Last Updated Date   :   
+/// Reason              :  
+/// <Program Summary>
+#endregion
+
+#region Namespaces
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using S3GBusEntity;
+using ReportAccountsMgtServicesReference;
+using S3GBusEntity.Reports;
+using System.Globalization;
+#endregion
+
+public partial class Reports_S3GRptJournalQuery : ApplyThemeForProject
+{
+    #region Variable Declaration
+    UserInfo ObjUserInfo;
+    S3GSession ObjS3GSession = new S3GSession();
+    int intCompanyId;
+    int intUserId;
+    string PANum;
+    string SANum;
+    string RegionId;
+    bool Is_Active;
+    decimal TotalDues;
+    decimal TotalReceipts;
+    public string strDateFormat;
+    Dictionary<string, string> Procparam = new Dictionary<string, string>();
+    string strPageName = "Journal Query";
+    DataTable dtTable = new DataTable();
+    decimal OpeningBalance;
+    ReportAccountsMgtServicesClient objSerClient;
+    #endregion
+
+    #region Page Load
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Due to Data Problem, Unable to Load Journal Details Page.";
+            CVJournalDetails.IsValid = false;
+        }
+    }
+    #endregion
+
+    # region Page Methods
+    /// <summary>
+    /// This Method is called when page is Loding
+    /// </summary>
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            #region Application Standard Date Format
+            S3GSession ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;                  // to get the standard date format of the Application
+            CalendarExtender1.Format = strDateFormat;                       // assigning the first textbox with the End date
+            CalendarExtender2.Format = strDateFormat;                       // assigning the first textbox with the start date
+            txtStartDate.Attributes.Add("readonly", "readonly");
+            txtEndDate.Attributes.Add("readonly", "readonly");
+            #endregion
+
+            ObjUserInfo = new UserInfo();
+            Session["Company"] = ObjUserInfo.ProCompanyNameRW;
+            Session["Date"] = DateTime.Now.ToString(strDateFormat) + " " + DateTime.Now.ToString().Split(' ')[1].ToString() + " " + DateTime.Now.ToString().Split(' ')[2].ToString();
+
+            intCompanyId = ObjUserInfo.ProCompanyIdRW;
+            intUserId = ObjUserInfo.ProUserIdRW;
+
+            if (!IsPostBack)
+            {
+                ddlLOB.Focus();
+                FunPriLoadLob(intCompanyId, intUserId, Is_Active);
+                FunPriLoadBranch(intCompanyId, intUserId, Is_Active);
+                FunPubLoadDenomination();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriLoadLob(int intCompanyId, int intUserId, bool Is_Active)
+    {
+        objSerClient = new ReportAccountsMgtServicesClient();
+        try
+        {
+            byte[] byteLobs = objSerClient.FunPubSOAGetLOB(intCompanyId, intUserId, true);
+            List<ClsPubDropDownList> LOB = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlLOB.DataSource = LOB;
+            ddlLOB.DataTextField = "Description";
+            ddlLOB.DataValueField = "ID";
+            ddlLOB.DataBind();
+            if (ddlLOB.Items.Count == 2)
+                ddlLOB.SelectedIndex = 1;
+            else
+                ddlLOB.SelectedIndex = 0;
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    private void FunPriLoadBranch(int intCompanyId, int intUserId, bool Is_Active)
+    {
+        objSerClient = new ReportAccountsMgtServicesClient();
+        try
+        {
+            byte[] byteLobs = objSerClient.FunPubBranch(intCompanyId, intUserId, true);
+            List<ClsPubDropDownList> Branch = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlBranch.DataSource = Branch;
+            ddlBranch.DataTextField = "Description";
+            ddlBranch.DataValueField = "ID";
+            ddlBranch.DataBind();
+
+            if (ddlBranch.Items.Count == 2)
+                ddlBranch.SelectedIndex = 1;
+            else
+                ddlBranch.SelectedIndex = 0;
+
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to load Branch");
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    private void FunPriLoadAccountNumbers()
+    {
+        try
+        {
+
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@COMPANY_ID", Convert.ToString(intCompanyId));
+            Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            Procparam.Add("@BRANCH_ID", Convert.ToString(ddlBranch.SelectedValue));
+
+            ddlPNum.BindDataTable("S3G_RPT_GetAccountNoBasedLobBranch", Procparam, new string[] { "PANUM", "PANum" });
+
+            if (ddlPNum.Items.Count == 2)
+                ddlPNum.SelectedIndex = 1;
+            else
+                ddlPNum.SelectedIndex = 0;
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    private void FunPriLoadSubAccountNumbers()
+    {
+        try
+        {
+
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@PANUM", ddlPNum.SelectedItem.Text);
+            ddlSNum.BindDataTable("S3G_RPT_GetSubAccountNoBasedAccount", Procparam, new string[] { "SANUM", "SANUM" });
+
+            if (ddlSNum.Items.Count == 2)
+                ddlSNum.SelectedIndex = 1;
+            else
+                ddlSNum.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    private void FunPriLoadLan()
+    {
+        try
+        {
+
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@COMPANY_ID", Convert.ToString(intCompanyId));
+            Procparam.Add("@BRANCH_ID", Convert.ToString(ddlBranch.SelectedValue));
+            if (ddlPNum.SelectedIndex > 0)
+            {
+                Procparam.Add("@PANUM", ddlPNum.SelectedValue);
+            }
+            if (ddlSNum.SelectedIndex > 0)
+            {
+                Procparam.Add("@SANUM", ddlSNum.SelectedValue);
+            }
+            ddlLAN.BindDataTable("S3G_RPT_GetLeaseAssetNumber", Procparam, new string[] { "LAN", "LAN" });
+
+            if (ddlLAN.Items.Count == 2)
+                ddlLAN.SelectedIndex = 1;
+            else
+                ddlLAN.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPriLoadGLAccount()
+    {
+        try
+        {
+            ddlGLAccount.ClearSelection();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            Procparam.Add("@BRANCH_ID", Convert.ToString(ddlBranch.SelectedValue));
+
+            ddlGLAccount.BindDataTable("S3G_RPT_GetGLAccount", Procparam, new string[] { "GL_CODE", "GL_CODE" });
+
+            if (ddlGLAccount.Items.Count == 2)
+                ddlGLAccount.SelectedIndex = 1;
+            else
+                ddlGLAccount.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    public void FunPubLoadDenomination()
+    {
+        try
+        {
+            objSerClient = new ReportAccountsMgtServicesClient();
+            byte[] byteLobs = objSerClient.GetDenominations();
+            List<ClsPubDropDownList> Denomination = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlDenomination.DataSource = Denomination;
+            ddlDenomination.DataTextField = "Description";
+            ddlDenomination.DataValueField = "ID";
+            ddlDenomination.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    private object DeSeriliaze(byte[] byteObj)
+    {
+        return ClsPubSerialize.DeSerialize(byteObj, SerializationMode.Binary, null);
+    }
+
+    private string Funsetsuffix()
+    {
+
+        int suffix = 1;
+        S3GSession ObjS3GSession = new S3GSession();
+        suffix = ObjS3GSession.ProGpsSuffixRW;
+        string strformat = "0.";
+        for (int i = 1; i <= suffix; i++)
+        {
+            strformat += "0";
+        }
+        return strformat;
+    }
+
+    private void FunPriValidateControls()
+    {
+        ddlBranch.ClearSelection();
+        ddlPNum.Items.Clear();
+        ddlSNum.Items.Clear();
+        ddlLAN.Items.Clear();
+        ddlGLAccount.Items.Clear();
+
+    }
+
+    private void FunPriValidateGrid()
+    {
+        pnlJournalDetails.Visible = false;
+        grvJournalDetails.DataSource = null;
+        grvJournalDetails.DataBind();
+        lblAmounts.Visible = false;
+        btnPrint.Visible = false;
+    }
+
+    private void FunPriClearJournalDetails()
+    {
+        ddlLOB.Focus();
+        if (ddlLOB.Items.Count == 2)
+            ddlLOB.SelectedIndex = 1;
+        else
+            ddlLOB.SelectedIndex = 0;
+        //ddlLOB.ClearSelection();
+        //ddlBranch.ClearSelection();
+        if (ddlBranch.Items.Count == 2)
+            ddlBranch.SelectedIndex = 1;
+        else
+            ddlBranch.SelectedIndex = 0;
+        ddlPNum.Items.Clear();
+        ddlSNum.Items.Clear();
+        ddlLAN.Items.Clear();
+        lblLAN.Enabled = false;
+        ddlLAN.Enabled = false;
+        ddlGLAccount.Items.Clear();
+        txtStartDate.Text = "";
+        txtEndDate.Text = "";
+        ddlDenomination.ClearSelection();
+        pnlJournalDetails.Visible = false;
+        grvJournalDetails.DataSource = null;
+        grvJournalDetails.DataBind();
+        btnPrint.Visible = false;
+        lblAmounts.Visible = false;
+    }
+
+    private void FunPriValidateFromEndDate()
+    {
+        try
+        {
+
+            #region Validate From and To Date
+            //if ((!(string.IsNullOrEmpty(DateTime.Parse(txtStartDateSearch.Text, dtformat).ToString()))) &&
+            if ((!(string.IsNullOrEmpty(txtStartDate.Text))) &&
+               (!(string.IsNullOrEmpty(txtEndDate.Text))))                                   // If start and end date is not empty
+            {
+                // if (Convert.ToDateTime(DateTime.Parse(txtStartDate.Text, dtformat).ToString()) > Convert.ToDateTime(DateTime.Parse(txtEndDate.Text, dtformat))) // start date should be less than or equal to the enddate
+                if (Utility.StringToDate(txtStartDate.Text) > Utility.StringToDate(txtEndDate.Text)) // start date should be less than or equal to the enddate
+                {
+                    Utility.FunShowAlertMsg(this, "Start Date should be lesser than or equal to the End Date");
+                    txtEndDate.Text = "";
+                    return;
+                }
+            }
+            if ((!(string.IsNullOrEmpty(txtStartDate.Text))) &&
+               ((string.IsNullOrEmpty(txtEndDate.Text))))
+            {
+                txtEndDate.Text = DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+            }
+            if (((string.IsNullOrEmpty(txtStartDate.Text))) &&
+                (!(string.IsNullOrEmpty(txtEndDate.Text))))
+            {
+                txtStartDate.Text = txtEndDate.Text;
+            }
+            #endregion
+
+            //int Diff = txtEndDate.Text.CompareTo(txtStartDate.Text);
+            if (Convert.ToDateTime(txtEndDate.Text) > Convert.ToDateTime(txtStartDate.Text).AddMonths(6))
+            {
+                Utility.FunShowAlertMsg(this.Page, "Difference between start and end date should not be more than six months");
+                FunPriValidateGrid();
+                return;
+            }
+            btnPrint.Enabled = true;
+
+            FunPriBindJournalDetails();
+            if (grvJournalDetails.Rows.Count > 0)
+            {
+                btnPrint.Visible = true;
+                lblAmounts.Visible = true;
+
+                if (ddlDenomination.SelectedValue == "1")
+                {
+                    lblAmounts.Text = "[All Amounts are in" + " " + ObjS3GSession.ProCurrencyNameRW + "]";
+                }
+                else
+                {
+                    lblAmounts.Text = "[All Amounts are" + " " + ObjS3GSession.ProCurrencyNameRW + " " + "in" + " " + ddlDenomination.SelectedItem.Text + "]";
+                }
+            }
+            else
+            {
+                btnPrint.Visible = true;
+                lblAmounts.Visible = false;
+            }
+            #region To Get Header Details for Report
+            ClsPubHeaderDetails objHeader = new ClsPubHeaderDetails();
+            objHeader.Lob = (ddlLOB.SelectedItem.Text.Split('-'))[1].ToString();
+            objHeader.Branch = (ddlBranch.SelectedItem.Text.Split('-'))[1].ToString();
+
+            if (ddlPNum.Items.Count > 1)
+            {
+                if (ddlPNum.SelectedIndex > 0)
+                {
+                    objHeader.PANum = ddlPNum.SelectedItem.Text;
+                }
+                else
+                {
+                    objHeader.PANum = "All";
+                    //((Label)grvSummary.FooterRow.FindControl("lblProduct")).Text;
+                }
+            }
+            else
+            {
+                objHeader.PANum = "---";
+            }
+            if (ddlSNum.Items .Count > 1)
+            {
+                if (ddlSNum.SelectedIndex > 0)
+                {
+                    objHeader.SANum = ddlSNum.SelectedItem.Text;
+                }
+                else
+                {
+                    objHeader.SANum = "All";
+                    //((Label)grvSummary.FooterRow.FindControl("lblProduct")).Text;
+                }
+            }
+            else
+            {
+                objHeader.SANum = "---";
+                //((Label)grvSummary.FooterRow.FindControl("lblProduct")).Text;
+            }
+            if (ddlLAN.Items.Count > 1)
+            {
+                if (ddlLAN.SelectedIndex > 0)
+                {
+                    objHeader.Lan = ddlLAN.SelectedItem.Text;
+                }
+                else
+                {
+                    objHeader.Lan = "All";
+                    //((Label)grvSummary.FooterRow.FindControl("lblProduct")).Text;
+                }
+            }
+            else
+            {
+                objHeader.Lan = "---";
+            }
+            if (ddlGLAccount.Items.Count > 1)
+            {
+                if (ddlGLAccount.SelectedIndex > 0)
+                {
+                    objHeader.GlAccount = ddlGLAccount.SelectedItem.Text;
+                }
+                else
+                {
+                    objHeader.GlAccount = "All";
+                    //((Label)grvSummary.FooterRow.FindControl("lblProduct")).Text;
+                }
+            }
+            else
+            {
+                objHeader.GlAccount = "---";
+            }
+            objHeader.StartDate = txtStartDate.Text;
+            objHeader.EndDate = txtEndDate.Text;
+            Session["Header"] = objHeader;
+
+            if (ddlDenomination.SelectedValue == "1")
+            {
+                Session["Denomination"] = "[All Amounts are In" + " " + ObjS3GSession.ProCurrencyNameRW + "]";
+            }
+            else
+            {
+                Session["Denomination"] = "[All Amounts are" + " " + ObjS3GSession.ProCurrencyNameRW + " " + "in" + " " + ddlDenomination.SelectedItem.Text + "]";
+            }
+            string s1 = ddlLOB.SelectedItem.Text.Substring(0, ddlLOB.SelectedItem.Text.IndexOf('-')).Trim();
+
+            if (s1 == "OL")
+                Session["LOB"] = "OL";
+            
+            else
+                Session["LOB"] = "ALL";
+    
+            #endregion
+
+
+
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    protected void grvJournalDetails_OnSelectedIndexChanged(object sender, EventArgs e)
+    {
+    
+       // string s = e.NewEditIndex.ToString();
+
+    }
+
+
+    private void FunPriBindJournalDetails()
+    {
+        try
+        {
+            lblAmounts.Visible = true;
+            btnPrint.Visible = true;
+            lblError.Text = "";
+            pnlJournalDetails.Visible = true;
+            divJournalDetails.Style.Add("display", "block");
+            objSerClient = new ReportAccountsMgtServicesClient();
+
+            ClsPubJournalParameters ObjJournalParameters = new ClsPubJournalParameters();
+            ObjJournalParameters.CompanyId = intCompanyId;
+            ObjJournalParameters.LobId = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjJournalParameters.BranchId = Convert.ToInt32(ddlBranch.SelectedValue);
+            if (ddlPNum.SelectedIndex > 0)
+            {
+                ObjJournalParameters.Panum = ddlPNum.SelectedValue;
+            }
+            if (ddlSNum.SelectedIndex > 0)
+            {
+                ObjJournalParameters.Sanum = ddlSNum.SelectedValue;
+            }
+            if (ddlLAN.SelectedIndex > 0)
+            {
+                ObjJournalParameters.LeaseAssetNo = ddlLAN.SelectedValue;
+            }
+            if (ddlGLAccount.SelectedIndex > 0)
+            {
+                ObjJournalParameters.GlCode = ddlGLAccount.SelectedValue;
+            }
+            ObjJournalParameters.StartDate = Utility.StringToDate(txtStartDate.Text);
+            ObjJournalParameters.EndDate = Utility.StringToDate(txtEndDate.Text);
+            ObjJournalParameters.Denomination = Convert.ToInt32(ddlDenomination.SelectedValue);
+            byte[] byteJournalDetail = ClsPubSerialize.Serialize(ObjJournalParameters, SerializationMode.Binary);
+
+            byte[] byteLobs = objSerClient.FunPubGetJournalDetails(byteJournalDetail);
+            List<ClsPubTransaction> JournalDetails = (List<ClsPubTransaction>)DeSeriliaze(byteLobs);
+            TotalDues = JournalDetails.Sum(ClsPubTransaction => ClsPubTransaction.Dues);
+            TotalReceipts = JournalDetails.Sum(ClsPubTransaction => ClsPubTransaction.Receipts);
+            Session["Journal"] = JournalDetails;
+            grvJournalDetails.DataSource = JournalDetails;
+            grvJournalDetails.DataBind();
+            if (grvJournalDetails.Rows.Count != 0)
+            {
+                grvJournalDetails.HeaderRow.Style.Add("position", "relative");
+                grvJournalDetails.HeaderRow.Style.Add("z-index", "auto");
+                grvJournalDetails.HeaderRow.Style.Add("top", "auto");
+
+            }
+            if (grvJournalDetails.Rows.Count == 0)
+            {
+                Session["Journal"] = null;
+                btnPrint.Enabled = false;
+                //lblOpeningBalance.Visible = false;
+                lblError.Text = "No Journal Details Found";
+                grvJournalDetails.DataBind();
+            }
+            else
+            {
+                FunPriDisplayTotal();
+            }
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    private void FunPriDisplayTotal()
+    {
+        ((Label)grvJournalDetails.FooterRow.FindControl("lblTotalDues")).Text = TotalDues.ToString(Funsetsuffix());
+        ((Label)grvJournalDetails.FooterRow.FindControl("lblTotalReceipts")).Text = TotalReceipts.ToString(Funsetsuffix());
+
+    }
+    #endregion
+
+    #region Page Events
+
+    #region Dropdown List
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            ddlPNum.Items.Clear();
+            ddlSNum.Items.Clear();
+            ddlLAN.Items.Clear();
+            ddlGLAccount.Items.Clear();
+            lblLAN.Enabled = false;
+            ddlLAN.Enabled = false;
+            if (Convert.ToInt32(ddlLOB.SelectedValue) == 5)
+            {
+                lblLAN.Enabled = true;
+                ddlLAN.Enabled = true;
+                FunPriLoadLan();
+            }
+            FunPriLoadAccountNumbers();
+            FunPriLoadGLAccount();
+            FunPriValidateGrid();
+
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Due to Data Problem, Unable to Load  Account Number.";
+            CVJournalDetails.IsValid = false;
+        }
+
+    }
+    protected void ddlPNum_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadSubAccountNumbers();
+            FunPriLoadLan();
+            FunPriValidateGrid();
+
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Due to Data Problem, Unable to Load  Sub Account Number.";
+            CVJournalDetails.IsValid = false;
+        }
+
+    }
+    protected void ddlSNum_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadLan();
+            FunPriValidateGrid();
+
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Due to Data Problem, Unable to Clear Grid.";
+            CVJournalDetails.IsValid = false;
+        }
+    }
+    protected void ddlLAN_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+                FunPriValidateGrid();
+         
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Due to Data Problem, Unable to Clear Grid.";
+            CVJournalDetails.IsValid = false;
+        }
+    }
+    protected void ddlGLAccount_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+                FunPriValidateGrid();
+          
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Due to Data Problem, Unable to Clear Grid.";
+            CVJournalDetails.IsValid = false;
+        }
+    }
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriValidateControls();
+
+            FunPriValidateGrid();
+
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Due to Data Problem, Unable to Load  Sub Account Number.";
+            CVJournalDetails.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region Button (Customer / Ok / Clear / Print)
+
+    /// <summary>
+    /// To validate the From and To Date
+    /// To Bind the Journal Details Grid
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnOk_Click(object sender, EventArgs e)
+    {
+        try
+        {
+
+            FunPriValidateFromEndDate();
+
+
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Due to Data Problem, Unable to Load Journal Details Grid.";
+            CVJournalDetails.IsValid = false;
+        }
+
+
+    }
+
+    /// <summary>
+    /// To Clear The Values
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearJournalDetails();
+
+        }
+        catch (Exception ex)
+        {
+            CVJournalDetails.ErrorMessage = "Unable to Clear.";
+            CVJournalDetails.IsValid = false;
+        }
+
+    }
+
+    /// <summary>
+    /// export to crystal format
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+
+        string strScipt = "window.open('../Reports/S3GRptJournalQueryReport.aspx', 'Journal','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "Journal", strScipt, true);
+
+    }
+
+    #endregion
+
+    #endregion
+
+    protected void gv_Narration(object sender, GridViewRowEventArgs e)
+    {
+
+        if (e.Row.RowType == DataControlRowType.DataRow && (e.Row.RowState == DataControlRowState.Normal || e.Row.RowState == DataControlRowState.Alternate))
+        {
+            
+           HiddenField HidNarration = e.Row.FindControl("HidNarration") as HiddenField;
+           e.Row.ToolTip = HidNarration.Value;
+            
+
+
+        }
+
+    }
+
+}
+

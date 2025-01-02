@@ -1,0 +1,292 @@
+﻿using System;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Data.Sql;
+using System.Data;
+using System.Data.SqlClient;
+using System.IO;
+using System.Reflection;
+using org.jfree.chart;
+using org.jfree.chart.plot;
+using org.jfree.chart.urls;
+using Ujihara.Demo;
+using org.jfree.chart.renderer.category;
+using System.Drawing;
+using org.jfree.data.xy;
+using org.jfree.data.time;
+using System.Collections;
+using org.jfree.chart.renderer.xy;
+using org.jfree.chart.axis;
+using org.jfree.ui;
+using java.awt.image;
+using java.awt;
+using java.awt.geom;
+
+
+public partial class DemandVsCollection_SingleYear :ApplyThemeForProject
+{
+    #region Initial Values
+    private const string TagName = "map";
+    public const string ImageDirName = "image";
+    private const string DetailsURL = "DemandVsCollection_SingleYear_CustDetails.aspx";
+    public SqlConnection SqlConn;
+    public SqlCommand SqlComnd;
+    public SqlDataAdapter SqlDaAdp;
+    public string StrQuery = "";
+    public string chartName = "";
+    public string strProcedureName = "S3G_RPT_GET_BranchDetails";
+    public DataSet DSQuery;
+    #endregion
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        SqlConn = new SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["s3gconnectionstring"].ConnectionString);
+        
+        if (!IsPostBack)
+        {
+            FunPriLoadLOB();
+            FunPriLoadLocation();
+            List<String> list = new List<string>();
+            IEnumerator etor = new CreatorEnumerator();
+            while (etor.MoveNext())
+            {
+                Type type = (System.Type)etor.Current;
+                ConstructorInfo ci = type.GetConstructor(Type.EmptyTypes);
+                ChartCreator cc = (ChartCreator)ci.Invoke(new Object[] { });
+                list.Add(cc.Name);
+            }
+            list.Sort();
+
+        }
+
+
+
+    }
+    private void FunPriLoadLocation()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand(strProcedureName, SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlLocation.DataSource = dt;
+            ddlLocation.DataTextField = "LOCATION";
+            ddlLocation.DataValueField = "LOCATION_ID";
+            ddlLocation.DataBind();
+            ddlLocation.Items.Insert(0, new ListItem("--Select--", "0"));
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriLoadLOB()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand("S3G_RPT_GetRepayLobDetails", SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+            SqlComnd.Parameters.Add("@USER_ID", SqlDbType.Int).Value = 3;
+            SqlComnd.Parameters.Add("@PROGRAM_ID", SqlDbType.Int).Value = 175;
+            SqlComnd.Parameters.Add("@OPTION", SqlDbType.Int).Value = 1;
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlLOB.DataSource = dt;
+            ddlLOB.DataTextField = "LOB_NAME";
+            ddlLOB.DataValueField = "LOB_ID";
+            ddlLOB.DataBind();
+            ddlLOB.Items.Insert(0, "--Select--");
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    #region Button Events
+    protected void bntGenReport_Click(object sender, EventArgs e)
+    {
+        PnlChart.Visible = true;
+        Session["LOB"] = ddlLOB.SelectedValue;
+        Session["Location"] = ddlLocation.SelectedValue;
+        bool urlGen = false;
+        SqlComnd = new SqlCommand("S3G_RPT_DEMANDCOLLECTIONDETAILSForChart", SqlConn);
+        SqlComnd.CommandType = CommandType.StoredProcedure;
+        SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+        SqlComnd.Parameters.Add("@USER_ID", SqlDbType.Int).Value = 3;
+        SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLOB.SelectedValue);
+        SqlComnd.Parameters.Add("@PROGRAM_ID", SqlDbType.Int).Value = 175;
+        SqlComnd.Parameters.Add("@LOCATION_ID", SqlDbType.Int).Value =Convert.ToInt32(ddlLocation.SelectedValue);
+        SqlComnd.Parameters.Add("@FROMMONTH_STARTDATE", SqlDbType.DateTime).Value = Convert.ToDateTime(txtStartDate.Text);
+        SqlComnd.Parameters.Add("@TOMONTH_ENDDATE", SqlDbType.DateTime).Value =Convert.ToDateTime(txtEndDate.Text);
+        SqlDaAdp = new SqlDataAdapter(SqlComnd);
+        DSQuery = new DataSet();
+        SqlDaAdp.Fill(DSQuery);
+        JFreeChart chart = ChartFactory.createTimeSeriesChart(
+                "Demand Vs Collection",  // title
+                "Month",             // x-axis label
+                "Amount in Rupees",   // y-axis label
+                CreateDataset(DSQuery),            // data
+                true,               // create legend?
+                true,               // generate tooltips?
+                false               // generate URLs?
+            );
+
+        
+        chart.setBackgroundPaint(System.Drawing.Color.White);
+        //BufferedImage img = new BufferedImage(3000, 1000, BufferedImage.TYPE_INT_RGB);
+        //Graphics2D g2 = img.createGraphics();
+        //chart.draw(g2, new Rectangle2D.Double(0, 0, 1000, 500));
+
+        
+        XYPlot plotchart = (XYPlot)chart.getPlot();
+        plotchart.setBackgroundPaint(System.Drawing.Color.LightGray);
+        plotchart.setDomainGridlinePaint(System.Drawing.Color.White);
+        plotchart.setRangeGridlinePaint(System.Drawing.Color.White);
+        plotchart.setDomainCrosshairVisible(true);
+        plotchart.setRangeCrosshairVisible(true);
+
+        XYItemRenderer r = plotchart.getRenderer();
+        if (r is XYLineAndShapeRenderer)
+        {
+            XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer)r;
+            renderer.setBaseShapesVisible(true);
+            renderer.setBaseShapesFilled(true);
+        }
+
+        DateAxis axis = (DateAxis)plotchart.getDomainAxis();
+        //axis.setDateFormatOverride(new java.text.SimpleDateFormat("MMM-yyyy"));
+        Plot plot = chart.getPlot();
+        try
+        {
+            if (plot is MultiplePiePlot)
+            {
+                MultiplePiePlot pp = (MultiplePiePlot)plot;
+                plot = pp.getPieChart().getPlot();
+            }
+            if (plot is PiePlot)
+            {
+                PiePlot pp = (PiePlot)plot;
+                pp.setURLGenerator(new StandardPieURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is CombinedDomainCategoryPlot)
+            {
+                CombinedDomainCategoryPlot cdcp = (CombinedDomainCategoryPlot)plot;
+                java.util.Iterator itor = cdcp.getSubplots().iterator();
+                while (itor.hasNext())
+                {
+                    CategoryPlot pp = (CategoryPlot)itor.next();
+                    pp.getRenderer().setBaseItemURLGenerator(new StandardCategoryURLGenerator(DetailsURL));
+                    urlGen = true;
+                }
+            }
+            else if (plot is CategoryPlot)
+            {
+                CategoryPlot pp = (CategoryPlot)plot;
+                pp.getRenderer().setBaseItemURLGenerator(new StandardCategoryURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is XYPlot)
+            {
+                XYPlot pp = (XYPlot)plot;
+                pp.getRenderer().setURLGenerator(new StandardXYURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is ContourPlot)
+            {
+                ContourPlot pp = (ContourPlot)plot;
+                pp.setURLGenerator(new StandardXYURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+        }
+        catch (Exception)
+        {
+            // ignore
+        }
+
+        //ChartPanel CP = new ChartPanel(chart);
+        //CP.setPreferredSize(new Dimension(90000, 5000));
+        
+        string filename = Guid.NewGuid().ToString() + ".png";
+        ChartRenderingInfo cri = new ChartRenderingInfo();
+        String dir = Server.MapPath(ImageDirName);
+        FileInfo imageFile = new FileInfo(Path.Combine(dir, filename));
+        try
+        {
+            imageFile.Create().Close();
+        }
+        catch (Exception)
+        {
+            Response.Write(Server.HtmlEncode("You need to give ASP.NET a privilege to write to " + "<" + dir + ">" + "."));
+            Response.End();
+            return;
+        }
+        ChartUtilities.saveChartAsPNG(imageFile, chart, 750, 500, cri);
+        string chartHtml = "<img src=\"image/" + filename
+            + "\" usemap=\"#" + TagName + "\""
+            + " />";
+        if (urlGen)
+            chartHtml = chartHtml + ChartUtilities.getImageMap(TagName, cri);
+        chartHtml = chartHtml.Replace("area", "area target=\"_blank\"");
+        ChartSpan.InnerHtml = chartHtml;
+    }
+    private XYDataset CreateDataset(DataSet DSChart)
+    {
+        TimeSeries s1 = new TimeSeries("Demand", typeof(Month));
+
+        for (int rowidx = 0; rowidx < DSChart.Tables[0].Rows.Count; rowidx++)
+        {
+            //s1.add(new Month(Convert.ToInt32(DSChart.Tables[0].Rows[rowidx]["Month"].ToString()), Convert.ToInt32(DSChart.Tables[0].Rows[rowidx]["Year"].ToString())), Convert.ToDouble(DSChart.Tables[0].Rows[rowidx]["DEMAND"].ToString()));
+            int month = Convert.ToInt32(DSChart.Tables[0].Rows[rowidx]["Month"].ToString());
+            int Year = Convert.ToInt32(DSChart.Tables[0].Rows[rowidx]["Year"].ToString());
+            double Value = Convert.ToDouble(DSChart.Tables[0].Rows[rowidx]["Demand"].ToString());
+            s1.add(new Month(month, Year), Value);
+        }
+
+        TimeSeries s2 = new TimeSeries("Collection", typeof(Month));
+        for (int rowidx = 0; rowidx < DSChart.Tables[0].Rows.Count; rowidx++)
+        {
+            int month = Convert.ToInt32(DSChart.Tables[0].Rows[rowidx]["Month"].ToString());
+            int Year = Convert.ToInt32(DSChart.Tables[0].Rows[rowidx]["Year"].ToString());
+            double Value = Convert.ToDouble(DSChart.Tables[0].Rows[rowidx]["Collection"].ToString());
+            s2.add(new Month(month, Year), Value);
+        }
+        TimeSeriesCollection dataset = new TimeSeriesCollection();
+        dataset.addSeries(s1);
+        dataset.addSeries(s2);
+        Session["DS"] = dataset;
+        //dataset.setDomainIsPointsInTime(true);
+
+        return dataset;
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+       
+            ddlLOB.ClearSelection();
+            ddlLocation.ClearSelection();
+            txtStartDate.Text = "";
+            txtEndDate.Text = "";
+            PnlChart.Visible = false;
+        
+    }
+    #endregion
+}

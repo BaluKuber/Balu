@@ -1,0 +1,411 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeFile="S3GClnDelinquencySpooling_Add.aspx.cs"
+    Inherits="Collection_S3GClnDelinquencySpooling_Add" MasterPageFile="~/Common/S3GMasterPageCollapse.master" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" runat="server" ContentPlaceHolderID="ContentPlaceHolder1">
+    <asp:UpdatePanel ID="UpdatePanel2" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0"">
+                <tr>
+                    <td class="stylePageHeading">
+                        <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                </tr>
+            </table>
+            <table width="100%">
+                <tr>
+                    <td style="width: 100%" align="center">
+                        <%-- <asp:UpdatePanel ID="UpdatePanel2" runat="server">
+                    <ContentTemplate>--%>
+                        <asp:Panel ID="pnlType" runat="server" GroupingText="Delinquency Type" CssClass="stylePanel"
+                            Width="99%">
+                            <table>
+                                <tr>
+                                    <td>
+                                        <asp:RadioButtonList ID="rdDelintype" runat="server" RepeatDirection="Horizontal"
+                                            OnSelectedIndexChanged="rdDelintype_SelectedIndexChanged" AutoPostBack="True">
+                                            <asp:ListItem Text="Statutory" Value="0" Selected="True"></asp:ListItem>
+                                            <asp:ListItem Text="Company" Value="1"></asp:ListItem>
+                                        </asp:RadioButtonList>
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                        <%-- </ContentTemplate>
+                </asp:UpdatePanel>--%>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:Panel ID="Panel1" runat="server" GroupingText="Delinquency Parameter Details"
+                            CssClass="stylePanel" Width="99%">
+                            <table width="100%" border="0">
+                                <tr>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label ID="lblLineOfBusiness" runat="server" Text="Line of Business" CssClass="styleReqFieldLabel"></asp:Label>
+                                    </td>
+                                    <td>
+                                        <asp:DropDownList ID="ddllLineOfBusiness" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddllLineOfBusiness_SelectedIndexChanged">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="RequiredFieldValidator4" CssClass="styleMandatoryLabel"
+                                            runat="server" ControlToValidate="ddllLineOfBusiness" InitialValue="0" ErrorMessage="Select a Line of business"
+                                            Display="None" ValidationGroup="Submit">
+                                        </asp:RequiredFieldValidator>
+                                    </td>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label ID="lblBranch" runat="server" Text="Location"></asp:Label>
+                                    </td>
+                                    <td>
+                                        <uc:Suggest ID="ddlBranch" ToolTip="Location" runat="server" AutoPostBack="True" OnItem_Selected="ddlBranch_SelectedIndexChanged"
+                                                        ServiceMethod="GetBranchList" IsMandatory="true" ValidationGroup="Submit" ErrorMessage="Select a Location"  WatermarkText="--Select--" />
+                                       <%-- <asp:RequiredFieldValidator ID="RequiredFieldValidator2" CssClass="styleMandatoryLabel"
+                                            runat="server" ControlToValidate="ddlBranch" InitialValue="0" ErrorMessage="Select a Location"
+                                            Display="None" ValidationGroup="Submit" Enabled="false">
+                                        </asp:RequiredFieldValidator>--%>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label ID="lblyearmoth" runat="server" Text="Delinquency Month" CssClass="styleReqFieldLabel"></asp:Label>
+                                    </td>
+                                    <td>
+                                        <asp:DropDownList ID="ddlYearMonth" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlYearMonth_SelectedIndexChanged">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="RequiredFieldValidator1" CssClass="styleMandatoryLabel"
+                                            runat="server" ControlToValidate="ddlYearMonth" InitialValue="0" ErrorMessage="Select the Year Month."
+                                            Display="None" Enabled="false">
+                                        </asp:RequiredFieldValidator>
+                                        <asp:RequiredFieldValidator ID="RequiredFieldValidator3" CssClass="styleMandatoryLabel"
+                                            runat="server" ControlToValidate="ddlYearMonth" InitialValue="0" ErrorMessage="Select a Delinquency Month"
+                                            Display="None" ValidationGroup="Submit">
+                                        </asp:RequiredFieldValidator>
+                                        <asp:RequiredFieldValidator ID="RequiredFieldValidator5" CssClass="styleMandatoryLabel"
+                                            runat="server" ControlToValidate="ddlYearMonth" ErrorMessage="Select a Delinquency Month"
+                                            Display="None" ValidationGroup="Submit">
+                                        </asp:RequiredFieldValidator>
+                                    </td>
+                                    <td class="styleFieldLabel">
+                                    </td>
+                                    <td>
+                                        <asp:Button ID="btnReport" runat="server" CssClass="styleGridShortButton" Text="Report"
+                                            OnClick="btnReport_Click" OnClientClick="return fnCheckPageValidators('Submit',false);" />
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:Panel ID="pnlSpoolingDetails" runat="server" GroupingText="Delinquency Spooling Details"
+                            CssClass="stylePanel" Width="99%">
+                            <table width="100%">
+                                <tr>
+                                    <td>
+                                        <div style="overflow-x: auto; overflow-y: auto; height: 220px; border-bottom-width: thin"
+                                            class="styleContentTable" id="divSpool">
+                                           <%-- <asp:Table runat="server" ID="tblHeader" CssClass="styleContentTable">
+                                            </asp:Table>--%>
+                                            <asp:GridView ID="grvDelinquencyspooling" runat="server" HeaderStyle-CssClass="styleGridHeader"
+                                                AutoGenerateColumns="false" OnRowDataBound="grvDelinquencyspooling_RowDataBound"
+                                                Width="100%">
+                                                <Columns>
+                                                    <asp:TemplateField HeaderText="Sl No" ItemStyle-HorizontalAlign="Center">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblSerialNo" runat="server" Text='<%# Bind("SlNo") %>'></asp:Label>
+                                                        </ItemTemplate>
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Location" ItemStyle-Width="7%" ItemStyle-HorizontalAlign="Left">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblBranch" runat="server" Text='<%# Bind("Branch") %>' ToolTip="Location"></asp:Label>
+                                                            <asp:Label ID="lblBranchID" runat="server" Text='<%# Bind("Branch_ID") %>' Visible="false"></asp:Label>
+                                                        </ItemTemplate>
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Customer" ItemStyle-Width="10%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblCustomer" runat="server" Text='<%# Bind("Customer") %>' ToolTip="Customer"></asp:Label>
+                                                            <asp:Label ID="lblCustomerID" runat="server" Text='<%# Bind("Customer_ID") %>' Visible="false"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Left" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Prime Account Number" ItemStyle-Width="15%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblPANum" runat="server" Text='<%# Bind("PANum") %>' ToolTip="PANumber"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Left" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Sub Account Number" ItemStyle-Width="14%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblSANum" runat="server" Text='<%# Bind("SANum") %>' ToolTip="SANumber"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Left" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="No.of Installments" ItemStyle-Width="9%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblNoOfIns" runat="server" Text='<%# Bind("No_of_Installment") %>'
+                                                                ToolTip="No.of Installments" Style="padding-right: 10px"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Principal Due" ItemStyle-Width="9%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblPrincipalDue" runat="server" Text='<%# Bind("PrincipalDue") %>'
+                                                                ToolTip="Principal Due"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Interest Due" ItemStyle-Width="9%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblInterestDue" runat="server" Text='<%# Bind("Income_Deferred") %>'
+                                                                ToolTip="Interest Due"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Future Principal" ItemStyle-Width="9%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblFuturePrincipal" runat="server" Text='<%# Bind("FutPrincipal") %>'
+                                                                ToolTip="Future Principal"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Due Amount" ItemStyle-Width="9%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblDueAmount" runat="server" Text='<%# Bind("Due_Amount") %>' ToolTip="Due Amount"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Market/SLM Value" ItemStyle-Width="9%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblMarketValue" runat="server" Text='<%# Bind("TotalAssetValue") %>'
+                                                                ToolTip="Market/SLM Value"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Secured Principal" ItemStyle-Width="9%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblSecuredPrincipal" runat="server" Text='<%# Bind("Secure_Amt") %>'
+                                                                ToolTip="Secured Principal"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="UnSecured Principal">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblUnSecurePrincipal" runat="server" Text='<%# Bind("Unsecure_Amt") %>'
+                                                                ToolTip="UnSecured Principal"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Provision">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblProvision" runat="server" Text='<%# Bind("Provision") %>' ToolTip="Provision"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Income Deferred" ItemStyle-Width="9%">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblIncomeDeferred" runat="server" Text='<%# Bind("Income_Deferred") %>'
+                                                                ToolTip="Unsecured"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Secured Provisioning" ItemStyle-Width="9%" Visible="false">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblSecured" runat="server" Text='<%# Bind("Secured") %>' ToolTip="Secured"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Unsecured Provisioning" ItemStyle-Width="9%" Visible="false">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblUnsecured" runat="server" Text='<%# Bind("Unsecured") %>' ToolTip="Unsecured"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Other Income" ItemStyle-Width="9%" Visible="false">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblOtherIncome" runat="server" Text='<%# Bind("Other_Income") %>'
+                                                                ToolTip="Unsecured"></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle HorizontalAlign="Right" />
+                                                    </asp:TemplateField>
+                                                </Columns>
+                                            </asp:GridView>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="100%" align="right">
+                                        <asp:Button ID="btnExecl" runat="server" CssClass="styleGridShortButton" Text="Excel"
+                                            OnClick="btnExecl_Click" />
+                                        <asp:Button ID="btnFlatFile" runat="server" CssClass="styleGridShortButton" Text="Flat File"
+                                            OnClick="btnFlatFile_Click" />
+                                        <asp:Button ID="btnEmail" runat="server" CssClass="styleGridShortButton" Text="Email"
+                                            OnClick="btnEmail_Click" />
+                                    </td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center">
+                        <span id="lblErrorMessage" runat="server" style="color: Red; font-size: medium">
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center">
+                        <asp:Button ID="btnSave" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                            Text="Save" OnClientClick="return fnCheckPageValidators('Submit');" OnClick="btnSave_Click"
+                            ValidationGroup="Submit" />
+                        <asp:Button ID="btnClear" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                            Text="Clear" OnClientClick="return fnConfirmClear();" OnClick="btnClear_Click" />
+                        <asp:Button ID="btnCancel" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                            Text="Cancel" OnClick="btnCancel_Click" />
+                    </td>
+                </tr>
+                <tr>
+                    <td align="left">
+                        <br />
+                        <asp:ValidationSummary ID="lblsErrorMessage" runat="server" CssClass="styleMandatoryLabel"
+                            HeaderText="Correct the following validation(s):" ShowSummary="true" ValidationGroup="Submit" />
+                        <asp:CustomValidator ID="cvDelinq" runat="server" CssClass="styleMandatoryLabel"
+                            Enabled="true" Width="98%" ValidationGroup="Submit" Display="None" />
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+        <Triggers>
+            <asp:PostBackTrigger ControlID="btnFlatFile" />
+<asp:PostBackTrigger ControlID="btnExecl"></asp:PostBackTrigger>
+        </Triggers>
+        <Triggers>
+            <asp:PostBackTrigger ControlID="btnExecl" />
+        </Triggers>
+    </asp:UpdatePanel>
+    <table style="width: 100%;">
+        <tr>
+            <td>
+                <asp:Panel ID="PnlLetterPreview" Style="display: none" runat="server" Height="80%"
+                    BackColor="White" BorderStyle="Solid" BorderColor="Black" Width="50%">
+                    <table width="100%">
+                        <tr>
+                            <td colspan="2" class="stylePageHeading">
+                                <asp:Label runat="server" Text="Mail Preview" ID="lblMailPreview" CssClass="styleDisplayLabel"></asp:Label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td height="5px" colspan="2">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align="left" class="styleFieldLabel" width="10%" valign="top">
+                                <asp:Label runat="server" Text="To" ID="lblTo" CssClass="styleDisplayLabel"></asp:Label>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtTo" ReadOnly="false" EnableTheming="true" runat="server" Width="99%"
+                                    MaxLength="12"></asp:TextBox>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align="left" class="styleFieldLabel" width="10%" valign="top">
+                                <asp:Label runat="server" Text="Subject" ID="lblSubject" CssClass="styleDisplayLabel"></asp:Label>
+                            </td>
+                            <td class="styleFieldAlign">
+                                <asp:TextBox ID="txtSubject" runat="server" Width="99%" Text="Delinquency Spooling"
+                                    ReadOnly="False"></asp:TextBox>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td height="2px" colspan="2">
+                            </td>
+                        </tr>
+                        <tr height="50%" valign="top">
+                            <td colspan="2" height="50%" valign="top">
+                                <asp:TextBox ID="txtBody" TextMode="MultiLine" runat="server" Width="99%" Height="300px"
+                                    ReadOnly="False"></asp:TextBox>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td height="10px" colspan="2">
+                            </td>
+                        </tr>
+                        <tr align="center">
+                            <td align="center" colspan="2">
+                                <asp:Button runat="server" ID="btnSendMail" Text="Send Mail" OnClick="btnSendMail_Click"
+                                    CausesValidation="False" CssClass="styleSubmitButton" />
+                                <asp:Button ID="btnClose" runat="server" Text="Close" CssClass="styleSubmitButton"
+                                    OnClick="btnClosePreview_Click" />
+                                <asp:Button ID="btnModal" runat="server" Width="0px" Height="0px" />
+                                <cc1:ModalPopupExtender ID="ModalPopupExtenderMailPreview" runat="server" TargetControlID="btnModal"
+                                    PopupControlID="PnlLetterPreview" BackgroundCssClass="styleModalBackground" DynamicServicePath=""
+                                    Enabled="True">
+                                </cc1:ModalPopupExtender>
+                            </td>
+                        </tr>
+                    </table>
+                </asp:Panel>
+            </td>
+        </tr>
+    </table>
+
+    <script language="javascript" type="text/javascript">
+    
+    function Resize()
+     {
+       if(document.getElementById('divSpool') != null)
+       {
+         if(document.getElementById('divMenu').style.display=='none')
+            {
+             (document.getElementById('divSpool')).style.width = screen.width - document.getElementById('divMenu').style.width - 50;
+             //(document.getElementById('ctl00_ContentPlaceHolder1_grvDelinquencyspooling')).style.width = screen.width - document.getElementById('divMenu').style.width - 60;
+            }
+         else
+           {
+             (document.getElementById('divSpool')).style.width = screen.width - 280;
+             //(document.getElementById('ctl00_ContentPlaceHolder1_grvDelinquencyspooling')).style.width = screen.width - 300;
+         }
+        }  
+      }
+      
+      
+    function showMenu(show) 
+      {
+       if (show == 'T') 
+         {
+        
+          if(document.getElementById('divGrid1')!=null)
+            {
+                document.getElementById('divGrid1').style.width="800px";
+                document.getElementById('divGrid1').style.overflow="scroll";
+            }
+        
+            document.getElementById('divMenu').style.display = 'Block';
+            document.getElementById('ctl00_imgHideMenu').style.display = 'Block';
+
+            document.getElementById('ctl00_imgShowMenu').style.display = 'none';
+            document.getElementById('ctl00_imgHideMenu').style.display = 'Block';
+
+            if (document.getElementById('divSpool') != null)
+            (document.getElementById('divSpool')).style.width = screen.width - 280;
+        }
+        if (show == 'F') 
+        {
+            if(document.getElementById('divGrid1')!=null)
+                {
+                    document.getElementById('divGrid1').style.width="960px";
+                    document.getElementById('divGrid1').style.overflow="auto";
+                }
+                
+            document.getElementById('divMenu').style.display = 'none';
+            document.getElementById('ctl00_imgHideMenu').style.display = 'none';
+            document.getElementById('ctl00_imgShowMenu').style.display = 'Block';
+
+            if (document.getElementById('divSpool') != null)
+           (document.getElementById('divSpool')).style.width = screen.width - document.getElementById('divMenu').style.width - 50;
+        }
+    }
+
+    </script>
+
+</asp:Content>

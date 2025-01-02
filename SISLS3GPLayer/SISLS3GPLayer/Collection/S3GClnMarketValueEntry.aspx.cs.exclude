@@ -1,0 +1,1864 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : Market Value Entry
+/// Created By                : VijayaKumar
+/// Created Date              : 28-Sep-2010
+/// Purpose                   : Due to Changes in Services and Table Structure
+/// Last Updated By           : Chandra Sekhar BS
+/// Last Updated Date         : 19-Sep-2013
+/// Reason                    : Changed redirection Paramter
+
+/// <Program Summary>
+
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+#endregion
+
+public partial class CLN_S3GCLNMarketValueEntry : ApplyThemeForProject
+{
+    #region Common Variable declaration
+    public static CLN_S3GCLNMarketValueEntry obj_Page;
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> Procparam = null;
+    string strMVNo = string.Empty;
+    int intErrCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string _DateFormat = "dd/MM/yyyy";
+    string strDateFormat =  string.Empty;
+    StringBuilder strMVEBuilder = null;
+    string strCurrency = null;
+    
+    ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient objMarketValue_Client;
+    ClnReceivableMgtServices.S3G_CLN_MarketValueDataTable objS3G_CLN_MarketEntryDataTable = null;
+    ClnReceivableMgtServices.S3G_CLN_MarketValueRow objS3G_CLN_MarketEntryDataRow = null;    
+   
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "../Collection/S3GClnTransLander.aspx?Code=CLNMVE";
+
+
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GCLNMarketValueEntry.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3gCLNTransLander.aspx?Code=CLNMVE';";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+    #endregion
+
+    #region Events
+
+    #region Page Load Event
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        S3GSession ObjS3GSession = null;
+        obj_Page = this;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            strCurrency = ObjS3GSession.ProCurrencyNameRW;
+            _DateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strMVNo = fromTicket.Name.Trim();
+            }
+
+            txtMVDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtMVDate.ClientID + "','" + strDateFormat + "',true,  false);");
+
+            if (!IsPostBack)
+            {
+                ddlBranch.Enabled = false;
+               
+                rdoOption2.Enabled = true;
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                CalendarExtender2.Format = strDateFormat;
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    btnLoadCustomer.Enabled = false;
+                    FunMarketValueForModification(strMVNo);
+                    FunPriDisableControls(-1);
+
+                }
+                else if (Request.QueryString["qsMode"] == "M")
+                {
+                    FunMarketValueForModification(strMVNo);
+                    FunPriDisableControls(1);
+                    
+                }
+                else
+                {
+                    PopulateBranchList();
+                    PopulateLOBList();
+                    FunPriDisableControls(0);
+                    //txtMVDate.Text = DateTime.Now.ToString(strDateFormat);
+                }
+                
+
+            
+            }
+                if (ddlLOB.SelectedValue.ToString () != "0")
+                {
+                    ucCustomerCode.strLOBID = ddlLOB.SelectedValue.ToString();
+                }
+                else
+                {
+                    ucCustomerCode.strLOBID = "-1";
+                }
+                if (ddlBranch.SelectedValue.ToString () != "0")
+                {
+                    ucCustomerCode.strBranchID = ddlBranch.SelectedValue.ToString();
+                }
+                else
+                {
+                    ucCustomerCode.strBranchID = "-1";
+
+                }
+                ucCustomerCode.strControlID = ucCustomerCode.ClientID;
+                TextBox txtCustomerCode = (TextBox)ucCustomerCode.FindControl("txtName");
+
+                //if (PageMode == PageModes.Create)
+                //{
+                    txtCustomerCode.Attributes.Add("onfocus", "fnLoadCustomer()");
+
+                //}
+                if ((PageMode == PageModes.Modify) ||(PageMode == PageModes.Query))
+                {
+                    Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+                    btnGetLOV.Enabled = false;
+                }
+                txtCustomerCode.ToolTip = "Customer Code";
+
+            
+            
+
+
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+    #endregion
+
+    #region  Save Methods
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        if ((rdoOption1.Checked == false) && (rdoOption2.Checked == false))
+        {
+            cvMarketValueEntry.ErrorMessage = "Select the Options";
+            cvMarketValueEntry.IsValid = false;
+            return;
+        }
+        if (rdoOption1.Checked == true)
+        {
+            if (cmbCustomerCode.Text == "")
+            {
+                cvMarketValueEntry.ErrorMessage = "Select the Customer Code";
+                cvMarketValueEntry.IsValid = false;
+                return;
+                   //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Select the Customer Code');", true);
+                //return;
+
+            }
+        }
+
+        string strMVENumber = "";
+        if (strMVNo == "")
+        {
+            //if (Utility.IsDateTime(txtMVDate.Text) == false)
+            //{
+            //    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('MV Date should be in the format ');"+ strDateFormat, true);
+            //    return;
+            //}   
+        }
+       
+        if ((grvMarket.Rows.Count == 0) && (PageMode == PageModes.Create))
+        {
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('No Records to Save');", true);
+            return;
+        }
+        else
+        {
+            int i = 0;
+            foreach (GridViewRow grvRow in grvMarket.Rows)
+            {
+                TextBox txtCurValue = (TextBox)grvRow.FindControl("txtCurValue");
+                //  commented on MANIKANDAN. R to fix the ISSUE Related Amount
+               // txtCurValue.SetDecimalPrefixSuffix(10, 3, true,false, "Current Value"); //Code Changed
+               
+                if (txtCurValue.Text != "")
+                {
+                    i++;
+                    break;
+                }
+            }
+            if (i == 0)
+            {
+                if (PageMode == PageModes.Create)
+                {
+                    if ((chkStatus.Checked))
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Enter atleast one Current Market Value');", true);
+                        return;
+                    }
+                }
+                
+            }
+            foreach (GridViewRow grvRow in grvMarket.Rows)
+            {
+                TextBox txtCurValue = (TextBox)grvRow.FindControl("txtCurValue");
+                Label lblLastDate = (Label)grvRow.FindControl("lblLastDate");
+                //string strLastDate = grvRow.Cells[9].Text;
+                if (txtCurValue.Text != "" && lblLastDate.Text!="" && strMVNo=="")
+                {
+                    //if(Utility.CompareDates(txtMVDate.Text,lblLastDate.Text)==0)
+                    //{
+                    //    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Current Market Value already updated for the given Market Value Entry Date');", true);
+                        
+                    //    txtCurValue.Focus();
+                    //    return;
+                    //}
+                   // if(Utility.CompareDates(txtMVDate.Text,lblLastDate.Text) > 0)
+                        if (Convert.ToDateTime(Utility.StringToDate(lblLastDate.Text).ToString("dd/MMM/yyyy")) >=
+                                   Convert.ToDateTime(Utility.StringToDate(txtMVDate.Text).ToString("dd/MMM/yyyy")))
+                    {
+                        //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('The Market Value already updated for ');", true);
+                        lblLastDate.Text = DateTime.Parse(lblLastDate.Text, CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                       // Utility.FunShowAlertMsg(this, "The Current Market Value Cannot be updated below  or equal to (" + lblLastDate.Text + ")");
+                        Utility.FunShowAlertMsg(this, "Entered Market Value Entry date Cannot be less than or equal to the Last Entered date");
+                        txtCurValue.Focus();
+                        return;
+                    }
+                }
+            }
+        }
+        if (Page.IsValid)
+        {                
+            LoadXMLValues();
+            objMarketValue_Client = new ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient();
+            try
+            {
+                
+                objS3G_CLN_MarketEntryDataTable = new ClnReceivableMgtServices.S3G_CLN_MarketValueDataTable();
+                objS3G_CLN_MarketEntryDataRow = objS3G_CLN_MarketEntryDataTable.NewS3G_CLN_MarketValueRow();
+                objS3G_CLN_MarketEntryDataRow.Company_ID = intCompanyID;
+                if (ddlLOB.SelectedItem.Text == "")
+                {
+                    objS3G_CLN_MarketEntryDataRow.LOB_ID = 0;
+                }
+                else if (Convert.ToInt32(ddlLOB.SelectedValue) > 0)
+                {
+                    objS3G_CLN_MarketEntryDataRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                }
+                else
+                {
+                    objS3G_CLN_MarketEntryDataRow.LOB_ID = 0;
+                }
+
+                if (ddlBranch.SelectedText == "")
+                {
+                    objS3G_CLN_MarketEntryDataRow.Branch_ID = 0;
+
+                }
+                else if (Convert.ToInt32(ddlBranch.SelectedValue) > 0 )
+                {
+                    objS3G_CLN_MarketEntryDataRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+                }
+                else
+                {
+                    objS3G_CLN_MarketEntryDataRow.Branch_ID = 0;
+
+                }
+                             
+                objS3G_CLN_MarketEntryDataRow.Market_Value_ID = strMVNo;
+                objS3G_CLN_MarketEntryDataRow.Created_By = intUserID;
+                objS3G_CLN_MarketEntryDataRow.Market_Value_Date = Utility.StringToDate(txtMVDate.Text);
+                objS3G_CLN_MarketEntryDataRow.Created_On = DateTime.Now;
+                objS3G_CLN_MarketEntryDataRow.Modified_By = intUserID;
+                objS3G_CLN_MarketEntryDataRow.Modified_On = DateTime.Now;
+                objS3G_CLN_MarketEntryDataRow.Txn_ID = 1;
+                objS3G_CLN_MarketEntryDataRow.XMLDetails = strMVEBuilder.ToString();
+               // objS3G_CLN_MarketEntryDataRow.Market_Date = Utility.StringToDate(txtMVDate.Text);
+                if (rdoOption1.Checked)
+                {
+                    objS3G_CLN_MarketEntryDataRow.Option_Value = 1;
+                }
+                else
+                {
+                    objS3G_CLN_MarketEntryDataRow.Option_Value = 2;
+                }
+                if (chkStatus.Checked) objS3G_CLN_MarketEntryDataRow.Active = "1";
+                else
+                {
+                    objS3G_CLN_MarketEntryDataRow.Active = "0";
+                   
+                }
+                                
+                objS3G_CLN_MarketEntryDataTable.AddS3G_CLN_MarketValueRow(objS3G_CLN_MarketEntryDataRow);
+
+                 intErrCode = objMarketValue_Client.FunPubCreateMarketValueEntry(out strMVENumber, ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_MarketEntryDataTable, ObjSerMode));
+                if (intErrCode == 0)
+                {
+                    //To avoid double save click
+                    btnSave.Enabled = false;
+                    //End here
+
+                    if (strMVNo == string.Empty)
+                    {
+                        strAlert = "Market Entry Value " + strMVENumber + " details added successfully";
+                        strAlert += @"\n\nWould you like to add one more record?";
+                        strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                        strRedirectPageView = "";
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                    }
+                    else
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Market Value Entry details updated successfully');" + strRedirectPageView, true);
+                    }
+                }
+
+                    else if (intErrCode == 1)
+                    {
+                        strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoNotDefined);
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                        return;
+                    }
+                    else if (intErrCode == 12)
+                    {
+                        strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoExceeds);
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                        return;
+                    }
+               
+
+                else if (intErrCode == 2)
+                {
+                    Utility.FunShowAlertMsg(this, "Market Value already updated for this Asset", strRedirectPage);
+                    return;
+                }
+                
+                //lblErrorMessage.Text = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                cvMarketValueEntry.ErrorMessage = ex.Message;
+                cvMarketValueEntry.IsValid = false;
+                return;
+               
+            }
+            finally
+            {
+                objMarketValue_Client.Close();
+            }
+        }
+    }
+    #endregion
+
+    #region  Cancel Methods
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+    #endregion
+
+    #region Option1 ok Button Click Event 
+    protected void btnOkOption1_Click(object sender, EventArgs e)
+    {
+      
+        try
+        {
+            //if (cmbCustomerCode.Text.Trim() = "")
+            //{
+            //    cvMarketValueEntry.ErrorMessage = "Select Customer Code";
+            //    cvMarketValueEntry.IsValid = false;
+            //    return;
+
+            //}
+
+            FunBindGridOption1();
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+    ////protected void txtCurValue_TextChanged(object sender, EventArgs e)
+    ////{
+    ////    TextBox txtCurValue = (TextBox)grvMarket.FindControl("txtCurValue");
+    ////    txtCurValue.SetDecimalPrefixSuffix(7, 2, false, "Current Value");
+        
+
+    ////}
+    #region Option2 ok Button Click Event
+    protected void btnOption2_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunBindGridOption2();
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region Grid Curvalue text box disable
+    private void funGridDisable()
+    {
+        int i = 0;
+        foreach (GridViewRow gvRow in grvMarket.Rows)
+        {
+            TextBox txtCurValue = (TextBox)gvRow.FindControl("txtCurValue");
+            txtCurValue.Attributes.Add("onblur", "");
+            //Commented By R. Manikandan to fix the Amount field issues
+            //txtCurValue.SetDecimalPrefixSuffix(10, 3, true,false, "Current Value");// Code Changed.
+
+            if (i == 0) txtCurValue.Enabled = true; else txtCurValue.Enabled = false;
+            i++;
+        }
+    }
+    #endregion
+
+    #region Option2 radio Button check box change Event
+    protected void rdoOption2_CheckedChanged(object sender, EventArgs e)
+    {
+        if (rdoOption2.Checked)
+        {
+
+            if (txtMVDate.Text == "")
+            {
+                cvMarketValueEntry.ErrorMessage = "Select Market Value Entry Date";
+                cvMarketValueEntry.IsValid = false;
+                rdoOption2.Checked = false;
+                return;
+            }
+
+            Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+            btnGetLOV.Enabled = false;
+            ucCustomerCode.FunPubClearControlValue();
+            cmbCustomerCode.Text = "";
+
+            GridClear();
+          
+            btnOption2.Enabled = ddlAssetClass.Enabled = ddlAssetModel.Enabled = ddlAssetMake.Enabled = ddlAssetType.Enabled = true;
+            rdoOption1.Checked = false;
+            btnOkOption1.Enabled = cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = false;
+            TextBox txtCustomerCode = (TextBox)ucCustomerCode.FindControl("txtName");
+            txtCustomerCode.Enabled = false;
+            cmbCustomerCode.Enabled = false;
+            PopulateAssetClass();
+            cmbCustomerCode.Text = "";
+            ddlMLA.Items.Clear();
+            ddlSLA.Items.Clear();
+        }
+    }
+    #endregion
+
+    #region Option1 radio Button check box change Event
+    protected void rdoOption1_CheckedChanged(object sender, EventArgs e)
+    {
+        if (rdoOption1.Checked)
+        {
+            if (txtMVDate.Text == "")
+            {
+                cvMarketValueEntry.ErrorMessage = "Select Market Value Entry Date";
+                cvMarketValueEntry.IsValid = false;
+                rdoOption1.Checked = false;
+                return;
+            }
+            GridClear();
+            rdoOption2.Checked = false;
+            btnOption2.Enabled = ddlAssetType.Enabled = ddlAssetModel.Enabled = ddlAssetClass.Enabled = ddlAssetMake.Enabled = false;
+            Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+            btnOkOption1.Enabled = cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = btnGetLOV .Enabled  = true;
+            TextBox txtCustomerCode = (TextBox)ucCustomerCode.FindControl("txtName");
+            txtCustomerCode.Enabled = true;
+            PopulateCustomer();
+            ddlAssetClass.Items.Clear();
+            ddlAssetMake.Items.Clear();
+            ddlAssetType.Items.Clear();
+            ddlAssetModel.Items.Clear();
+        }
+        else
+        {
+            cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = false;
+        }
+    }
+    #endregion
+
+    #region Branch drop down change Event
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        rdoOption1.Checked = false;
+        ddlMLA.Items.Clear();
+        ddlSLA.Items.Clear();
+        cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = btnOkOption1.Enabled = btnOption2.Enabled = false;
+        Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+        btnGetLOV.Enabled = false;
+        GridClear();
+
+        txtMVDate.Text = "";
+        rdoOption2.Checked = false;
+        ddlAssetClass.Enabled = false;
+        ddlAssetMake.Enabled = false;
+        ddlAssetType.Enabled = false;
+        ddlAssetType.Enabled = false;
+        ddlAssetModel.Enabled = false;
+
+        if (Convert.ToInt32(ddlBranch.SelectedValue) != 0)
+        {
+            if (ddlLOB.SelectedIndex == 0)
+            {
+                rdoOption1.Enabled = false;
+                rdoOption1.Checked = false;
+
+            }
+            else
+                rdoOption1.Enabled = true;
+        }
+        else
+        {
+            rdoOption1.Enabled = cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = btnOkOption1.Enabled= false;
+        }
+        if (rdoOption1.Checked)
+        {
+            PopulateCustomer();
+            ucCustomerCode.FunPubClearControlValue();     
+            cmbCustomerCode.Text = "";
+            ddlMLA.Items.Clear();
+            ddlSLA.Items.Clear();
+        }
+        else
+        {
+            //PopulateAssetClass();
+            ddlAssetClass.Items.Clear();
+            ddlAssetModel.Items.Clear();
+            ddlAssetMake.Items.Clear();
+            ddlAssetType.Items.Clear();
+        }
+        if (Convert.ToInt32(ddlBranch.SelectedValue) <= 0)
+        {
+            rdoOption1.Enabled = false;
+            rdoOption1.Checked = false;
+            btnGetLOV.Enabled = false;
+            ucCustomerCode.FunPubClearControlValue();
+            cmbCustomerCode.Text = "";
+            cmbCustomerCode.Enabled = false;
+            rdoOption2.Checked = false;
+            ddlAssetModel.Enabled = false;
+            ddlAssetType.Enabled = false;
+            ddlAssetClass.Enabled = false;
+            ddlAssetMake.Enabled = false;
+
+        }
+    }
+    #endregion
+
+    #region MLA drop down change Event
+    protected void ddlMLA_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        GridClear();
+        ddlSLA.Items.Clear();
+        PopulateSAN();
+    }
+    #endregion
+    #region SLA drop down change Event
+    protected void ddlSLA_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        GridClear();
+    }
+    #endregion 
+
+    #region LOB drop down change Event
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+            txtMVDate.Text = "";
+            ddlBranch.Clear();
+           if (ddlLOB.SelectedIndex > 0)
+           {
+               ddlBranch.Enabled = true;
+           }
+           else
+           {
+               ddlBranch.Enabled = false;
+           }
+           //rdoOption2.Enabled = false;
+           rdoOption2.Checked = false;
+           ddlAssetClass.Enabled = false;
+           ddlAssetMake.Enabled = false;
+           ddlAssetType.Enabled = false;
+           ddlAssetType.Enabled = false;
+           ddlAssetModel.Enabled = false;
+
+        GridClear();
+        ddlMLA.Items.Clear();
+        ddlSLA.Items.Clear();
+        rdoOption1.Checked = false;
+        rdoOption1.Enabled = false;
+        rdoOption2.Checked = false;
+        Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+        btnGetLOV.Enabled = false;
+        TextBox txtCustomerCode = (TextBox)ucCustomerCode.FindControl("txtName");
+        txtCustomerCode.Text = cmbCustomerCode.Text = "";
+         rdoOption2.Enabled = true;
+        ddlAssetClass.Items.Clear();
+        ddlAssetType.Items.Clear();
+        ddlAssetMake.Items.Clear();
+        ddlAssetModel.Items.Clear();
+       // PopulateAssetClass();
+        if (ddlLOB.SelectedIndex <= 0)
+        {
+            //rdoOption2.Enabled = false;
+            rdoOption2.Checked = false;
+            ddlAssetClass.Enabled = false;
+            ddlAssetMake.Enabled = false;
+            ddlAssetType.Enabled = false;
+            ddlAssetModel.Enabled = false;
+            btnOption2.Enabled = false;
+        }
+        if (ddlLOB.SelectedIndex > 0)
+        {
+            PopulateBranchList();
+        }
+        ddlBranch.Clear();
+
+    }
+    #endregion
+
+    #region Asset make drop down change Event
+    protected void ddlAssetMake_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        GridClear();
+        ddlAssetType.Items.Clear();
+        ddlAssetModel.Items.Clear();
+        PopulateAssetType();
+    }
+    #endregion
+
+    #region Asset Class drop down change Event
+    protected void ddlAssetClass_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        GridClear();
+        ddlAssetType.Items.Clear();
+        ddlAssetModel.Items.Clear();
+        ddlAssetMake.Items.Clear();
+        PopulateAssetMake();
+    }
+    #endregion
+
+    #region Asset Type drop down change Event
+    protected void ddlAssetType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        GridClear();
+        ddlAssetModel.Items.Clear();
+        PopulateAssetModel();
+    }
+    protected void ddlAssetModel_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        GridClear();
+    }
+    #endregion
+
+    #region Grid Headr template CheckBox change Event
+    protected void chkCurvalue_CheckedChanged1(object sender, EventArgs e)
+    {
+        try
+        {
+            CheckBox chkCurvalue = (CheckBox)sender;
+
+            if (chkCurvalue.Checked)
+            {
+                string strCurvalue = "";
+                int i = 0;
+                foreach (GridViewRow gvRow in grvMarket.Rows)
+                {
+
+                    TextBox txtCurValue = (TextBox)gvRow.FindControl("txtCurValue");
+                    // commented by R. Manikandan for fixing Amount Field
+                     //txtCurValue.SetDecimalPrefixSuffix(10, 3, true, false,"Current Value");//Code Changed
+
+                    if ((txtCurValue.Text != ""))
+                    {
+                        strCurvalue = txtCurValue.Text;
+                        break;
+                    }
+
+                    if (strCurvalue != "")
+                        break;
+
+
+                    i++;
+                    //if (i != 1)
+                    // txtCurValue.ReadOnly = true;
+
+                }
+                foreach (GridViewRow grvRow in grvMarket.Rows)
+                {
+                    if (strCurvalue == "")
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Give atleast one Current Market Value");
+                        chkCurvalue.Checked = false;
+                        return;
+                    }
+                    TextBox txtCurValue = (TextBox)grvRow.FindControl("txtCurValue");
+                    txtCurValue.Text = strCurvalue;
+                }
+            }
+            else
+            {
+                foreach (GridViewRow grvRow in grvMarket.Rows)
+                {
+                    TextBox txtCurValue = (TextBox)grvRow.FindControl("txtCurValue");
+                    txtCurValue.Text = "";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+
+    }
+
+    #endregion
+
+   
+    #region Funtion to display Customer Code
+    private void FunProFillCustomerCode( string CustomerID)
+    {
+        try
+        {
+            DataTable CustDT = new DataTable();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Cust_id", CustomerID);
+            CustDT = Utility.GetDataset("S3G_CLN_GetCustomer", Procparam).Tables[0];
+
+            if (CustDT.Rows.Count > 0)
+            {
+                TextBox txtCustomerCode = (TextBox)ucCustomerCode.FindControl("txtName");
+                txtCustomerCode.Text = cmbCustomerCode.Text = Convert.ToString(CustDT.Rows[0]["Customer_Code"]);
+            }
+           
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+
+    }
+
+    #endregion
+
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            //trNoRecord.Visible = false;
+            //grvMarket.DataSource = null;
+            //grvMarket.DataBind();
+            GridClear();
+            
+            ddlSLA.Items.Clear();
+            HiddenField hdnCustomerId = (HiddenField) ucCustomerCode.FindControl("hdnID");
+            if (hdnCustomerId != null)
+            {
+                if (hdnCustomerId.Value != "")
+                {
+                    FunProFillCustomerCode(hdnCustomerId.Value);
+                    
+                    hidCustId.Value = hdnCustomerId.Value;
+                    PopulatePAN();
+                    ViewState["CustomerID"] = hdnCustomerId.Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #region Clear Button click Event
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        if (strMVNo == "")
+        {
+            txtMVDate.Text = "";
+            Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+            btnGetLOV.Enabled = false;
+            ddlBranch.SelectedValue = ddlLOB.SelectedValue = ddlBranch.SelectedValue = "0";
+            ddlBranch.Enabled = false;
+            rdoOption2.Checked = rdoOption1.Checked = rdoOption1.Enabled = cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = btnOkOption1.Enabled = false;
+            // Commented by R.Manikandan to Make LOB Non Mandatory 30/12/2011
+            // rdoOption2.Enabled = btnOption2.Enabled = ddlAssetClass.Enabled = ddlAssetMake.Enabled = ddlAssetModel.Enabled = ddlAssetType.Enabled = false;
+            btnOption2.Enabled = ddlAssetClass.Enabled = ddlAssetMake.Enabled = ddlAssetModel.Enabled = ddlAssetType.Enabled = false;
+            //ddlAssetClass.SelectedValue = ddlAssetMake.SelectedValue = ddlAssetModel.SelectedValue = ddlAssetType.SelectedValue = "0";
+            ucCustomerCode.FunPubClearControlValue();     
+            cmbCustomerCode.Text = "";
+            cmbCustomerCode.Enabled = false;
+                  
+            ddlSLA.Items.Clear();
+            ddlMLA.Items.Clear();
+            ddlAssetClass.Items.Clear();
+            ddlAssetMake.Items.Clear();
+            ddlAssetModel.Items.Clear();
+            ddlAssetType.Items.Clear();
+            GridClear();
+        }
+        else
+        {
+            foreach (GridViewRow gvRow in grvMarket.Rows)
+            {
+                TextBox txtCurValue = (TextBox)gvRow.FindControl("txtCurValue");
+               // Commented By R. Manikandan to fix the Amount field issues 
+                //txtCurValue.SetDecimalPrefixSuffix(10, 3, true,false, "Current Value");//Code Changed
+                
+                txtCurValue.Text = "";
+            }
+        }
+    }
+    #endregion
+
+    #endregion
+
+    #region Methods
+
+    #region Edit For Market value entry
+    private void FunMarketValueForModification(string strMVNo)
+    {
+        try
+        {
+            //btnLoadCustomer.Enabled = false;
+            DataSet ds = new DataSet();
+            int option;
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Market_Value_ID", strMVNo);
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            ds = Utility.GetDataset("S3G_CLN_GetMarketEntryValue", Procparam);
+            if (ds != null)
+            {
+                ListItem LiB = new ListItem(ds.Tables[0].Rows[0]["LOB_Name"].ToString(), ds.Tables[0].Rows[0]["LOB_ID"].ToString());
+                ddlLOB.Items.Add(LiB);
+                
+                ddlLOB.SelectedValue  = ds.Tables[0].Rows[0]["LOB_ID"].ToString();
+
+                
+
+                ddlBranch.SelectedText=ds.Tables[0].Rows[0]["Location"].ToString();
+
+                ddlBranch.SelectedValue  = ds.Tables[0].Rows[0]["Location_ID"].ToString();
+                txtMVNo.Text = ds.Tables[0].Rows[0]["Market_Value_ID"].ToString();
+                option= Convert.ToInt32(ds.Tables[0].Rows[0]["Option_Value"]);
+                txtMVDate.Text = DateTime.Parse(ds.Tables[0].Rows[0]["Market_Value_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+               // txtMVDate.Text = DateTime.Parse(ds.Tables[0].Rows[0]["Created_On"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                
+                //
+                    
+                //if (Procparam != null)
+                //    Procparam.Clear();
+                //else
+                //    Procparam = new Dictionary<string, string>();
+
+                //Procparam.Add("@Company_ID", intCompanyID.ToString());
+                //Procparam .Add ("@LOB_ID",ds.Tables [0].Rows [0]["LOB_ID"].ToString ()) ;
+                //Procparam.Add("@Branch_ID", ds.Tables[0].Rows[0]["Branch_ID"].ToString());
+
+             
+
+                if(option ==1)
+                {
+                    rdoOption1.Checked = true;
+                    
+                    TextBox txtCustomerCode = (TextBox)ucCustomerCode.FindControl("txtName");
+                    txtCustomerCode .Text = cmbCustomerCode.Text =ds.Tables [1].Rows [0]["Customer_Code"].ToString ();
+                    ddlMLA.Items.Add (ds.Tables [1].Rows [0]["PANum"].ToString ());
+                    ddlMLA.SelectedValue =ds.Tables [1].Rows [0]["PANum"].ToString ();
+                    if (!ds.Tables[1].Rows[0]["SANum"].ToString().ToUpper().Contains("DUMMY"))
+                    {
+                        ddlSLA.Items.Add(ds.Tables[1].Rows[0]["SANum"].ToString());
+                        ddlSLA.SelectedValue = ds.Tables[1].Rows[0]["SANum"].ToString();
+                    }
+                   // pnlGrid.Visible = true;
+                    grvMarket.Visible = true;
+                    grvMarket.DataSource = ds.Tables[2];
+                    grvMarket.DataBind();
+                    grvMarket.Visible = true;
+                }
+                if (option ==2)
+                {
+                    rdoOption2.Checked = true;
+                    if (ds != null)
+                    {
+                         ddlAssetClass.FillDataTable(ds.Tables[1], "Asset_Class", "Asset_Class_Desc");
+                         ddlAssetClass.SelectedItem.Text = (ds.Tables[1].Rows[0]["Asset_Class_Desc"].ToString());
+                         ddlAssetClass.SelectedValue = ds.Tables[1].Rows[0]["Asset_Class"].ToString();
+                         ddlAssetMake.FillDataTable (ds.Tables[1],"Asset_Make","Asset_Make_Desc");
+                         ddlAssetMake.SelectedItem.Text = (ds.Tables[1].Rows[0]["Asset_Make_Desc"].ToString());
+                         ddlAssetMake.SelectedValue = ds.Tables[1].Rows[0]["Asset_Make"].ToString();
+                         ddlAssetModel.FillDataTable (ds.Tables[1],"Asset_Model","Asset_Model_Desc");
+                         ddlAssetModel.SelectedItem.Text = (ds.Tables[1].Rows[0]["Asset_Model_Desc"].ToString());
+                         ddlAssetModel.SelectedValue = ds.Tables[1].Rows[0]["Asset_Model"].ToString();
+                         ddlAssetType.FillDataTable(ds.Tables[1],"Asset_Type","Asset_Type_Desc");
+                         ddlAssetType.SelectedItem.Text = (ds.Tables[1].Rows[0]["Asset_Type_Desc"].ToString());
+                         ddlAssetType.SelectedValue = ds.Tables[1].Rows[0]["Asset_Type"].ToString();
+                         //txtMVDate.Text = DateTime.Parse(ds.Tables[1].Rows[0]["Market_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                        // pnlGrid.Visible = true; ;
+                         grvMarket.Visible = true;
+                         grvMarket.DataSource = ds.Tables[2];
+                         grvMarket.DataBind();
+                         grvMarket.Visible = true;
+                     }
+                }
+               
+                if (Convert.ToInt32(ds.Tables[0].Rows[0]["Is_Active"]) == 1)
+                {
+                    chkStatus.Checked = true;
+                    chkStatus.Enabled = true;
+                    //if (PageMode == PageModes.Modify)
+                    //{
+                    //    chkStatus.Enabled = true;
+
+                    //}
+                }
+                else
+                {
+                    chkStatus.Checked = false;
+                    //btnSave.Enabled = false;
+                    chkStatus.Enabled = true;
+                    //foreach (GridViewRow gvRow in grvMarket.Rows)
+                    //{
+                    //    TextBox txtCurValue = (TextBox)gvRow.FindControl("txtCurValue");
+                    //    txtCurValue.Enabled = false;
+                    //}
+
+                    //CheckBox chkCurValue = (CheckBox)grvMarket.HeaderRow.FindControl("chkCurValue");
+                    //if (chkCurValue != null) chkCurValue.Enabled = false;
+
+                }
+
+
+            }
+        }
+        catch(Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+    #region Get grid details for modification
+    private void FunBindGridForModification(Dictionary<string, string> proceparam)
+    {
+        try
+        {
+            grvMarket.Visible = true;
+            grvMarket.DataSource = Utility.GetDefaultData(SPNames.S3G_CLN_GetMarketValue, proceparam);
+            grvMarket.DataBind();
+            grvMarket.Visible = true;
+
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+
+    }
+    #endregion 
+
+    #region  DateFormat
+    public string FormatDate(string strDate)
+    {
+        if (strDate != "")
+            return DateTime.Parse(strDate, CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+        else
+            return strDate;
+    }
+    #endregion
+
+    #region To populate Branch Values
+    private void PopulateBranchList()
+    {
+        try
+        {
+            //if (Procparam != null)
+            //    Procparam.Clear();
+            //else
+            //    Procparam = new Dictionary<string, string>();
+            //Procparam.Add("@User_ID", intUserID.ToString());
+            //Procparam.Add("@Company_ID", intCompanyID.ToString());
+            //Procparam.Add("@Program_ID", "89");
+            //if (ddlLOB.SelectedIndex > 0)
+            //{
+            //    Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            //}
+            //if (PageMode == PageModes.Create)
+            //{
+            //    Procparam.Add("@Is_Active", "1");
+            //}
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location" });
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region To populate LOB List Values
+    private void PopulateLOBList()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+             Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            Procparam.Add("@FilterOption", "'HP','LN','FL'");
+            Procparam.Add("@Program_ID", "89");
+
+            if (PageMode == PageModes.Create)
+            {
+                Procparam.Add("@Is_UserLobActive", "1");
+            }
+
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }     
+    #endregion
+
+    #region "Market value Entry Details stored in XML format"
+    /// <summary>
+    /// Storing the Values of the grid as XML documnet for bulk insert in the Data base
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    private void LoadXMLValues()
+    {
+    //    // Grid sent as XMl
+        
+        int i=0;
+        strMVEBuilder = new StringBuilder();
+        strMVEBuilder.Append("<Root>"); 
+        if (rdoOption1.Checked)
+        {
+            foreach (GridViewRow grvRow in grvMarket.Rows)
+            {
+                Label lblPANumber = (Label)grvRow.FindControl("lblPANum");
+                Label lblSANumber = (Label)grvRow.FindControl("lblSANum");
+                Label lblAssetID = (Label)grvRow.FindControl("lblAssetID");
+                TextBox txtCurValue = (TextBox)grvRow.FindControl("txtCurValue");
+                Label lblValue = (Label)grvRow.FindControl("LastEnteredValue");
+                Label lblLastDate = (Label)grvRow.FindControl("lblLastDate");
+
+               // txtCurValue.SetDecimalPrefixSuffix(10, 3, true,false, "Current Value");//Code Changed.
+                // to fix the Amount field issues.
+
+                if (lblSANumber.Text.Trim() == "") lblSANumber.Text = lblPANumber.Text + "DUMMY";
+
+                if (txtCurValue.Text != "")
+                {
+                    //if ((Utility.StringToDate(txtMVDate.Text) == DateTime.Now) && (PageMode == PageModes.Create))
+                    //{
+                    //    intErrCode = 2;
+                    //    return;
+                    //}
+                    //if (txtCurValue.Text.Trim() == "0")
+                    //{
+                    //    txtCurValue.Text = "";
+                    //    Utility.FunShowAlertMsg(this, "Current Market Value Cannot be Zero");
+                    //    txtCurValue.Focus();
+                    //    return;
+                    //}
+                   if(txtCurValue.Text != "")
+                    {
+                        strMVEBuilder.Append("<Details Company_ID ='" + Convert.ToString(intCompanyID) + "'");
+                        if (!string.IsNullOrEmpty(strMVNo))
+                        {
+                            strMVEBuilder.Append(" Market_Value_ID='" + strMVNo + "'");
+                        }
+                        strMVEBuilder.Append(" Customer_ID='" + hidCustId.Value + "' PANum='" + lblPANumber.Text + "'  ");
+                        strMVEBuilder.Append(" SANum='" + lblSANumber.Text + "' Asset_ID='" + lblAssetID.Text + "' Market_Date='" + Utility.StringToDate(txtMVDate.Text) + "'  ");
+                        strMVEBuilder.Append(" Market_Value='" + txtCurValue.Text + "'  /> ");
+                    }
+
+                }
+               
+            }
+        }
+        else if (rdoOption2.Checked)
+        {
+            foreach (GridViewRow grvRow in grvMarket.Rows)
+            {
+                
+                Label lblPANumber = (Label)grvRow.FindControl("lblPANum");
+                Label lblSANumber = (Label)grvRow.FindControl("lblSANum");
+                Label lblAssetID = (Label)grvRow.FindControl("lblAssetID");
+                if (lblSANumber.Text.Trim() == "") lblSANumber.Text = lblPANumber.Text + "DUMMY";
+                TextBox txtCurValue = (TextBox)grvRow.FindControl("txtCurValue"); ;
+                if(txtCurValue.Text != "") 
+                {
+                    
+                    txtCurValue = (TextBox)grvRow.FindControl("txtCurValue");
+                    // Commemnted By R.Manikandan to fix amount field issues
+                   // txtCurValue.SetDecimalPrefixSuffix(10, 3, true, false,"Current Value");// Code Changed.
+                    
+                    strMVEBuilder.Append("<Details Company_ID ='" + Convert.ToString(intCompanyID) + "' Market_Value_ID='" + strMVNo + "' Asset_Class='" + ddlAssetClass.SelectedValue + "' Asset_Make='" + ddlAssetMake.SelectedValue + "'  ");
+                    strMVEBuilder.Append(" Asset_Type='" + ddlAssetType.SelectedValue + "' Asset_Model='" + ddlAssetModel.SelectedValue + "' Asset_ID='" + lblAssetID.Text  + "' Market_Date='" + Utility.StringToDate(txtMVDate.Text) + "' ");
+                    strMVEBuilder.Append(" PANum='" + lblPANumber.Text + "' SANum='" + lblSANumber.Text + "'  ");
+                    strMVEBuilder.Append(" Market_Value='" + txtCurValue.Text + "'  /> ");
+                  
+                }
+               
+            }
+        }
+        strMVEBuilder.Append("</Root>");
+    }
+    #endregion
+
+    #region "To populate Asset Class List Values"
+    private void PopulateAssetClass()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            if(ddlBranch.SelectedValue!="0") Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+
+            //"Category_Code" added - Kuppu - June-15-2012 - Bug_ID - 6239
+            ddlAssetClass.BindDataTable(SPNames.S3G_CLN_GetAsset, Procparam, new string[] { "CLASS_ID","Category_Code","Category_Description" });
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region "To populate Customer List Values"
+    private void PopulateCustomer()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);            
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            System.Web.HttpContext.Current.Session["CustomerDT"] = Utility.GetDefaultData(SPNames.S3G_CLN_GetCustomer, Procparam);// true, "--All Customers--", new string[] { "Customer_ID", "Customer_Code", "Customer_Name" });
+            //ViewState["CustomerDetail"] = Utility.GetDefaultData(SPNames.S3G_CLN_GetCustomer, Procparam);
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region "To populate PAN List Values"
+    private void PopulatePAN()
+    {
+       try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+            Procparam = new Dictionary<string, string>();           
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            //Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            Procparam.Add("@Customer_ID", hidCustId.Value);
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@Is_Activated", "1");
+            Procparam.Add("@Type", "1");
+            Procparam.Add("@Program_ID", "89");
+            Procparam.Add("@GreaterDate", Utility.StringToDate(txtMVDate.Text).ToString());
+
+            //Procparam.Add("@Param1", "1");
+            ddlMLA.BindDataTable("S3G_CLN_GetPLASLA_MVE", Procparam, new string[] { "PANum", "PANum" });
+
+            if (ddlMLA.Items.Count == 2)
+            {
+                ddlMLA.SelectedValue = ddlMLA.Items[1].Value;
+                PopulateSAN();
+            }
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+
+    }
+    #endregion
+
+    #region "To populate SAN List Values"
+    private void PopulateSAN()
+    {      
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@Customer_ID", hidCustId.Value);// cmbCustomerCode.Text);
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@PANum", ddlMLA.SelectedValue);
+            Procparam.Add("@Is_Activated","1");
+            Procparam.Add("@Type", "2");
+            Procparam.Add("@Program_ID", "89");
+            Procparam.Add("@GreaterDate", Utility.StringToDate(txtMVDate.Text).ToString());
+            ddlSLA.BindDataTable("S3G_CLN_GetPLASLA_MVE", Procparam, new string[] { "SANum", "SANum" });
+            if (ddlSLA.Items.Count > 1)
+            {
+                rfvSLA.Enabled = true;
+            }
+            else
+            {
+                rfvSLA.Enabled = false;
+            }
+
+            if (ddlSLA.Items.Count == 2) ddlSLA.SelectedValue = ddlSLA.Items[0].Value;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+            
+        }
+
+    }
+    #endregion
+
+    #region "To populate Asset Make List Values"
+    private void PopulateAssetMake()
+    {
+        try
+        {
+            if (ddlAssetClass.SelectedIndex > 0)
+            {
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                Procparam.Add("@AssClass", ddlAssetClass.SelectedValue);
+                ddlAssetMake.BindDataTable(SPNames.S3G_CLN_GetAsset, Procparam, new string[] { "MAKE_ID", "Category_Description" });
+            }
+            
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            cvMarketValueEntry.ErrorMessage = objFaultExp.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region "To populate Asset Type List Values"
+    private void PopulateAssetType()
+    {
+        try
+        {
+            if (ddlAssetMake.SelectedIndex > 0)
+            {
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                Procparam.Add("@AssClass", ddlAssetClass.SelectedValue);
+                Procparam.Add("@AssMake", ddlAssetMake.SelectedValue);
+                ddlAssetType.BindDataTable(SPNames.S3G_CLN_GetAsset, Procparam, new string[] { "TYPE_ID", "Category_Description" });
+            }
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region "To populate Asset Model List Values"
+    private void PopulateAssetModel()
+    {
+        try
+        {
+            if (ddlAssetType.SelectedIndex > 0)
+            {
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                Procparam.Add("@AssClass", ddlAssetClass.SelectedValue);
+                Procparam.Add("@AssMake", ddlAssetMake.SelectedValue);
+                Procparam.Add("@AssType", ddlAssetType.SelectedValue);
+                ddlAssetModel.BindDataTable(SPNames.S3G_CLN_GetAsset, Procparam, new string[] { "MODEL_ID", "Category_Description" });
+            }
+        }
+        catch (FaultException<AccountMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            throw objFaultExp;
+        }
+        catch (Exception ex)
+        {
+            cvMarketValueEntry.ErrorMessage = ex.Message;
+            cvMarketValueEntry.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region GetCustomerCode
+    /// <summary>
+    /// GetCompletionList
+    /// </summary>
+    /// <param name="prefixText">search text</param>
+    /// <param name="count">no of matches to display</param>
+    /// <returns>string[] of matching names</returns>
+    [System.Web.Services.WebMethod]    
+    public static string[] GetCustomerList(String prefixText, int count)
+    {
+        List<String> suggetions = null;       
+        DataTable dtCustomer = new DataTable();
+        dtCustomer = (DataTable)System.Web.HttpContext.Current.Session["CustomerDT"];
+        suggetions = GetSuggestions(prefixText, count, dtCustomer);                    
+        return suggetions.ToArray();
+    }
+    #endregion
+
+    #region GetSuggestions
+    /// <summary>
+    /// GetSuggestions
+    /// </summary>
+    /// <param name="key">Country Names to search</param>
+    /// <returns>Country Names Similar to key</returns>
+    private static List<String> GetSuggestions(string key, int count, DataTable dt1)
+    {
+        List<String> suggestions = new List<string>();
+        try
+        {
+            string filterExpression = "Customer_Code like '%" + key + "%'";
+            DataRow[] dtSuggestions = dt1.Select(filterExpression);
+            foreach (DataRow dr in dtSuggestions)
+            {
+                string suggestion = dr["Customer_Code"].ToString();
+                suggestions.Add(suggestion);
+            }
+        }
+        catch (Exception objException)
+        {
+            return suggestions;
+            //  ClsPubCommErrorLogDB.CustomErrorRoutine(objException);
+            //   lblErrorMessage.Text = Resources.LocalizationResources.CustomerTypeChangeError;
+        }
+        return suggestions;
+    }
+    #endregion
+    
+    #region "User Authorization"
+    ////This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        TextBox txtCustomerCode = (TextBox)ucCustomerCode.FindControl("txtName");
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                if (!bCreate)
+                {
+                    btnSave.Enabled = false;
+                }
+                Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+                rdoOption1.Enabled = cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = btnOkOption1.Enabled = btnGetLOV.Enabled = false;
+               
+                //rdoOption2.Enabled = ddlAssetClass.Enabled = ddlAssetMake.Enabled = ddlAssetModel.Enabled = ddlAssetType.Enabled = btnOption2.Enabled = false;
+                //Commented By R. Manikandan to make LOB Non Mandatory
+                ddlAssetClass.Enabled = ddlAssetMake.Enabled = ddlAssetModel.Enabled = ddlAssetType.Enabled = btnOption2.Enabled = false;
+                //ddlAssetClass.Enabled = false;
+                break;
+            case 1: // Modify Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                btnClear.Enabled = false;
+                if (!bModify)
+                {
+                    
+                }
+                Utility.ClearDropDownList(ddlLOB);
+                ddlBranch.Enabled = false;             
+                CalendarExtender2.Enabled = txtMVDate.Enabled = btnOkOption1.Enabled = btnOption2.Enabled = false;
+                txtCustomerCode.Enabled = false;
+                cmbCustomerCode.Enabled = rdoOption1.Enabled = rdoOption2.Enabled = false;
+                if (rdoOption1.Checked)
+                {
+                    Utility.ClearDropDownList(ddlMLA);
+                    if (ddlSLA.Items.Count > 0)
+                    {
+                        Utility.ClearDropDownList(ddlSLA);
+                    }
+                    ddlAssetClass.Enabled = ddlAssetMake.Enabled = ddlAssetModel.Enabled = ddlAssetType.Enabled = false;
+                }
+                else
+                {
+                    Utility.ClearDropDownList(ddlAssetClass);
+                    Utility.ClearDropDownList(ddlAssetMake);
+                    Utility.ClearDropDownList(ddlAssetModel);
+                    Utility.ClearDropDownList(ddlAssetType);
+                    ddlSLA.Enabled = ddlMLA.Enabled = false;
+                    txtCustomerCode.Enabled = cmbCustomerCode.Enabled = false;
+                }
+                break;
+
+            case -1:// Query Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                btnSave.Enabled  = btnClear.Enabled = false;
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPage,false);
+                }
+                Utility.ClearDropDownList(ddlLOB);
+                ddlBranch.Enabled = false;
+                CalendarExtender2.Enabled = txtMVDate.Enabled = btnOkOption1.Enabled = btnOption2.Enabled = false;
+                //TextBox txtCustomerCode = (TextBox)ucCustomerCode.FindControl("txtName");
+                txtCustomerCode.Enabled = false;
+                chkStatus.Enabled = false;
+
+                if (rdoOption1.Checked)
+                {
+                    Utility.ClearDropDownList(ddlMLA);
+                    if (ddlSLA.Items.Count > 0)
+                    {
+                        Utility.ClearDropDownList(ddlSLA);
+                    }
+                    ddlAssetClass.Enabled = ddlAssetMake.Enabled = ddlAssetModel.Enabled = ddlAssetType.Enabled = false;
+                }
+                else
+                {
+                    Utility.ClearDropDownList(ddlAssetClass);
+                    Utility.ClearDropDownList(ddlAssetMake);
+                    Utility.ClearDropDownList(ddlAssetModel);
+                    Utility.ClearDropDownList(ddlAssetType);
+                    ddlSLA.Enabled = ddlMLA.Enabled = false;
+                    txtCustomerCode.Enabled = cmbCustomerCode.Enabled = false;
+                }
+                
+                cmbCustomerCode.Enabled =  rdoOption1.Enabled = rdoOption2.Enabled = false;
+                foreach (GridViewRow gvRow in grvMarket.Rows)
+                {
+                    TextBox txtCurValue = (TextBox)gvRow.FindControl("txtCurValue");
+                    // Commemnted By R.Manikandan to fix amount field issues
+                   // txtCurValue.SetDecimalPrefixSuffix(10, 3, true,false, "Current Value");// Code Changed
+                    txtCurValue.Enabled = false;
+                }              
+                
+                CheckBox chkCurValue = (CheckBox)grvMarket.HeaderRow.FindControl("chkCurValue");
+                if (chkCurValue != null) chkCurValue.Enabled = false;
+
+                txtMVDate.Attributes.Remove("onblur");
+                //txtMVDate.ReadOnly = true;
+                //if (bClearList)
+                //{
+                //    ddlBranch.ClearDropDownList();
+                //    /*ddlLOB.ClearDropDownList();
+                //    ddlMLA.ClearDropDownList();
+                //    ddlSLA.ClearDropDownList();*/
+                //    //ddlInvoice.ClearDropDownList();
+                //}
+                break;
+        }
+    }
+    ////Code end
+    #endregion    
+
+    #region Grid View Clear 
+    private void GridClear()
+    {
+        grvMarket.DataSource = null;
+        grvMarket.DataBind();
+        trNoRecord.Visible = false;
+                 //pnlGrid.Visible = false;
+    }
+    #endregion
+
+    #region Row Data Bound
+    protected void grvMarket_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+
+        if (e.Row.RowType == DataControlRowType.Header && PageMode== PageModes.Query)
+        {
+            Label lblCurValueH = (Label)e.Row.FindControl("lblCurValueH");
+            lblCurValueH.Text = "Current Market Value in " + strCurrency;
+        }
+            // Added by Manikandan to Bring Currency in the Header
+        else if ((e.Row.RowType == DataControlRowType.Header) && (PageMode != PageModes.Query))
+        {
+            Label lblCurValueH = (Label)e.Row.FindControl("lblCurval");
+            lblCurValueH.Text = "Current Market Value in " + strCurrency;
+        }
+        //else
+        //{
+        //}
+
+        string strSANum = "";
+        //if (ddlLOB.SelectedItem.Text.ToUpper().Contains("OPERAT"))
+        //{
+        //    grvMarket.Columns[7].Visible = true;
+        //}
+        //else
+        //{
+        //    grvMarket.Columns[7].Visible = false;
+        //}
+        if (PageMode == PageModes.Query)
+        {
+            grvMarket.Columns[11].Visible = false;
+         //   grvMarket.Columns[9].HeaderText = "Current Market Value";
+        }
+
+
+        //foreach (GridViewRow grvRow in grvMarket.Rows)
+        //{
+
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            Label lblCurValue = (Label)e.Row.FindControl("lblCurValue");
+            Label lblBookValue = (Label)e.Row.FindControl("lblBookValue");
+            Label lblSANum = (Label)e.Row.FindControl("lblPANum");
+            string strFormat = "";
+            //if (!string.IsNullOrEmpty(lblCurValue.Text))
+            //{
+            //    strFormat = Utility.SetSuffix(2);
+            //    lblCurValue.Text = Convert.ToDecimal(lblCurValue.Text).ToString(strFormat);
+            //}
+            if (!string.IsNullOrEmpty(lblBookValue.Text))
+            {
+                strFormat = Utility.SetSuffix(2);
+                lblBookValue.Text = Convert.ToDecimal(lblBookValue.Text).ToString(strFormat);
+            }
+            TextBox txtCurValue = (TextBox)e.Row.FindControl("txtCurValue");
+            // Commemnted By R.Manikandan to fix amount field issues
+            //txtCurValue.CheckGPSLength(true,"Current Market Value");
+            //txtCurValue.SetDecimalPrefixSuffix(10, 3, true,false, "Current Value");
+            //strSANum = lblSANum.Text.ToUpper();
+            ////if(strSANum.Contains("DUMMY"))
+            ////{
+            ////   lblSANum.Text = "";
+            ////}
+
+
+        }
+
+        
+    }
+    #endregion
+
+    #endregion
+    protected void txtMVDate_TextChangeEvent(object sender, EventArgs e)
+    {
+
+        Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+        btnGetLOV.Enabled = false;
+        //ddlBranch.SelectedValue = ddlLOB.SelectedValue = ddlBranch.SelectedValue = "0";
+        rdoOption2.Checked = rdoOption1.Checked = cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = btnOkOption1.Enabled = false;
+        rdoOption1.Checked = ddlAssetClass.Enabled = ddlAssetMake.Enabled = ddlAssetModel.Enabled = ddlAssetType.Enabled = false;
+        ddlAssetClass.SelectedValue = ddlAssetMake.SelectedValue = ddlAssetModel.SelectedValue = ddlAssetType.SelectedValue = "0";
+        ucCustomerCode.FunPubClearControlValue();
+        cmbCustomerCode.Text = "";
+        cmbCustomerCode.Enabled = false;
+
+        ddlSLA.Items.Clear();
+        ddlMLA.Items.Clear();
+        ddlAssetClass.Items.Clear();
+        ddlAssetMake.Items.Clear();
+        ddlAssetModel.Items.Clear();
+        ddlAssetType.Items.Clear();
+        GridClear();
+        string intDateErrors = "";
+       // To Check Month Closure
+         if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+        Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+        Procparam.Add("@Closure_Date", Utility.StringToDate(txtMVDate.Text).ToString());
+        //Procparam.Add("@ErrorCode", "0");
+        Procparam.Add("@Type", "");   
+        //Code Commented and added by Ganapathy for fixing the issue 8086 BEGIN
+        //DataTable dt = Utility.GetDefaultData("S3G_LOANAD_ValidateMonthClosure", Procparam);
+        intDateErrors = Utility.ValidateMonthClosure("S3G_LOANAD_ValidateMonthClosure", Procparam);
+        //Code Commented and added by Ganapathy for fixing the issue 8086 END
+        //Code Commented by Ganapathy BEGIN
+        //if (dt != null && dt.Rows.Count > 0)
+        //{
+        //    intDateErrors = dt.Rows[0][0].ToString();
+        //}
+        //Code Commented by Ganapathy END
+        if (intDateErrors == "5")
+        {
+            Utility.FunShowAlertMsg(this, "The Selected date Month is Closed select some other date");
+            txtMVDate.Text = "";
+            //  Button btnGetLOV = (Button)ucCustomerCode.FindControl("btnGetLOV");
+            //btnGetLOV.Enabled = false;
+            //ddlBranch.SelectedValue = ddlLOB.SelectedValue = ddlBranch.SelectedValue = "0";
+            rdoOption2.Checked = rdoOption1.Checked = cmbCustomerCode.Enabled = ddlMLA.Enabled = ddlSLA.Enabled = btnOkOption1.Enabled = false;
+            rdoOption1.Checked = ddlAssetClass.Enabled = ddlAssetMake.Enabled = ddlAssetModel.Enabled = ddlAssetType.Enabled = false;
+            ddlAssetClass.SelectedValue = ddlAssetMake.SelectedValue = ddlAssetModel.SelectedValue = ddlAssetType.SelectedValue = "0";
+            ucCustomerCode.FunPubClearControlValue();
+            cmbCustomerCode.Text = "";
+            cmbCustomerCode.Enabled = false;
+
+            ddlSLA.Items.Clear();
+            ddlMLA.Items.Clear();
+            ddlAssetClass.Items.Clear();
+            ddlAssetMake.Items.Clear();
+            ddlAssetModel.Items.Clear();
+            ddlAssetType.Items.Clear();
+            GridClear();
+            return;
+        }
+     }
+
+    private void FunBindGridOption1()
+    {
+        if (cmbCustomerCode.Text.Trim()== "")
+        {
+            cvMarketValueEntry.ErrorMessage = "Select the Customer Code";
+            cvMarketValueEntry.IsValid = false;
+            //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Select the Customer Code');", true);
+            return;
+        }
+        DataSet dtSet = new DataSet();
+          grvMarket.Visible = true;
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Customer_ID", hidCustId.Value);
+            Procparam.Add("@PAN", ddlMLA.SelectedValue);
+            Procparam.Add("@MVDate", Utility.StringToDate(txtMVDate.Text).ToString());
+            if(ddlSLA.SelectedValue!="0") Procparam.Add("@SAN", ddlSLA.SelectedValue);
+            Procparam.Add("@Option", ("1").ToString());
+            grvMarket.DataSource = Utility.GetDefaultData("S3G_CLN_GetMarketValue", Procparam);// true, "--All Customers--", new string[] { "Customer_ID", "Customer_Code", "Customer_Name" });
+            grvMarket.DataBind();
+           
+            //Label lblCurValue = (GridViewHeaderRow)grvMarket.FindControl("lblCurval");
+            //lblCurValue.Text = ("Amount in" + strCurrency);
+             
+            if (grvMarket.Rows.Count > 0)
+            {
+                trNoRecord.Visible = false;
+               // pnlGrid.Visible = true;
+            
+            }
+            else
+            {
+                trNoRecord.Visible = true;
+                lblNoRecord.Visible = true;
+                grvMarket.Visible = false;
+            }
+
+    }
+
+    private void FunBindGridOption2()
+    {
+        //if (cmbCustomerCode.Text.Trim() == "")
+        //{
+        //    Utility.FunShowAlertMsg(this, "Select the Customer Code");
+        //    return;
+        //}
+
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+
+        Procparam = new Dictionary<string, string>();
+        if (ddlBranch.SelectedValue != "0")
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+        else
+            Procparam.Add("@Location_ID", "");
+
+        Procparam.Add("@Company_ID", intCompanyID.ToString());
+        Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+        Procparam.Add("@AssClass", ddlAssetClass.SelectedValue);
+        Procparam.Add("@AssMake", ddlAssetMake.SelectedValue);
+        Procparam.Add("@AssType", ddlAssetType.SelectedValue);
+        Procparam.Add("@AssModel", ddlAssetModel.SelectedValue);
+        Procparam.Add("@Option", ("2").ToString());
+        Procparam.Add("@MVDate", Utility.StringToDate(txtMVDate.Text).ToString());
+
+        grvMarket.DataSource = Utility.GetDefaultData("S3G_CLN_GetMarketValue", Procparam);
+        grvMarket.DataBind();
+
+        if (grvMarket.Rows.Count > 0)
+        {
+            //trNoRecord.Style.Add("display", "none");
+            trNoRecord.Visible = false;
+            //pnlGrid.Visible = true;
+            grvMarket.Visible = true;
+        }
+        else
+        {
+            //trNoRecord.Style.Add("display", "block");
+            trNoRecord.Visible = true;
+            lblNoRecord.Visible = true;
+
+        }
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "101");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+    
+    
+}

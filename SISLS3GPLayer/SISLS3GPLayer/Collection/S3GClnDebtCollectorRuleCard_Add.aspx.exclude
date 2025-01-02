@@ -1,0 +1,368 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeFile="S3GClnDebtCollectorRuleCard_Add.aspx.cs"
+    Inherits="S3GClnDebtCollectorRuleCard" MasterPageFile="~/Common/S3GMasterPageCollapse.master" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script language="javascript" type="text/javascript">
+        function Trim(strInput) {
+            var FieldValue = document.getElementById(strInput).value;
+            document.getElementById(strInput).value = FieldValue.trim();
+        }
+
+        function hideModalPopupViaClient() {
+            //ev.preventDefault();        
+            var modalPopupBehavior = $find('programmaticModalPopupBehavior');
+            modalPopupBehavior.hide();
+        }
+    </script>
+
+    <table width="100%" align="center" cellpadding="0" cellspacing="0">
+        <tr>
+            <td valign="top" class="stylePageHeading">
+                <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">
+                </asp:Label>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" align="center">
+                <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                        <td valign="top" align="left">
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                <tr>
+                                    <td class="styleFieldLabel" colspan="2">
+                                        <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+                                            <ContentTemplate>
+                                                <table cellpadding="2" cellspacing="0" border="0" width="100%">
+                                                    <tr>
+                                                        <td>
+                                                            <asp:Panel ID="pnlbasedata" CssClass="stylePanel" GroupingText="Base Data" runat="server">
+                                                                <table cellpadding="2" cellspacing="0" border="0" width="100%">
+                                                                    <tr>
+                                                                        <td colspan="5" valign="top">
+                                                                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                                                                <tr>
+                                                                                    <td valign="top">
+                                                                                        <div style="height: 1px;">
+                                                                                        </div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            </table>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td style="width: 22%;">
+                                                                            <asp:Label ID="lblLineOfBusiness" runat="server" Text="Line of Business"></asp:Label>
+                                                                        </td>
+                                                                        <td style="width: 25%;">
+                                                                            <asp:DropDownList ID="ddlLineofBusiness" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlLineofBusiness_SelectedIndexChanged">
+                                                                            </asp:DropDownList>
+                                                                        </td>
+                                                                        <td style="width: 22%;">
+                                                                            <asp:Label ID="lblPaymentRuleNumber" runat="server" Text="Debt Collector RuleCard Number"></asp:Label>
+                                                                        </td>
+                                                                        <td style="width: 25%;">
+                                                                            <asp:TextBox ID="txtPaymentRuleNumber" runat="server" ReadOnly="True"></asp:TextBox>
+                                                                        </td>
+                                                                        <td style="width: 5%;">
+                                                                            &nbsp;&nbsp;
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <%-- <td style="width: 22%;">
+                                                                            <asp:Label ID="lblRegion" runat="server" Text="Region"></asp:Label>
+                                                                        </td>
+                                                                        <td style="width: 25%;">
+                                                                            <asp:DropDownList ID="ddlRegion" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlRegion_SelectedIndexChanged">
+                                                                            </asp:DropDownList>
+                                                                        </td>--%>
+                                                                        <td>
+                                                                            <asp:Label ID="lblBranch" runat="server" Text="Location"></asp:Label>
+                                                                        </td>
+                                                                        <td>
+                                                                            <uc:Suggest ID="ddlBranch" ToolTip="Location" runat="server" AutoPostBack="True"
+                                                                                OnItem_Selected="ddlBranch_SelectedIndexChanged" ServiceMethod="GetBranchList"
+                                                                                WatermarkText="--ALL--" />
+                                                                        </td>
+                                                                        <td style="width: 22%;">
+                                                                            <asp:Label ID="lblEffectiveFrom" runat="server" Text="Effective From"></asp:Label>
+                                                                        </td>
+                                                                        <td style="width: 25%;">
+                                                                            <asp:TextBox ID="txtEffectiveFrom" runat="server" ContentEditable="False"></asp:TextBox>
+                                                                            <%--<asp:Image ID="imgCalRegNoValDate"
+                                                                                        runat="server" imageUrl="~/Images/calendaer.gif" /><cc1:CalendarExtender ID="cexDate"
+                                                                                            runat="server" OnClientDateSelectionChanged="checkDate_NextSystemDate" TargetControlID="txtEffectiveFrom"
+                                                                                            PopupButtonID="imgCalRegNoValDate" Enabled="false">
+                                                                                        </cc1:CalendarExtender>--%>
+                                                                        </td>
+                                                                        <tr>
+                                                                            <td>
+                                                                                Active
+                                                                            </td>
+                                                                            <td>
+                                                                                <asp:CheckBox ID="ChkActive" runat="server" Checked="True" />
+                                                                            </td>
+                                                                        </tr>
+                                                                    </tr>
+                                                                </table>
+                                                                <table style="width: 83%">
+                                                                    <tr align="center">
+                                                                        <td style="width: 19%" align="left">
+                                                                            <asp:Label ID="lblSequenceNumber" runat="server" Text="Sequence Number"></asp:Label>
+                                                                        </td>
+                                                                        <td>
+                                                                            1
+                                                                        </td>
+                                                                        <td>
+                                                                            2
+                                                                        </td>
+                                                                        <td>
+                                                                            3
+                                                                        </td>
+                                                                        <td>
+                                                                            4
+                                                                        </td>
+                                                                        <td>
+                                                                            5
+                                                                        </td>
+                                                                        <td>
+                                                                            6
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td style="width: 19%">
+                                                                            <asp:Label ID="lblsequenceType" runat="server" Text="Sequence Type" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                        </td>
+                                                                        <td align="left">
+                                                                            <asp:DropDownList ID="ddlSequenceType1" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlSequenceType1_SelectedIndexChanged"
+                                                                                align="left">
+                                                                            </asp:DropDownList>
+                                                                            <asp:RequiredFieldValidator ID="rfvSeq1" runat="server" InitialValue="0" ControlToValidate="ddlSequenceType1"
+                                                                                SetFocusOnError="true" ErrorMessage="Select at least one Sequence Type" Display="None"
+                                                                                ValidationGroup="btnSave"></asp:RequiredFieldValidator>
+                                                                        </td>
+                                                                        <td align="left">
+                                                                            <asp:DropDownList ID="ddlSequenceType2" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlSequenceType2_SelectedIndexChanged"
+                                                                                align="Left">
+                                                                            </asp:DropDownList>
+                                                                        </td>
+                                                                        <td align="left">
+                                                                            <asp:DropDownList ID="ddlSequenceType3" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlSequenceType3_SelectedIndexChanged"
+                                                                                align="left">
+                                                                            </asp:DropDownList>
+                                                                        </td>
+                                                                        <td>
+                                                                            <asp:DropDownList ID="ddlSequenceType4" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlSequenceType4_SelectedIndexChanged"
+                                                                                align="left">
+                                                                            </asp:DropDownList>
+                                                                        </td>
+                                                                        <td align="left">
+                                                                            <asp:DropDownList ID="ddlSequenceType5" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlSequenceType5_SelectedIndexChanged"
+                                                                                align="left">
+                                                                            </asp:DropDownList>
+                                                                        </td>
+                                                                        <td align="left">
+                                                                            <asp:DropDownList ID="ddlSequenceType6" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlSequenceType6_SelectedIndexChanged"
+                                                                                align="left">
+                                                                            </asp:DropDownList>
+                                                                            <td>
+                                                                                <asp:Button ID="btnNext" runat="server" Text="GO" CssClass="styleSubmitShortButton"
+                                                                                    CausesValidation="False" OnClick="btnNext_Click" />
+                                                                            </td>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                            </asp:Panel>
+                                                            <asp:Panel ID="pnlMappingdtls" GroupingText="Mapping Details" runat="server" CssClass="stylePanel">
+                                                                <table>
+                                                                    <tr>
+                                                                        <td>
+                                                                            <asp:Repeater ID="RptControls" runat="server" OnItemDataBound="RptControls_ItemDataBound">
+                                                                                <ItemTemplate>
+                                                                                    <tr>
+                                                                                        <td>
+                                                                                            <asp:Label ID="lblHeading" runat="server" Text="<%#Container.DataItem %>"></asp:Label>
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <asp:DropDownList ID="row" runat="server" Visible="false">
+                                                                                            </asp:DropDownList>
+                                                                                            <%--<asp:TextBox ID="rowTextbox" runat="server" Visible="false"></asp:TextBox><cc1:FilteredTextBoxExtender
+                                                                                                ID="ftePIN" FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters"
+                                                                                                TargetControlID="rowTextbox" runat="server" Enabled="True" ValidChars=" ">
+                                                                                            </cc1:FilteredTextBoxExtender>--%>
+                                                                                            <cc1:ComboBox ID="rowTextbox" runat="server" CssClass="WindowsStyle" DropDownStyle="DropDownList"
+                                                                                                AutoPostBack="true" AppendDataBoundItems="true" CaseSensitive="false" AutoCompleteMode="SuggestAppend">
+                                                                                            </cc1:ComboBox>
+                                                                                            <%--<asp:RequiredFieldValidator ID="rfvPin" runat="server" ErrorMessage="Enter the Country"
+                                                                                                ValidationGroup="Entity Details" Display="None" SetFocusOnError="True" ControlToValidate="rowTextbox"
+                                                                                                meta:resourcekey="rfvtxtCountryResource1" InitialValue="0"></asp:RequiredFieldValidator>--%>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </ItemTemplate>
+                                                                                <FooterTemplate>
+                                                                                    <tr>
+                                                                                        <td>
+                                                                                            &nbsp;&nbsp;
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <asp:Button ID="btnAdd" runat="server" Text="Add" OnClick="btnAdd_Click" CssClass="styleSubmitShortButton" />
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </FooterTemplate>
+                                                                            </asp:Repeater>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                                <div style="overflow-x: hidden; overflow-y: auto;">
+                                                                    <asp:GridView ID="gvAssetAcquisition" runat="server" AutoGenerateColumns="true" Width="100%"
+                                                                        OnRowDataBound="gvAssetAcquisition_RowDataBound" OnRowCommand="gvAssetAcquisition_RowCommand"
+                                                                        OnRowDeleting="gvAssetAcquisition_RowDeleting">
+                                                                        <Columns>
+                                                                            <asp:TemplateField HeaderText="Edit/Delete">
+                                                                                <ItemTemplate>
+                                                                                    <asp:LinkButton ID="lnkEdit" runat="server" Text="Edit" OnClick="lnk_edit_Click"
+                                                                                        CausesValidation="false"></asp:LinkButton>
+                                                                                    <asp:LinkButton ID="lnkRemove" runat="server" Text="Delete" CommandName="Delete"
+                                                                                        OnClientClick="return confirm('Do you want to delete?');" CausesValidation="false"></asp:LinkButton>
+                                                                                </ItemTemplate>
+                                                                                <FooterTemplate>
+                                                                                    <asp:LinkButton ID="lnkAdd" runat="server" Text="Add" OnClick="lnk_add_Click" CausesValidation="false"></asp:LinkButton>
+                                                                                </FooterTemplate>
+                                                                                <ItemStyle Width="10%" />
+                                                                            </asp:TemplateField>
+                                                                        </Columns>
+                                                                    </asp:GridView>
+                                                                </div>
+                                                            </asp:Panel>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td align="center">
+                                                            <asp:Button runat="server" ID="btnSave" ValidationGroup="btnSave" CssClass="styleSubmitButton"
+                                                                OnClick="btnSave_Click" Text="Save" OnClientClick="return fnCheckPageValidators('btnSave');" />
+                                                            &nbsp;
+                                                            <asp:Button ID="btnClear" runat="server" CausesValidation="False" OnClientClick="return fnConfirmClear();"
+                                                                CssClass="styleSubmitButton" Text="Clear" OnClick="btnClear_Click" />
+                                                            &nbsp;
+                                                            <asp:Button runat="server" ID="btnCancel" Text="Cancel" CausesValidation="False"
+                                                                CssClass="styleSubmitButton" OnClick="btnCancel_Click" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td align="center">
+                                                            <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td align="center">
+                                                            <asp:ValidationSummary ID="vsUTPA" runat="server" CssClass="styleMandatoryLabel"
+                                                                HeaderText="Correct the following validation(s):" ShowSummary="true" ValidationGroup="btnSave" />
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </ContentTemplate>
+                                        </asp:UpdatePanel>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center">
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <cc1:ModalPopupExtender ID="ModalPopupExtenderPassword" runat="server" TargetControlID="btnModal"
+        PopupControlID="PnlPassword" BackgroundCssClass="styleModalBackground" Enabled="True">
+    </cc1:ModalPopupExtender>
+    <asp:Panel ID="PnlPassword" Style="display: none; vertical-align: middle" runat="server"
+        BorderStyle="Solid" BackColor="White" Width="50%">
+        <asp:UpdatePanel ID="upPass" runat="server">
+            <ContentTemplate>
+                <table width="100%">
+                    <tr width="100%">
+                        <td width="100%">
+                            <table width="100%">
+                                <tr width="100%">
+                                    <td width="50%">
+                                        <asp:Label runat="server" ID="lblpincode" Text="Pincode" />
+                                    </td>
+                                    <td width="50%">
+                                        <%--<cc1:ComboBox ID="txtpincode" runat="server" CssClass="WindowsStyle" DropDownStyle="DropDownList"
+                                            AutoPostBack="true" AppendDataBoundItems="true" CaseSensitive="false" AutoCompleteMode="SuggestAppend">
+                                        </cc1:ComboBox>--%>
+                                        <asp:DropDownList ID="txtpincode" runat="server" Visible="false" />
+                                    </td>
+                                </tr>
+                                <tr width="100%">
+                                    <td width="50%">
+                                        <asp:Label runat="server" ID="lblProduct" Text="Product" />
+                                    </td>
+                                    <td width="50%">
+                                        <asp:DropDownList ID="ddlProduct" runat="server" Visible="false" />
+                                    </td>
+                                </tr>
+                                <tr width="100%">
+                                    <td width="50%">
+                                        <asp:Label runat="server" ID="lblPeriod" Text="Period" />
+                                    </td>
+                                    <td width="50%">
+                                        <asp:DropDownList ID="ddlPeriod" runat="server" Visible="false" />
+                                    </td>
+                                </tr>
+                                <tr width="100%">
+                                    <td width="50%">
+                                        <asp:Label runat="server" ID="lblcategory" Text="Category" />
+                                    </td>
+                                    <td width="50%">
+                                        <asp:DropDownList ID="ddlcategory" runat="server" Visible="false" />
+                                    </td>
+                                </tr>
+                                <tr width="100%">
+                                    <td width="50%">
+                                        <asp:Label runat="server" ID="lblvalue" Text="Value" />
+                                    </td>
+                                    <td width="50%">
+                                        <asp:DropDownList ID="ddlvalue" runat="server" Visible="false" />
+                                    </td>
+                                </tr>
+                                <tr width="100%">
+                                    <td width="50%">
+                                        <asp:Label runat="server" ID="lblsalesperson" Text="SalesPerson" />
+                                    </td>
+                                    <td width="50%">
+                                        <asp:DropDownList ID="ddlsalesperson" runat="server" Visible="false" />
+                                    </td>
+                                </tr>
+                                <tr width="100%">
+                                    <td width="50%">
+                                        <asp:Label runat="server" ID="lblDebtCollector" Text="DebtCollector" />
+                                    </td>
+                                    <td width="50%">
+                                        <asp:DropDownList ID="ddlDebtCollector" runat="server" Visible="false" />
+                                    </td>
+                                </tr>
+                                <tr width="100%">
+                                    <td colspan="2" align="center">
+                                        <asp:Button ID="btnModifyModal" Text="Modify" OnClick="btnModifyModal_Click" runat="server"
+                                            CssClass="styleSubmitButton" />
+                                        <asp:Button ID="btnAddModal" Text="Add" OnClick="btnAddModal_Click" runat="server"
+                                            CssClass="styleSubmitButton" />
+                                        <asp:Button ID="btnCancelModal" Text="Cancel" OnClick="btnCancelModal_Click" runat="server"
+                                            CssClass="styleSubmitButton" />
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </ContentTemplate>
+        </asp:UpdatePanel>
+    </asp:Panel>
+    <asp:Button ID="btnModal" Style="display: none" runat="server" />
+</asp:Content>

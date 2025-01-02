@@ -1,0 +1,61 @@
+﻿using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using S3GBusEntity.Reports;
+using CrystalDecisions.Shared;
+using CrystalDecisions.CrystalReports.Engine;
+
+public partial class Reports_S3GStatementOfAccountsReport : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+
+    }
+    protected void Page_Init(object sender, EventArgs e)
+    {
+
+        if (Session["Transaction"] != null)
+        {
+            ClsPubCustomer cust = (ClsPubCustomer)Session["Customer"];
+            
+            List<ClsPubTransaction> trans=(List<ClsPubTransaction>)Session["Transaction"];
+            ReportDocument rptd = new ReportDocument();
+            rptd.Load(@"D:\S3G\SISLS3GPLayer\SISLS3GPLayer\Reports\TransactionDetailsReport.rpt");
+            rptd.SetDataSource(trans);
+            
+            List<ClsPubCustomer> custs = new List<ClsPubCustomer>();
+            custs.Add(cust);
+            rptd.Subreports["CustomerReport.rpt"].SetDataSource(custs);
+
+            List<ClsPubAsset> Asset = (List<ClsPubAsset>)Session["Assets"];
+            rptd.Subreports["AssetReport.rpt"].SetDataSource(Asset);
+
+            //List<ClsPubPASA> PASA = (List<ClsPubPASA>)Session["PASA"];
+            //rptd.Subreports["PrimeAccountSubAccountReport.rpt"].SetDataSource(PASA);
+            ClsPubSummary summary = (ClsPubSummary)Session["Summary"];
+            List<ClsPubSummary> summarys = new List<ClsPubSummary>();
+            summarys.Add(summary);
+            rptd.Subreports["SummaryReport.rpt"].SetDataSource(summarys);
+
+            ClsPubMemorandum memo=(ClsPubMemorandum)Session["Memorandum"];
+            List<ClsPubMemorandum> memos=new List<ClsPubMemorandum>();
+            memos.Add(memo);
+            rptd.Subreports["MemorandumReport.rpt"].SetDataSource(memos);
+            
+            CRVStatementOfAccounts.ReportSource=rptd;     
+            CRVStatementOfAccounts.DataBind();          
+                      
+        }
+
+    }
+}

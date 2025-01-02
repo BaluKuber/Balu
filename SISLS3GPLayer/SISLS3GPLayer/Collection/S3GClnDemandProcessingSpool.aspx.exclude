@@ -1,0 +1,239 @@
+<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnDemandProcessingSpool.aspx.cs" Inherits="Collection_S3GClnDemandProcessingSpool" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="Demand Processing Spooling" ID="lblHeading" CssClass="styleDisplayLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td>
+                        <asp:Panel runat="server" ID="Panel1" CssClass="stylePanel" GroupingText="Demand Type">
+                            <table style="width: 100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td class="styleFieldLabel" width="20%">
+                                        <asp:Label runat="server" Text="Demand Month" ID="lblDemandMonth" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" align="left">
+                                        <asp:DropDownList ID="ddlDemandMonth" runat="server" Visible="true" AutoPostBack="True"
+                                            OnSelectedIndexChanged="ddlDemandMonth_SelectedIndexChanged">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="rfvDemandMonth" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlDemandMonth" ErrorMessage="Enter Demand Month" Display="None"
+                                            ValidationGroup="Excel"></asp:RequiredFieldValidator>
+                                        <asp:RequiredFieldValidator ID="RequiredFieldValidator2" CssClass="styleMandatoryLabel"
+                                            runat="server" ControlToValidate="ddlDemandMonth" ErrorMessage="Enter Demand Month"
+                                            Display="None" ValidationGroup="Spool"></asp:RequiredFieldValidator>
+                                    </td>
+                                    <td colspan="2">&nbsp;
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td height="8px"></td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" width="20%">
+                                        <asp:Label runat="server" Text="Line of Business" ID="lblLOB">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" width="30%">
+                                        <asp:DropDownList ID="ddlLOB" runat="server" Visible="true" Width="60%" AutoPostBack="True"
+                                            OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged">
+                                        </asp:DropDownList>
+                                    </td>
+                                    <td class="styleFieldLabel" width="20%">
+                                        <asp:Label runat="server" Text="Location" ID="lblBranch" CssClass="styleReqFieldLabel">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" width="30%">
+                                        <uc:Suggest ID="ddlBranch" ToolTip="Location" runat="server" AutoPostBack="True"
+                                            OnItem_Selected="ddlBranch_SelectedIndexChanged" IsMandatory="true" ErrorMessage="Select a Location" ValidationGroup="Spool" ServiceMethod="GetBranchList"
+                                            WatermarkText="--ALL--" />
+                                        <%-- <asp:RequiredFieldValidator ID="rfvBranch" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlBranch" InitialValue="0" ErrorMessage="Select a Location"
+                                            Display="None" ValidationGroup="Excel"></asp:RequiredFieldValidator>
+                                        <asp:RequiredFieldValidator ID="RequiredFieldValidator1" CssClass="styleMandatoryLabel"
+                                            runat="server" ControlToValidate="ddlBranch" InitialValue="0" ErrorMessage="Select a Location"
+                                            Display="None" ValidationGroup="Spool"></asp:RequiredFieldValidator>--%>
+                                        <%--<asp:RequiredFieldValidator ID="rfvBranch" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlBranch" InitialValue="0" ErrorMessage="Select Branch" Display="None"
+                                            ValidationGroup="Excel"></asp:RequiredFieldValidator>--%>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td height="8px"></td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldLabel" width="20%">
+                                        <asp:Label runat="server" Text="Account Manager 1" ID="lblDebtCollector">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" align="left" width="30%">
+                                        <asp:CheckBox ID="chkDebtCollector" runat="server" Checked="false" AutoPostBack="true"
+                                            OnCheckedChanged="chkDebtCollector_CheckedChanged" />
+                                        <%--<asp:RequiredFieldValidator ID="RequiredFieldValidator1" CssClass="styleMandatoryLabel" runat="server"
+                                        ControlToValidate="ddlBranch" InitialValue="0" ErrorMessage="Select Branch"
+                                        Display="None" ValidationGroup="Save"></asp:RequiredFieldValidator>--%>
+                                    </td>
+                                    <td class="styleFieldLabel" width="20%">
+                                        <asp:Label runat="server" Text="Account Manager 1" ID="lblDCCode" CssClass="">
+                                        </asp:Label>
+                                    </td>
+                                    <td class="styleFieldAlign" align="left" width="30%">
+                                        <asp:DropDownList ID="ddlDCCode" runat="server" Enabled="false" Width="60%" AutoPostBack="True"
+                                            OnSelectedIndexChanged="ddlDCCode_SelectedIndexChanged">
+                                        </asp:DropDownList>
+                                        <asp:RequiredFieldValidator ID="rfvDCCode" CssClass="styleMandatoryLabel" runat="server"
+                                            ControlToValidate="ddlDCCode" ErrorMessage="Select Account Manager 1" Display="None"
+                                            ValidationGroup="Excel" Enabled="false" InitialValue="0"></asp:RequiredFieldValidator>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td height="8px"></td>
+                                </tr>
+                            </table>
+                        </asp:Panel>
+                    </td>
+                </tr>
+            </table>
+            <asp:Panel ID="Panel2" runat="server" CssClass="stylePanel" GroupingText="Spooling options">
+                <table width="100%">
+                    <tr>
+                        <td width="50%">
+                            <table>
+                                <tr>
+                                    <td class="styleFieldLabel">
+                                        <asp:Label runat="server" Text="Record spooled on basis of" ID="lblBasic">
+                                        </asp:Label>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="styleFieldAlign">
+                                        <asp:RadioButtonList ID="rbtlSpoolBasis" runat="server" RepeatDirection="Vertical" class="styleFieldLabel">
+                                            <asp:ListItem Text="Customer" Value="0" Selected="True"></asp:ListItem>
+                                            <asp:ListItem Text="Rental Schedule level" Value="1"></asp:ListItem>
+                                            <asp:ListItem Text="Expanded" Value="2"></asp:ListItem>
+                                        </asp:RadioButtonList>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td width="50%">
+                            <asp:GridView ID="grvDemandProcessSpool" runat="server" AutoGenerateColumns="false"
+                                FooterStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader" RowStyle-HorizontalAlign="Center"
+                                ShowFooter="true" Width="100%">
+                                <RowStyle HorizontalAlign="Center" />
+                                <Columns>
+                                    <asp:TemplateField HeaderText="Category Type">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblCategory" runat="server" MaxLength="3" Text='<%# Bind("CategoryType") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <HeaderStyle Width="80%" />
+                                        <ItemStyle HorizontalAlign="Left" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Category TypeID" Visible="false">
+                                        <ItemTemplate>
+                                            <asp:Label ID="lblCategoryID" runat="server" MaxLength="3" Text='<%# Bind("CategoryTypeID") %>'></asp:Label>
+                                        </ItemTemplate>
+                                        <HeaderStyle Width="15%" />
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Select">
+                                        <ItemTemplate>
+                                            <asp:CheckBox ID="chkCategory" runat="server" AutoPostBack="True" OnCheckedChanged="chkCategory_CheckedChanged" />
+                                        </ItemTemplate>
+                                        <HeaderStyle Width="5%" />
+                                        <ItemStyle HorizontalAlign="Center" />
+                                    </asp:TemplateField>
+                                </Columns>
+                                <FooterStyle HorizontalAlign="Center" />
+                                <HeaderStyle CssClass="styleGridHeader" />
+                            </asp:GridView>
+                        </td>
+                    </tr>
+                </table>
+            </asp:Panel>
+            <table width="100%">
+                <tr>
+                    <td style="display: none;">
+                        <asp:GridView ID="grvSpoolFile" runat="server" Width="100%" AutoGenerateColumns="true"
+                            FooterStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader" ShowFooter="false"
+                            Visible="false" />
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+    <table width="100%">
+        <tr class="styleButtonArea" style="padding-left: 4px">
+            <td align="center">
+                <asp:UpdatePanel runat="server" ID="UpdatePanel2">
+                    <ContentTemplate>
+                        <asp:Button ID="btnExcel" runat="server" CausesValidation="true" CssClass="styleSubmitButton"
+                            Text="Excel" ValidationGroup="Excel" OnClick="btnExcel_Click" />
+                        &nbsp;<asp:Button ID="btnFlatFile" runat="server" CausesValidation="true" CssClass="styleSubmitButton"
+                            Text="Flat File" style="display:none;"
+                            OnClick="btnFlatFile_Click" />
+                        &nbsp;<asp:Button ID="btnEmail" runat="server" CausesValidation="true" CssClass="styleSubmitButton"
+                            Text="Email to DC" OnClientClick="return fnCheckPageValidators('Excel',false)"
+                            Visible="false" OnClick="btnEmail_Click" />
+                        <asp:Button ID="btnSpool" runat="server" CausesValidation="true" CssClass="styleSubmitButton"
+                            Text="Demand Report" ValidationGroup="Spool" OnClick="btnSpool_Click" style="display:none;"/><br />
+                    </ContentTemplate>
+                    <Triggers>
+                        <asp:PostBackTrigger ControlID="btnExcel" />
+                        <asp:PostBackTrigger ControlID="btnFlatFile" />
+                        <asp:PostBackTrigger ControlID="btnEmail" />
+                        <asp:PostBackTrigger ControlID="btnSpool" />
+                    </Triggers>
+                </asp:UpdatePanel>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <asp:UpdatePanel runat="server" ID="UpdatePanel4">
+                    <ContentTemplate>
+                        <asp:CustomValidator ID="CVDemandProcessingSpool" runat="server" Display="None" ValidationGroup="Save"></asp:CustomValidator>
+                    </ContentTemplate>
+                </asp:UpdatePanel>
+            </td>
+        </tr>
+        <tr class="styleButtonArea">
+            <td>
+                <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <asp:UpdatePanel runat="server" ID="UpdatePanel3">
+                    <ContentTemplate>
+                        <asp:ValidationSummary ID="vsDemandProcessSpool" runat="server" CssClass="styleSummaryStyle"
+                            HeaderText="Correct the following validation(s):" Height="250px" ShowMessageBox="false"
+                            ShowSummary="true" Width="500px" ValidationGroup="Excel" />
+                        <asp:ValidationSummary ID="ValidationSummary1" runat="server" CssClass="styleSummaryStyle"
+                            HeaderText="Correct the following validation(s):" Height="250px" ShowMessageBox="false"
+                            ShowSummary="true" Width="500px" ValidationGroup="Spool" />
+                    </ContentTemplate>
+                </asp:UpdatePanel>
+            </td>
+        </tr>
+    </table>
+</asp:Content>

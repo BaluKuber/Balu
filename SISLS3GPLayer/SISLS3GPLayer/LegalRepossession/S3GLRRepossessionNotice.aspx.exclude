@@ -1,0 +1,838 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GLRRepossessionNotice.aspx.cs" Inherits="LegalRepossession_S3GLRRepossessionNotice"
+    Title="Untitled Page" %>
+<%@ Register Src="~/UserControls/LOBMasterView.ascx" TagName="LOV" TagPrefix="uc2" %>
+<%@ Register TagPrefix="uc2" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<%@ Register Assembly="iCONWebComponents" Namespace="iCON.Web.Components" TagPrefix="cc2" %>
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register Src="../UserControls/S3GCustomerAddress.ascx" TagName="S3GCustomerAddress"
+    TagPrefix="uc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script language="javascript" type="text/javascript">
+//        function Trim(strInput)
+//        {
+//            var FieldValue = document.getElementById(strInput).value;
+//            document.getElementById(strInput).value = FieldValue.trim();
+//        }
+//        
+function pageLoad()
+{
+    var ddlLOB= document.getElementById('<%=ddlLOB.ClientID%>');
+    ddlLOB.focus();
+}
+        
+ function fn_IsLetterExists(strValGrp,blnConfirm) 
+ {
+   if (Page_ClientValidate(strValGrp)) 
+   {
+     if (blnConfirm == undefined) 
+     {
+        var Mlink= document.getElementById('<%=hl_magistrate.ClientID%>');
+        var Plink= document.getElementById('<%=hl_police.ClientID%>');
+        var Clink= document.getElementById('<%=hl_customer.ClientID%>');
+             
+        var Mchk= document.getElementById('<%=chkMagistrate.ClientID%>');
+        var Pchk= document.getElementById('<%=chkPolice.ClientID%>');
+        var Cchk= document.getElementById('<%=chkCustomer.ClientID%>');
+              
+        if(Mlink !=null && Mchk .checked==true)
+               {
+                        if (confirm('Repossession Notice Already Exists. Do you want to Regenerate?')) {
+                            var a = event.srcElement;
+                            if (a.type == "submit") {
+                                a.style.display = 'none';
+                            }
+                            document.getElementById('<%=btnPDF.ClientID%>').click();
+                            return true;
+                        }
+                        else
+                           return false; 
+               }
+               else  if(Plink !=null && Pchk .checked==true)
+               {
+                   if (confirm('Repossession Notice Already Exists. Do you want to Regenerate?')) {
+                           var a = event.srcElement;
+                           if (a.type == "submit") {
+                               a.style.display = 'none';
+                           }
+                            document.getElementById('<%=btnPDF.ClientID%>').click();
+                            return true;
+                        }
+                        else
+                           return false; 
+               }
+               else  if(Clink !=null && Cchk .checked==true)
+               {
+                  if (confirm('Repossession Notice Already Exists. Do you want to Regenerate?')) {
+                          var a = event.srcElement;
+                          if (a.type == "submit") {
+                              a.style.display = 'none';
+                          }
+                            document.getElementById('<%=btnPDF.ClientID%>').click();
+                            return true;
+                        }
+                        else
+                           return false; 
+               }
+               else
+               {
+                //return true;
+                 if (confirm('Are you sure? Want to Generate Notice?')) {
+                             var a = event.srcElement;
+                             if (a.type == "submit") {
+                                 a.style.display = 'none';
+                             }
+                            document.getElementById('<%=btnPDF.ClientID%>').click();
+                            return true;
+                        }
+                        else
+                           return false; 
+               }
+                }
+                else
+                {
+                    Page_BlockSubmit=false;
+                    return true;
+                }
+             }
+     }
+
+       
+      function fn_IsLetterExistsWord(strValGrp,blnConfirm) 
+        {if (Page_ClientValidate(strValGrp)) 
+            {
+            
+                if (blnConfirm == undefined) 
+                {
+             var Mlink_word= document.getElementById('<%=hl_magistrate_word.ClientID%>');
+             var Plink_word= document.getElementById('<%=hl_police_word.ClientID%>');
+             var Clink_word= document.getElementById('<%=hl_customer_word.ClientID%>');
+             
+              var Mchk_word= document.getElementById('<%=chkMagistrate.ClientID%>');
+              var Pchk_word= document.getElementById('<%=chkPolice.ClientID%>');
+              var Cchk_word= document.getElementById('<%=chkCustomer.ClientID%>');
+              
+               if(Mlink_word !=null && Mchk_word.checked==true)
+               {
+                        if (confirm('Repossession Notice Already Exists. Do you want to Regenerate?')) {
+                            var a = event.srcElement;
+                            if (a.type == "submit") {
+                                a.style.display = 'none';
+                            }
+                            document.getElementById('<%=btnMSword.ClientID%>').click();
+                            return true;
+                        }
+                        else
+                           return false; 
+               }
+               else  if(Plink_word !=null && Pchk_word.checked==true)
+               {
+                   if (confirm('Repossession Notice Already Exists. Do you want to Regenerate?')) {
+                           var a = event.srcElement;
+                           if (a.type == "submit") {
+                               a.style.display = 'none';
+                           }
+                            document.getElementById('<%=btnMSword.ClientID%>').click();
+                            return true;
+                        }
+                        else
+                           return false; 
+               }
+               else  if(Clink_word !=null && Cchk_word.checked==true)
+               {
+                  if (confirm('Repossession Notice Already Exists. Do you want to Regenerate?')) {
+                              var a = event.srcElement;
+                              if (a.type == "submit") {
+                                  a.style.display = 'none';
+                              }    
+                            document.getElementById('<%=btnMSword.ClientID%>').click();
+                            return true;
+                        }
+                        else
+                           return false; 
+               }
+               else
+               {
+                //return true;
+                 if (confirm('Are you sure? Want to Generate Notice?')) 
+                        {
+                            document.getElementById('<%=btnMSword.ClientID%>').click();
+                            var a = event.srcElement;
+                            if (a.type == "submit") {
+                                a.style.display = 'none';
+                            }
+                            return true;
+                        }
+                        else
+                           return false; 
+               }
+               }
+                else
+                {
+                    Page_BlockSubmit=false;
+                    return true;
+                }
+             }
+     }   
+        
+        
+      
+     
+    </script>
+
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <%-- Design for 1st Row       --%>
+                <tr>
+                    <td class="stylePageHeading">
+                        <asp:Label runat="server" Text="Repossession Notice" ID="lblHeading" CssClass="styleDisplayLabel"> </asp:Label>
+                        <input id="HidConfirm" type="hidden" runat="server" />
+                    </td>
+                </tr>
+                <%-- Design for space in between Row       --%>
+                <tr>
+                    <td class="styleFieldLabel">
+                        &nbsp;
+                    </td>
+                </tr>
+                <%-- Design for 2nd Row       --%>
+                <tr>
+                    <td>
+                        <cc1:TabContainer ID="tcRepossessNotice" runat="server" ActiveTabIndex="0" CssClass="styleTabPanel"
+                            Width="99%" ScrollBars="None">
+                            <cc1:TabPanel runat="server" HeaderText="General" ID="tbgeneral" CssClass="tabpan"
+                                BackColor="Red" ToolTip="General" Width="99%">
+                                <HeaderTemplate>
+                                    General</HeaderTemplate>
+                                <ContentTemplate>
+                                    <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                                        <%-- Design for 1st Row       --%>
+                                        <tr>
+                                            <td>
+                                                <table width="100%">
+                                                    <tr>
+                                                        <%--<td>
+                <table >
+                <tr> --%>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleDisplayLabel"></asp:Label>
+                                                            <span class="styleMandatory">*</span>
+                                                        </td>
+                                                        <td>
+                                                            <asp:DropDownList ID="ddlLOB" runat="server" Width="165px" ToolTip="Line of Business"
+                                                                AutoPostBack="True" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged">
+                                                            </asp:DropDownList>
+                                                            <asp:RequiredFieldValidator ID="rfvddlLOB" runat="server" Display="None" InitialValue="0"
+                                                                ValidationGroup="btnSave" ErrorMessage="Select Line of Business" ControlToValidate="ddlLob"
+                                                                SetFocusOnError="True"></asp:RequiredFieldValidator>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" Text="Location" ID="lblBranch" CssClass="styleDisplayLabel"></asp:Label>
+                                                            <span class="styleMandatory">*</span>
+                                                        </td>
+                                                        <td>
+                                                        <uc2:Suggest ID="ddlBranch" runat="server" ServiceMethod="GetBranchList" AutoPostBack="true"
+                                                                                        OnItem_Selected="ddlBranch_SelectedIndexChanged" IsMandatory="true" ValidationGroup="Submit" ErrorMessage="Enter Location" />
+                                                            <%--<asp:DropDownList ID="ddlBranch" runat="server" Width="165px" ToolTip="Location" AutoPostBack="True"
+                                                                OnSelectedIndexChanged="ddlBranch_SelectedIndexChanged">
+                                                            </asp:DropDownList>
+                                                            <asp:RequiredFieldValidator ID="rfvddlBranch" runat="server" Display="None" InitialValue="0"
+                                                                ValidationGroup="btnSave" ErrorMessage="Select Location" ControlToValidate="ddlBranch"
+                                                                SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" Text="Legal Repossession Note Number" ID="lblLRNNumber"
+                                                                CssClass="styleDisplayLabel"></asp:Label>
+                                                            <span class="styleMandatory">*</span>
+                                                        </td>
+                                                        <td>
+                                                            <asp:DropDownList ID="ddlLRNNumber" runat="server" Width="165px" AutoPostBack="True"
+                                                                ToolTip="Legal Repossession Note Number" OnSelectedIndexChanged="ddlLRNNumber_SelectedIndexChanged">
+                                                                <asp:ListItem Value="0">--Select--</asp:ListItem>
+                                                            </asp:DropDownList>
+                                                            <asp:RequiredFieldValidator ID="rfvddlLRNNumber" runat="server" Display="None" InitialValue="0"
+                                                                ValidationGroup="btnSave" ErrorMessage="Select Legal Repossession Note Number"
+                                                                ControlToValidate="ddlLRNNumber" SetFocusOnError="True"></asp:RequiredFieldValidator>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" Text="Amount Financed" ID="lblAmtFin" CssClass="styleDisplayLabel"></asp:Label>
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtAmtFin" runat="server" ReadOnly="true" ToolTip="Amount Financed"
+                                                                Width="165px" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" Text="Prime Account Number" ID="lblPANum" CssClass="styleDisplayLabel"></asp:Label>
+                                                            <%-- <span class="styleMandatory">*</span>--%>
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtPANum" runat="server" ReadOnly="true" ToolTip="Prime Account Number"
+                                                                Width="165px" />
+                                                            <%--<asp:DropDownList ID="ddlPAN" runat="server" Width="165px" ToolTip ="Prime Account Number">
+                        </asp:DropDownList>
+                         <asp:RequiredFieldValidator ID="rfvddlPAN" runat="server" Display="None"
+                         InitialValue="0" ValidationGroup="btnSave" ErrorMessage="Select Prime Account Number."
+                        ControlToValidate="ddlPAN" SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" Text="Tenure" ID="lblTenure" CssClass="styleDisplayLabel"></asp:Label>
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtTenure" runat="server" ReadOnly="true" ToolTip="Tenure" Width="165px" />
+                                                        </td>
+                                                    </tr>
+                                                    <%--     <tr>
+               <td class="styleFieldLabel" >
+                        <asp:Label runat="server" Text="Customer Name" ID="lblCusName" CssClass="styleDisplayLabel"></asp:Label>
+                         
+                    </td>
+                    
+                    <td >
+                     <asp:TextBox id="txtCustName" runat ="server" ReadOnly ="true" ToolTip ="Customer Name" Width ="165px" />
+               
+               </td>
+               <td class="styleFieldLabel" >
+                        <asp:Label runat="server" Text="Guarantor Name" ID="Label1" CssClass="styleDisplayLabel"></asp:Label>
+                         
+                    </td>
+                    
+                    <td >
+                     <asp:TextBox id="txtGuaName" runat ="server" ReadOnly ="true" ToolTip ="Guarantor Name" Width ="165px" />
+               
+               </td>
+               </tr>
+               <tr>
+               <td class="styleFieldLabel" >
+                        <asp:Label runat="server" Text="Address" ID="lblCustAddr" CssClass="styleDisplayLabel"></asp:Label>
+                         
+                    </td>
+                    
+                    <td >
+                     <asp:TextBox id="txtCustAddr" runat ="server" ReadOnly ="true" ToolTip ="Customer Address" Width ="165px" />
+               
+               </td>
+               <td class="styleFieldLabel" >
+                        <asp:Label runat="server" Text="Address" ID="lblGuaAddr" CssClass="styleDisplayLabel"></asp:Label>
+                         
+                    </td>
+                    
+                    <td >
+                     <asp:TextBox id="txtGuaAddr" runat ="server" ReadOnly ="true" ToolTip ="Guarantor Address" Width ="165px" />
+               
+               </td>
+               </tr>--%>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" Text="Sub Account Number" ID="lblSANum" CssClass="styleDisplayLabel"></asp:Label>
+                                                            <%--<span class="styleMandatory">*</span>--%>
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtSANum" runat="server" ReadOnly="true" ToolTip="Sub Account Number"
+                                                                Width="165px" />
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label runat="server" Text="Account Date" ID="lblAccDate" CssClass="styleDisplayLabel"></asp:Label>
+                                                            </td>
+                                                            <td>
+                                                                <asp:TextBox ID="txtAccDate" runat="server" ReadOnly="true" ToolTip="Account Date"
+                                                                    Width="165px" />
+                                                            </td>
+                                                            <%-- <asp:DropDownList ID="ddlSAN" runat="server" Width="165px" ToolTip ="Prime Account Number">
+                        </asp:DropDownList>
+                         <asp:RequiredFieldValidator ID="rfvddlSAN" runat="server" Display="None"
+                         InitialValue="0" ValidationGroup="btnSave" ErrorMessage="Select Sub Account Number."
+                        ControlToValidate="ddlSAN" SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                        </td>
+                                                    </tr>
+                                                    <%--  <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" Text="Account Date" ID="lblAccDate" CssClass="styleDisplayLabel"></asp:Label>
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtAccDate" runat="server" ReadOnly="true" ToolTip="Account Date"
+                                                                Width="165px" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:Button ID="btnViewAccount" runat="server" CssClass="styleSubmitButton" Text="View Account" Enabled ="false"  ToolTip ="To view Statement of Account" OnClick="btnViewAccount_Click" ValidationGroup="btnSave"  />
+                                                           </td><td> <asp:Button ID="btnViewLedger" runat="server" CssClass="styleSubmitButton" Text="View Ledger"   Enabled ="false" ToolTip ="view Ledger"  />
+                                                        </td>
+                                                        <td>
+                                                        </td>
+                                                    </tr>--%>
+                                                    <%--</table>
+                </td> 
+                </tr>--%>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                        <%-- Design for space in between Row       --%>
+                                        <%--  <tr>
+                                            <td class="styleFieldLabel">
+                                                &nbsp;
+                                            </td>
+                                        </tr>--%>
+                                        <%-- Design for Customer Panel Row       --%>
+                                        <tr>
+                                            <td>
+                                                <asp:Panel ID="pnlCustDetails" runat="server" GroupingText="Customer Information"
+                                                    CssClass="stylePanel">
+                                                    <asp:HiddenField ID="hdnCustID" runat="server" Value="" />
+                                                    <uc1:S3GCustomerAddress ID="S3GCustomerAddress1" ActiveViewIndex="1" runat="server"
+                                                        FirstColumnStyle="styleFieldLabel" SecondColumnStyle="styleFieldAlign" />
+                                                </asp:Panel>
+                                            </td>
+                                        </tr>
+                                        <%-- Design for space in between Row       --%>
+                                        <%-- <tr>
+                                            <td class="styleFieldLabel">
+                                                &nbsp;
+                                            </td>
+                                        </tr>--%>
+                                        <%-- Design for Guarantor panel Row       --%>
+                                        <tr>
+                                            <td align="center">
+                                                <asp:Panel Width="100%" ID="pnlGuarDetails" runat="server" GroupingText="Guarantor Information"
+                                                    CssClass="stylePanel">
+                                                    <asp:Label ID="lblGuarDetails" runat="server" Text="No Guarantor details Available"
+                                                        Visible="false" />
+                                                    <asp:GridView Width="100%" ID="gvGuarDetails" runat="server" AutoGenerateColumns="false">
+                                                        <Columns>
+                                                            <asp:TemplateField HeaderText="S.No.">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblSerialNo" runat="server" Text='<%#Container.DataItemIndex+1%>'></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:BoundField HeaderText="Guarantor Code" DataField="Guarantor_Code" ItemStyle-HorizontalAlign="Left" />
+                                                            <asp:BoundField HeaderText="Guarantor Name" DataField="Guarantor_Name" ItemStyle-HorizontalAlign="Left" />
+                                                            <asp:BoundField HeaderText="Guarantor Address" DataField="Guarantor_Address1" ItemStyle-HorizontalAlign="Left" />
+                                                            <asp:BoundField HeaderText="Guarantee Amount" DataField="Guarantee_Amount" ItemStyle-HorizontalAlign="Right" />
+                                                            <%-- <asp:TemplateField >
+                          
+                          <%--<ItemTemplate>
+                            <asp:Label ID="lblSerialNo" runat="server" Text='<%#Container.DataItemIndex+1%>'></asp:Label>
+                          </ItemTemplate>
+                           <ItemTemplate>
+                            <asp:Label ID="Guarantor_Code" runat="server" Text='<%#Eval("Guarantor_Code")%>'></asp:Label>
+                          
+                            <asp:Label ID="Guarantor_Name" runat="server" Text='<%#Eval("Guarantor_Name")%>'></asp:Label>
+                       
+                            <asp:Label ID="Guarantor_Address1" runat="server" Text='<%#Eval("Guarantor_Address1")%>'></asp:Label>
+                        
+                            <asp:Label ID="Guarantee_Amount" runat="server" Text='<%#Eval("Guarantee_Amount")%>'></asp:Label>
+                          </ItemTemplate>
+                         </asp:TemplateField> --%>
+                                                        </Columns>
+                                                    </asp:GridView>
+                                                </asp:Panel>
+                                            </td>
+                                        </tr>
+                                        <%-- Design for space in between Row       --%>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                &nbsp;
+                                            </td>
+                                        </tr>
+                                        <%-- Design for 3rd Row       --%>
+                                        <tr>
+                                            <td>
+                                                <asp:Panel runat="server" ID="pnlGenerateNotice" CssClass="stylePanel" GroupingText="Generate Letter"
+                                                    Width="100%">
+                                                    <table>
+                                                        <%-- Design for space in between Row       --%>
+                                                        <tr>
+                                                            <td>
+                                                            </td>
+                                                        </tr>
+                                                        <%--<tr ><td colspan ="2">hi  </td> 
+                 </tr>--%>
+                                                        <tr>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblMagistrate" runat="server" Text="Letter To Magistrate before Repossession" />
+                                                            </td>
+                                                            <td>
+                                                                <asp:CheckBox ID="chkMagistrate" runat="server" ToolTip="Genarete Letter to Magistrate" />
+                                                            </td>
+                                                            <td>
+                                                                <%--<asp:LinkButton ID="lnkViewMagist" runat="server" Text="View Letter" OnClick="lnkViewMagist_Click"
+                                                                    Visible="false " />--%>
+                                                                &nbsp; &nbsp; &nbsp;
+                                                                <asp:HyperLink ID="hl_magistrate" runat="server" AlternateText="View Letter" ToolTip="Open Letter in PDF format"
+                                                                    Target="_blank" Visible="false">
+                                                                    <asp:Image ImageUrl="~/Images/pdf.png" AlternateText="View Letter" ID="img_magistrate"
+                                                                        runat="server" Width="15px" /></asp:HyperLink>
+                                                                <%--<asp:Button ID="btnView" Text ="view" runat ="server" />--%>
+                                                            </td>
+                                                            <td>
+                                                                &nbsp; &nbsp; &nbsp;
+                                                                <asp:HyperLink ID="hl_magistrate_word" runat="server" AlternateText="View Letter"
+                                                                    ToolTip="Open Letter in Ms Word format" Target="_blank" Visible="false">
+                                                                    <asp:Image ImageUrl="~/Images/word.png" AlternateText="View Letter" ID="img_magistrate_word"
+                                                                        runat="server" Width="15px" /></asp:HyperLink>
+                                                            </td>
+                                                        </tr>
+                                        </tr>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="Label2" runat="server" Text="Letter To Police Station before Repossession" />
+                                            </td>
+                                            <td>
+                                                <asp:CheckBox ID="chkPolice" runat="server" ToolTip="Genarete Letter to Police" />
+                                            </td>
+                                            <td>
+                                                <%--<asp:LinkButton ID="lnkViewPolice" runat="server" Text="View Letter" OnClick="lnkViewPolice_Click"
+                                                                    Visible="false " />--%>
+                                                &nbsp; &nbsp; &nbsp;
+                                                <asp:HyperLink ID="hl_police" runat="server" AlternateText="View Letter" Target="_blank"
+                                                    Visible="false" ToolTip="Open Letter in PDF format">
+                                                    <asp:Image ImageUrl="~/Images/pdf.png" AlternateText="View Letter" ID="img_police"
+                                                        runat="server" Width="15px" /></asp:HyperLink>
+                                            </td>
+                                            <td>
+                                                &nbsp; &nbsp; &nbsp;
+                                                <asp:HyperLink ID="hl_police_word" runat="server" AlternateText="View Letter" Target="_blank"
+                                                    Visible="false" ToolTip="Open Letter in MS Word format">
+                                                    <asp:Image ImageUrl="~/Images/word.png" AlternateText="View Letter" ID="img_police_word"
+                                                        runat="server" Width="15px" /></asp:HyperLink>
+                                            </td>
+                                        </tr>
+                                        </tr>
+                                        <%--     <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="Label1" runat="server" Text="Letter To Customer before Repossession" />
+                                            </td>
+                                            <td>
+                                                <asp:CheckBox ID="chkCustBefore" runat="server" />
+                                            </td>
+                                        </tr>--%>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label ID="Label3" runat="server" Text="Letter To Customer after Repossession" />
+                                            </td>
+                                            <td>
+                                                <asp:CheckBox ID="chkCustomer" runat="server" ToolTip="Genarete Letter to Customer" />
+                                            </td>
+                                            <td>
+                                                &nbsp; &nbsp; &nbsp;
+                                                <asp:HyperLink ID="hl_customer" runat="server" AlternateText="View Letter" Target="_blank"
+                                                    Visible="false">
+                                                    <asp:Image ImageUrl="~/Images/pdf.png" AlternateText="View Letter" ToolTip="Open Letter in PDF format"
+                                                        ID="img_customer" runat="server" Width="15px" /></asp:HyperLink>
+                                            </td>
+                                            <td>
+                                                &nbsp; &nbsp; &nbsp;
+                                                <asp:HyperLink ID="hl_customer_word" ToolTip="Open Letter in MS Word format" runat="server"
+                                                    AlternateText="View Letter" Target="_blank" Visible="false">
+                                                    <asp:Image ImageUrl="~/Images/word.png" AlternateText="View Letter" ID="img_customer_word"
+                                                        runat="server" Width="15px" /></asp:HyperLink>
+                                            </td>
+                                            <%--<td><asp:Button ID="btnEmail" runat ="server" Text ="Email" CssClass="styleSubmitButton" /> 
+                   &nbsp;
+               <asp:Button ID="btnPDF" runat ="server"   OnClick="btnPDF_Click" Text ="PDF" CssClass="styleSubmitButton"/> &nbsp;
+               <asp:Button ID="btnMSword" runat ="server"  OnClick="btnMSword_Click" Text ="MS Word" CssClass="styleSubmitButton"/></td>--%>
+                                        </tr>
+                                    </table>
+                                    </asp:Panel> </td>
+                                    <%-- Design for space in between Row       --%>
+                                    <tr>
+                                        <td class="styleFieldLabel">
+                                            &nbsp;
+                                        </td>
+                                    </tr>
+                                    </tr>
+                                    <tr>
+                                        <td align="center" colspan="2">
+                                            <asp:Button ID="btnEmail" runat="server" Text="Email" CssClass="styleSubmitButton"
+                                                Visible="false" />
+                                            &nbsp;
+                                            <asp:Button ID="btnPDF" runat="server" OnClick="btnPDF_Click" Text="PDF" CssClass="styleSubmitButton"
+                                                OnClientClick="return fn_IsLetterExists('btnSave');" ValidationGroup="btnSave"
+                                                ToolTip="Generate Letter in PDF Format" />
+                                            <%--<asp:Button ID="btnPDF" runat="server" OnClientClick ="return fn_IsLetterExists();" Text="PDF" CssClass="styleSubmitButton"
+                                                ValidationGroup="btnSave" />--%>
+                                            &nbsp;
+                                            <%-- <asp:Button ID="btnOK" runat="server" Style="display: none" OnClick="btnOK_Click" />--%>
+                                            <asp:Button ID="btnMSword" runat="server" OnClick="btnMSword_Click" Text="MS Word"
+                                                OnClientClick="return fn_IsLetterExistsWord('btnSave');" ValidationGroup="btnSave"
+                                                CssClass="styleSubmitButton" ToolTip="Generate Letter in MS Word Format" />
+                                            &nbsp;<%--<asp:Button ID="btnSave" runat="server" CausesValidation="true" OnClientClick="return fnCheckPageValidators();"
+                            CssClass="styleSubmitButton"  Text="Save" ValidationGroup="btnSave" />--%>
+                                            <asp:Button ID="btnClear" runat="server" CausesValidation="false" CssClass="styleSubmitButton"
+                                                OnClientClick="return fnConfirmClear();" OnClick="btnClear_Click" Text="Clear"
+                                                ToolTip="To Clear the changes in page" />
+                                            &nbsp;<asp:Button ID="btnCancel" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                                                OnClick="btnCancel_Click" Text="Cancel" ToolTip="Redirect to ViewPage" />
+                                            <asp:Button ID="b1" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                                                OnClientClick="return fnConfirmClear();" OnClick="b1_Click" Text="Print" Visible="false" />
+                                            <asp:Button ID="b2" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                                                OnClick="b2_Click" Text="Print" Visible="false" />
+                                        </td>
+                                    </tr>
+                                    <%-- Design for space in between Row       --%>
+                                    <tr>
+                                        <td class="styleFieldLabel">
+                                            &nbsp;
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="styleFieldLabel">
+                                            <asp:ValidationSummary ID="vgNotice" runat="server" ValidationGroup="btnSave" CssClass="styleMandatoryLabel"
+                                                HeaderText="Correct the following validation(s):" ShowSummary="true" />
+                                            <asp:CustomValidator ID="cvRepossessionNotice" runat="server" CssClass="styleMandatoryLabel"
+                                                Enabled="true" Width="98%" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="styleFieldLabel">
+                                            &nbsp;
+                                        </td>
+                                    </tr>
+                                    </table>
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                            <cc1:TabPanel runat="server" HeaderText="Magistrate Address Details" ID="tbMagistrate"
+                                CssClass="tabpan" BackColor="Red" ToolTip="" Width="99%">
+                                <HeaderTemplate>
+                                    Court Address
+                                </HeaderTemplate>
+                                <ContentTemplate>
+                                    <asp:Panel ID="Panel2" GroupingText="Court Address Details" CssClass="stylePanel"
+                                        runat="server" Width="40%">
+                                        <asp:UpdatePanel ID="UpdatePanel3" runat="server">
+                                            <ContentTemplate>
+                                                <table width="100%">
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                        </td>
+                                                        <td>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label17" Text="Addressee" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtMagistaddr" runat="server" ToolTip="Addressee" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender12" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtMagistaddr"
+                                                                ValidChars=",/\-() ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label18" Text="Name of the Court" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtMagistCourt" runat="server" ToolTip="Name of the Court" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender1" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtMagistCourt"
+                                                                ValidChars=",/\-() ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label19" Text="Place" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtMagistPlace" runat="server" ToolTip="Place" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender2" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtMagistPlace"
+                                                                ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label20" Text="City" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtMagistCity" runat="server" ToolTip="City" MaxLength="30" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender3" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtMagistCity"
+                                                                ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr width="100%">
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label21" Text="District" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtMagistDistrict" runat="server" ToolTip="District" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender4" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtMagistDistrict"
+                                                                ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr width="100%">
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label22" Text="State" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtMagistState" runat="server" ToolTip="State" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender5" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtMagistState"
+                                                                ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label23" Text="PIN/ZIP Code" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtMagistPin" runat="server" ToolTip="PIN/ZIP Code" MaxLength="10" />
+                                                            <cc1:FilteredTextBoxExtender ID="FtMagistPin" runat="server" Enabled="True" FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters"
+                                                                TargetControlID="txtMagistPin" ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                            <%--<asp:RequiredFieldValidator ID="rfvComPincode" runat="server" ControlToValidate="txtComPincode"
+                                                                    CssClass="styleMandatoryLabel" Display="None" SetFocusOnError="True" ValidationGroup="Main"></asp:RequiredFieldValidator>--%>
+                                                        </td>
+                                                    </tr>
+                                                    <%-- <tr>
+                      <td>
+                      <asp:LinkButton ID="lnlMagistPre" Text ="Pre" runat ="server" />
+                             <%--<asp:Button ID="Button3" runat ="server" Text ="Submit" OnClick="btnOK_Click" />
+                                                </td>
+                                                <td>
+                                                    <asp:LinkButton ID="lnlMagistNext" Text="Next" runat="server" />
+                                                    <asp:Button ID="Button4" runat ="server" Text ="Cancel"  OnClick="btnClose_Click"  />
+                                                </td>
+                                                </tr> --%>
+                                                </table>
+                                            </ContentTemplate>
+                                        </asp:UpdatePanel>
+                                    </asp:Panel>
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                            <cc1:TabPanel runat="server" HeaderText="Police Address Details" ID="tbPolice" CssClass="tabpan"
+                                BackColor="Red" ToolTip="" Width="99%">
+                                <HeaderTemplate>
+                                    PoliceStation Address</HeaderTemplate>
+                                <ContentTemplate>
+                                    <asp:Panel ID="Panel1" GroupingText="Police Station Address Details" CssClass="stylePanel"
+                                        runat="server" Width="40%">
+                                        <asp:UpdatePanel ID="UpdatePanel2" runat="server">
+                                            <ContentTemplate>
+                                                <table width="100%">
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                        </td>
+                                                        <td>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label10" Text="Addressee" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtPoliceAddr" runat="server" ToolTip="Addressee" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender6" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtPoliceAddr"
+                                                                ValidChars=",/\-() ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label11" Text="Name of the Police Station" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtPoliceStation" runat="server" MaxLength="60" ToolTip="Name of the Police Station" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender7" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtPoliceStation"
+                                                                ValidChars=",/\-() ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label12" Text="Place" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtPolicePlace" runat="server" ToolTip="Place" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender8" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtPolicePlace"
+                                                                ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label13" Text="City" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtPoliceCity" runat="server" ToolTip="City" MaxLength="30" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender9" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtPoliceCity"
+                                                                ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr width="100%">
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label14" Text="District" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtPoliceDistrict" runat="server" ToolTip="District" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender10" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtPoliceDistrict"
+                                                                ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr width="100%">
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label15" Text="State" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtPoliceState" runat="server" ToolTip="State" MaxLength="60" />
+                                                            <cc1:FilteredTextBoxExtender ID="FilteredTextBoxExtender11" runat="server" Enabled="True"
+                                                                FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters" TargetControlID="txtPoliceState"
+                                                                ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label runat="server" ID="Label16" Text="PIN/ZIP Code" />
+                                                        </td>
+                                                        <td>
+                                                            <asp:TextBox ID="txtPolicePin" runat="server" ToolTip="PIN/ZIP Code" MaxLength="10" />
+                                                            <cc1:FilteredTextBoxExtender ID="FtPolicePin" runat="server" Enabled="True" FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters"
+                                                                TargetControlID="txtPolicePin" ValidChars=" ">
+                                                            </cc1:FilteredTextBoxExtender>
+                                                            <%--<asp:RequiredFieldValidator ID="" runat="server" ControlToValidate="txtComPincode"
+                                                                    CssClass="styleMandatoryLabel" Display="None" SetFocusOnError="True" ValidationGroup="Main"></asp:RequiredFieldValidator>--%>
+                                                        </td>
+                                                    </tr>
+                                                    <%--<tr>
+                            <td>
+                      <asp:LinkButton ID="lnlPolicePre" Text ="Pre" runat ="server" />
+                             
+                        </td>
+                        <td>
+                        <asp:LinkButton ID="lnkPoliceNext" Text ="Next" runat ="server" />
+                         
+                                    </td>
+                          </tr>  --%>
+                                                </table>
+                                            </ContentTemplate>
+                                        </asp:UpdatePanel>
+                                    </asp:Panel>
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                        </cc1:TabContainer>
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

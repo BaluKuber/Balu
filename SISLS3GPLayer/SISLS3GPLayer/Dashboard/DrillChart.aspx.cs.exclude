@@ -1,0 +1,116 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Data.Common;
+using System.Data;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Web.UI.DataVisualization.Charting;
+using System.Web.UI.DataVisualization.Charting.Utilities;
+
+public partial class Dashboard_DrillChart : ApplyThemeForProject
+{
+    Dictionary<string, string> Procparam;
+    List<string> oListDetailsX = new List<string>();
+    List<decimal> oListValuesY = new List<decimal>();
+    protected void Page_Load(object sender, EventArgs e)
+    {
+       // LoadCharts();
+        Chart1.Series.Add("Account");
+      
+        //Chart1.Titles.Add(Request.QueryString["region"].ToString());
+        //Chart1.Series["Account"].IsValueShownAsLabel = false;
+        //if (Request.QueryString["region"].ToString() == "France")
+        //{
+        Chart1.ChartAreas[0].Area3DStyle.Enable3D = false;
+        Chart1.Series["Account"].ChartType = SeriesChartType.Bar;
+        Chart1.Series["Account"].AxisLabel = "Nov";
+        Chart1.Series["Account"].Points.AddXY(5, 20);
+           
+        //    this.Chart1.Legends[0].Enabled = false;
+       
+        //}
+        //else if (Request.QueryString["region"].ToString() == "Canada")
+        //{
+        //    Chart1.ChartAreas[0].Area3DStyle.Enable3D = true;
+        //    Chart1.Series["Account"].ChartType = SeriesChartType.Funnel;
+        //    Chart1.Series["Account"].AxisLabel = "Nov";
+        //    Chart1.Series["Account"].Points.AddXY(5, 20);
+           
+        //    this.Chart1.Legends[0].Enabled = false;
+          
+        //}
+        //else if (Request.QueryString["region"].ToString() == "UK")
+        //{
+        //    Chart1.ChartAreas[0].Area3DStyle.Enable3D = true;
+        //    Chart1.Series["Account"].ChartType = SeriesChartType.Pie;
+        //    Chart1.Series["Account"].AxisLabel = "Nov";
+        //    Chart1.Series["Account"].Points.AddXY(5, 20);
+
+        //    this.Chart1.Legends[0].Enabled = false;
+          
+        //}
+        //else if (Request.QueryString["region"].ToString() == "USA")
+        //{
+        //    Chart1.ChartAreas[0].Area3DStyle.Enable3D = true;
+        //    Chart1.Series["Account"].ChartType = SeriesChartType.Pyramid;
+        //    Chart1.Series["Account"].AxisLabel = "Nov";
+        //    Chart1.Series["Account"].Points.AddXY(5, 20);
+            
+        //    this.Chart1.Legends[0].Enabled = false;
+           
+        //}
+        //else
+        //{
+        //    Chart1.ChartAreas[0].Area3DStyle.Enable3D = false;
+        //    Chart1.Series["Account"].ChartType = SeriesChartType.Column;
+        //    Chart1.Series["Account"].AxisLabel = "Nov";
+        //    Chart1.Series["Account"].Points.AddXY(5, 20);
+          
+        //    this.Chart1.Legends[0].Enabled = false;
+            
+        //}
+        //if (Request.QueryString["Size"] != null)
+        //{
+        //    Chart1.Height = 300;
+        //    Chart1.Width = 500;
+        //    Chart1.Series[Request.QueryString["region"].ToString().Replace("_"," ")].IsValueShownAsLabel = true;
+        //    this.Chart1.Legends[0].Enabled = true;
+        //    Chart1.ChartAreas[0].AxisX.LabelStyle.Font = new System.Drawing.Font("Segoe UI Light", 9);
+        //    Chart1.ChartAreas[0].AxisY.LabelStyle.Font = new System.Drawing.Font("Segoe UI Light", 9);
+        //    Chart1.Series[Request.QueryString["region"].ToString().Replace("_", " ")].IsValueShownAsLabel = true;
+        //    Chart1.ChartAreas[0].AxisX.LabelAutoFitStyle = LabelAutoFitStyles.LabelsAngleStep45 | LabelAutoFitStyles.LabelsAngleStep90 | LabelAutoFitStyles.LabelsAngleStep30;
+        //}
+        //else
+        //{
+        //    Chart1.Series[Request.QueryString["region"].ToString().Replace("_", " ")].Font = new System.Drawing.Font("Segoe UI Light", 6);
+        //    Chart1.ChartAreas[0].AxisX.LabelStyle.Font = new System.Drawing.Font("Segoe UI Light", 6);
+        //    Chart1.ChartAreas[0].AxisY.LabelStyle.Font = new System.Drawing.Font("Segoe UI Light", 6);
+        //    Chart1.Series[Request.QueryString["region"].ToString().Replace("_", " ")].IsValueShownAsLabel = false;
+        //    Chart1.ChartAreas[0].AxisX.LabelAutoFitStyle = LabelAutoFitStyles.LabelsAngleStep45;
+        //}
+    }
+
+    private void LoadCharts()
+    {
+        DataSet ds = new DataSet();
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Location_Id", Request.QueryString["region_ID"].ToString());
+        Procparam.Add("@Month", Request.QueryString["Month"].ToString());
+        ds = Utility.GetDataset("s3g_GetDrillChartValue", Procparam);
+
+        foreach (DataRow drow in ds.Tables[0].Rows)
+        {
+            oListDetailsX.Add(drow["Data"].ToString());
+            oListValuesY.Add(Convert.ToDecimal(drow["Value"]));
+        }
+
+        Chart1.Series.Add(Request.QueryString["region"].ToString().Replace("_", " "));
+        Chart1.Titles.Add(Request.QueryString["region"].ToString().Replace("_", " "));
+       
+        Chart1.Series[Request.QueryString["region"].ToString().Replace("_", " ")].Points.DataBindXY(oListDetailsX, oListValuesY);
+        //Chart2.ApplyStyleSheetSkin(ApplyThemeForProject);
+    }
+
+}

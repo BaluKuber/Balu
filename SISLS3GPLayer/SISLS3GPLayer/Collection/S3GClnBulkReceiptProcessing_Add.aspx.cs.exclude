@@ -1,0 +1,652 @@
+﻿#region Page Header
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+///  
+/// <Program Summary>
+/// Module Name			: Collection
+/// Screen Name			: PDC - Receipts Processsing
+/// Created By			: Kannan RC
+/// Created Date		: 18-oct-2010
+/// Updated By          : Chandra Sekhar BS
+/// Updated Date        : 19-Sep-2013
+/// Reason              : SQL Performance
+/// <Program Summary>
+#endregion
+
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using S3GBusEntity.Origination;
+using System.ServiceModel;
+using System.Data;
+using System.IO;
+using System.Globalization;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using System.Web.Security;
+using System.Text;
+using S3GBusEntity.Collection;
+using System.Configuration;
+using ClnReceiptMgtServicesReference;
+
+#endregion
+
+public partial class Collection_S3GClnBulkReceiptProcessing_Add : ApplyThemeForProject
+{
+
+    #region Intialization
+    public static Collection_S3GClnBulkReceiptProcessing_Add obj_Page;
+    int intCompanyId, intUserId, intErrCode;
+
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bIsActive = false;
+    public string strDateFormat = string.Empty;
+    static string strPageName = "PDC Bulk Receipt Processing";
+    Dictionary<string, string> dictParameter = null;
+    DataTable dt;
+    string strKey;
+
+    string strMode, strPDCReceiptID = string.Empty;
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CBR';";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnBulkReceiptProcessing_Add.aspx';";
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient ObjPDCBulkRecClient;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCBulkReceiptDataTable ObjS3G_PDCBulkInsDataTable = null;
+    SerializationMode SerMode = SerializationMode.Binary;
+
+    #endregion
+
+    #region Page Load
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        try
+        {
+            UserInfo ObjUserInfo = new UserInfo();
+            S3GSession ObjS3GSession = new S3GSession();
+
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            CECPDCdate.Format = strDateFormat;
+            intCompanyId = ObjUserInfo.ProCompanyIdRW;
+            intUserId = ObjUserInfo.ProUserIdRW;
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            bIsActive = ObjUserInfo.ProIsActiveRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                if (fromTicket != null)
+                    strPDCReceiptID = Convert.ToString(fromTicket.Name);
+                else
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Invalid URL");
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                }
+                strMode = Request.QueryString["qsMode"];
+            }
+
+            if (!IsPostBack)
+            {
+
+                if ((strPDCReceiptID != "") && (strMode == "Q"))// Modify
+                {
+                    FunPriGetPDCReceiptDetails_QueryMode();
+                    FunPriDisableControls(1);
+                }
+                else {
+                    FunPriBindBranchLOB();
+                    FunPriDisableControls(0);
+                }
+                    
+            }
+
+            txtDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtDate.ClientID + "','" + strDateFormat + "',true,  false);");
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion
+
+    #region Button Events
+
+    protected void btnGetLines_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            
+
+            dictParameter = new Dictionary<string, string>();
+            dictParameter.Add("@Company_ID", Convert.ToString(intCompanyId));
+            dictParameter.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            dictParameter.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParameter.Add("@PDC_Entry_Date", Utility.StringToDate(txtDate.Text.Trim()).ToString());
+            dictParameter.Add("@Include", Convert.ToString(CbxInclude.Checked));
+            dt = Utility.GetDefaultData("S3G_CLN_GetPDCDetails", dictParameter);
+
+            if (dt.Rows.Count > 0)
+            {
+                btnGetRec.Enabled = pnlCheque.Visible = true;
+                gvPDCReceipts.DataSource = dt;
+                gvPDCReceipts.DataBind();
+                btnGetLines.Enabled = false;
+                btnXLPorting.Enabled = true;
+            }
+            else
+            {
+                //Condition added - Kuppu - June 12- Bug_ID - 6370 
+                if (CbxInclude.Checked == true)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "No PDC available for Past Date");
+                    return;
+                }
+                else
+                {
+                    Utility.FunShowAlertMsg(this.Page, "No PDC available on this Date");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    protected void btnGetRec_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            //int counts = 0;            
+            //foreach (GridViewRow grvData in gvPDCReceipts.Rows)
+            //{
+            //    if (((CheckBox)grvData.FindControl("CbxExculde")).Checked)
+            //    {
+            //        counts++;
+            //    }
+            //}            
+            //if (counts == 0)
+            //{
+            //    Utility.FunShowAlertMsg(this.Page, "Select atleast one PDC");                   
+            //    return;            
+            //}
+
+            ObjS3G_PDCBulkInsDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCBulkReceiptDataTable();
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCBulkReceiptRow ObjPDCBulkInsRow;
+            ObjPDCBulkInsRow = ObjS3G_PDCBulkInsDataTable.NewS3G_CLN_PDCBulkReceiptRow();
+            ObjPDCBulkInsRow.Company_ID = intCompanyId;
+            ObjPDCBulkInsRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjPDCBulkInsRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjPDCBulkInsRow.PDCDate = Utility.StringToDate(txtDate.Text.Trim());
+            ObjPDCBulkInsRow.Created_By = intUserId;
+            int intIncludeCount = 0;
+            ObjPDCBulkInsRow.XML_ReceiptsDeltails = FunProReceiptFormXML(out intIncludeCount);
+            //if (Convert.ToInt32(ViewState["Exclude"]) != 1)
+            if (intIncludeCount == 0)
+            {
+                //Utility.FunShowAlertMsg(this.Page, "Any one of the values to be included to receipt processing");
+                Utility.FunShowAlertMsg(this.Page, "Atleast include one Cheque for Receipt Processing");
+                return;
+            }
+            ObjS3G_PDCBulkInsDataTable.AddS3G_CLN_PDCBulkReceiptRow(ObjPDCBulkInsRow);
+            ObjPDCBulkRecClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            intErrCode =  ObjPDCBulkRecClient.FunPubCreatePDCBulkReceipt(SerMode, ClsPubSerialize.Serialize(ObjS3G_PDCBulkInsDataTable, SerMode));
+            if (intErrCode == 0)
+            {
+                //To avoid double save click
+                btnGetRec.Enabled = false;
+                //End here    
+
+                strAlert = "PDC Bulk Receipt generated successfully";
+                strAlert += @"\n\nWould you like to add one more record?";
+                strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                strRedirectPageView = "";
+            }
+            else if (intErrCode == 2)
+            {
+                Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs._1);
+                return;
+            }
+            //Added by Tamiselvan.S on 18/07/2011
+            else if (intErrCode == 29)
+            {
+                Utility.FunShowAlertMsg(this, "Define the GL Account in Cashflow Master");
+                return;
+            }
+            else if (intErrCode == 31)//For TL & TLE 
+            {
+                Utility.FunShowAlertMsg(this, "Define Cashflow Master for pricipal and interest");
+                return;
+            }
+            else
+            {
+                if ((intErrCode == 50) || (intErrCode == 51) || (intErrCode == 52) || (intErrCode == 53) || (intErrCode == 120))
+                {
+                    Utility.FunShowValidationMsg(this.Page, "", intErrCode);
+                    return;
+                }
+                else
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Error in authorizing Receipt');", true);
+                }
+            }
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            lblErrorMessage.Text = string.Empty;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (ObjPDCBulkRecClient != null)
+                ObjPDCBulkRecClient.Close();
+        }
+    }
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ddlLOB.Items.Count > 0)
+                ddlLOB.SelectedIndex = 0;
+
+            ddlBranch.SelectedText = "--Select--";
+            ddlBranch.SelectedValue = "0";
+            txtDate.Text = string.Empty;
+            btnGetLines.Enabled = true;
+            CbxInclude.Checked = pnlCheque.Visible = btnGetRec.Enabled = false;
+            gvPDCReceipts.DataSource = null;
+            gvPDCReceipts.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect("../Collection/S3GClnTransLander.aspx?Code=CBR");
+    }
+
+    #endregion
+
+    #region DropDownList
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriEnabledDisabled();
+    }
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriEnabledDisabled();
+    }
+    protected void CbxInclude_CheckedChanged(object sender, EventArgs e)
+    {
+        FunPriEnabledDisabled();
+    }
+
+    //Event added to clear Controls on Date change - Kuppu - June 13
+    protected void txtDate_TextChanged(object sender, EventArgs e)
+    {
+        DateTime origDT = DateTime.Now;
+        DateTime lastDate = new DateTime(origDT.Year, origDT.Month, 1).AddMonths(1).AddDays(-1);
+
+
+        if (Convert.ToDateTime(Utility.StringToDate(txtDate.Text)) > lastDate)
+        {
+            Utility.FunShowAlertMsg(this.Page, "PDC Date cannot be greater the Current Month");
+            return;
+        }
+
+        FunPriEnabledDisabled();
+    }
+
+    #endregion
+
+    #region User Defined Functions
+
+    private void FunPriBindBranchLOB()
+    {
+        try
+        {
+            Dictionary<string, string> Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@User_Id", intUserId.ToString());
+            Procparam.Add("@FilterOption", "'HP','LN','TE','OL','FL','TL'");
+            Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Program_ID", "98");
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Name" });
+            Procparam.Clear();
+            if (ddlLOB.Items.Count == 2)
+            {
+                ddlLOB.SelectedIndex = 1;
+                ddlLOB.ClearDropDownList();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    protected string FunProReceiptFormXML(out int intIncludeCount)
+    {
+        try
+        {
+            intIncludeCount = 0;
+            StringBuilder strbuXML = new StringBuilder();
+            strbuXML.Append("<Root>");
+            foreach (GridViewRow grvData in gvPDCReceipts.Rows)
+            {
+                if (((CheckBox)grvData.FindControl("CbxExculde")).Checked == false)
+                {
+                    // set Not Empty value to be receipted
+                    // ViewState["Exclude"] = 1;
+                    intIncludeCount++;
+                    string strPA_SA_REF_ID = ((Label)grvData.FindControl("lblPA_SA_REF_ID")).Text;
+                    string strPANum = ((Label)grvData.FindControl("lblPAN")).Text;
+                    string strCustID = ((Label)grvData.FindControl("lblCustID")).Text;
+                    string strDraweeBank = ((Label)grvData.FindControl("lblBank")).Text;
+                    strDraweeBank = strDraweeBank.Substring(strDraweeBank.IndexOf("-") + 1);
+                    string strInstrumentNo = ((Label)grvData.FindControl("lblInstrumentNo")).Text;
+                    string strInstrumentAmount = ((Label)grvData.FindControl("lblInstrumentAmount")).Text;
+                    string strPDCNo = ((Label)grvData.FindControl("lblPDCNO")).Text;
+                    string decothersAmount = ((Label)grvData.FindControl("lblothers")).Text == string.Empty ? "0" : ((Label)grvData.FindControl("lblothers")).Text;
+                    //string strInstrumentDate = ((Label)grvData.FindControl("lblInstrumentDate")).Text;
+                    S3GDALDBType DBType = new S3GDALDBType();
+                    DBType = FunPubGetDatabaseType();
+                    string strInstrumentDate="";
+                    if (DBType == S3GDALDBType.ORACLE)
+                    {
+                        strInstrumentDate = Utility.StringToDate(((Label)grvData.FindControl("lblInstrumentDate")).Text).ToString();
+                    }
+                    else
+                    {
+                        strInstrumentDate = Utility.StringToDate(((Label)grvData.FindControl("lblInstrumentDate")).Text).ToString(); //Bug Fixed on 29-Jan-2014
+                    }
+                    strbuXML.Append(" <Details  ");
+                    strbuXML.Append(" PDCNO ='" + strPDCNo + "'");
+                    strbuXML.Append(" PA_SA_REF_ID ='" + strPA_SA_REF_ID + "'");
+                    strbuXML.Append(" PANum ='" + strPANum + "'");
+                    strbuXML.Append(" Customer_ID = '" + strCustID + "'");
+                    strbuXML.Append(" DraweeBank = '" + strDraweeBank + "'");
+                    strbuXML.Append(" InstrumentNo = '" + strInstrumentNo + "'");
+                    strbuXML.Append(" OthersAmount = '" + decothersAmount + "'");
+                    strbuXML.Append(" InstrumentAmount = '" + strInstrumentAmount + "'");
+                    strbuXML.Append(" InstrumentDate = '" + strInstrumentDate + "'/>");  //Added by Tamilselvan.S On 14/07/2011 for Instrument date need.
+                }
+            }
+            strbuXML.Append("</Root>");
+            return strbuXML.ToString();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    pnlCheque.Visible = false;
+                    ddlLOB.Focus();
+                    btnXLPorting.Enabled = false;
+
+                    break;
+                case 1: // Query Mode                    
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    gvPDCReceipts.Columns[13].Visible = btnGetLines.Enabled = btnClear.Enabled = CbxInclude.Enabled = imgPDCDate.Visible = CECPDCdate.Enabled = false;
+                    if (ddlLOB.Items.Count > 0)
+                        ddlLOB.ClearDropDownList();
+                    ddlBranch.Enabled = false;
+                    //Modified by Tamilselvan.S on 10/08/2011 for Including past checked in Query mode
+                    //lblInclude.Visible = CbxInclude.Enabled = false;  
+                    txtDate.Attributes.Remove("onblur");
+                    txtDate.ReadOnly = true;
+                    btnXLPorting.Enabled = true;
+
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriEnabledDisabled()
+    {
+        btnGetLines.Enabled = true;
+        btnGetRec.Enabled = pnlCheque.Visible = false;
+        gvPDCReceipts.DataSource = null;
+        gvPDCReceipts.DataBind();
+    }
+
+    private void FunPriGetPDCReceiptDetails_QueryMode()
+    {
+        try
+        {
+
+            dictParameter = new Dictionary<string, string>();
+            DataSet DS = new DataSet();
+            dictParameter.Add("@Company_ID", Convert.ToString(intCompanyId));
+            dictParameter.Add("@PDCReceiptID", Convert.ToString(strPDCReceiptID));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetPDCReceiptProcessDetails, dictParameter);
+
+            //  Table 0  
+            if (DS.Tables[0].Rows.Count >= 1)
+            {
+                if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != string.Empty)
+                {
+                    System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem(DS.Tables[0].Rows[0]["LOBName"].ToString(), DS.Tables[0].Rows[0]["LOB_ID"].ToString());
+                    ddlLOB.Items.Add(LIB);
+                }
+                if (DS.Tables[0].Rows[0]["Location_ID"].ToString() != string.Empty)
+                {
+                    ddlBranch.SelectedValue = DS.Tables[0].Rows[0]["Location_ID"].ToString();
+                   ddlBranch.SelectedText=DS.Tables[0].Rows[0]["Location"].ToString();
+                }
+                ddlLOB.SelectedValue = DS.Tables[0].Rows[0]["LOB_ID"].ToString();
+                DateTime Date = Convert.ToDateTime(DS.Tables[0].Rows[0]["Receipt_Date"]);
+                txtDate.Text = Date.ToString(strDateFormat);
+            }
+
+            // Table 1 PDC Details Gridview
+            if (DS.Tables[1].Rows.Count >= 1)
+            {
+                CbxInclude.Checked = Convert.ToBoolean(DS.Tables[1].Rows[0]["Past"]);
+                pnlCheque.Visible = true;
+                gvPDCReceipts.DataSource = DS.Tables[1];
+                gvPDCReceipts.DataBind();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriGetPDCReceiptDetails()
+    {
+        try
+        {
+
+            dictParameter = new Dictionary<string, string>();
+            DataSet DS = new DataSet();
+            dictParameter.Add("@Company_ID", Convert.ToString(intCompanyId));
+            dictParameter.Add("@PDCReceiptID", Convert.ToString(strPDCReceiptID));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetPDCReceiptProcessDetails, dictParameter);
+
+            //  Table 0  
+            if (DS.Tables[0].Rows.Count >= 1)
+            {
+                if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != string.Empty)
+                {
+                    ddlLOB.Items[0].Text = Convert.ToString(DS.Tables[0].Rows[0]["LOBName"]);
+                    ddlLOB.Items[0].Value = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+                }
+                if (DS.Tables[0].Rows[0]["Location_ID"].ToString() != string.Empty)
+                {
+                    ddlBranch.SelectedText = Convert.ToString(DS.Tables[0].Rows[0]["Location"]);
+                    ddlBranch.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+                }
+                //ddlLOB.SelectedValue = DS.Tables[0].Rows[0]["LOB_ID"].ToString();
+                //ddlBranch.SelectedValue = DS.Tables[0].Rows[0]["Branch_ID"].ToString();
+                DateTime Date = Convert.ToDateTime(DS.Tables[0].Rows[0]["Receipt_Date"]);
+                txtDate.Text = Date.ToString(strDateFormat);
+            }
+
+            // Table 1 PDC Details Gridview
+            if (DS.Tables[1].Rows.Count >= 1)
+            {
+                CbxInclude.Checked = Convert.ToBoolean(DS.Tables[1].Rows[0]["Past"]);
+                pnlCheque.Visible = true;
+                gvPDCReceipts.DataSource = DS.Tables[1];
+                gvPDCReceipts.DataBind();
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    protected void gvPDCReceipts_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblInstrumentDate = ((Label)e.Row.FindControl("lblInstrumentDate"));
+                if (lblInstrumentDate.Text.Trim() != string.Empty)
+                {
+                    DateTime Date = Utility.StringToDate(lblInstrumentDate.Text);
+                    lblInstrumentDate.Text = Date.ToString(strDateFormat);
+                }
+                Label lblothers = (Label)e.Row.FindControl("lblothers");
+                Label lblInstrumentAmount = (Label)e.Row.FindControl("lblInstrumentAmount");
+                Label lblInsurance = (Label)e.Row.FindControl("lblInsurance");
+                Label lblTax = (Label)e.Row.FindControl("lblTax");
+                Label lblAMF = (Label)e.Row.FindControl("lblAMF");
+                Label lblTotalAmount = (Label)e.Row.FindControl("lblTotalAmount");
+
+                lblothers.Text = Convert.ToDecimal(string.IsNullOrEmpty(lblothers.Text) ? "0" : lblothers.Text).ToString(Utility.SetSuffix());
+                lblInstrumentAmount.Text = Convert.ToDecimal(string.IsNullOrEmpty(lblInstrumentAmount.Text) ? "0" : lblInstrumentAmount.Text).ToString(Utility.SetSuffix());
+
+                lblInsurance.Text = Convert.ToDecimal(string.IsNullOrEmpty(lblInsurance.Text) ? "0" : lblInsurance.Text).ToString(Utility.SetSuffix());
+                lblTax.Text = Convert.ToDecimal(string.IsNullOrEmpty(lblTax.Text) ? "0" : lblTax.Text).ToString(Utility.SetSuffix());
+                lblAMF.Text = Convert.ToDecimal(string.IsNullOrEmpty(lblAMF.Text) ? "0" : lblAMF.Text).ToString(Utility.SetSuffix());
+                lblTotalAmount.Text = Convert.ToDecimal(string.IsNullOrEmpty(lblTotalAmount.Text) ? "0" : lblTotalAmount.Text).ToString(Utility.SetSuffix());
+                               
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    protected void btnXLPorting_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProExport(gvPDCReceipts, "Cheque Details"); // - + ddlMLA.SelectedItem.Text
+        }
+        catch (Exception ex)
+        {
+            cvPDC.ErrorMessage = ex.Message;
+            cvPDC.IsValid = false;
+        }
+
+    }
+
+    protected void FunProExport(GridView Grv, string FileName)
+    {
+        try
+        {
+            //Type ExcellType = Type.GetTypeFromProgID("Excel.Application");
+            //if (ExcellType == null)
+            //{
+            //Utility.FunShowAlertMsg(this, "Cannot export file. MS-Excel is not istalled in this System.");
+            //return;
+            //}
+
+            string attachment = "attachment; filename=" + FileName + ".xls";
+            Response.ClearContent();
+            Response.AddHeader("content-disposition", attachment);
+            Response.ContentType = "application/vnd.xls";
+            StringWriter sw = new StringWriter();
+            HtmlTextWriter htw = new HtmlTextWriter(sw);
+            if (Grv.Rows.Count > 0)
+            {
+                Grv.Columns[Grv.Columns.Count - 1].Visible = false;
+                Grv.RenderControl(htw);
+                Response.Write(sw.ToString());
+                Response.End();
+                Grv.Columns[Grv.Columns.Count - 1].Visible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to Export into Excel");
+        }
+    }
+
+    public override void VerifyRenderingInServerForm(Control control)
+    {
+        //base.VerifyRenderingInServerForm(control);
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo Uinfo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", Uinfo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", Uinfo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "98");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+}
+
+

@@ -1,0 +1,1849 @@
+﻿#region Page Header
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Collection 
+/// Screen Name			: Cheque Returns
+/// Created By			: Saishree Ramasubbu 
+/// Created Date		: 
+/// Purpose	            : 
+/// 
+/// Modified By         : Chandra Sekhar BS
+/// Modified On         : 19-Sep-2013
+/// Reason              : SQL Performance
+///
+#endregion
+
+
+using System;
+using S3GBusEntity;
+using System.Collections.Generic;
+using System.ServiceModel;
+using System.Data;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Globalization;
+using System.Text;
+using System.Web.Security;
+using System.Configuration;
+using System.IO;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using System.Diagnostics;
+using CrystalDecisions.CrystalReports.Engine;
+using CrystalDecisions.Shared;
+
+
+public partial class Collection_S3GClnChequeReturn_Add : ApplyThemeForProject
+{
+
+    #region [Intialization]
+    public static Collection_S3GClnChequeReturn_Add obj_Page;
+    StringBuilder strbMemo = new StringBuilder();
+    StringBuilder strAuthorize = new StringBuilder();
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objClnCheque_Client;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeReturnProcessDataTable objChequeDateTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeReturnProcessRow objChequeRow = null;
+    S3GBusEntity.Collection.ClnMemoMgtServices.S3G_CLN_MemorandumBookingDataTable ObjMemorandumDataTable;
+    ClnMemoMgtServicesReference.ClnMemoMgtServicesClient ObjClnMemoMgtServicesClient;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeAuthorizationDataTable objAuthorizeDataTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeAuthorizationRow objAuthorizeRow = null;
+    Dictionary<string, string> Procparam = null;
+
+    #endregion [Intialization]
+
+    #region [Local Fields]
+
+    int intCompanyID, intUserID = 0;
+    int intErrCode = 0;
+    int intMemoErrCode = 0;
+    string strDateFormat = string.Empty;
+    string strChequeReturn = string.Empty;
+    bool bolMonthLock = false;  //Addded by Tamilselvan.S on 13/05/2011
+    string MemorandumBookingNo = "0";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    //Code end
+    public static int intLOBIDs = 0;
+    public static int intLocationIDs = 0;
+    public static int intCompanyIDs = 0;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnChequeReturn_Add.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CHR';";
+    string strRedirectPage = "~/Collection/S3GClnTransLander.aspx?Code=CHR";
+    static string strPageName = "Cheque Return";
+    string strErrorMsg = @"Correct the following validation(s):</br><ul><li>";
+    string strErrMsgLast = "</li></ul>";
+
+    #endregion [Local Fields]
+
+    #region [Events]
+
+    #region [Page Event's]
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        try
+        {
+            FunPriPageLoad();
+            FunPubSetItemTooltipForDrowDown();
+            intLOBIDs = Convert.ToInt32(ddlLOB.SelectedValue);
+            intLocationIDs = Convert.ToInt32(ddlBranch.SelectedValue);
+            intCompanyIDs = intCompanyID;
+            //Added by Tamilselvan.S on 3/11/2011 for Next version bug fixing
+            if (strMode != "Q" && strMode != "M")
+                ddlLOB.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_PageLoad;   // "Due to Data Problem, Unable to Load the Cheque Return Details";
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    #endregion [Page Event's]
+
+    #region [Drop Down Event's]
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FuncClear(true, false);
+            PopulateBranchList();
+            // FunReceiptNumbers();
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = ex.Message;
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FuncClear(true, false);
+             //FunReceiptNumbers();
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = ex.Message;
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    protected void ddlReceiptNo_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FuncClear(true, false);
+            txtChequeNo.ReadOnly = false;
+            if (ddlReceiptNo.SelectedValue != "0")
+                FunLoadAllDetails(false);
+            if (ddlReceiptNo.SelectedIndex != 0)
+                txtChequeNo.ReadOnly = true;
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = ex.Message;
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    #endregion [Drop Down Event's]
+
+    #region [Button Event's]
+
+    #region [Save / Clear / Cancel]
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriSaveChequeReturn_ChequeCancellation();
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_Save.Replace(" save ", " Save / Cheque Return Cancelled ");     // "Due to Data Problem, Unable to Save /Cheque Return Cancelled";
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FuncClear(false, false);
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_ClearAll; //"Due to Data Problem, Unable to clear the Cheque Return Details";
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+
+    protected void btnPDF_Click(object sender, EventArgs e)
+    {
+        FunPubPrintChequeReturnStatement();
+    }
+
+    protected void Button1_Click(object sender, EventArgs e)
+    {
+        FunPubPrintChequeReturnStatement();
+    }
+
+    private void FunPubPrintChequeReturnStatement()
+    {
+        //string strnewFile = string.Empty, strFileName = string.Empty;
+        try
+        {
+            StringBuilder strHTML = new StringBuilder();
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            if (strMode != "M" && strMode != "Q")
+                strChequeReturn = txtChequeRetNo.Text.ToString();
+            dictParam.Add("@Cheque_Return_No", strChequeReturn);
+            dictParam.Add("@Company_ID", intCompanyID.ToString());
+            dictParam.Add("@UserID", intUserID.ToString());
+            DataSet dsChallanList = Utility.GetDataset("S3G_CLN_ChequeReturnDetailsForPrint", dictParam);
+            string strChequeReturnName = DateTime.Now.ToString().Replace("/", "").Replace(":", "").Replace(" ", "") + strChequeReturn.Replace("/", "") + "ChequeReturn.pdf";
+
+            dsChallanList.Tables[0].TableName = "S3G_CLN_ChequeReturnDetailsForPrint";
+
+            string strnewFile = (Server.MapPath(".") + "\\PDF Files\\" + strChequeReturnName);
+            string strFileName = "/Collection/PDF Files/" + strChequeReturnName;
+            if (dsChallanList.Tables[0].Rows.Count > 0)
+            {
+                //dtgridDate.Rows[dtgridDate.Rows.Count - 1].Delete();
+
+                ReportDocument rptd = new ReportDocument();
+                rptd.Load(Server.MapPath("crChequeReturn.rpt"));
+                rptd.SetDataSource(dsChallanList.Tables[0]);
+                
+                DirectoryInfo df = new DirectoryInfo(Convert.ToString(Server.MapPath(".") + "\\PDF Files"));
+                if (!df.Exists)
+                {
+                    df.Create();
+                }
+                if (File.Exists(strnewFile) == true)
+                {
+                    File.Delete(strnewFile);
+                }
+
+                rptd.ExportToDisk(ExportFormatType.PortableDocFormat, Server.MapPath(".") + "\\PDF Files\\" + strChequeReturnName);
+            }
+           
+            string strScipt = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + strFileName + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, "PDF Generation failure in Cheque Return <--File Path-->" + (Server.MapPath(".") + "\\PDF Files\\Cheque Return.pdf"));
+        }
+    }
+
+    #endregion [Save / Clear / Cancel]
+
+    #endregion [Button Event's]
+
+    #region [Text Box Event's]
+
+    protected void txtChequeNo_TextChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //ddlReceiptNo.SelectedIndex = 0;
+            txtReceiptNumber.Text = "";
+            if (txtChequeNo.Text != string.Empty)
+            {
+                //txtChequeNo.ReadOnly = true;
+                FunLoadAllDetails(true);
+            }
+            else
+                FuncClear(true, false);
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = ex.Message;
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    #endregion [Text Box Event's]
+
+    #region [Custom Validator Event's]
+
+    protected void custOption_ServerValidate(object sender, ServerValidateEventArgs args)
+    {
+        try
+        {
+            //if (ddlReceiptNo.SelectedValue == "0" && txtChequeNo.Text == string.Empty)
+            if (string.IsNullOrEmpty(txtReceiptNumber.Text) && txtChequeNo.Text == string.Empty)
+            {
+                args.IsValid = false;
+                custOption.ErrorMessage = Resources.ValidationMsgs.S3G_ValMsg_Select_ReceiptOrChequeNo; //"Select either a Receipt No or enter a Cheque Number";
+            }
+            else
+            {
+                args.IsValid = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            cvChequeReturn.ErrorMessage = ex.Message;
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    #endregion [Custom Validator Event's]
+
+    #endregion [Events]
+
+    #region [Function's]
+
+    #region [FunPripageLoad]
+
+    private void FunPriPageLoad()
+    {
+        try
+        {
+            this.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+
+            //Date Format
+            S3GSession ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strChequeReturn = fromTicket.Name;
+            }
+            txtDocuDate.Attributes.Add("readonly", "readonly");
+            if (Request.QueryString["qsMode"] != null)
+                strMode = Request.QueryString["qsMode"].ToString();
+            if (!IsPostBack)
+            {
+                
+                if (Request.QueryString["qsMode"] == "C")
+                {
+                    PopulateLOBList();
+                    PopulateReasons();
+                    GlobalParameters();
+                    //PopulateBranchList();
+                }
+                
+                // txtBnkCharges.Attributes.Add("onblur", "fnAllowNumbersOnly(true,true,this);funChkDecimial(this," + txtBnkCharges.Attributes["MaxC"] + "," + txtBnkCharges.Attributes["DecC"] + ")");
+
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] != null && Request.QueryString["qsMode"] == "Q")
+                {
+                    btnPDF.Enabled = true;
+                    btnSave.CssClass = "styleSubmitButton";
+                    FunLoadAllDetails_QueryMode(true);
+                    FunPriDisableControls(-1);
+                }
+                else if (Request.QueryString["qsMode"] != null && Request.QueryString["qsMode"] == "M")
+                {
+                    btnPDF.Enabled = true;
+                    FunLoadAllDetails_QueryMode(true);
+                    FunPriDisableControls(1);
+                    if (strChequeReturn != "" && bolMonthLock == true)   //Addded by Tamilselvan.S on 13/05/2011
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    if (ObjUserInfo.ProModifyRW == false)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                }
+                else
+                {
+                    btnSave.CssClass = "styleSubmitButton";
+                    int intGPSPrefix = ObjS3GSession.ProGpsPrefixRW <= 10 ? ObjS3GSession.ProGpsPrefixRW : 10;
+                    int intGPSSuffix = ObjS3GSession.ProGpsSuffixRW <= 3 ? ObjS3GSession.ProGpsSuffixRW : 3;
+                    //txtBnkCharges.SetDecimalPrefixSuffix(intGPSPrefix, intGPSSuffix, true, "Bank Charges");
+                    txtBnkCharges.MaxLength = intGPSPrefix;// +intGPSSuffix + 1;
+                    //txtChequeDate.Text = DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                    txtDocuDate.Text = DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                    FunPriDisableControls(0);
+                    //System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("-- Select --", "0");
+                    //ddlReceiptNo.Items.Insert(0, liSelect);
+                    btnPDF.Enabled = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriPageLoad_Old()
+    {
+        try
+        {
+            this.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+
+            //Date Format
+            S3GSession ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strChequeReturn = fromTicket.Name;
+            }
+            txtDocuDate.Attributes.Add("readonly", "readonly");
+            if (Request.QueryString["qsMode"] != null)
+                strMode = Request.QueryString["qsMode"].ToString();
+            if (!IsPostBack)
+            {
+                PopulateLOBList();
+                if (Request.QueryString["qsMode"] != "C")
+                {
+                    PopulateBranchList();
+                }
+                PopulateReasons();
+                GlobalParameters();
+                // txtBnkCharges.Attributes.Add("onblur", "fnAllowNumbersOnly(true,true,this);funChkDecimial(this," + txtBnkCharges.Attributes["MaxC"] + "," + txtBnkCharges.Attributes["DecC"] + ")");
+
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] != null && Request.QueryString["qsMode"] == "Q")
+                {
+                    btnPDF.Enabled = true;
+                    btnSave.CssClass = "styleSubmitButton";
+                    FunLoadAllDetails(true);
+                    FunPriDisableControls(-1);
+                }
+                else if (Request.QueryString["qsMode"] != null && Request.QueryString["qsMode"] == "M")
+                {
+                    btnPDF.Enabled = true;
+                    FunLoadAllDetails(true);
+                    FunPriDisableControls(1);
+                    if (strChequeReturn != "" && bolMonthLock == true)   //Addded by Tamilselvan.S on 13/05/2011
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    if (ObjUserInfo.ProModifyRW == false)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                }
+                else
+                {
+                    btnSave.CssClass = "styleSubmitButton";
+                    int intGPSPrefix = ObjS3GSession.ProGpsPrefixRW <= 10 ? ObjS3GSession.ProGpsPrefixRW : 10;
+                    int intGPSSuffix = ObjS3GSession.ProGpsSuffixRW <= 3 ? ObjS3GSession.ProGpsSuffixRW : 3;
+                    //txtBnkCharges.SetDecimalPrefixSuffix(intGPSPrefix, intGPSSuffix, true, "Bank Charges");
+                    txtBnkCharges.MaxLength = intGPSPrefix;// +intGPSSuffix + 1;
+                    //txtChequeDate.Text = DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                    txtDocuDate.Text = DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                    FunPriDisableControls(0);
+                    //System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("-- Select --", "0");
+                    //ddlReceiptNo.Items.Insert(0, liSelect);
+                    btnPDF.Enabled = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion [FunPripageLoad]
+
+    #region [Save / Cheque Cancellation]
+
+    private void FunPriSaveChequeReturn_ChequeCancellation()
+    {
+        try
+        {
+            string strChequeReturnNo = string.Empty;
+            if (Page.IsValid)
+            {
+                objClnCheque_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+                if (strChequeReturn == string.Empty)
+                {
+                    ObjClnMemoMgtServicesClient = new ClnMemoMgtServicesReference.ClnMemoMgtServicesClient();
+
+                    objChequeDateTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeReturnProcessDataTable();
+                    objChequeRow = objChequeDateTable.NewS3G_CLN_ChequeReturnProcessRow();
+                    objChequeRow.Company_ID = intCompanyID;
+                    objChequeRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                    objChequeRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+                    objChequeRow.Cheque_Return_Advice_No = strChequeReturn;
+                    objChequeRow.Cheque_Return_Advice_Date = Utility.StringToDate(txtChequeDate.Text);
+                    objChequeRow.Bank_Advice_Number = txtBankAdviceNo.Text;
+                    objChequeRow.Deposit_Bank_Code = txtDepositBank.Text;
+                    //objChequeRow.Bank_Account_Number = Convert.ToInt32(txtAcNo.Text);
+                    objChequeRow.Receipt_No = txtReceiptNumber.Text.Trim(); // ddlReceiptNo.SelectedValue;
+                    objChequeRow.Cheque_Number = Convert.ToInt64(txtChequeNo.Text);
+                    objChequeRow.Cheque_Amount = Convert.ToDecimal(txtChkAmt.Text);
+                    objChequeRow.Bank_Charges = Convert.ToDecimal(txtBnkCharges.Text);
+                    objChequeRow.Cheque_Reason_Type = Convert.ToInt32(ddlReasons.SelectedValue);
+                    objChequeRow.Created_By = intUserID;
+                    objChequeDateTable.AddS3G_CLN_ChequeReturnProcessRow(objChequeRow);
+
+                    ObjMemorandumDataTable = new S3GBusEntity.Collection.ClnMemoMgtServices.S3G_CLN_MemorandumBookingDataTable();
+                    S3GBusEntity.Collection.ClnMemoMgtServices.S3G_CLN_MemorandumBookingRow ObjMemorandumBookingRow;
+                    ObjMemorandumBookingRow = ObjMemorandumDataTable.NewS3G_CLN_MemorandumBookingRow();
+                    ObjMemorandumBookingRow.Company_ID = intCompanyID;
+                    ObjMemorandumBookingRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                    ObjMemorandumBookingRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+                    //Source Modified by Tamilselvan date 10/01/2011
+                    ObjMemorandumBookingRow.Memo_Link_Key = 0;
+                    ObjMemorandumBookingRow.Customer_ID = Convert.ToInt32(((TextBox)ucdCustomer.FindControl("txtCustomerCode")).Attributes["Cust_ID"]);     // Convert.ToInt32(txtCustCode.Attributes["Cust_ID"]);
+                    //ObjMemorandumBookingRow.Memo_Booking_No = MemorandumBookingNo;
+                    if (grvCheque.Rows[0].Cells[0].Text != string.Empty && grvCheque.Rows[0].Cells[0].Text != "" && grvCheque.Rows[0].Cells[0].Text !="&nbsp;")
+                    {
+                        ObjMemorandumBookingRow.PANum = grvCheque.Rows[0].Cells[0].Text;
+                    }
+                    else
+                    {
+                        ObjMemorandumBookingRow.PANum = "";
+                    }
+                    if (grvCheque.Rows[0].Cells[1].Text != string.Empty && grvCheque.Rows[0].Cells[1].Text != "" && grvCheque.Rows[0].Cells[1].Text != "&nbsp;")
+                    {
+                        ObjMemorandumBookingRow.SANum = grvCheque.Rows[0].Cells[1].Text;
+                    }
+                    else
+                    {
+                        ObjMemorandumBookingRow.SANum = "";
+                    }
+                    //ObjMemorandumBookingRow.Value_Date = Utility.StringToDate(txtChequeDate.Text);
+                    ObjMemorandumBookingRow.Created_By = intUserID;
+                    ObjMemorandumBookingRow.Due_Amount = Convert.ToDecimal(txtBnkCharges.Text);  // For due amount
+                    ObjMemorandumBookingRow.Received_Amount = Convert.ToDecimal("0");
+                    ObjMemorandumBookingRow.Memo_Type_Code = Convert.ToInt32("36");
+                    ObjMemorandumBookingRow.Memo_Type = Convert.ToInt32("1");
+                    //ObjMemorandumBookingRow.Memo_Booking_Date = Utility.StringToDate(txtDocuDate.Text);
+                    ObjMemorandumBookingRow.Created_On = Utility.StringToDate(DateTime.Now.ToString());
+                    ObjMemorandumBookingRow.Modified_By = intUserID;
+                    ObjMemorandumBookingRow.Modified_On = Utility.StringToDate(DateTime.Now.ToString());
+                    ObjMemorandumBookingRow.Txn_ID = 0;
+
+                    FunPubFormXml();
+                    ObjMemorandumBookingRow.MemorandumAddDetails = strbMemo.ToString();
+                    //ObjMemorandumBookingRow.MemorandumDetails = strbMemo.ToString();
+                    ObjMemorandumBookingRow.OperationType = "0";
+
+                    ObjMemorandumDataTable.AddS3G_CLN_MemorandumBookingRow(ObjMemorandumBookingRow);
+
+                    string DocNo = "";
+                    byte[] byteobjS3G_CLN_MemoBooking_DataTable = ClsPubSerialize.Serialize(ObjMemorandumDataTable, ObjSerMode);
+                    intErrCode = objClnCheque_Client.OL_CreateChequeReturns_Memerandum(out strChequeReturnNo, ObjSerMode, ClsPubSerialize.Serialize(objChequeDateTable, ObjSerMode), byteobjS3G_CLN_MemoBooking_DataTable);
+                    // intMemoErrCode = ObjClnMemoMgtServicesClient.FunPubCreateMemorandumBooking(out DocNo, ObjSerMode, byteobjS3G_CLN_MemoBooking_DataTable);
+                }
+                else
+                {
+                    objAuthorizeDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChequeAuthorizationDataTable();
+                    objAuthorizeRow = objAuthorizeDataTable.NewS3G_CLN_ChequeAuthorizationRow();
+                    FunXMLValues();
+                    objAuthorizeRow.User_ID = intUserID;
+                    objAuthorizeRow.XMLListValues = strAuthorize.ToString();
+                    objAuthorizeDataTable.AddS3G_CLN_ChequeAuthorizationRow(objAuthorizeRow);
+
+                    intErrCode = objClnCheque_Client.FunPubChequeAuthorization(ObjSerMode, ClsPubSerialize.Serialize(objAuthorizeDataTable, ObjSerMode));
+                }
+                if (intErrCode == 0 && strChequeReturn == string.Empty && intMemoErrCode == 0)
+                {
+                    //To avoid double save click
+                    btnSave.Enabled = false;
+                    //End here
+
+                    strAlert = "Cheque Return (Number : " + strChequeReturnNo + ") details processed successfully for the Receipt Number" + " - " + txtReceiptNumber.Text.Trim();//ddlReceiptNo.SelectedValue;
+                    //strAlert += @"\nWould you like to process one more Cheque Return?";
+                    strAlert += @"\n\nWould you like to view the Cheque Return Statement?";
+                    //strAlert = Resources.ValidationMsgs.S3G_SucMsg_CLN_ChequeReturn + " - " + ddlReceiptNo.SelectedValue;
+                    //strAlert += @Resources.ValidationMsgs.S3G_ValMsg_Next + " cheque?";            //"\n\nWould you like to add details for one more cheque?";
+                    //strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strAlert = "if(confirm('" + strAlert + "')){ document.getElementById('" + Button1.ClientID + "').click();}else {if(confirm('" + (@"Would you like to process one more Cheque Return?").Replace("\\n", "") + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}" + "}";
+
+
+                    btnSave.Enabled = btnClear.Enabled = false;
+                    btnPDF.Enabled = true;
+                    strChequeReturn = txtChequeRetNo.Text = strChequeReturnNo;
+                    strRedirectPageView = "";
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                }
+                else if (intErrCode == -1)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs._1 + " for " + strPageName + "');", true);  //   Document Sequence Number not set for processing Cheque Return ');", true);
+                    return;
+                }
+                else if (intErrCode == -2)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs._2 + " for " + strPageName + "');", true);  //   Document Sequence Number not set for processing Cheque Return ');", true);
+                    return;
+                }
+                else if (intErrCode == 3)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs._1 + " for " + strPageName + "');", true);  //   Document Sequence Number not set for processing Cheque Return ');", true);
+                    return;
+                }
+                else if (intErrCode == 0 && strChequeReturn != string.Empty)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs.S3G_SucMsg_CLN_ChequeRetCancel + "');" + strRedirectPageView, true);    //Cheque Return Cancelled sucessfully
+                    return;
+                }
+                else if (intErrCode == 15)
+                {
+                    //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Memo master not defined');", true);    //Cheque Return Cancelled sucessfully
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Memo Master not defined for Cheque Return charges');", true); 
+                    return;
+                }
+                else
+                {
+                    if ((intErrCode == 50) || (intErrCode == 51) || (intErrCode == 52) || (intErrCode == 53) || (intErrCode == 120) || (intErrCode == 141) || (intErrCode >=8000))
+                    {
+                        Utility.FunShowValidationMsg(this.Page, "", intErrCode);
+                    }
+                    else
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Error occured in cheque return processing');", true);
+                    }
+                    return;
+                }
+            }
+        }
+        catch (FaultException<ClnReceiptMgtServicesReference.ClsPubFaultException> ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (objClnCheque_Client != null)
+            {
+                objClnCheque_Client.Close();
+            }
+        }
+    }
+
+    #endregion [Save / Cheque Cancellation]
+
+    #region [LOB/Branch/Receipt Number/Resons Listing]
+
+    private void PopulateBranchList()
+    {
+        try
+        {
+            //Procparam = new Dictionary<string, string>();
+            //if (strMode != "Q" && strMode != "M")
+            //    Procparam.Add("@Is_Active", "1");
+            //Procparam.Add("@User_ID", intUserID.ToString());
+            //Procparam.Add("@Company_ID", intCompanyID.ToString());
+            //Procparam.Add("@Program_ID", "98");
+            //if (ddlLOB.SelectedIndex != 0) //Modified by Tamilselvan.s on 19/10/2011 for Location Load based on LOB
+            //    Procparam.Add("@Lob_Id", Convert.ToString(ddlLOB.SelectedValue));
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+            //ddlBranch.AddItemToolTip();  //Added by Tamilselvan.S on 04/08/2011
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void PopulateLOBList()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            if (strMode != "Q" && strMode != "M")
+                Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Program_ID", "98");
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            ddlLOB.AddItemToolTip();  //Added by Tamilselvan.S on 04/08/2011
+            if (ddlLOB.Items.Count == 2)
+            {
+                ddlLOB.SelectedIndex = 1;
+                ddlLOB.ClearDropDownList();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunReceiptNumbers()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            if (Request.QueryString["qsMode"] == "Q" || Request.QueryString["qsMode"] == "M")
+            {
+                Procparam.Add("@Options", "1");
+            }
+            else Procparam.Add("@Options", "2");
+            //source modified by Tamilselvan on 10/01/2011
+
+            ddlReceiptNo.BindDataTable(SPNames.S3G_CLN_GetChequeReceiptBatch, Procparam, true, "-- Select --", new string[] { "ID", "ID" });
+            //ddlReceiptNo.BindDataTable(SPNames.S3G_CLN_GetChequeReceiptBatch, Procparam, new string[] { "ID", "Receipt_No" });
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    public void FunPubSetItemTooltipForDrowDown()
+    {
+        ddlLOB.AddItemToolTip();
+        //ddlBranch.AddItemToolTip();
+        //ddlReceiptNo.AddItemToolTip();
+        ddlReasons.AddItemToolTip();
+    }
+
+    private void PopulateReasons()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@LookupType_Code", "47");
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            ddlReasons.BindDataTable(SPNames.S3G_LOANAD_GetLookUpValues, Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+            ddlReasons.AddItemToolTip();  //Added by Tamilselvan.S on 04/08/2011
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion
+
+    #region [Global Parameters]
+
+    private void GlobalParameters()
+    {
+        DataTable dtTable = new DataTable();
+        try
+        {
+            //Procparam = new Dictionary<string, string>();
+            //Procparam.Add("@Company_ID", intCompanyID.ToString());
+            //dtTable = Utility.GetDefaultData(SPNames.S3G_Get_GobalCompanyDetails, Procparam);
+
+            //txtBnkCharges.Attributes.Add("MaxC", dtTable.Rows[0]["Currency_Max_Digit"].ToString());
+            //txtBnkCharges.Attributes.Add("DecC", dtTable.Rows[0]["Currency_Max_Dec_Digit"].ToString());
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion [Global Parameters]
+
+    #region [User Authorization]
+
+    /// <summary>
+    /// This is used to implement User Authorization
+    /// </summary>
+    /// <param name="intModeID"></param>
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    if (!bCreate)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    btnSave.OnClientClick = "return fnCheckPageValidators();";
+                    btnSave.Text = "Save";
+                    break;
+
+                case 1: // Modify Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    if (!bModify)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    btnSave.Text = "Cheque Return Cancel";
+                    btnSave.ToolTip = "Cheque Return Cancel";
+                    btnSave.CssClass = "styleSubmitLongButton";
+                    btnSave.OnClientClick = "return ChequeCancelmsg();";
+                    btnClear.Enabled = false;
+                    txtChequeNo.ReadOnly = txtBankAdviceNo.ReadOnly = txtBnkCharges.ReadOnly = true;
+                    if (bClearList)
+                    {
+                        ddlLOB.ClearDropDownList();
+                        ddlBranch.Enabled=false;
+                        ddlReasons.ClearDropDownList();
+                        //ddlReceiptNo.ClearDropDownList();
+                    }
+                    break;
+
+                case -1:// Query Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    btnSave.OnClientClick = "return fnCheckPageValidators();";
+                    btnSave.Text = "Save";
+                    btnSave.Enabled = btnClear.Enabled = false;
+                    txtChequeNo.ReadOnly = txtBankAdviceNo.ReadOnly = txtBnkCharges.ReadOnly = true;
+                    if (!bQuery)
+                    {
+                        Response.Redirect(strRedirectPage,false);
+                    }
+                    if (bClearList)
+                    {
+                        ddlLOB.ClearDropDownList();
+                        ddlBranch.Enabled=false;
+                        ddlReasons.ClearDropDownList();
+                        //ddlReceiptNo.ClearDropDownList();
+                    }
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion [User Authorization]
+
+    #region [Cheque Cancellation]
+
+    #region [Assign cheque as authorized]
+
+    protected void FunXMLValues()
+    {
+        int intStatus = 3;
+        strAuthorize.Append("<Root>");
+        strAuthorize.Append("<Details Cheque_Return_No='" + strChequeReturn + "' Advice_Status='" + "Cancel" + "' Auth_User_ID='" + intUserID.ToString() + "' /> ");
+        strAuthorize.Append("</Root>");
+    }
+
+    #endregion [Assign cheque as authorized]
+
+    #region [Assign Cheque return status with bank charges]
+
+    public void FunPubFormXml()
+    {
+        strbMemo.Append("<Root>");
+        strbMemo.Append("<Details MemoTypeID='" + "1" + "' Amount='" + Convert.ToDecimal(txtBnkCharges.Text) + "' Remarks='" + " " + "' /> ");
+        strbMemo.Append("</Root>");
+    }
+
+    #endregion [Assign Cheque return status with bank charges]
+
+    #endregion [Cheque Cancellation]
+
+    #region [Details based on Cheque or Receipt No]
+
+    private void FunLoadAllDetails(bool bolThroughTextbox)
+    {
+        DataTable dtTable = new DataTable();
+        DataTable dtTableNew = new DataTable();
+        DataTable dtView = new DataTable();
+        try
+        {
+            if (strChequeReturn == string.Empty)
+            {
+                Procparam = new Dictionary<string, string>();
+                //if (ddlReceiptNo.SelectedValue != "0" && !bolThroughTextbox)
+                if (!string.IsNullOrEmpty(txtReceiptNumber.Text) && !bolThroughTextbox)
+                {
+                    //Procparam.Add("@Number", ddlReceiptNo.SelectedValue);
+                    Procparam.Add("@Number", txtReceiptNumber.Text.ToString());
+                    Procparam.Add("@Input", "0");
+                }
+                else
+                {
+                    Procparam.Add("@Number", txtChequeNo.Text);
+                    Procparam.Add("@Input", "1");
+                }
+            }
+            else
+            {
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Cheque_Return_No", strChequeReturn);
+                dtTableNew = Utility.GetDefaultData(SPNames.S3G_CLN_GetChequeForView, Procparam);
+                ViewState["dtHeader"] = dtTableNew;
+                if (dtTableNew.Rows.Count > 0)
+                {
+                    ddlLOB.SelectedValue = dtTableNew.Rows[0]["LOB_ID"].ToString();
+                    PopulateBranchList();
+                    ddlBranch.SelectedValue = dtTableNew.Rows[0]["Location_ID"].ToString();
+                }
+                if (Convert.ToString(dtTableNew.Rows[0]["Receipt_No"]) != string.Empty)
+                {
+                    Procparam = new Dictionary<string, string>();
+                    Procparam.Add("@Number", dtTableNew.Rows[0]["Receipt_No"].ToString());
+                    Procparam.Add("@Input", "0");
+                    Procparam.Add("@Cheque_ReturnNumber", strChequeReturn);
+                }
+                else
+                {
+                    Procparam = new Dictionary<string, string>();
+                    Procparam.Add("@Number", dtTableNew.Rows[0]["Cheque_Number"].ToString());
+                    Procparam.Add("@Input", "1");
+                    Procparam.Add("@Cheque_ReturnNumber", strChequeReturn);
+                }
+
+            }
+
+            Procparam.Add("@PageMode", strMode.ToString());
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            DataSet ds1 = Utility.GetDataset(SPNames.S3G_CLN_DetailsForReceptCheque, Procparam);
+            dtTable = ds1.Tables[0]; //Utility.GetDefaultData(SPNames.S3G_CLN_DetailsForReceptCheque, Procparam);
+            if (ds1.Tables.Count == 2)
+            {
+                if (ds1.Tables[1].Rows.Count > 0 && ds1.Tables[1].Rows[0][0] != DBNull.Value && (ds1.Tables[1].Rows[0][0]).ToString().Contains("4"))
+                {
+                    Utility.FunShowValidationMsg(this.Page, "", Convert.ToInt32(ds1.Tables[1].Rows[0][0]));
+                    txtChequeNo.Text = txtReceiptNumber.Text = "";
+                    FuncClear(true, true);
+                    txtReceiptNumber.Focus();
+                    txtChequeNo.ReadOnly = false;
+                    return;
+                }
+            }
+            if (dtTable.Rows.Count > 0 && dtTable.Columns.Count == 1 && Convert.ToString(dtTable.Rows[0]["Available"]) == "NotExists")
+            {
+                FuncClear(true, true);
+                //Chenaged by Tamilselvan on 24/01/1012 for UAT Bug fixed Message changed
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Instrument not Banked - Cannot Process Return');", true);
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('The select Receipt Number not exists ');", true);
+                txtReceiptNumber.Text = "";
+                txtChequeNo.ReadOnly = false;
+                return;
+            }
+            ViewState["dtDetails"] = dtTable;
+            dtView = dtTable.DefaultView.ToTable(true, "Receipt_No");
+            FuncClear(true, true);
+            if (dtTable.Rows.Count == 0)
+            {
+                //ddlReceiptNo.SelectedIndex = 0;
+
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('The Instrument number not exists / Bank details not exists.');", true);
+                txtChequeNo.Text = txtReceiptNumber.Text = "";
+                //ddlReceiptNo.Focus();
+                txtReceiptNumber.Focus();
+                txtChequeNo.ReadOnly = false;
+                return;
+            }
+            else if (dtView.Rows.Count > 1)
+            {
+                //ddlReceiptNo.SelectedIndex = 0;
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs.S3G_ValMsg_CLN_MoreThen1Rec_Sel_ReceiptNo + "');", true);       //More than one Receipt exists for the Cheque Number, select a Receipt Number');", true);
+                txtChequeNo.Text = txtReceiptNumber.Text = "";
+                //ddlReceiptNo.Focus();
+                txtReceiptNumber.Focus();
+                txtChequeNo.ReadOnly = false;
+                return;
+            }
+            else
+            {
+                if (dtTable.Rows.Count > 0)
+                {
+                    ddlLOB.SelectedValue = Convert.ToString(dtTable.Rows[0]["LOB_ID"]);
+                    PopulateBranchList();
+                    ddlBranch.SelectedValue = Convert.ToString(dtTable.Rows[0]["Location_ID"]);
+                    if (bolThroughTextbox)
+                    {
+                        //   FunReceiptNumbers();
+                        //intLocationIDs = Convert.ToInt32(ddlLOB.SelectedValue);
+                        //intLocationIDs = Convert.ToInt32(ddlBranch.SelectedValue);
+                        //FunPubGetReceiptNumbetList();
+                    }
+                    txtReceiptNumber.Text = Convert.ToString(dtTable.Rows[0]["Receipt_No"]);
+                    //ListItemCollection licsLOB = ddlLOB.Items;
+                    //System.Web.UI.WebControls.ListItem liLOB = new System.Web.UI.WebControls.ListItem(Convert.ToString(dtTable.Rows[0]["LOB_ID"]), Convert.ToString(dtTable.Rows[0]["LOB_ID"]));
+                    //if (!licsLOB.Contains(liLOB))
+                    //{
+                    //    txtChequeNo.Text = "";
+                    //    return;
+                    //}
+                    //ListItemCollection licsBranch = ddlBranch.Items;
+                    //System.Web.UI.WebControls.ListItem liBranch = new System.Web.UI.WebControls.ListItem(Convert.ToString(dtTable.Rows[0]["Branch_ID"]), Convert.ToString(dtTable.Rows[0]["Branch_ID"]));
+                    //if (!licsBranch.Contains(liBranch))
+                    //{
+                    //    txtChequeNo.Text = "";
+                    //    return;
+                    //}
+
+                    //if (ddlReceiptNo.Items.Count > 1)
+                    if (!string.IsNullOrEmpty(txtReceiptNumber.Text))
+                    {
+                        //ddlReceiptNo.Enabled = false;
+                        txtReceiptNumber.ReadOnly = true;
+                        //ListItemCollection lics = ddlReceiptNo.Items;
+                        //System.Web.UI.WebControls.ListItem li = new System.Web.UI.WebControls.ListItem(Convert.ToString(dtTable.Rows[0]["Receipt_No"]), Convert.ToString(dtTable.Rows[0]["Receipt_No"]));
+                        //if (lics.Contains(li))
+                        //{
+                        //ddlReceiptNo.SelectedValue = dtTable.Rows[0]["Receipt_No"].ToString();
+                        bolMonthLock = Convert.ToBoolean(dtTable.Rows[0]["MonthLock"]);  //Addded by Tamilselvan.S on 13/05/2011
+                        dtTable.Columns.Add("Comm_WebSite");
+                        ucdCustomer.SetCustomerDetails(dtTable.Rows[0], true);
+                        //Source Modified by Tamilselvan date 10/01/2011 for the customer details moved to User controls 
+                        ((TextBox)ucdCustomer.FindControl("txtCustomerCode")).Attributes.Add("Cust_ID", dtTable.Rows[0]["Customer_ID"].ToString());
+                        txtChequeNo.Text = dtTable.Rows[0]["Instrument_No"].ToString();
+
+                        txtChkAmt.Text = Convert.ToDecimal(dtTable.Rows[0]["Total_Receipt_Amount"]).ToString(Utility.SetSuffix());
+                        // txtDocuDate.Text = DateTime.Parse(dtTable.Rows[0]["Receipt_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                        txtChequeDate.Text = DateTime.Parse(dtTable.Rows[0]["Receipt_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                        txtAcNo.Text = dtTable.Rows[0]["BankAcctNumber"].ToString();
+                        txtDepositBank.Text = dtTable.Rows[0]["BankName"].ToString();
+                        if (Request.QueryString["qsMode"] == "Q" || Request.QueryString["qsMode"] == "M")
+                            txtDocuDate.Text = dtTable.Rows[0]["DocumentDate"] != DBNull.Value ? Convert.ToDateTime(dtTable.Rows[0]["DocumentDate"]).ToString(strDateFormat) : "";
+                        if (dtTableNew.Rows.Count > 0)
+                        {
+                            ddlReasons.SelectedValue = dtTableNew.Rows[0]["Cheque_Reason_Type"].ToString();
+                            txtChequeRetNo.Text = dtTableNew.Rows[0]["Cheque_Return_Advice_No"].ToString();
+                            txtBankAdviceNo.Text = dtTableNew.Rows[0]["Bank_Advice_Number"].ToString();
+                            txtBnkCharges.Text = Convert.ToInt64(dtTableNew.Rows[0]["Bank_Charges"]).ToString();//.ToString(Utility.SetSuffix());
+                        }
+
+                        FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(Convert.ToString(dtTable.Rows[0]["RECEIPT_ID"]), false, 0);
+                        hdnReptID.Value = "../Collection/S3G_CLN_RECEIPTPROCESSING_OPC.aspx?qsViewId=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=Q&Popup=yes";
+                        ReceiptID.Enabled = true;
+
+                        Panel4.Style.Add("Display", "block");
+                        grvCheque.DataSource = dtTable;
+                        grvCheque.DataBind();
+                        //}
+                        //else
+                        //{
+                        //    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Cheque number already processed.');", true);
+                        //    txtChequeNo.Text = "";
+                        //    txtChequeNo.Focus();
+                        //}
+                        if ((strMode == "M" || strMode == "Q") && Convert.ToBoolean(dtTableNew.Rows[0]["LOBActive"]) == true && Convert.ToBoolean(dtTableNew.Rows[0]["BranchActive"]) == true)
+                        {
+                            btnSave.Enabled = btnPDF.Enabled = true;
+                            txtReceiptNumber.ReadOnly = true;
+                            //ddlReceiptNo.Enabled = false;
+                        }
+                        else if (strMode == "Q") //strMode == "M" ||
+                        {
+                            btnSave.Enabled = false;  //btnPDF.Enabled =
+                            txtReceiptNumber.ReadOnly = true;
+                            //ddlReceiptNo.Enabled = false;
+                        }
+                        if (Request.QueryString["qsMode"] == "M" && (Convert.ToString(dtTable.Rows[0]["Cheque_Return_Advice_Status"]) == "Cancel"))// || Convert.ToString(dtTable.Rows[0]["Cheque_Return_Advice_Status"]) == "authorized"))
+                        {
+                            btnSave.Enabled = false;
+                            txtReceiptNumber.ReadOnly = true;
+                            //ddlReceiptNo.Enabled = false;
+                            btnPDF.Enabled = false;
+                        }
+                        if ((strMode == "M" || strMode == "Q") && Convert.ToInt32(dtTable.Rows[0]["Created_By"]) == ObjUserInfo.ProUserIdRW)
+                        {
+                            btnSave.Enabled = false;
+                            txtReceiptNumber.ReadOnly = true;
+                            //ddlReceiptNo.Enabled = false; 
+                        }
+                        if (strMode == "C" || strMode == "" || string.IsNullOrEmpty(strMode))
+                        {
+                            txtReceiptNumber.ReadOnly = false;
+                            //                            ddlReceiptNo.Enabled = true;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunLoadAllDetails_QueryMode(bool bolThroughTextbox)
+    {
+        DataTable dtTable = new DataTable();
+        DataTable dtTableNew = new DataTable();
+        DataTable dtView = new DataTable();
+        try
+        {
+            if (strChequeReturn == string.Empty)
+            {
+                Procparam = new Dictionary<string, string>();
+                //if (ddlReceiptNo.SelectedValue != "0" && !bolThroughTextbox)
+                if (!string.IsNullOrEmpty(txtReceiptNumber.Text) && !bolThroughTextbox)
+                {
+                    //Procparam.Add("@Number", ddlReceiptNo.SelectedValue);
+                    Procparam.Add("@Number", txtReceiptNumber.Text.ToString());
+                    Procparam.Add("@Input", "0");
+                }
+                else
+                {
+                    Procparam.Add("@Number", txtChequeNo.Text);
+                    Procparam.Add("@Input", "1");
+                }
+            }
+            else
+            {
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Cheque_Return_No", strChequeReturn);
+                dtTableNew = Utility.GetDefaultData(SPNames.S3G_CLN_GetChequeForView, Procparam);
+                ViewState["dtHeader"] = dtTableNew;
+                if (dtTableNew.Rows.Count > 0)
+                {
+                    System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem(dtTableNew.Rows[0]["LOB_Name"].ToString(), dtTableNew.Rows[0]["LOB_ID"].ToString());
+                    ddlLOB.Items.Add(LIB);
+                    
+                    ddlLOB.SelectedValue = dtTableNew.Rows[0]["LOB_ID"].ToString();
+                    //PopulateBranchList();
+
+
+                    ddlBranch.SelectedText=dtTableNew.Rows[0]["Location_Name"].ToString();
+                    ddlBranch.SelectedValue = dtTableNew.Rows[0]["Location_ID"].ToString();
+                }
+                if (Convert.ToString(dtTableNew.Rows[0]["Receipt_No"]) != string.Empty)
+                {
+                    Procparam = new Dictionary<string, string>();
+                    Procparam.Add("@Number", dtTableNew.Rows[0]["Receipt_No"].ToString());
+                    Procparam.Add("@Input", "0");
+                    Procparam.Add("@Cheque_ReturnNumber", strChequeReturn);
+                }
+                else
+                {
+                    Procparam = new Dictionary<string, string>();
+                    Procparam.Add("@Number", dtTableNew.Rows[0]["Cheque_Number"].ToString());
+                    Procparam.Add("@Input", "1");
+                    Procparam.Add("@Cheque_ReturnNumber", strChequeReturn);
+                }
+
+            }
+
+            Procparam.Add("@PageMode", strMode.ToString());
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue);
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            DataSet ds1 = Utility.GetDataset(SPNames.S3G_CLN_DetailsForReceptCheque, Procparam);
+            dtTable = ds1.Tables[0]; //Utility.GetDefaultData(SPNames.S3G_CLN_DetailsForReceptCheque, Procparam);
+            if (ds1.Tables.Count == 2)
+            {
+                if (ds1.Tables[1].Rows.Count > 0 && ds1.Tables[1].Rows[0][0] != DBNull.Value && (ds1.Tables[1].Rows[0][0]).ToString().Contains("4"))
+                {
+                    Utility.FunShowValidationMsg(this.Page, "", Convert.ToInt32(ds1.Tables[1].Rows[0][0]));
+                    txtChequeNo.Text = txtReceiptNumber.Text = "";
+                    FuncClear(true, true);
+                    txtReceiptNumber.Focus();
+                    txtChequeNo.ReadOnly = false;
+                    return;
+                }
+            }
+            if (dtTable.Rows.Count > 0 && dtTable.Columns.Count == 1 && Convert.ToString(dtTable.Rows[0]["Available"]) == "NotExists")
+            {
+                FuncClear(true, true);
+                //Chenaged by Tamilselvan on 24/01/1012 for UAT Bug fixed Message changed
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Instrument not Banked - Cannot Process Return');", true);
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('The select Receipt Number not exists ');", true);
+                txtReceiptNumber.Text = "";
+                txtChequeNo.ReadOnly = false;
+                return;
+            }
+            ViewState["dtDetails"] = dtTable;
+            dtView = dtTable.DefaultView.ToTable(true, "Receipt_No");
+            FuncClear(true, true);
+            if (dtTable.Rows.Count == 0)
+            {
+                //ddlReceiptNo.SelectedIndex = 0;
+
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('The Instrument number not exists / Bank details not exists.');", true);
+                txtChequeNo.Text = txtReceiptNumber.Text = "";
+                //ddlReceiptNo.Focus();
+                txtReceiptNumber.Focus();
+                txtChequeNo.ReadOnly = false;
+                return;
+            }
+            else if (dtView.Rows.Count > 1)
+            {
+                //ddlReceiptNo.SelectedIndex = 0;
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('" + Resources.ValidationMsgs.S3G_ValMsg_CLN_MoreThen1Rec_Sel_ReceiptNo + "');", true);       //More than one Receipt exists for the Cheque Number, select a Receipt Number');", true);
+                txtChequeNo.Text = txtReceiptNumber.Text = "";
+                //ddlReceiptNo.Focus();
+                txtReceiptNumber.Focus();
+                txtChequeNo.ReadOnly = false;
+                return;
+            }
+            else
+            {
+                if (dtTable.Rows.Count > 0)
+                {
+                    ddlLOB.SelectedValue = Convert.ToString(dtTable.Rows[0]["LOB_ID"]);
+                    PopulateBranchList();
+                    ddlBranch.SelectedValue = Convert.ToString(dtTable.Rows[0]["Location_ID"]);
+                    if (bolThroughTextbox)
+                    {
+                        //   FunReceiptNumbers();
+                        //intLocationIDs = Convert.ToInt32(ddlLOB.SelectedValue);
+                        //intLocationIDs = Convert.ToInt32(ddlBranch.SelectedValue);
+                        //FunPubGetReceiptNumbetList();
+                    }
+                    txtReceiptNumber.Text = Convert.ToString(dtTable.Rows[0]["Receipt_No"]);
+                    //ListItemCollection licsLOB = ddlLOB.Items;
+                    //System.Web.UI.WebControls.ListItem liLOB = new System.Web.UI.WebControls.ListItem(Convert.ToString(dtTable.Rows[0]["LOB_ID"]), Convert.ToString(dtTable.Rows[0]["LOB_ID"]));
+                    //if (!licsLOB.Contains(liLOB))
+                    //{
+                    //    txtChequeNo.Text = "";
+                    //    return;
+                    //}
+                    //ListItemCollection licsBranch = ddlBranch.Items;
+                    //System.Web.UI.WebControls.ListItem liBranch = new System.Web.UI.WebControls.ListItem(Convert.ToString(dtTable.Rows[0]["Branch_ID"]), Convert.ToString(dtTable.Rows[0]["Branch_ID"]));
+                    //if (!licsBranch.Contains(liBranch))
+                    //{
+                    //    txtChequeNo.Text = "";
+                    //    return;
+                    //}
+
+                    //if (ddlReceiptNo.Items.Count > 1)
+                    if (!string.IsNullOrEmpty(txtReceiptNumber.Text))
+                    {
+                        //ddlReceiptNo.Enabled = false;
+                        txtReceiptNumber.ReadOnly = true;
+                        //ListItemCollection lics = ddlReceiptNo.Items;
+                        //System.Web.UI.WebControls.ListItem li = new System.Web.UI.WebControls.ListItem(Convert.ToString(dtTable.Rows[0]["Receipt_No"]), Convert.ToString(dtTable.Rows[0]["Receipt_No"]));
+                        //if (lics.Contains(li))
+                        //{
+                        //ddlReceiptNo.SelectedValue = dtTable.Rows[0]["Receipt_No"].ToString();
+                        bolMonthLock = Convert.ToBoolean(dtTable.Rows[0]["MonthLock"]);  //Addded by Tamilselvan.S on 13/05/2011
+                        dtTable.Columns.Add("Comm_WebSite");
+                        ucdCustomer.SetCustomerDetails(dtTable.Rows[0], true);
+                        //Source Modified by Tamilselvan date 10/01/2011 for the customer details moved to User controls 
+                        ((TextBox)ucdCustomer.FindControl("txtCustomerCode")).Attributes.Add("Cust_ID", dtTable.Rows[0]["Customer_ID"].ToString());
+                        txtChequeNo.Text = dtTable.Rows[0]["Instrument_No"].ToString();
+
+                        txtChkAmt.Text = Convert.ToDecimal(dtTable.Rows[0]["Total_Receipt_Amount"]).ToString(Utility.SetSuffix());
+                        // txtDocuDate.Text = DateTime.Parse(dtTable.Rows[0]["Receipt_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                        txtChequeDate.Text = DateTime.Parse(dtTable.Rows[0]["Receipt_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                        txtAcNo.Text = dtTable.Rows[0]["BankAcctNumber"].ToString();
+                        txtDepositBank.Text = dtTable.Rows[0]["BankName"].ToString();
+                        if (Request.QueryString["qsMode"] == "Q" || Request.QueryString["qsMode"] == "M")
+                            txtDocuDate.Text = dtTable.Rows[0]["DocumentDate"] != DBNull.Value ? Convert.ToDateTime(dtTable.Rows[0]["DocumentDate"]).ToString(strDateFormat) : "";
+                        if (dtTableNew.Rows.Count > 0)
+                        {
+                            System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem(dtTableNew.Rows[0]["Reason"].ToString(), dtTableNew.Rows[0]["Cheque_Reason_Type"].ToString());
+                            ddlReasons.Items.Add(LIB);
+                    
+                            ddlReasons.SelectedValue = dtTableNew.Rows[0]["Cheque_Reason_Type"].ToString();
+                            txtChequeRetNo.Text = dtTableNew.Rows[0]["Cheque_Return_Advice_No"].ToString();
+                            txtBankAdviceNo.Text = dtTableNew.Rows[0]["Bank_Advice_Number"].ToString();
+                            txtBnkCharges.Text = Convert.ToInt64(dtTableNew.Rows[0]["Bank_Charges"]).ToString();//.ToString(Utility.SetSuffix());
+                        }
+
+                        FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(Convert.ToString(dtTable.Rows[0]["RECEIPT_ID"]), false, 0);
+                        hdnReptID.Value = "../Collection/S3G_CLN_RECEIPTPROCESSING_OPC.aspx?qsViewId=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=Q&Popup=yes";
+                        ReceiptID.Enabled = true;
+
+                        Panel4.Style.Add("Display", "block");
+                        grvCheque.DataSource = dtTable;
+                        grvCheque.DataBind();
+                        //}
+                        //else
+                        //{
+                        //    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Cheque number already processed.');", true);
+                        //    txtChequeNo.Text = "";
+                        //    txtChequeNo.Focus();
+                        //}
+                        if ((strMode == "M" || strMode == "Q") && Convert.ToBoolean(dtTableNew.Rows[0]["LOBActive"]) == true && Convert.ToBoolean(dtTableNew.Rows[0]["BranchActive"]) == true)
+                        {
+                            btnSave.Enabled = btnPDF.Enabled = true;
+                            txtReceiptNumber.ReadOnly = true;
+                            //ddlReceiptNo.Enabled = false;
+                        }
+                        else if (strMode == "Q") //strMode == "M" ||
+                        {
+                            btnSave.Enabled = false;  //btnPDF.Enabled =
+                            txtReceiptNumber.ReadOnly = true;
+                            //ddlReceiptNo.Enabled = false;
+                        }
+                        if (Request.QueryString["qsMode"] == "M" && (Convert.ToString(dtTable.Rows[0]["Cheque_Return_Advice_Status"]) == "Cancel"))// || Convert.ToString(dtTable.Rows[0]["Cheque_Return_Advice_Status"]) == "authorized"))
+                        {
+                            btnSave.Enabled = false;
+                            txtReceiptNumber.ReadOnly = true;
+                            //ddlReceiptNo.Enabled = false;
+                            btnPDF.Enabled = false;
+                        }
+                        if ((strMode == "M" || strMode == "Q") && Convert.ToInt32(dtTable.Rows[0]["Created_By"]) == ObjUserInfo.ProUserIdRW)
+                        {
+                            btnSave.Enabled = false;
+                            txtReceiptNumber.ReadOnly = true;
+                            //ddlReceiptNo.Enabled = false; 
+                        }
+                        if (strMode == "C" || strMode == "" || string.IsNullOrEmpty(strMode))
+                        {
+                            txtReceiptNumber.ReadOnly = false;
+                            //                            ddlReceiptNo.Enabled = true;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion [Details based on Cheque or Receipt No]
+
+    #region [Clear Controls]
+
+    private void FuncClear(bool boolOrigin, bool boolChequeNo)
+    {
+        // throw new NotImplementedException();
+        if (boolOrigin == false)
+        {
+            //ddlBranch.SelectedIndex = 0;
+            ddlBranch.Clear();
+            ddlLOB.SelectedIndex = 0;
+            txtReceiptNumber.Text = "";
+            //if (ddlReceiptNo.Items.Count > 0)
+            //    ddlReceiptNo.Items.Clear();
+            //System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("-- Select --", "0");
+            //ddlReceiptNo.Items.Insert(0, liSelect);
+
+            // txtChequeDate.Text = "";
+        }
+        if (!boolChequeNo)
+            txtChequeNo.Text = txtChequeDate.Text = "";   // txtCustCode.Text =txtCustomerName.Text = txtMAddress.Text= txtMCity.Text=txtMState.Text =txtMPincode.Text =
+        txtChkAmt.Text = txtAcNo.Text = string.Empty;
+        txtDepositBank.Text = string.Empty;
+        txtBnkCharges.Text = "";
+        ddlReasons.SelectedIndex = 0;
+        txtBankAdviceNo.Text = txtBankAdviceNo.Text = string.Empty;
+        txtAcNo.Text = txtDepositBank.Text = string.Empty;
+        ucdCustomer.ClearCustomerDetails();
+        Panel4.Style.Add("display", "none");
+        ReceiptID.Enabled = false;
+    }
+
+    #endregion [Clear Controls]
+
+    protected void ReceiptID_serverclick(object sender, EventArgs e)
+    {
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "New", "window.open('" + hdnReptID.Value + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50')", true);
+        return;
+    }
+
+    #region [PDF Generation]
+
+    protected string FunProGetHTML()
+    {
+        DataTable dtHeader = (DataTable)ViewState["dtHeader"];
+        DataTable dtDetails = (DataTable)ViewState["dtDetails"];
+        StringBuilder strHTML = new StringBuilder();
+        if (dtHeader != null && dtHeader.Rows.Count > 0)
+        {
+            DataRow drHeader = dtHeader.Rows[0];
+            DataRow drDetail = dtDetails.Rows[0];
+
+            strHTML.Append("<font size=\"1\" color=\"black\" face=\"verdana\">" +
+    "<table width=\"85%\">" +
+        "<tr>" +
+            "<td width=\"100%\">" +
+                "<table border=\"0\" width=\"100%\">" +
+                    "<tr>" +
+                        "<td align=\"center\">" +
+                            "<b>" + drHeader["COMPANY_NAME"].ToString() + "</b>" +
+                        "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td align=\"center\">" +
+                            "<b>" + drHeader["ADDRESS"].ToString() + "</b>" + "<br />" +
+                        "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td align=\"center\">" +
+                            "<b>" + "CHEQUE RETURN ADVICE" + "</b>" +
+                        "</td>" +
+                    "</tr>" +
+                "</table>" +
+            "</td>" +
+        "</tr>" +
+        "<tr>" +
+            "<td>" +
+                "<table width=\"100%\">" +
+                    "<tr>" +
+                        "<td align=\"left\">" +
+                            "<table align=\"left\" valign=\"top\" cellpadding=\"0\" cellspacing=\"0\">" +
+                                "<tr>" +
+                                    "<td align=\"left\">" +
+                                        drHeader["BRANCH_NAME"].ToString() +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td>" +
+                                        drHeader["BRADDRESS1"].ToString() +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td>" +
+                                        drHeader["BRADDRESS2"].ToString() +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td>" +
+                                        drHeader["CITYPINCODE"].ToString() +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td>" +
+                                        drHeader["TELNUMBER"].ToString() +
+                                    "</td>" +
+                                "</tr>" +
+                            "</table>" +
+                        "</td>" +
+                        "<td>" +
+                            "<table width=\"98%\" align=\"right\" cellpadding=\"0\" cellspacing=\"0\">" +
+                                "<tr>" +
+                                    "<td align=\"left\">" +
+                                        "Branch Code" +
+                                    "</td>" +
+                                    "<td align=\"center\">" +
+                                        ":" +
+                                    "</td>" +
+                                    "<td align=\"left\">" +
+                                        drHeader["BRANCH_CODE"].ToString() +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td align=\"left\">" +
+                                        "Advice No." +
+                                    "</td>" +
+                                    "<td align=\"center\">" +
+                                        ":" +
+                                    "</td>" +
+                                    "<td align=\"left\">" +
+                                        drHeader["Cheque_Return_Advice_No"].ToString() +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td align=\"left\">" +
+                                        "Date" +
+                                    "</td>" +
+                                    "<td align=\"center\">" +
+                                        ":" +
+                                    "</td>" +
+                                    "<td align=\"left\">" +
+                                       Convert.ToDateTime(drHeader["DocumentDate"].ToString()).ToString(strDateFormat) +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td align=\"left\">" +
+                                        "Line of Business" +
+                                    "</td>" +
+                                    "<td align=\"center\">" +
+                                        ":" +
+                                    "</td>" +
+                                    "<td align=\"left\">" +
+                                        drHeader["LOB_Name"].ToString() +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td align=\"left\">" +
+                                        "Page" +
+                                    "</td>" +
+                                    "<td align=\"center\">" +
+                                        ":" +
+                                    "</td>" +
+                                    "<td align=\"left\">" +
+                                        "1 of 1" +
+                                    "</td>" +
+                                "</tr>" +
+                            "</table>" +
+                        "</td>" +
+                    "</tr>" +
+                "</table>" +
+            "</td>" +
+        "</tr>" +
+        "<tr>" +
+            "<td align=\"left\">" +
+                "<table cellpadding=\"0\" cellspacing=\"0\" align=\"left\">" +
+                    "<tr>" +
+                        "<td>" +
+                            "<br />" +
+                            drDetail["CUSTOMER_NAME"].ToString() + " (" + drDetail["CUSTOMER_CODE"].ToString() + ")" +
+                        "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>" +
+                            drDetail["Comm_Address1"].ToString() +
+                        "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>" +
+                         drDetail["Comm_Address2"].ToString() +
+                        "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>" +
+                            drDetail["Comm_City"].ToString() +
+                        "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>" +
+                            drDetail["Comm_State"].ToString() + " - " + drDetail["Comm_Pincode"].ToString() +
+                        "</td>" +
+                    "</tr>" +
+                "</table>" +
+            "</td>" +
+        "</tr>" +
+        "<tr>" +
+            "<td align=\"justify\">" +
+                "<table width=\"100%\">" +
+                    "<tr>" +
+                        "<td align=\"justify\">" +
+                            "Dear Sirs/Madam," +
+                            "<br />" +
+                            "<br />" +
+                            "Being unable to obtain payment of your Cheque / DD No. " + drDetail["Instrument_No"].ToString() + " dated " +
+                            drDetail["Instrument_Date"].ToString() + " for " + drDetail["Currency_Code"].ToString() + "." +
+                            Convert.ToDecimal(drDetail["Total_Receipt_Amount"]).ToString(Utility.SetSuffix()) + " (" + Convert.ToDecimal(drDetail["Total_Receipt_Amount"].ToString()).GetAmountInWords() +
+                            ") drawn on " + drDetail["BankName"].ToString() + //LOCATION// 
+                            " sent by you (on behalf of customer) under " + drHeader["LOB_Name"].ToString() + " Account " +
+                            "for the reason (" + drHeader["Reason"].ToString() + "), vide advice dated " + drDetail["Cheque_Return_Value_Date"].ToString() +
+                            ", we request you to kindly arrange (on behalf of the customer) for the payment" +
+                            " of " + drDetail["Currency_Code"].ToString() + "." +
+                            Convert.ToDecimal(Convert.ToDecimal(drDetail["Total_Receipt_Amount"].ToString()) + Convert.ToDecimal(drHeader["Bank_Charges"].ToString())).ToString(Utility.SetSuffix()) +
+                            ", by way of Demand Draft / Cash immediately in lieu of the above returned Demand draft / cheque. The amount has" +
+                            " been debited to the respective account(s) along with the bank charges of " + drDetail["Currency_Code"].ToString() + "." +
+                            Convert.ToDecimal(drHeader["Bank_Charges"]).ToString(Utility.SetSuffix()) + " as detailed below. This cancels our receipt number " + drDetail["Receipt_No"].ToString() +
+                            " dated " + drDetail["Receipt_Date"].ToString() + "." +
+                            "<br />" +
+                            "<br />" +
+                        "</td>" +
+                    "</tr>" +
+                "</table>" +
+            "</td>" +
+        "</tr>" +
+        "<tr>" +
+            "<td>" +
+                "<table width=\"100%\" style=\"border-color: Black;\" border=\"1\" cellpadding=\"4\" cellspacing=\"0\">" +
+                    "<tr>" +
+                        "<td align=\"center\" width=\"10px\">" +
+                            "<font face=\"verdana\" size=\"1\">" + "<b>" + "Sl.No" + "</b>" + "</font>" +
+                        "</td>" +
+                        "<td align=\"center\">" +
+                            "<font face=\"verdana\" size=\"1\">" + "<b>" + "Master Level Agmt. No." + "</b>" + "</font>" +
+                        "</td>" +
+                        "<td align=\"center\">" +
+                            "<font face=\"verdana\" size=\"1\">" + "<b>" + "Sub Level Agmt. No." + "</b>" + "</font>" +
+                        "</td>" +
+                        "<td align=\"center\">" +
+                            "<font face=\"verdana\" size=\"1\">" + "<b>" + "Customer code" + "</b>" + "</font>" +
+                        "</td>" +
+                        "<td align=\"center\">" +
+                            "<font face=\"verdana\" size=\"1\">" + "<b>" + "Amount" + "</b>" + "</font>" +
+                        "</td>" +
+                        "<td align=\"center\">" +
+                            "<font face=\"verdana\" size=\"1\">" + "<b>" + "Remarks" + "</b>" + "</font>" +
+                        "</td>" +
+                    "</tr>");
+
+            for (int i = 0; i <= dtDetails.Rows.Count - 1; i++)
+            {
+                strHTML.Append(
+                        "<tr>" +
+                            "<td align=\"center\" width=\"10%\">" +
+                                (i + 1).ToString() +
+                            "</td>" +
+                            "<td>" +
+                                dtDetails.Rows[i]["PANum"].ToString() +
+                            "</td>" +
+                            "<td>" +
+                                dtDetails.Rows[i]["SANum"].ToString() +
+                            "</td>" +
+                            "<td>" +
+                                drDetail["CUSTOMER_CODE"].ToString() +
+                            "</td>" +
+                            "<td align=\"right\">" +
+                                Convert.ToDecimal(drDetail["Transaction_Amount"]).ToString(Utility.SetSuffix()) +
+                            "</td>" +
+                            "<td>" +
+                                drDetail["Remarks"].ToString() +
+                            "</td>" +
+                        "</tr>");
+            }
+            strHTML.Append(
+                    "<tr>" +
+                        "<td>" +
+                        "</td>" +
+                        "<td>" +
+                        "</td>" +
+                        "<td colspan=\"2\">" +
+                            "Total Amount" +
+                        "</td>" +
+                        "<td align=\"right\">" +
+                           Convert.ToDecimal(drDetail["Total_Receipt_Amount"]).ToString(Utility.SetSuffix()) +
+                        "</td>" +
+                        "<td>" +
+                        "</td>" +
+                    "</tr>" +
+                "</table>" +
+            "</td>" +
+        "</tr>" +
+        "<tr>" +
+            "<td>" +
+                "<br />" +
+                "<table width=\"100%\">" +
+                    "<tr>" +
+                        "<td>" +
+                            ObjUserInfo.ProUserNameRW.ToString() +
+                        "</td>" +
+                        "<td width=\"60%\">" +
+                        "</td>" +
+                        "<td align=\"center\">" +
+                            "Yours truly" +
+                        "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>" +
+                            DateTime.Now.ToString(strDateFormat) +
+                        "</td>" +
+                        "<td width=\"60%\">" +
+                        "</td>" +
+                        "<td>" +
+                        "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>" +
+                        "</td>" +
+                        "<td widh=\"60%\">" +
+                        "</td>" +
+                        "<td align=\"center\">" +
+                            "For " + drHeader["COMPANY_NAME"].ToString() +
+                        "</td>" +
+                    "</tr>" +
+                "</table>" +
+            "</td>" +
+        "</tr>" +
+    "</table>" +
+"</font>");
+        }
+
+        return strHTML.ToString();
+    }
+
+    #endregion [PDF Generation]
+
+    #endregion [Function's]
+
+    protected void grvCheque_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            Label lblchequeAmt = e.Row.FindControl("lblchequeAmt") as Label;
+            lblchequeAmt.Text = Convert.ToDecimal(lblchequeAmt.Text).ToString(Utility.SetSuffix());
+        }
+
+    }
+
+    protected void txtReceiptNumber_OnTextChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FuncClear(true, false);
+            txtChequeNo.ReadOnly = false;
+            //if (ddlReceiptNo.SelectedValue != "0")
+            //    FunLoadAllDetails(false);
+            //if (ddlReceiptNo.SelectedIndex != 0)
+            if (ddlLOB.SelectedValue == "0" && ddlBranch.SelectedValue == "0" && ddlBranch.SelectedValue == "")
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Select the Line of Business and Location');", true);
+                txtReceiptNumber.Text = "";
+                return;
+            }
+            else if (ddlLOB.SelectedValue == "0")
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Select the Line of Business');", true);
+                txtReceiptNumber.Text = "";
+                return;
+            }
+            else if (ddlBranch.SelectedValue == "0" || ddlBranch.SelectedValue == "")
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Select the Location');", true);
+                txtReceiptNumber.Text = "";
+                return;
+            }
+            else if (!string.IsNullOrEmpty(txtReceiptNumber.Text))
+            {
+                txtChequeNo.ReadOnly = true;
+                FunLoadAllDetails(false);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvChequeReturn.ErrorMessage = ex.Message;
+            cvChequeReturn.IsValid = false;
+        }
+    }
+
+    #region [Get Receipt Number List]
+    /// <summary>
+    /// Get Receipt Number List
+    /// </summary>
+    /// <param name="prefixText">search text</param>
+    /// <param name="count">no of matches to display</param>
+    /// <returns>string[] of matching names</returns>
+    [System.Web.Services.WebMethod]
+    public static string[] GetReceiptNumberList(String prefixText, int count)
+    {
+        DataTable dt1 = new DataTable();
+
+        //dt1 = (DataTable)System.Web.HttpContext.Current.Session["CustomerDT"];
+        dt1 = FunPubGetReceiptNumbetList();
+        List<String> suggetions = GetSuggestions(prefixText, count, dt1);
+
+
+        return suggetions.ToArray();
+    }
+
+    #endregion
+
+    #region GetSuggestions
+    /// <summary>
+    /// GetSuggestions
+    /// </summary>
+    /// <param name="key">Country Names to search</param>
+    /// <returns>Country Names Similar to key</returns>
+    private static List<String> GetSuggestions(string key, int count, DataTable dt1)
+    {
+        List<String> suggestions = new List<string>();
+        try
+        {
+
+            string filterExpression = "ID like '%" + key + "%'";
+            DataRow[] dtSuggestions = dt1.Select(filterExpression);
+
+            int i = 0;
+            foreach (DataRow dr in dtSuggestions)
+            {
+                string suggestion = dr["ID"].ToString();// + " -- " + dr["Customer_Code"].ToString();
+                suggestions.Add(suggestion);
+                i++;
+                if (count == i)
+                    break;
+            }
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException);
+            return suggestions;
+
+            //   lblErrorMessage.Text = Resources.LocalizationResources.CustomerTypeChangeError;
+        }
+
+        return suggestions;
+    }
+    #endregion
+
+    public static DataTable FunPubGetReceiptNumbetList()
+    {
+        DataTable dt;
+        try
+        {
+            Dictionary<string, string> dictProcparam = new Dictionary<string, string>();
+            dictProcparam.Add("@LOB_ID", intLOBIDs.ToString());
+            dictProcparam.Add("@Location_ID", intLocationIDs.ToString());
+            dictProcparam.Add("@Company_ID", intCompanyIDs.ToString());
+            //if (Request.QueryString["qsMode"] == "Q" || Request.QueryString["qsMode"] == "M")
+            //{
+            //    dictProcparam.Add("@Options", "1");
+            //}
+            //else
+            dictProcparam.Add("@Options", "2");
+            dt = Utility.GetDataset(SPNames.S3G_CLN_GetChequeReceiptBatch, dictProcparam).Tables[0];
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        return dt;
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "98");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+}

@@ -1,0 +1,882 @@
+<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnPDCEntry.aspx.cs" Inherits="Collection_S3GClnPDCEntry" Title="PDC Entry"
+    EnableEventValidation="false" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register Src="~/UserControls/LOBMasterView.ascx" TagName="LOV" TagPrefix="uc2" %>
+<%@ Register Src="../UserControls/S3GCustomerAddress.ascx" TagName="S3GCustomerAddress"
+    TagPrefix="uc1" %>
+<%@ Register TagPrefix="uc3" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script language="javascript" type="text/javascript">
+
+        function Calculate(amt, Insurance, Tax, AMF, other, total, suffixlen) {
+
+            if (other.value.length != 0) {
+                total.value = parseFloat(parseFloat(amt.value) + parseFloat(Insurance.value) + parseFloat(Tax.value) + parseFloat(AMF.value) + parseFloat(other.value)).toFixed(suffixlen);
+                other.value = parseFloat(other.value).toFixed(suffixlen);
+                total.setAttribute('title', total.value);
+                other.setAttribute('title', other.value);
+
+            }
+            else if (other.value.length == 0) {
+                other.value = parseFloat("0").toFixed(suffixlen);
+                other.setAttribute('title', other.value);
+            }
+        }
+
+        function fnLoadCustomer() {
+            document.getElementById('<%=btnLoadCustomer.ClientID%>').click();
+        }
+        function itemchanged() {
+            var lst = document.getElementById('<%=ddlDraweeBank.ClientID%>')
+            lst.title = lst.options[lst.selectedIndex].text;
+        }
+
+
+    </script>
+
+    <table width="100%" align="center" cellpadding="0" cellspacing="0">
+        <tr>
+            <td>
+                <table width="100%" align="center" cellpadding="0" cellspacing="0" bordre="1">
+                    <tr>
+                        <td class="stylePageHeading">
+                            <table>
+                                <tr>
+                                    <td>
+                                        <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">  </asp:Label>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="100%" colspan="4">
+                            <asp:UpdatePanel ID="upanelPDCEntry111" runat="server" UpdateMode="Conditional">
+                                <ContentTemplate>
+                                    <cc1:TabContainer ID="tcPDCEntry" runat="server" ActiveTabIndex="0" CssClass="styleTabPanel"
+                                        Width="99%" ScrollBars="None">
+                                        <cc1:TabPanel runat="server" HeaderText="General" ID="tbgeneral" CssClass="tabpan"
+                                            BackColor="Red" ToolTip="General" Width="99%">
+                                            <HeaderTemplate>
+                                                General
+                                            </HeaderTemplate>
+                                            <ContentTemplate>
+                                                <asp:UpdatePanel ID="UpGeneral" runat="server">
+                                                    <ContentTemplate>
+                                                        <table width="100%">
+                                                            <tr>
+                                                                <td>
+                                                                    <asp:Panel ID="pnlGeneral" runat="server" CssClass="stylePanel" GroupingText="General"
+                                                                        Width="99%">
+                                                                        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                                                            <tr>
+                                                                                <td class="styleFieldLabel" width="21%">
+                                                                                    <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:DropDownList ID="ddlLOB" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged"
+                                                                                        ToolTip="Line of Business">
+                                                                                    </asp:DropDownList>
+                                                                                    <asp:RequiredFieldValidator ID="RFVLOB" CssClass="styleMandatoryLabel" runat="server"
+                                                                                        ControlToValidate="ddlLOB" InitialValue="0" ValidationGroup="VGPDC" Display="None"></asp:RequiredFieldValidator>
+                                                                                </td>
+                                                                                <td class="styleFieldLabel" width="25%">
+                                                                                    <asp:Label runat="server" Text="Transaction Date" ID="lblTransactionDate" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign" width="25%">
+                                                                                    <%--Changed By Thangam on 14/May/2012 for UAT bug - PDCE_003--%>
+                                                                                    <asp:TextBox runat="server" ID="txtTransactionDate" Width="80px" ContentEditable="False"></asp:TextBox>
+                                                                                    <asp:Image ID="imgTransactionDate" runat="server" ImageUrl="~/Images/calendaer.gif"
+                                                                                        ToolTip="Transaction Date" Visible="false" />
+                                                                                    <asp:RequiredFieldValidator ID="RFVTransactionDate" CssClass="styleMandatoryLabel"
+                                                                                        runat="server" ValidationGroup="VGPDC" ControlToValidate="txtTransactionDate"
+                                                                                        Display="None"></asp:RequiredFieldValidator>
+                                                                                    <cc1:CalendarExtender ID="CECTransactiondate" runat="server" Enabled="false" OnClientDateSelectionChanged="checkDate_NextSystemDate"
+                                                                                        PopupButtonID="imgTransactionDate" TargetControlID="txtTransactionDate" Format="dd/MM/yyyy">
+                                                                                    </cc1:CalendarExtender>
+                                                                                    <%-- END Here--%>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="Location" ID="lblBranch" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+
+                                                                                    <uc3:Suggest ID="ddlBranch" Enabled="false" runat="server" ServiceMethod="GetBranchList" AutoPostBack="true"
+                                                                                        ErrorMessage="Select a Location" IsMandatory="true" OnItem_Selected="ddlBranch_SelectedIndexChanged" />
+                                                                                </td>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <%--Changed By Thangam on 14/May/2012 for UAT bug - PDCE_005--%>
+                                                                                    <asp:Label runat="server" Text="Posting Date" ID="lblPostingDate" CssClass="styleDisplayLabel"
+                                                                                        Visible="false"></asp:Label>
+                                                                                    <asp:Label runat="server" Text="PDC Entry Number" ID="lblPDCEntryNo" CssClass="styleDisplayLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:TextBox runat="server" ID="txtPostingDate" Width="70%" ContentEditable="False"
+                                                                                        Visible="false"></asp:TextBox>
+                                                                                    <asp:Image ID="imgPostingDate" runat="server" ImageUrl="~/Images/calendaer.gif" ToolTip="Posting Date"
+                                                                                        Visible="false" />
+                                                                                    <asp:RequiredFieldValidator ID="RFVPostingDate" CssClass="styleMandatoryLabel" runat="server"
+                                                                                        ValidationGroup="VGPDC" ControlToValidate="txtPostingDate" Display="None"></asp:RequiredFieldValidator>
+                                                                                    <cc1:CalendarExtender ID="CECPostingDate" runat="server" Enabled="True" OnClientDateSelectionChanged="checkDate_NextSystemDate"
+                                                                                        PopupButtonID="imgPostingDate" TargetControlID="txtPostingDate" Format="dd/MM/yyyy">
+                                                                                    </cc1:CalendarExtender>
+                                                                                    <asp:TextBox runat="server" ID="txtPDCEntryNo" Width="120px" ReadOnly="True"></asp:TextBox>
+                                                                                    <%-- END Here--%>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label ID="lblCustomerCode" runat="server" Text="Customer Code" CssClass="styleReqFieldLabel">
+                                                                                    </asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <uc2:LOV ID="ucCustomerCodeLov" onblur="fnLoadCustomer()" runat="server" DispalyContent="Code"
+                                                                                        strLOV_Code="CMB" />
+                                                                                    <asp:RequiredFieldValidator ID="rfvCustomer" CssClass="styleMandatoryLabel" runat="server"
+                                                                                        ValidationGroup="VGPDC" ControlToValidate="txtCustomerName" Display="None" ErrorMessage="Select the Customer">
+                                                                                    </asp:RequiredFieldValidator>
+                                                                                </td>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="No. of PDC & From Installment No." ID="lblNoofPDC"
+                                                                                        CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:TextBox runat="server" ID="txtNoofPDC" Width="15%" MaxLength="3" onkeypress="fnAllowNumbersOnly(false,false,this);"></asp:TextBox>
+                                                                                    <asp:TextBox runat="server" ID="txtFromInstallmentNo" Width="15%" onkeypress="fnAllowNumbersOnly(false,false,this);" MaxLength="4"></asp:TextBox>
+                                                                                    <asp:RequiredFieldValidator ID="RFVNoofPDC" CssClass="styleMandatoryLabel" runat="server"
+                                                                                        ValidationGroup="VGPDC" ControlToValidate="txtNoofPDC" Display="None" ErrorMessage="Enter the Number of PDC"></asp:RequiredFieldValidator>
+                                                                                    <%--<asp:RequiredFieldValidator ID="rfvFromInstallmentNo" CssClass="styleMandatoryLabel" runat="server"
+                                                                                        ValidationGroup="VGPDC" ControlToValidate="txtFromInstallmentNo" Display="None" ErrorMessage="Enter From Installment No"></asp:RequiredFieldValidator>--%>
+                                                                                    <asp:HiddenField ID="hdnFromInstallmentNo" runat="server" />
+                                                                                    <asp:HiddenField ID="hdnmaxInstallmentNo" runat="server" />
+                                                                                    <%-- <asp:RangeValidator ID="rgFromInstallmentNo" runat="server" MinimumValue="1" MaximumValue="9999999999"
+                                                                                        ControlToValidate="txtFromInstallmentNo" SetFocusOnError="false" ValidationGroup="VGPDC"></asp:RangeValidator>--%>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label ID="lblTranche" runat="server" Text="Tranche Name">
+                                                                                    </asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:DropDownList ID="ddlTranche" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlTranche_SelectedIndexChanged"
+                                                                                        ToolTip="Tranche Name">
+                                                                                    </asp:DropDownList>
+                                                                                </td>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="Instrument Type" ID="lblInstrumentType" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:DropDownList ID="ddlInstrmentType" runat="server" ToolTip="Instrument Type">
+                                                                                    </asp:DropDownList>
+                                                                                    <asp:RequiredFieldValidator ID="RFVInstrumentType" CssClass="styleMandatoryLabel"
+                                                                                        runat="server" ControlToValidate="ddlInstrmentType" InitialValue="0" ValidationGroup="VGPDC"
+                                                                                        Display="None"></asp:RequiredFieldValidator>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="Rental Schedule No." ID="lblprimeaccno" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:DropDownList ID="ddlPAN" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlPAN_SelectedIndexChanged"
+                                                                                        ToolTip="Rental Schedule No">
+                                                                                    </asp:DropDownList>
+                                                                                    <asp:RequiredFieldValidator ID="RFVMLA" CssClass="styleMandatoryLabel" runat="server"
+                                                                                        ControlToValidate="ddlPAN" InitialValue="0" ValidationGroup="VGPDC" Display="None"></asp:RequiredFieldValidator>
+                                                                                </td>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="PDC Nature" ID="lblPdcNature" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:DropDownList ID="ddlPdcNature" runat="server"
+                                                                                        ToolTip="PDC Nature" Style="border-color: White; border-bottom-style: double;"
+                                                                                        BackColor="White" AutoPostBack="True"
+                                                                                        OnSelectedIndexChanged="ddlPdcNature_SelectedIndexChanged">
+                                                                                    </asp:DropDownList>
+                                                                                    <asp:RequiredFieldValidator ID="rfvPdcNature" CssClass="styleMandatoryLabel"
+                                                                                        runat="server" ControlToValidate="ddlPdcNature" InitialValue="0" ValidationGroup="VGPDC"
+                                                                                        Display="None"></asp:RequiredFieldValidator>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="Instrument Sequence" ID="lblInstrmentSequence" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:DropDownList ID="ddlInstrmentSequence" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlInstrmentSequence_SelectedIndexChanged"
+                                                                                        ToolTip="Instrument Sequence" Style="border-color: White; border-bottom-style: double;"
+                                                                                        BackColor="White">
+                                                                                    </asp:DropDownList>
+                                                                                    <asp:RequiredFieldValidator ID="RFVInstrmentSequence" CssClass="styleMandatoryLabel"
+                                                                                        runat="server" ControlToValidate="ddlInstrmentSequence" InitialValue="0" ValidationGroup="VGPDC"
+                                                                                        Display="None"></asp:RequiredFieldValidator>
+                                                                                </td>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="Instrument Start Number" ID="lblInstrumentStartNo"
+                                                                                        CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:TextBox runat="server" ID="txtInstrumentStartNo" Width="60px" MaxLength="7" onkeypress="fnAllowNumbersOnly(false,false,this);"
+                                                                                        AutoPostBack="false" OnTextChanged="txtInstrumentStartNo_TextChanged"></asp:TextBox>
+                                                                                    <asp:RequiredFieldValidator ID="RFVInstrumentStartNo" CssClass="styleMandatoryLabel"
+                                                                                        runat="server" ValidationGroup="VGPDC" ControlToValidate="txtInstrumentStartNo"
+                                                                                        Display="None" ErrorMessage="Enter the Instrument Starting Number"></asp:RequiredFieldValidator>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="Drawee Bank" ID="lblDraweeBank" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:DropDownList ID="ddlDraweeBank" runat="server" Width="80%" ToolTip="Drawee Bank"
+                                                                                        onchange="itemchanged()">
+                                                                                    </asp:DropDownList>
+                                                                                    <asp:RequiredFieldValidator ID="RFVDraweeBank" CssClass="styleMandatoryLabel" runat="server"
+                                                                                        ControlToValidate="ddlDraweeBank" InitialValue="0" ValidationGroup="VGPDC" Display="None"></asp:RequiredFieldValidator>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:Label runat="server" Text="PDC Type" ID="lblPDCType" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:DropDownList ID="ddlPDCType" runat="server" Width="80%" ToolTip="PDC Type">
+                                                                                        <asp:ListItem Value="0">--Select--</asp:ListItem>
+                                                                                        <asp:ListItem Value="1">PDC with Funder</asp:ListItem>
+                                                                                        <asp:ListItem Value="2">PDC with OPC</asp:ListItem>
+                                                                                    </asp:DropDownList>
+                                                                                    <asp:RequiredFieldValidator ID="rfvPDCType" CssClass="styleMandatoryLabel" runat="server"
+                                                                                        ControlToValidate="ddlPDCType" InitialValue="0" ValidationGroup="VGPDC" Display="None"></asp:RequiredFieldValidator>
+
+                                                                                </td>
+                                                                            </tr>
+                                                                             <tr>
+                                                                                <td class="styleFieldLabel">
+                                                                                    <asp:Label runat="server" Text="Payee Name" ID="lblPayeeName"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                   <asp:TextBox runat="server" ID="txtPayeeName" MaxLength="50"></asp:TextBox>
+                                                                                </td>
+                                                                            <tr>
+                                                                                <td align="center" colspan="4">
+                                                                                    <asp:HiddenField ID="hidcuscode" runat="server" />
+                                                                                    <asp:Button ID="btnGo" CssClass="styleSubmitShortButton" runat="server" Text="Go"
+                                                                                        OnClick="btnGo_Click" ToolTip="Go" ValidationGroup="VGPDC" />
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </asp:Panel>
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>
+                                                                    <asp:Panel ID="pnlCommAddress" runat="server" CssClass="stylePanel" GroupingText="Customer Information"
+                                                                        Width="99%" Height="100%">
+                                                                        <table width="100%" cellspacing="0">
+                                                                            <tr>
+                                                                                <td class="styleFieldLabel" width="21%">
+                                                                                    <asp:Label runat="server" Text="Customer Name" ID="Label1" CssClass="styleDisplayLabel"></asp:Label>
+                                                                                </td>
+                                                                                <td class="styleFieldAlign">
+                                                                                    <asp:TextBox runat="server" ID="txtCustomerName" ToolTip="Customer Name" ReadOnly="true"></asp:TextBox>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td colspan="4">
+                                                                                    <uc1:S3GCustomerAddress ID="CustomerDetails1" runat="server" ActiveViewIndex="1"
+                                                                                        ShowCustomerCode="false" ShowCustomerName="false" FirstColumnWidth="21%" ThirdColumnWidth="21%"
+                                                                                        FourthColumnWidth="30%" />
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </asp:Panel>
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>
+                                                                    <asp:UpdatePanel ID="UpPDCDetails" runat="server" UpdateMode="Conditional">
+                                                                        <ContentTemplate>
+                                                                            <asp:Panel ID="pnlGRDSeqYes" runat="server" CssClass="stylePanel" GroupingText="PDC Information"
+                                                                                Width="99%" Visible="false">
+                                                                                <asp:GridView runat="server" ID="GRVPDCDetails" AutoGenerateColumns="False" ShowFooter="true"
+                                                                                    Width="100%" OnRowDataBound="GRVPDCDetails_RowDataBound" ToolTip="PDC Entry Details"
+                                                                                    OnRowCreated="GRVPDCDetails_RowCreated">
+                                                                                    <Columns>
+                                                                                        <%--<asp:BoundField DataField="PDCEntryNo" HeaderText="PDC Entry No" ItemStyle-HorizontalAlign="Left"
+                                                ItemStyle-Width="500px" />--%>
+                                                                                        <%--Prime A/c No--%>
+                                                                                        <asp:TemplateField HeaderText="Prime Account Number" HeaderStyle-Width="8%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPANUM" runat="server"></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Sub A/c No--%>
+                                                                                        <asp:TemplateField HeaderText="Sub Account Number" HeaderStyle-Width="8%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblSANUM" runat="server"></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Installment No--%>
+                                                                                        <asp:TemplateField HeaderText="Installment Number" HeaderStyle-Width="6%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblInstallmentNo" runat="server" Text='<%#Eval("InstallmentNo")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Installment Date--%>
+                                                                                        <asp:TemplateField HeaderText="Installment Date" HeaderStyle-Width="8%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblInstallmentDate" runat="server" Text='<%#Eval("InstallmentDate")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--  Instrument No--%>
+                                                                                        <asp:TemplateField HeaderText="Instrument Number" HeaderStyle-Width="9%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtInstrumentNo" runat="server" MaxLength="6" Text='<%# Bind("InstrumentNo")%>'
+                                                                                                    Width="96%" ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEInstrumentNo" runat="server" TargetControlID="txtInstrumentNo"
+                                                                                                    FilterType="Numbers" Enabled="true">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Instrument Date--%>
+                                                                                        <asp:TemplateField HeaderText="Instrument Date" HeaderStyle-Width="8%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtInstrumentDate" runat="server" Text='<%# Bind("InstrumentDate")%>'
+                                                                                                    Width="96%" ContentEditable="False" Style="border-color: White;"></asp:TextBox>
+                                                                                                <%-- <cc1:CalendarExtender ID="CECInstrumentDate2" runat="server" Enabled="True" OnClientDateSelectionChanged="checkDate_OnlyPrevSystemDate"
+                                                                                    TargetControlID="txtInstrumentDate">
+                                                                                </cc1:CalendarExtender>--%>
+                                                                                                <%--<asp:Label ID="lblInstrumentDate" runat="server" Text='<%#Eval("InstallmentDate")%>' Width="100px"></asp:Label>--%>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Drawee Bank--%>
+                                                                                        <asp:TemplateField HeaderText="Drawee Bank" HeaderStyle-Width="8%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <%--<asp:TextBox ID="txtDraweeBank" runat="server" MaxLength="50" Width="150px" Text='<%# Bind("DraweeBank")%>'></asp:TextBox>--%>
+                                                                                                <asp:Label ID="lblDraweeBankG" runat="server" Text='<%#Eval("DraweeBank")%>' Visible="false"></asp:Label>
+                                                                                                <asp:DropDownList ID="ddlDraweeBankG" runat="server" AutoPostBack="false" OnSelectedIndexChanged="ddlDraweeBankG_SelectedIndexChanged"
+                                                                                                    Style="border-color: White;">
+                                                                                                </asp:DropDownList>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%-- Amount--%>
+                                                                                        <asp:TemplateField HeaderText="Amount" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtAmount" runat="server" MaxLength="20" Width="96%" Text='<%# Bind("Amount")%>'
+                                                                                                    ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEAmount" runat="server" TargetControlID="txtAmount"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%-- Status--%>
+                                                                                        <asp:TemplateField HeaderText="Status" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblStatus" runat="server" Text='<%#Eval("Status")%>' Visible="false"></asp:Label>
+                                                                                                <asp:DropDownList ID="ddlPDCStatus" runat="server" OnSelectedIndexChanged="ddlPDCStatus_SelectedIndexChanged"
+                                                                                                    AutoPostBack="true">
+                                                                                                </asp:DropDownList>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="Insurance" HeaderStyle-Width="7%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtInsurance" runat="server" MaxLength="14" Text='<%# Eval("Insurance")%>'
+                                                                                                    Width="94%" ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEInsurance" runat="server" TargetControlID="txtInsurance"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="Tax" HeaderStyle-Width="7%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtTax" runat="server" MaxLength="14" Text='<%# Eval("Tax")%>' Width="94%"
+                                                                                                    ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTETax" runat="server" TargetControlID="txtTax"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="AMF" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtAMF" runat="server" MaxLength="14" Text='<%# Eval("AMF")%>'
+                                                                                                    Width="96%" ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <%-- Other Charges--%>
+                                                                                        <asp:TemplateField HeaderText="Other Charges" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtothercharges" runat="server" MaxLength="14" Text='<%# Eval("othercharges")%>'
+                                                                                                    Width="96%" Style="border-color: White;"></asp:TextBox>
+                                                                                                <%--<asp:Label ID="lblothercharges" runat="server" Text='<%#Eval("othercharges")%>'></asp:Label>--%>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEOtherchanrges" runat="server" TargetControlID="txtothercharges"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <%-- Total--%>
+                                                                                        <asp:TemplateField HeaderText="Total" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txttotal" runat="server" MaxLength="14" ContentEditable="false"
+                                                                                                    Width="96%" ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                                <%-- <asp:Label ID="lblTotal" runat="server" ContentEditable="true" ></asp:Label>--%>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Right"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                         <asp:TemplateField HeaderText="Posting Date" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPostingDate" runat="server" Text='<%# Eval("Posting_Date")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Center"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                    </Columns>
+                                                                                    <HeaderStyle CssClass="styleGridHeader" />
+                                                                                </asp:GridView>
+                                                                            </asp:Panel>
+                                                                        </ContentTemplate>
+                                                                    </asp:UpdatePanel>
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>
+                                                                    <asp:UpdatePanel ID="UpPDCEntrydetails" runat="server" UpdateMode="Conditional">
+                                                                        <ContentTemplate>
+                                                                            <asp:Panel ID="pnlGRDSeqNo" runat="server" CssClass="stylePanel" GroupingText="PDC Information"
+                                                                                Width="99%" Visible="false">
+                                                                                <%--<div style="overflow-x: hidden; overflow-y: auto; height: 225px;">--%>
+                                                                                <asp:GridView runat="server" ID="GRVPDCDetailsEntry" AutoGenerateColumns="False"
+                                                                                    ShowFooter="true" Width="99%" Visible="false" OnRowDataBound="GRVPDCDetailsEntry_RowDataBound"
+                                                                                    ToolTip="PDC Entry Details">
+                                                                                    <Columns>
+                                                                                        <%--Prime A/c No--%>
+                                                                                        <asp:TemplateField HeaderText="Prime Account Number" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPANUM" runat="server"></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Sub A/c No--%>
+                                                                                        <asp:TemplateField HeaderText="Sub Account Number" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblSANUM" runat="server"></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Installment No--%>
+                                                                                        <asp:TemplateField HeaderText="Installment Number" HeaderStyle-Width="8%">
+                                                                                            <ItemTemplate>
+                                                                                                <%--    <asp:TextBox ID="txtInstallmentNo" runat="server" Text='<%# Bind("InstallmentNo")%>' Width="90%" MaxLength="3"></asp:TextBox>
+                                                                            <cc1:FilteredTextBoxExtender ID="FTEInstallmentNo" runat="server" TargetControlID="txtInstallmentNo"
+                                                            FilterType="Numbers" Enabled="true"></cc1:FilteredTextBoxExtender>--%>
+                                                                                                <asp:Label ID="lblInstallmentNo" runat="server" Text='<%#Eval("InstallmentNo")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Installment Date--%>
+                                                                                        <asp:TemplateField HeaderText="Installment Date" HeaderStyle-Width="8%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblInstallmentDate" runat="server" Text='<%#Eval("InstallmentDate")%>'
+                                                                                                    Width="96%"></asp:Label>
+                                                                                                <%--<asp:TextBox ID="txtInstallmentDate" runat="server"  Text='<%# Bind("InstallmentDate")%>' Width="90%" ContentEditable="False"></asp:TextBox>--%>
+                                                                                                <%-- <cc1:CalendarExtender ID="CECInstallmentDate" runat="server" Enabled="True"  TargetControlID="txtInstallmentDate" OnClientDateSelectionChanged="checkDate_OnlyPrevSystemDate"> </cc1:CalendarExtender>--%>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--  Instrument No--%>
+                                                                                        <asp:TemplateField HeaderText="Instrument Number" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtInstrumentNo" runat="server" MaxLength="6" Text='<%# Bind("InstrumentNo")%>'
+                                                                                                    Width="96%" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEInstrumentNo" runat="server" TargetControlID="txtInstrumentNo"
+                                                                                                    FilterType="Numbers" Enabled="true">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Instrument Date--%>
+                                                                                        <asp:TemplateField HeaderText="Instrument Date" HeaderStyle-Width="8%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblInstrumentDate" runat="server" Text='<%#Eval("InstrumentDate")%>'></asp:Label>
+                                                                                                <%--<asp:TextBox ID="txtInstrumentDate" runat="server" Text='<%# Bind("InstrumentDate")%>' Width="96%"  ContentEditable="False"></asp:TextBox>--%>
+                                                                                                <%--<cc1:CalendarExtender ID="CECInstrumentDate1" runat="server" Enabled="True"  TargetControlID="txtInstrumentDate" OnClientDateSelectionChanged="checkDate_OnlyPrevSystemDate" > </cc1:CalendarExtender>--%>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Drawee Bank--%>
+                                                                                        <asp:TemplateField HeaderText="Drawee Bank" HeaderStyle-Width="8%">
+                                                                                            <ItemTemplate>
+                                                                                                <%--<asp:TextBox ID="txtDraweeBank" runat="server" MaxLength="50" Width="150px" Text='<%# Bind("DraweeBank")%>'></asp:TextBox>--%>
+                                                                                                <asp:Label ID="lblDraweeBankG" runat="server" Text='<%#Eval("DraweeBank")%>' Visible="false"></asp:Label>
+                                                                                                <asp:DropDownList ID="ddlDraweeBankG" runat="server" AutoPostBack="false" OnSelectedIndexChanged="ddlDraweeBankGNO_SelectedIndexChanged">
+                                                                                                </asp:DropDownList>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%-- Amount--%>
+                                                                                        <asp:TemplateField HeaderText="Amount" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtAmount" runat="server" MaxLength="20" Text='<%# Bind("Amount")%>'
+                                                                                                    Width="96%" ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEAmount" runat="server" TargetControlID="txtAmount"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <%-- Status--%>
+                                                                                        <asp:TemplateField HeaderText="Status" HeaderStyle-Width="7%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblStatus" runat="server" Visible="false" Text='<%#Eval("Status")%>'></asp:Label>
+                                                                                                <asp:DropDownList ID="ddlPDCStatus" runat="server">
+                                                                                                </asp:DropDownList>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <%-- Other Charges--%>
+                                                                                        <asp:TemplateField HeaderText="Insurance" HeaderStyle-Width="7%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtInsurance" runat="server" MaxLength="14" Text='<%# Eval("Insurance")%>'
+                                                                                                    Width="94%" ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEInsurance" runat="server" TargetControlID="txtInsurance"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="Tax" HeaderStyle-Width="7%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtTax" runat="server" MaxLength="14" Text='<%# Eval("Tax")%>' Width="94%"
+                                                                                                    ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTETax" runat="server" TargetControlID="txtTax"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="AMF" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtAMF" runat="server" MaxLength="14" Text='<%# Eval("AMF")%>'
+                                                                                                    Width="96%" ReadOnly="true" Style="border-color: White;"></asp:TextBox>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="Other Charges" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <%--<asp:Label ID="lblothercharges" runat="server" Text='<%#Eval("othercharges")%>' ></asp:Label>--%>
+                                                                                                <asp:TextBox ID="txtothercharges" runat="server" MaxLength="14" Text='<%# Eval("othercharges")%>'
+                                                                                                    Width="96%" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEOtherchanrges" runat="server" TargetControlID="txtothercharges"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <%-- Total--%>
+                                                                                        <asp:TemplateField HeaderText="Total" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txttotal" runat="server" MaxLength="14" Width="96%" Style="border-color: White;"
+                                                                                                    ContentEditable="false"></asp:TextBox>
+                                                                                                <%--  <asp:Label ID="lblTotal" runat="server" ContentEditable="false" ></asp:Label>--%>
+                                                                                            </ItemTemplate>
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="Posting Date" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPostingDate" runat="server" Text='<%# Eval("Posting_Date")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Center"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                    </Columns>
+                                                                                    <HeaderStyle CssClass="styleGridHeader" />
+                                                                                    <RowStyle HorizontalAlign="Center" />
+                                                                                </asp:GridView>
+                                                                                <%--</div>--%>
+                                                                            </asp:Panel>
+                                                                        </ContentTemplate>
+                                                                    </asp:UpdatePanel>
+                                                                </td>
+                                                            </tr>
+
+                                                            <tr>
+                                                                <td>
+                                                                    <asp:UpdatePanel ID="upPreEMIPDC" runat="server" UpdateMode="Conditional">
+                                                                        <ContentTemplate>
+                                                                            <asp:Panel ID="pnlPreEMIPDC" runat="server" CssClass="stylePanel" GroupingText="PDC Information"
+                                                                                Width="99%" Visible="false">
+                                                                                <%--<div style="overflow-x: hidden; overflow-y: auto; height: 225px;">--%>
+                                                                                <asp:GridView runat="server" ID="gvPreEMIPDCDtls" AutoGenerateColumns="False"
+                                                                                    ShowFooter="true" Width="99%" Visible="false"
+                                                                                    ToolTip="PDC Entry Details" OnRowDataBound="gvPreEMIPDCDtls_RowDataBound">
+                                                                                    <Columns>
+                                                                                        <%--Prime A/c No--%>
+                                                                                        <asp:TemplateField HeaderText="Prime Account Number" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPANUM" runat="server"></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Sub A/c No--%>
+                                                                                        <asp:TemplateField HeaderText="Sub Account Number" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblSANUM" runat="server"></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="PA_SA_REF_ID" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPA_SA_REF_ID" runat="server" Text='<%#Eval("PA_SA_REF_ID")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                        <%--Installment No--%>
+                                                                                        <asp:TemplateField HeaderText="InstallmentNumber" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPreInstallmentNo" runat="server" Text='<%#Eval("InstallmentNo")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%--Installment Date--%>
+                                                                                        <asp:TemplateField HeaderText="Installment Date" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPreInstallmentDate" runat="server" Text='<%#Eval("InstallmentDate")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%--  Instrument No--%>
+                                                                                        <asp:TemplateField HeaderText="Instrument Number" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtPreInstrumentNo" runat="server" MaxLength="6" Text='<%# Bind("InstrumentNo")%>'
+                                                                                                    Width="96%" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEPreInstrumentNo" runat="server" TargetControlID="txtPreInstrumentNo"
+                                                                                                    FilterType="Numbers" Enabled="true">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%--Instrument Date--%>
+                                                                                        <asp:TemplateField HeaderText="Instrument Date" HeaderStyle-Width="8%">
+                                                                                            <ItemTemplate>
+                                                                                                <%--<asp:Label ID="lblPreInstrumentDate" runat="server" Text='<%#Eval("InstrumentDate")%>'></asp:Label>--%>
+                                                                                                <asp:TextBox ID="txtPreInstrumentDate" runat="server" Text='<%# Bind("InstrumentDate")%>' Width="96%" ContentEditable="true"></asp:TextBox>
+                                                                                                <cc1:CalendarExtender ID="CECPreInstrumentDate1" runat="server" Format="dd/MM/yyyy" Enabled="True" TargetControlID="txtPreInstrumentDate" OnClientDateSelectionChanged="checkDate_OnlyPrevSystemDate"></cc1:CalendarExtender>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="8%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%--Drawee Bank--%>
+                                                                                        <asp:TemplateField HeaderText="Drawee Bank" HeaderStyle-Width="8%">
+                                                                                            <ItemTemplate>
+                                                                                                <%--<asp:TextBox ID="txtDraweeBank" runat="server" MaxLength="50" Width="150px" Text='<%# Bind("DraweeBank")%>'></asp:TextBox>--%>
+                                                                                                <asp:Label ID="lblPreDraweeBankG" runat="server" Text='<%#Eval("DraweeBank")%>' Visible="false"></asp:Label>
+                                                                                                <asp:DropDownList ID="ddlPreDraweeBankG" runat="server"
+                                                                                                    OnSelectedIndexChanged="ddlPreDraweeBankG_SelectedIndexChanged"
+                                                                                                    AutoPostBack="True">
+                                                                                                </asp:DropDownList>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="8%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%-- Amount--%>
+                                                                                        <asp:TemplateField HeaderText="Amount" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:TextBox ID="txtPreAmount" runat="server" MaxLength="20" Text='<%# Bind("Amount")%>'
+                                                                                                    Width="96%" Style="border-color: White;"></asp:TextBox>
+                                                                                                <cc1:FilteredTextBoxExtender ID="FTEPreAmount" runat="server" TargetControlID="txtPreAmount"
+                                                                                                    FilterType="Numbers,Custom" Enabled="true" ValidChars=".">
+                                                                                                </cc1:FilteredTextBoxExtender>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%-- Status--%>
+                                                                                        <asp:TemplateField HeaderText="Status" HeaderStyle-Width="7%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPreStatus" runat="server" Visible="false" Text='<%#Eval("Status")%>'></asp:Label>
+                                                                                                <asp:DropDownList ID="ddlPrePDCStatus" runat="server">
+                                                                                                </asp:DropDownList>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="7%" />
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%--Other Charges--%>
+                                                                                        <asp:TemplateField HeaderText="OtherCharges" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPreOtherChrgs" runat="server" Text='<%#Eval("OtherChrgs")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%--Insurance--%>
+                                                                                        <asp:TemplateField HeaderText="Insurance" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPreInsurance" runat="server" Text='<%#Eval("Insurance")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%--TAX--%>
+                                                                                        <asp:TemplateField HeaderText="Tax" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPreTax" runat="server" Text='<%#Eval("TAX")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                            <ItemStyle HorizontalAlign="Left"></ItemStyle>
+                                                                                        </asp:TemplateField>
+
+                                                                                        <%-- Total--%>
+                                                                                        <asp:TemplateField HeaderText="Total" HeaderStyle-Width="10%" Visible="false">
+                                                                                            <ItemTemplate>
+                                                                                                <%--  <asp:TextBox ID="txtPreTotal" runat="server" MaxLength="14" Width="96%" Style="border-color: White;"
+                                                                                                    ></asp:TextBox>--%>
+                                                                                                <asp:Label ID="lblTotal" Visible="false" runat="server" ContentEditable="false"></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <HeaderStyle Width="10%" />
+                                                                                        </asp:TemplateField>
+                                                                                        <asp:TemplateField HeaderText="Posting Date" HeaderStyle-Width="10%">
+                                                                                            <ItemTemplate>
+                                                                                                <asp:Label ID="lblPostingDate" runat="server" Text='<%# Eval("Posting_Date")%>'></asp:Label>
+                                                                                            </ItemTemplate>
+                                                                                            <ItemStyle HorizontalAlign="Center"></ItemStyle>
+                                                                                        </asp:TemplateField>
+                                                                                    </Columns>
+                                                                                    <HeaderStyle CssClass="styleGridHeader" />
+                                                                                    <RowStyle HorizontalAlign="Center" />
+                                                                                </asp:GridView>
+                                                                                <%--</div>--%>
+                                                                            </asp:Panel>
+                                                                        </ContentTemplate>
+                                                                    </asp:UpdatePanel>
+                                                                </td>
+                                                            </tr>
+
+                                                        </table>
+                                                    </ContentTemplate>
+                                                </asp:UpdatePanel>
+                                            </ContentTemplate>
+                                        </cc1:TabPanel>
+                                        <cc1:TabPanel runat="server" HeaderText="ExistingPDC" ID="tbExistingPDC" CssClass="tabpan"
+                                            BackColor="Red" ToolTip="Existing PDC" Width="99%" Enabled="false">
+                                            <HeaderTemplate>
+                                                Existing PDC
+                                            </HeaderTemplate>
+                                            <ContentTemplate>
+                                                <asp:UpdatePanel ID="UpExisting" runat="server" UpdateMode="Conditional">
+                                                    <ContentTemplate>
+                                                        <asp:Panel ID="pnlExistingPDC" runat="server" CssClass="stylePanel" GroupingText="Existing PDC"
+                                                            Width="99%">
+                                                            <table cellpadding="0" cellspacing="0" width="100%">
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:GridView runat="server" ID="GrvExisting" AutoGenerateColumns="False" ShowFooter="True"
+                                                                            OnRowDataBound="GrvExisting_RowDataBound" Width="100%">
+                                                                            <Columns>
+                                                                                <%--Installment No--%>
+                                                                                <asp:TemplateField HeaderText="Installment Number">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblInstallmentNo" runat="server" Text='<%#Eval("InstallmentNo")%>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <%--Installment Date--%>
+                                                                                <asp:TemplateField HeaderText="Installment Date" ItemStyle-HorizontalAlign="Left">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblInstallmentDate" runat="server" Text='<%#Eval("InstallmentDate")%>'
+                                                                                            Style="padding-left: 20px"></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <%--Instrument No--%>
+                                                                                <asp:TemplateField HeaderText="Instrument Number" ItemStyle-HorizontalAlign="Left">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblInstrumentNo" runat="server" Text='<%#Eval("InstrumentNo")%>' Style="padding-left: 20px"></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <%--Amount--%>
+                                                                                <asp:TemplateField HeaderText="Amount" ItemStyle-HorizontalAlign="Right">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblAmount" runat="server" Text='<%#Eval("Amount")%>' Style="padding-right: 10px"></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <%--Status--%>
+                                                                                <asp:TemplateField HeaderText="Status" ItemStyle-Width="30%" ItemStyle-HorizontalAlign="Left">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblStatus" runat="server" Text='<%#Eval("Status")%>' Style="padding-left: 10px"></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                            </Columns>
+                                                                            <HeaderStyle CssClass="styleGridHeader" />
+                                                                            <RowStyle HorizontalAlign="Center" />
+                                                                        </asp:GridView>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </asp:Panel>
+                                                    </ContentTemplate>
+                                                </asp:UpdatePanel>
+                                            </ContentTemplate>
+                                        </cc1:TabPanel>
+                                    </cc1:TabContainer>
+                                </ContentTemplate>
+                            </asp:UpdatePanel>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                    <tr class="styleButtonArea" align="center" style="padding-left: 4px">
+                        <td>
+                            <asp:UpdatePanel ID="UpButtons" runat="server">
+                                <ContentTemplate>
+                                    <asp:Button runat="server" ID="btnSave" OnClientClick="return fnCheckPageValidators('VGPDC');"
+                                        CssClass="styleSubmitButton" Text="Save" ValidationGroup="VGPDC" OnClick="btnSave_Click"
+                                        ToolTip="Save" />
+                                    <asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton"
+                                        Text="Clear" OnClientClick="return fnConfirmClear();" OnClick="btnClear_Click"
+                                        ToolTip="Clear" />
+                                    <asp:Button runat="server" ID="btnCancel" Text="Cancel" ValidationGroup="VGPDC" CausesValidation="false"
+                                        CssClass="styleSubmitButton" OnClick="btnCancel_Click" ToolTip="Cancel" />
+                                    <asp:Button ID="btnLoadCustomer" runat="server" Style="display: none" Text="Load Customer"
+                                        OnClick="btnLoadCustomer_OnClick" />
+                                </ContentTemplate>
+                            </asp:UpdatePanel>
+                        </td>
+                    </tr>
+                    <tr class="styleButtonArea">
+                        <td>
+                            <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+                                <ContentTemplate>
+                                    <asp:CustomValidator ID="CVPDCEntry" runat="server" CssClass="styleMandatoryLabel"
+                                        Enabled="true" Width="98%" />
+                                    <asp:ValidationSummary runat="server" ID="vsPDCEntry" HeaderText="Correct the following validation(s):"
+                                        CssClass="styleMandatoryLabel" ShowMessageBox="false" ShowSummary="true" ValidationGroup="VGPDC" />
+                                </ContentTemplate>
+                            </asp:UpdatePanel>
+                        </td>
+                    </tr>
+                    <tr class="styleButtonArea">
+                        <td>
+                            <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</asp:Content>

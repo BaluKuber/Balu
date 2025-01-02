@@ -1,0 +1,1405 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : Funder Receipt Processing
+/// Created By                : SATHIYANATHAN S
+/// Created Date              : 13Nov2014
+/// Purpose                   : FUnder Marking Receipt
+
+/// <Program Summary>
+
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+using System.Linq;
+using System.Linq.Expressions;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+#endregion
+
+public partial class Collection_S3G_Cln_FunderReceipt_OPC : ApplyThemeForProject
+{
+
+    #region Common Variable declaration
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objReceiptProcessingClient;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_FunderReceiptDataTable objReceiptProcessingDataTable;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_FunderReceiptRow objReceiptProcessingRow;
+
+
+    int intCompanyID, intUserID = 0;
+    string strMode = string.Empty;
+    Dictionary<string, string> Procparam = null;
+    int intErrCode = 0;
+    int intReceiptId;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strDateFormat = string.Empty;
+    static string strModifyAccountNo = string.Empty;
+    static string strPageName = "Funder Receipt Processing";
+    static string strSuffix = "";
+    FormsAuthenticationTicket Ticket;
+    public static Collection_S3G_Cln_FunderReceipt_OPC obj_Page;
+    public string strValueDateGapDays = "", strInstrumentDateGapDays = "";
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3gCLNTransLander.aspx?Code=FRP";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3G_Cln_FunderReceipt_OPC.aspx?qsMode=C'";
+    string strRedirectPageView = "window.location.href='../Collection/S3gCLNTransLander.aspx?Code=FRP';";
+    string strErrorMessagePrefix = @"Correct the following validation(s): </br></br>   ";
+
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    S3GSession ObjS3GSession = new S3GSession();
+    int strDecMaxLength = 0;
+    int strPrefixLength = 0;
+
+    #endregion
+
+    #region "EVENTS"
+
+    #region "Page Events"
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region "Button Events"
+
+    protected void btnCreateCustomer_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField hdnCustomerId = ucCustomerCodeLov.FindControl("hdnID") as HiddenField;
+            if (hdnCustomerId != null && Convert.ToString(hdnCustomerId.Value) != "")
+            {
+                ViewState["CustomerID"] = hdnCustomerId.Value;
+                FunPriGetCustomerAddress(Convert.ToInt64(hdnCustomerId.Value));
+            }
+            FunPriClearGrid();
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (FunPriCheckReceiptAmount() == false)
+            {
+                return;
+            }
+
+            FunPriSaveReceipt();
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FUnPriClearDetails();
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (Request.QueryString["Popup"] != null)
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "window.close();", true);
+            }
+            else
+            {
+                Response.Redirect(strRedirectPage, false);
+            }
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnReceiptCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriCancelReceipt();
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnFooterAdd_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            UserControls_S3GAutoSuggest ddlNoteNo = (UserControls_S3GAutoSuggest)grvRentalRcptDetails.FooterRow.FindControl("ddlNoteNo");
+            UserControls_S3GAutoSuggest ddlgvTrancheNo = (UserControls_S3GAutoSuggest)grvRentalRcptDetails.FooterRow.FindControl("ddlgvTrancheNo");
+            DropDownList ddlAccountDescription = (DropDownList)grvRentalRcptDetails.FooterRow.FindControl("ddlAccountDescription");
+            UserControls_S3GAutoSuggest ddlFtrGlCode = (UserControls_S3GAutoSuggest)grvRentalRcptDetails.FooterRow.FindControl("ddlFtrGlCode");
+            UserControls_S3GAutoSuggest ddlFtrSLCode = (UserControls_S3GAutoSuggest)grvRentalRcptDetails.FooterRow.FindControl("ddlFtrSLCode");
+            Label lblFooterCashFlowFlagID = (Label)grvRentalRcptDetails.FooterRow.FindControl("lblFooterCashFlowFlagID");
+            TextBox txtFooterAmount = (TextBox)grvRentalRcptDetails.FooterRow.FindControl("txtFooterAmount");
+
+            Int64 iNoteID, iTrancheID, iAccountDescID, iCashflowflagID; double dblAmount;
+            string strNoteNo, strAccounDesc, strGLCodeDesc, strSLCodeDesc, strGLCodeID, strTrancheNo;
+
+            iNoteID = Convert.ToInt64(ddlNoteNo.SelectedValue);
+            strNoteNo = Convert.ToString(ddlNoteNo.SelectedText);
+            iTrancheID = Convert.ToInt64(ddlgvTrancheNo.SelectedValue);
+            strTrancheNo = Convert.ToString(ddlgvTrancheNo.SelectedText);
+            iAccountDescID = Convert.ToInt64(ddlAccountDescription.SelectedValue);
+            strAccounDesc = Convert.ToString(ddlAccountDescription.SelectedItem.Text);
+            strGLCodeID = Convert.ToString(ddlFtrGlCode.SelectedValue);
+            strGLCodeDesc = Convert.ToString(ddlFtrGlCode.SelectedValue);
+            strSLCodeDesc = (Convert.ToString(ddlFtrSLCode.SelectedValue) != "0") ? Convert.ToString(ddlFtrSLCode.SelectedValue) : "";
+            iCashflowflagID = (Convert.ToString(lblFooterCashFlowFlagID.Text) == "") ? 0 : Convert.ToInt64(lblFooterCashFlowFlagID.Text);
+            dblAmount = Convert.ToDouble(txtFooterAmount.Text);
+
+            DataTable dtRcpt = (DataTable)ViewState["ReceiptDetails"];
+
+            if (dtRcpt.Rows.Count > 0)
+            {
+                string strFilter = "Note_ID = " + Convert.ToInt32(ddlNoteNo.SelectedValue) + " and CashFlow_ID = " + Convert.ToString(iAccountDescID);
+                strFilter = strFilter + " and Tranche_ID = 0";
+                DataRow[] drDuplicate = dtRcpt.Select(strFilter);
+
+                if (drDuplicate.Length > 0)
+                {
+                    Utility.FunShowAlertMsg(this, "Entered combinatin already exists");
+                    return;
+                }
+
+                if (Convert.ToInt32(ddlgvTrancheNo.SelectedValue) == 0)
+                {
+                    strFilter = "Note_ID = " + Convert.ToInt32(ddlNoteNo.SelectedValue) + " and CashFlow_ID = " + Convert.ToString(iAccountDescID);
+                    drDuplicate = dtRcpt.Select(strFilter);
+
+                    if (drDuplicate.Length > 0)
+                    {
+                        Utility.FunShowAlertMsg(this, "Entered combinatin already exists");
+                        return;
+                    }
+                }
+                else
+                {
+                    strFilter = "Note_ID = " + Convert.ToInt32(ddlNoteNo.SelectedValue) + " and CashFlow_ID = " + Convert.ToString(iAccountDescID);
+                    strFilter = strFilter + " and Tranche_ID = " + Convert.ToInt32(ddlgvTrancheNo.SelectedValue);
+                    drDuplicate = dtRcpt.Select(strFilter);
+
+                    if (drDuplicate.Length > 0)
+                    {
+                        Utility.FunShowAlertMsg(this, "Entered combinatin already exists");
+                        return;
+                    }
+                }
+            }
+
+            FunPriAddRcptGridDtl(iNoteID, strNoteNo, iAccountDescID, strAccounDesc, strGLCodeID, strGLCodeDesc, strSLCodeDesc, iCashflowflagID, dblAmount,
+                iTrancheID, strTrancheNo);
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnShow_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            if (txtName != null)
+            {
+                if (txtName.Text == "")
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Select a Lessee");
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                    return;
+                }
+            }
+
+            if (Convert.ToInt64(ddlFunderName.SelectedValue) == 0 || Convert.ToString(ddlFunderName.SelectedText) == "")
+            {
+                Utility.FunShowAlertMsg(this, "Select the Funder Name");
+                return;
+            }
+
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@LobId", Convert.ToString(ddlLOB.SelectedValue));
+            Procparam.Add("@CustomerId", Convert.ToString(ViewState["CustomerID"]));
+
+            if (Convert.ToInt64(ddlFunderName.SelectedValue) > 0)
+                Procparam.Add("@Funder_ID", Convert.ToString(ddlFunderName.SelectedValue));
+
+            if (Convert.ToInt64(ddlFilTranche.SelectedValue) > 0 && Convert.ToString(ddlFilTranche.SelectedText) != "")
+            {
+                Procparam.Add("@FilTranche_ID", Convert.ToString(ddlFilTranche.SelectedValue));
+            }
+
+            if (txtFilInstalmentDate.Text != "")
+            {
+                Procparam.Add("@Instalment_Date", Utility.StringToDate(txtFilInstalmentDate.Text).ToString());
+            }
+
+            if (txtFilInstalmentToDate.Text != "")
+            {
+                Procparam.Add("@Instalment_ToDate", Utility.StringToDate(txtFilInstalmentToDate.Text).ToString());
+            }
+
+            DataTable dtPending = Utility.GetDefaultData("S3G_Cln_FunderPendingInstallment", Procparam);
+            if (dtPending != null && dtPending.Rows.Count > 0)
+            {
+
+                if (dtPending.Columns.Contains("Error_Msg"))
+                {
+                    Utility.FunShowAlertMsg(this, dtPending.Rows[0]["Error_Msg"].ToString());
+                    return;
+                }
+                
+                grvFunderInstallments.DataSource = dtPending;
+                grvFunderInstallments.DataBind();
+                pnlShowFunderDue.Visible = btnApplyFndrDue.Visible = true;
+            }
+            else
+            {
+                grvFunderInstallments.DataSource = null;
+                grvFunderInstallments.DataBind();
+                pnlShowFunderDue.Visible = btnApplyFndrDue.Visible = false;
+                Utility.FunShowAlertMsg(this, "No Pending Installments in Current date for selected Lessee");
+            }
+
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void btnApplyFndrDue_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            CheckBox chkSelectAll = grvFunderInstallments.HeaderRow.FindControl("chkFunderSelectAll") as CheckBox;
+            int intSelectedBranchCount = 0;
+            if (!chkSelectAll.Checked)
+            {
+                foreach (GridViewRow grBranch in grvFunderInstallments.Rows)
+                {
+                    if (grBranch.RowType == DataControlRowType.DataRow)
+                    {
+                        CheckBox chkSelect = grBranch.FindControl("chkFunderSelect") as CheckBox;
+                        if (chkSelect.Checked)
+                        {
+                            intSelectedBranchCount += 1;
+                        }
+                    }
+                }
+                if (intSelectedBranchCount == 0)
+                {
+                    Utility.FunShowAlertMsg(this, "Select atleast one in Installment Details");
+                    return;
+                }
+            }
+
+
+            DataTable dtShow = ((DataTable)ViewState["DefaultRcptDtl"]).Clone();
+
+            if (chkSelectAll.Checked)
+            {
+                foreach (GridViewRow grShowInstallment in grvFunderInstallments.Rows)
+                {
+                    if (grShowInstallment.RowType == DataControlRowType.DataRow)
+                    {
+                        Label lblFndPndNoteNo = (Label)grShowInstallment.FindControl("lblFndPndNoteNo");
+                        Label lblFndPndNoteID = (Label)grShowInstallment.FindControl("lblFndPndNoteID");
+                        Label lblFndPndTrancheID = (Label)grShowInstallment.FindControl("lblFndPndTrancheID");
+                        Label lblFndPndTrancheName = (Label)grShowInstallment.FindControl("lblFndPndTrancheName");
+                        Label lblFndPndCFDesc = (Label)grShowInstallment.FindControl("lblFndPndCFDesc");
+                        Label lblFndPndAmount = (Label)grShowInstallment.FindControl("lblFndPndAmount");
+                        Label lblFndPndCFFlagId = (Label)grShowInstallment.FindControl("lblFndPndCFFlagId");
+                        Label lblFndPndCFMId = (Label)grShowInstallment.FindControl("lblFndPndCFMId");
+                        UserControls_S3GAutoSuggest ddlGLCode = (UserControls_S3GAutoSuggest)grShowInstallment.FindControl("ddlFunderGLCode");
+                        UserControls_S3GAutoSuggest ddlSLCode = (UserControls_S3GAutoSuggest)grShowInstallment.FindControl("ddlFunderSLCode");
+                        TextBox txtFndrDueAmt = grShowInstallment.FindControl("txtFndrDueAmt") as TextBox;
+
+                        DataRow drInstallment = dtShow.NewRow();
+                        drInstallment["Note_ID"] = Convert.ToInt32(lblFndPndNoteID.Text);
+                        drInstallment["Note_No"] = Convert.ToString(lblFndPndNoteNo.Text);
+                        drInstallment["Tranche_ID"] = Convert.ToInt32(lblFndPndTrancheID.Text);
+                        drInstallment["Tranche_Name"] = Convert.ToString(lblFndPndTrancheName.Text);
+                        drInstallment["CashFlow_ID"] = Convert.ToInt32(lblFndPndCFMId.Text);
+                        drInstallment["CashFlow_Desc"] = Convert.ToString(lblFndPndCFDesc.Text);
+                        drInstallment["GL_Code_Desc"] = Convert.ToString(ddlGLCode.SelectedValue);
+
+                        drInstallment["SL_Code_Desc"] = Convert.ToString(ddlSLCode.SelectedValue);
+                        drInstallment["CashFlow_Flag_ID"] = Convert.ToInt32(lblFndPndCFFlagId.Text);
+                        drInstallment["Amount"] = (Convert.ToString(txtFndrDueAmt.Text) == "") ? 0 : Convert.ToDouble(txtFndrDueAmt.Text);
+                        //drInstallment["IsAddLessExist"] = false;
+                        dtShow.Rows.Add(drInstallment);
+                        ViewState["ReceiptDetails"] = dtShow;
+                    }
+                }
+            }
+            else
+            {
+                foreach (GridViewRow grShowInstallment in grvFunderInstallments.Rows)
+                {
+                    if (grShowInstallment.RowType == DataControlRowType.DataRow)
+                    {
+                        CheckBox chkSelect = grShowInstallment.FindControl("chkFunderSelect") as CheckBox;
+                        if (chkSelect.Checked)
+                        {
+                            Label lblFndPndNoteNo = (Label)grShowInstallment.FindControl("lblFndPndNoteNo");
+                            Label lblFndPndNoteID = (Label)grShowInstallment.FindControl("lblFndPndNoteID");
+                            Label lblFndPndTrancheID = (Label)grShowInstallment.FindControl("lblFndPndTrancheID");
+                            Label lblFndPndTrancheName = (Label)grShowInstallment.FindControl("lblFndPndTrancheName");
+                            Label lblFndPndCFDesc = (Label)grShowInstallment.FindControl("lblFndPndCFDesc");
+                            Label lblFndPndAmount = (Label)grShowInstallment.FindControl("lblFndPndAmount");
+                            Label lblFndPndCFFlagId = (Label)grShowInstallment.FindControl("lblFndPndCFFlagId");
+                            Label lblFndPndCFMId = (Label)grShowInstallment.FindControl("lblFndPndCFMId");
+                            UserControls_S3GAutoSuggest ddlGLCode = (UserControls_S3GAutoSuggest)grShowInstallment.FindControl("ddlFunderGLCode");
+                            UserControls_S3GAutoSuggest ddlSLCode = (UserControls_S3GAutoSuggest)grShowInstallment.FindControl("ddlFunderSLCode");
+                            TextBox txtFndrDueAmt = grShowInstallment.FindControl("txtFndrDueAmt") as TextBox;
+
+                            DataRow drInstallment = dtShow.NewRow();
+                            drInstallment["Note_ID"] = Convert.ToInt32(lblFndPndNoteID.Text);
+                            drInstallment["Note_No"] = Convert.ToString(lblFndPndNoteNo.Text);
+                            drInstallment["Tranche_ID"] = Convert.ToInt32(lblFndPndTrancheID.Text);
+                            drInstallment["Tranche_Name"] = Convert.ToString(lblFndPndTrancheName.Text);
+                            drInstallment["CashFlow_ID"] = Convert.ToInt32(lblFndPndCFMId.Text);
+                            drInstallment["CashFlow_Desc"] = Convert.ToString(lblFndPndCFDesc.Text);
+                            drInstallment["GL_Code_Desc"] = Convert.ToString(ddlGLCode.SelectedValue);
+
+                            drInstallment["SL_Code_Desc"] = Convert.ToString(ddlSLCode.SelectedValue);
+                            drInstallment["CashFlow_Flag_ID"] = Convert.ToInt32(lblFndPndCFFlagId.Text);
+                            drInstallment["Amount"] = (Convert.ToString(txtFndrDueAmt.Text) == "") ? 0 : Convert.ToDouble(txtFndrDueAmt.Text);
+                            //drInstallment["IsAddLessExist"] = false;
+                            dtShow.Rows.Add(drInstallment);
+                            ViewState["ReceiptDetails"] = dtShow;
+                        }
+                    }
+                }
+            }
+
+            DataRow[] drCnt = dtShow.Select("Amount = 0");
+
+            if (drCnt.Length > 0)
+            {
+                Utility.FunShowAlertMsg(this, "Amount field should not be blank or 0");
+                return;
+            }
+
+            DataTable dtFndr = (DataTable)ViewState["ReceiptDetails"];
+
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@OPTION", "26");
+            Procparam.Add("@XMLFunderDue", Utility.FunPubFormXml(dtFndr, true));
+
+            dtFndr = Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam);
+            ViewState["ReceiptDetails"] = dtFndr;
+
+            FunPriBindGridDtl((DataTable)ViewState["ReceiptDetails"]);
+
+            btnApplyFndrDue.Visible = pnlShowFunderDue.Visible = false;
+            grvFunderInstallments.DataSource = null;
+            grvFunderInstallments.DataBind();
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region "Dropdown Events"
+
+    protected void ddlAccountDescription_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            DropDownList ddlAccountDescription = (DropDownList)grvRentalRcptDetails.FooterRow.FindControl("ddlAccountDescription");
+            //DropDownList ddlFooterGLCode = (DropDownList)grvRentalRcptDetails.FooterRow.FindControl("ddlFooterGLCode");
+            //Label lblFooterSLCodeDesc = (Label)grvRentalRcptDetails.FooterRow.FindControl("lblFooterSLCodeDesc");
+            Label lblFooterCashFlowFlagID = (Label)grvRentalRcptDetails.FooterRow.FindControl("lblFooterCashFlowFlagID");
+            lblFooterCashFlowFlagID.Text = "";
+            if (Convert.ToInt32(ddlAccountDescription.SelectedValue) > 0)
+            {
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@OPTION", "6");
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                Procparam.Add("@CashFlow_Flag_ID", Convert.ToString(ddlAccountDescription.SelectedValue));
+                Procparam.Add("@LobId", Convert.ToString(ddlLOB.SelectedValue));
+
+                DataTable dtGLCode = Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam);
+                if (dtGLCode != null)
+                {
+                    //ddlFooterGLCode.FillDataTable(dtGLCode, "GLAccountId", "GL_Account_Code", false);
+                    //lblFooterSLCodeDesc.Text = Convert.ToString(dtGLCode.Rows[0]["SL_Account_Code"]);
+                    lblFooterCashFlowFlagID.Text = Convert.ToString(dtGLCode.Rows[0]["CashFlow_Flag_ID"]);
+                }
+            }
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void ddlLocation_Item_Selected(object Sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadDraweeBank();
+            txtOtherDraweeBank.Text = "";
+            txtOtherDraweeBank.Enabled = false;
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void ddlFunderName_Item_Selected(object Sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearGrid();
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void ddlNoteNo_Item_Selected(object Sender, EventArgs e)
+    {
+        try
+        {
+            UserControls_S3GAutoSuggest ddlgvTrancheNo = (UserControls_S3GAutoSuggest)grvRentalRcptDetails.FooterRow.FindControl("ddlgvTrancheNo");
+            ddlgvTrancheNo.Clear();
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+
+    }
+
+    #endregion
+
+    #region "GridView Events"
+
+    protected void grvRentalRcptDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.Footer)
+            {
+                DropDownList ddlAccountDescription = (DropDownList)e.Row.FindControl("ddlAccountDescription");
+                TextBox txtFooterAmount = (TextBox)e.Row.FindControl("txtFooterAmount");
+                ddlAccountDescription.FillDataTable((DataTable)ViewState["AccountDescription"], "CashFlow_ID", "CashFlow_Desc", true);
+
+                txtFooterAmount.SetDecimalPrefixSuffix(13, 2, true, false, "Amount");
+            }
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    protected void grvFunderInstallments_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                TextBox txtFndrDueAmt = (TextBox)e.Row.FindControl("txtFndrDueAmt");
+                txtFndrDueAmt.SetDecimalPrefixSuffix(10, 2, true, false, "Amount to be Entered");
+            }
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region"Linkbutton Events"
+
+    protected void lnkgvRemove_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            string strSelectID = ((LinkButton)sender).ClientID;
+            int _iRowIdx = Utility.FunPubGetGridRowID("grvRentalRcptDetails", strSelectID);
+            DataTable dtRcpt = (DataTable)ViewState["ReceiptDetails"];
+            dtRcpt.Rows.RemoveAt(_iRowIdx);
+            dtRcpt.AcceptChanges();
+            if (dtRcpt.Rows.Count == 0)
+                dtRcpt = (DataTable)ViewState["DefaultRcptDtl"];
+
+            ViewState["ReceiptDetails"] = dtRcpt;
+            FunPriBindGridDtl(dtRcpt);
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLog.CustomErrorRoutine(objException, strPageName);
+            cvReceipt.ErrorMessage = objException.Message;
+            cvReceipt.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #endregion
+
+    #region "METHODS"
+
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            ObjS3GSession = new S3GSession();
+            obj_Page = this;
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            strPrefixLength = ObjS3GSession.ProGpsPrefixRW;
+            strDecMaxLength = ObjS3GSession.ProGpsSuffixRW;
+
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID.ToString();
+            TextBox txtUserName = ((TextBox)ucCustomerCodeLov.FindControl("txtName"));
+            txtUserName.Attributes.Add("onfocus", "fnLoadCustomer()");
+            txtUserName.ToolTip = txtUserName.Text;
+
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                intReceiptId = Convert.ToInt32(fromTicket.Name);
+            }
+
+            if (Request.QueryString["qsMode"] != null)
+            {
+                strMode = Convert.ToString(Request.QueryString["qsMode"]);
+            }
+
+            if (!IsPostBack)
+            {
+                ceDocDate.Format = ceInstrumentDate.Format = ceValueDate.Format = strDateFormat;
+                txtDocAmount.SetDecimalPrefixSuffix(13, 2, false, false, "Doc Amount");
+                //ddlMode.Attributes.Add("onchange", "Mode_indexchanged();");
+                ddlDraweeBank.Attributes.Add("onchange", "DraweeBank_indexchanged();");
+                txtValueDate.Attributes.Add("onblur", "checkDate_DocDateOnBlur(this,'" + txtValueDate.ClientID + "','" + strDateFormat + "',false,  false);");
+                txtInstrumentDate.Attributes.Add("onblur", "checkDate_InstrumentDate_OnBlur(this,'" + txtInstrumentDate.ClientID + "','" + strDateFormat + "',false,  false);");
+                FunPriLoadLOV();
+                if (strMode == "M")
+                {
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    btnSave.Enabled = btnClear.Enabled = ucCustomerCodeLov.Visible = lblCode.Visible = false;
+                    FunPriLoadReceiptDetails(intReceiptId);
+                    FunPriEnableDisableCtrl(2);
+                }
+                else if (strMode == "Q")
+                {
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    btnSave.Enabled = btnClear.Enabled = ucCustomerCodeLov.Visible = btnReceiptCancel.Enabled = lblCode.Visible = false;
+                    FunPriLoadReceiptDetails(intReceiptId);
+                    FunPriEnableDisableCtrl(3);
+                }
+                else
+                {
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    FunPriEnableDisableCtrl(1);
+                }
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriLoadLOV()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            DataSet dsLov = Utility.GetDataset("S3G_Cln_FndrRcpt_Lookup", Procparam);
+            if (dsLov != null)
+            {
+                ddlLOB.BindDataTable(dsLov.Tables[0], new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+                if (ddlLOB.Items.Count == 2)
+                {
+                    ddlLOB.SelectedIndex = 1;
+                    ddlLOB.ClearDropDownList();
+                }
+
+                ddlMode.FillDataTable(dsLov.Tables[1], "Lookup_Code", "Lookup_Description", true);
+
+                ddlGLBased.FillDataTable(dsLov.Tables[2], "ID", "Name", false);
+
+                txtDocDate.Text = Convert.ToString(dsLov.Tables[3].Rows[0]["Doc_Date"]);
+
+                ViewState["DefaultRcptDtl"] = dsLov.Tables[4];
+                ViewState["ReceiptDetails"] = dsLov.Tables[4];
+                ViewState["AccountDescription"] = dsLov.Tables[5];
+
+                FunPriGetGapDays(dsLov.Tables[6]);
+
+                if (dsLov.Tables[7].Rows.Count > 0)
+                {
+                    ddlLocation.SelectedText = Convert.ToString(dsLov.Tables[7].Rows[0]["Name"]);
+                    ddlLocation.SelectedValue = Convert.ToString(dsLov.Tables[7].Rows[0]["ID"]);
+                }
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriGetGapDays(DataTable dtGapDays)
+    {
+        try
+        {
+            if (dtGapDays.Rows.Count > 0)
+            {
+                strValueDateGapDays = dtGapDays.Rows[0][0].ToString();
+                strInstrumentDateGapDays = dtGapDays.Rows[1][0].ToString();
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(this, "Define the Gap Days in LookupDetails");
+                return;
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriLoadDraweeBank()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@OPTION", "15");
+            if (ddlLOB.SelectedValue != "0") Procparam.Add("@LOBID", ddlLOB.SelectedValue);
+            if (ddlLocation.SelectedValue != "0") Procparam.Add("@LOCATIONID", ddlLocation.SelectedValue);
+            ddlDraweeBank.BindDataTable("S3G_CLN_GETRCPTCMNLST_AGT", Procparam, new string[] { "BANKNAME", "BANKNAME" });
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriBindGridDtl(DataTable dt)
+    {
+        try
+        {
+            if (dt != null)
+            {
+                grvRentalRcptDetails.DataSource = dt;
+                grvRentalRcptDetails.DataBind();
+                grvRentalRcptDetails.Rows[0].Visible = (Convert.ToInt64(dt.Rows[0]["Note_ID"]) == 0) ? false : true;
+                txtTotalAmount.Text = Convert.ToDouble(dt.Compute("sum(Amount)", "Amount >=0")).ToString();
+                txtDocAmount.Text = Math.Round(Convert.ToDouble(txtTotalAmount.Text)).ToString();
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriGetCustomerAddress(Int64 CustomerID)
+    {
+        try
+        {
+            Label lblCustomerCode = (Label)ucCustomerAddress.FindControl("lblCustomerCode");
+            Label lblCustomerName = (Label)ucCustomerAddress.FindControl("lblCustomerName");
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_Id", intCompanyID.ToString());
+            Procparam.Add("@ID", Convert.ToString(CustomerID));
+            Procparam.Add("@TypeID", "144");                //Customer Details
+
+            DataTable dtCustomer = Utility.GetDefaultData("S3G_LOANAD_GETCustomerorEntityDetails", Procparam);
+            if (dtCustomer != null && dtCustomer.Rows.Count > 0)
+            {
+                TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+                txtName.Text = txtCustomerCode.Text = Convert.ToString(dtCustomer.Rows[0]["Code"]);
+                ucCustomerAddress.SetCustomerDetails(Convert.ToString(dtCustomer.Rows[0]["Code"]),
+                        Convert.ToString(dtCustomer.Rows[0]["Address1"]) + "\n" +
+                        ((Convert.ToString(dtCustomer.Rows[0]["Address2"]) == "") ? "" : Convert.ToString(dtCustomer.Rows[0]["Address2"]) + "\n") +
+                Convert.ToString(dtCustomer.Rows[0]["city"]) + "\n" +
+                Convert.ToString(dtCustomer.Rows[0]["state"]) + "\n" +
+                Convert.ToString(dtCustomer.Rows[0]["country"]) + "\n" +
+                Convert.ToString(dtCustomer.Rows[0]["pincode"]), Convert.ToString(dtCustomer.Rows[0]["Name"]), Convert.ToString(dtCustomer.Rows[0]["Telephone"]),
+                Convert.ToString(dtCustomer.Rows[0]["mobile"]),
+                Convert.ToString(dtCustomer.Rows[0]["email"]), Convert.ToString(dtCustomer.Rows[0]["website"]));
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FUnPriClearDetails()
+    {
+        try
+        {
+            txtDocAmount.Text = txtDocNo.Text = txtValueDate.Text = "";
+            ddlLocation.Clear();
+            ddlFunderName.Clear();
+            ddlTranche.Clear();
+            ddlMode.SelectedValue = "0";
+            FunPriClearBankDetails();
+            FunPriClearCustomerDetails();
+            FunPriClearGrid();
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriClearGrid()
+    {
+        try
+        {
+            ViewState["ReceiptDetails"] = (DataTable)ViewState["DefaultRcptDtl"];
+            FunPriBindGridDtl((DataTable)ViewState["ReceiptDetails"]);
+
+            grvFunderInstallments.DataSource = null;
+            grvFunderInstallments.DataBind();
+            pnlShowFunderDue.Visible = btnApplyFndrDue.Visible = false;
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriClearCustomerDetails()
+    {
+        try
+        {
+            ucCustomerAddress.ClearCustomerDetails();
+            ViewState["CustomerID"] = 0;
+            txtCustomerCode.Text = "";
+            ucCustomerCodeLov.FunPubClearControlValue();
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriClearBankDetails()
+    {
+        try
+        {
+            txtInstrumentDate.Text = txtInstrumentNo.Text = txtPaymentGatewayRefNo.Text = txtAckNo.Text = txtBankLocation.Text = txtOtherDraweeBank.Text = "";
+            rfvInstrumentNo.Enabled = rfvInstrumentDate.Enabled = rfvBankLocation.Enabled = rfvDraweeBank.Enabled = rfvPaymentGatewayRefNo.Enabled = false;
+            lblInstrumentNo.CssClass = lblInstrumentDate.CssClass = lblBankLocation.CssClass = lblDraweeBank.CssClass = "styleDisplayLabel";
+            txtInstrumentDate.Enabled = txtInstrumentNo.Enabled = txtPaymentGatewayRefNo.Enabled = txtAckNo.Enabled = txtBankLocation.Enabled = false;
+            if (ddlDraweeBank.Items.Count > 0)
+                ddlDraweeBank.SelectedValue = "0";
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriEnableDisableCtrl(Int32 intOption)
+    {
+        try
+        {
+            if (intOption == 1)                            // Create Mode
+            {
+                ddlGLBased.SelectedValue = "0";
+                btnReceiptCancel.Enabled = txtOtherDraweeBank.Enabled = false;
+                btnShow.Visible = txtDocAmount.ReadOnly = true;
+            }
+            else if (intOption == 2)                         //Modify Mode
+            {
+                txtAckNo.ReadOnly = txtBankLocation.ReadOnly = txtDocAmount.ReadOnly = txtDocDate.ReadOnly = txtInstrumentDate.ReadOnly =
+                txtInstrumentNo.ReadOnly = txtPaymentGatewayRefNo.ReadOnly = txtValueDate.ReadOnly = true;
+
+                ceDocDate.Enabled = ceInstrumentDate.Enabled = ceValueDate.Enabled = false;
+
+                ddlLocation.ReadOnly = ddlTranche.ReadOnly = ddlFunderName.ReadOnly = true;
+
+                ddlMode.ClearDropDownList();
+                ddlGLBased.ClearDropDownList();
+                if (ddlDraweeBank.Items.Count > 0)
+                    ddlDraweeBank.ClearDropDownList();
+
+                grvRentalRcptDetails.FooterRow.Visible = false;
+                grvRentalRcptDetails.Columns[grvRentalRcptDetails.Columns.Count - 1].Visible = false;
+
+                btnShow.Visible = false;
+            }
+            else if (intOption == 3)                         //Query Mode
+            {
+                txtAckNo.ReadOnly = txtBankLocation.ReadOnly = txtDocAmount.ReadOnly = txtDocDate.ReadOnly = txtInstrumentDate.ReadOnly =
+                txtInstrumentNo.ReadOnly = txtPaymentGatewayRefNo.ReadOnly = txtValueDate.ReadOnly = true;
+
+                ceDocDate.Enabled = ceInstrumentDate.Enabled = ceValueDate.Enabled = false;
+
+                ddlLocation.ReadOnly = ddlTranche.ReadOnly = ddlFunderName.ReadOnly = true;
+
+                ddlMode.ClearDropDownList();
+                ddlGLBased.ClearDropDownList();
+                if (ddlDraweeBank.Items.Count > 0)
+                    ddlDraweeBank.ClearDropDownList();
+                grvRentalRcptDetails.FooterRow.Visible = false;
+                grvRentalRcptDetails.Columns[grvRentalRcptDetails.Columns.Count - 1].Visible = false;
+                btnShow.Visible = false;
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriAddRcptGridDtl(Int64 iNoteID, string strNoteNo, Int64 iAccountDescID, string strAccounDesc, string strGLCodeID, string strGLCodeDesc
+       , string strSLCodeDesc, Int64 iCashflowflagID, double dblAmount, Int64 iTrancheID, string strTranhceNo)
+    {
+        try
+        {
+            if (ViewState["ReceiptDetails"] != null)
+            {
+                DataTable dtRcptDtl = (DataTable)ViewState["ReceiptDetails"];
+                if (dtRcptDtl.Rows.Count > 0 && Convert.ToInt32(dtRcptDtl.Rows[0]["Note_ID"]) == 0)
+                {
+                    dtRcptDtl.Rows[0].Delete();
+                    dtRcptDtl.AcceptChanges();
+                }
+
+                DataRow drRcpt = dtRcptDtl.NewRow();
+                drRcpt["Note_ID"] = iNoteID;
+                drRcpt["Note_No"] = strNoteNo;
+                drRcpt["Tranche_ID"] = iTrancheID;
+                drRcpt["Tranche_Name"] = strTranhceNo;
+                drRcpt["CashFlow_ID"] = iAccountDescID;
+                drRcpt["CashFlow_Desc"] = strAccounDesc;
+                drRcpt["GL_Code_Desc"] = strGLCodeDesc;
+                drRcpt["SL_Code_Desc"] = strSLCodeDesc;
+                drRcpt["CashFlow_Flag_ID"] = iCashflowflagID;
+                drRcpt["Amount"] = dblAmount;
+
+                dtRcptDtl.Rows.Add(drRcpt);
+                ViewState["ReceiptDetails"] = dtRcptDtl;
+
+                FunPriBindGridDtl(dtRcptDtl);
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private bool FunPriCheckReceiptAmount()
+    {
+        bool blnrslt = true;
+        try
+        {
+            //Double _dblRcptAmt;
+            if (grvRentalRcptDetails != null && grvRentalRcptDetails.Rows.Count > 0)
+            {
+                DataTable dtRcpt = (DataTable)ViewState["ReceiptDetails"];
+                if ((dtRcpt == null || Convert.ToInt64(dtRcpt.Rows[0]["Note_ID"]) == 0))
+                {
+                    Utility.FunShowAlertMsg(this, "Enter atleast one Receipt details");
+                    blnrslt = false;
+                    return blnrslt;
+                }
+
+                //_dblRcptAmt = Convert.ToDouble(dtRcpt.Compute("sum(Amount)", "Amount>0"));
+
+                //if (_dblRcptAmt != Convert.ToDouble(txtDocAmount.Text))
+                //{
+                //    Utility.FunShowAlertMsg(this, "Doc Amount should be equal to Total Amount");
+                //    blnrslt = false;
+                //}
+            }
+        }
+        catch (Exception objException)
+        {
+            blnrslt = false;
+            throw objException;
+        }
+        return blnrslt;
+    }
+
+    private void FunPriSaveReceipt()
+    {
+        try
+        {
+            objReceiptProcessingDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_FunderReceiptDataTable();
+            objReceiptProcessingRow = objReceiptProcessingDataTable.NewS3G_CLN_FunderReceiptRow();
+
+            objReceiptProcessingRow.Account_Based = Convert.ToInt32(ddlGLBased.SelectedValue);
+            if (Convert.ToString(txtAckNo.Text) != "")
+                objReceiptProcessingRow.ACK_No = Convert.ToString(txtAckNo.Text);
+            if (Convert.ToString(txtBankLocation.Text) != "")
+                objReceiptProcessingRow.Bank_Location = Convert.ToString(txtBankLocation.Text);
+            objReceiptProcessingRow.Company_ID = Convert.ToInt32(intCompanyID);
+            objReceiptProcessingRow.Created_By = Convert.ToInt32(intUserID);
+            objReceiptProcessingRow.Customer_ID = Convert.ToInt32(ViewState["CustomerID"]);
+            objReceiptProcessingRow.Doc_Amount = Convert.ToDouble(txtDocAmount.Text);
+            objReceiptProcessingRow.Doc_Date = Utility.StringToDate(txtDocDate.Text);
+            if (Convert.ToString(ddlDraweeBank.SelectedValue) != "")
+            {
+                //objReceiptProcessingRow.Drawee_Bank_ID = Convert.ToInt32(ddlDraweeBank.SelectedValue);
+                objReceiptProcessingRow.Drawee_Bank_Name = Convert.ToString(ddlDraweeBank.SelectedItem.Text);
+            }
+            objReceiptProcessingRow.Funder_ID = Convert.ToInt64(ddlFunderName.SelectedValue);
+            objReceiptProcessingRow.Funder_Receipt_ID = intReceiptId;
+            if (Convert.ToString(txtInstrumentDate.Text) != "")
+                objReceiptProcessingRow.Instrument_Date = Utility.StringToDate(txtInstrumentDate.Text);
+            if (Convert.ToString(txtInstrumentNo.Text) != "")
+                objReceiptProcessingRow.Instrument_No = Convert.ToString(txtInstrumentNo.Text);
+            objReceiptProcessingRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            objReceiptProcessingRow.Location_ID = Convert.ToInt32(ddlLocation.SelectedValue);
+            if (Convert.ToString(txtOtherDraweeBank.Text) != "")
+                objReceiptProcessingRow.Other_Bank_Name = Convert.ToString(txtOtherDraweeBank.Text);
+            if (Convert.ToString(txtPaymentGatewayRefNo.Text) != "")
+                objReceiptProcessingRow.Payment_Gateway_No = Convert.ToString(txtPaymentGatewayRefNo.Text);
+            objReceiptProcessingRow.Receipt_Mode = Convert.ToInt32(ddlMode.SelectedValue);
+            objReceiptProcessingRow.Receipt_No = Convert.ToString(txtDocNo.Text);
+            objReceiptProcessingRow.Tranche_ID = Convert.ToInt64(ddlTranche.SelectedValue);
+            objReceiptProcessingRow.Value_Date = Utility.StringToDate(txtValueDate.Text);
+            objReceiptProcessingRow.XML_ReceiptDtl = Utility.FunPubFormXml(grvRentalRcptDetails, true);
+
+            objReceiptProcessingDataTable.AddS3G_CLN_FunderReceiptRow(objReceiptProcessingRow);
+
+            objReceiptProcessingClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            string strReceiptNumber = string.Empty;
+            Int32 intResult = 0;
+
+            intResult = objReceiptProcessingClient.FunPubCreateFunderReceipt(out strReceiptNumber, ObjSerMode, ClsPubSerialize.Serialize(objReceiptProcessingDataTable, ObjSerMode));
+
+            if (intResult == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+                if (intReceiptId == 0)
+                {
+                    strAlert = "Receipt " + strReceiptNumber + " created successfully";
+                    strAlert += @"\n\nWould you like to create one more Receipt?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPageView = "";
+                }
+                else
+                {
+                    string strModAlert = "Receipt " + strReceiptNumber + " modified successfully";
+                    strAlert = strAlert.Replace("__ALERT__", strModAlert);
+                }
+            }
+            else if (intResult == -1)
+            {
+                strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoNotDefined);
+                strRedirectPageView = "";
+            }
+            else if (intResult == -2)
+            {
+                strAlert = strAlert.Replace("__ALERT__", Resources.LocalizationResources.DocNoExceeds);
+                strRedirectPageView = "";
+            }
+            else if (intResult == 5)
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Instrument No already Exists");
+                strRedirectPageView = "";
+            }
+            else
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Due to Data Problem,Unable to create Receipt");
+                strRedirectPageView = "";
+            }
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriLoadReceiptDetails(Int64 iReceiptID)
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Receipt_ID", Convert.ToString(iReceiptID));
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            DataSet dsRcpt = Utility.GetDataset("S3G_CLN_GETFunderRcptDtl_OPC", Procparam);
+            if (dsRcpt != null)
+            {
+                DataTable dtReceiptDtl = dsRcpt.Tables[0];
+                txtAckNo.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Ack_No"]);
+                txtBankLocation.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Bank_Location"]);
+                txtDocAmount.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Doc_Amount"]);
+                txtDocDate.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Doc_Date"]);
+                txtDocNo.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Doc_No"]);
+                txtInstrumentDate.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Instrument_Date"]);
+                txtInstrumentNo.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Instrument_No"]);
+                txtPaymentGatewayRefNo.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Payment_Gateway_RefNo"]);
+                txtValueDate.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Value_Date"]);
+                ddlLOB.SelectedValue = Convert.ToString(dtReceiptDtl.Rows[0]["Lob_ID"]);
+                ddlLocation.SelectedValue = Convert.ToString(dtReceiptDtl.Rows[0]["Location_ID"]);
+                ddlLocation.SelectedText = Convert.ToString(dtReceiptDtl.Rows[0]["Location_Desc"]);
+                ddlMode.SelectedValue = Convert.ToString(dtReceiptDtl.Rows[0]["Payment_Mode"]);
+                ddlTranche.SelectedValue = Convert.ToString(dtReceiptDtl.Rows[0]["Tranche_ID"]);
+                ddlTranche.SelectedText = Convert.ToString(dtReceiptDtl.Rows[0]["Tranche_Name"]);
+                ddlFunderName.SelectedValue = Convert.ToString(dtReceiptDtl.Rows[0]["Funder_ID"]);
+                ddlFunderName.SelectedText = Convert.ToString(dtReceiptDtl.Rows[0]["Funder_Name"]);
+                ddlGLBased.SelectedValue = Convert.ToString(dtReceiptDtl.Rows[0]["GL_Based"]);
+
+                if (Convert.ToString(dtReceiptDtl.Rows[0]["Other_Bank_Name"]) != "")
+                {
+                    txtOtherDraweeBank.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Other_Bank_Name"]);
+                }
+                txtOtherDraweeBank.Visible = (Convert.ToString(dtReceiptDtl.Rows[0]["Other_Bank_Name"]) != "") ? true : false;
+                FunPriLoadDraweeBank();
+                ddlDraweeBank.Text = Convert.ToString(dtReceiptDtl.Rows[0]["Drawee_Bank_Name"]);
+
+                ViewState["CustomerID"] = Convert.ToString(dtReceiptDtl.Rows[0]["Customer_ID"]);
+                FunPriGetCustomerAddress(Convert.ToInt64(dtReceiptDtl.Rows[0]["Customer_ID"]));
+
+                FunPriBindGridDtl(dsRcpt.Tables[1]);         //Receipt Details
+
+            }
+        }
+        catch (Exception objException)
+        {
+
+            throw objException;
+        }
+    }
+
+    private void FunPriCancelReceipt()
+    {
+        try
+        {
+            objReceiptProcessingClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_CancelReceiptDataTable objReceiptProcessingDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_CancelReceiptDataTable();
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_CancelReceiptRow objReceiptProcessingRow = objReceiptProcessingDataTable.NewS3G_CLN_CancelReceiptRow();
+
+            objReceiptProcessingRow.Receipt_ID = Convert.ToInt64(intReceiptId);
+            objReceiptProcessingRow.User_ID = Convert.ToInt32(intUserID);
+
+            objReceiptProcessingDataTable.AddS3G_CLN_CancelReceiptRow(objReceiptProcessingRow);
+
+            SerializationMode SerMode = SerializationMode.Binary;
+            byte[] objbyteReceiptTable = ClsPubSerialize.Serialize(objReceiptProcessingDataTable, SerMode);
+            int intResult = objReceiptProcessingClient.FunPubCancelReceipt(SerMode, objbyteReceiptTable);
+            if (intResult == 0)
+            {
+                string strModAlert = "Receipt " + txtDocNo.Text + " cancelled successfully";
+                strAlert = strAlert.Replace("__ALERT__", strModAlert);
+            }
+            else if (intResult == -1)
+            {
+                string strModAlert = "Closing/Pre-Closing Account(s) involved Receipt cannot be cancelled ";
+                strAlert = strAlert.Replace("__ALERT__", strModAlert);
+                strRedirectPageView = "";
+            }
+            else
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Due to Data Problem, unable to cancel the Receipt");
+                strRedirectPageView = "";
+            }
+            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    #endregion
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggestions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.CompanyId.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", obj_Page.UserId.ToString());
+        Procparam.Add("@Program_Id", "292");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggestions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+        return suggestions.ToArray();
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetTrancheList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyID.ToString());
+        Procparam.Add("@User_ID", obj_Page.intUserID.ToString());
+        Procparam.Add("@Prefix", prefixText);
+        Procparam.Add("@OPTION", "2");              //Load Tranche List
+        Procparam.Add("@Customer_ID", (obj_Page.ViewState["CustomerID"] != null) ? Convert.ToString(obj_Page.ViewState["CustomerID"]) : "0");
+
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetFunderList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.ObjUserInfo.ProCompanyIdRW.ToString());
+        Procparam.Add("@User_ID", obj_Page.intUserID.ToString());
+        Procparam.Add("@Prefix", prefixText);
+        Procparam.Add("@OPTION", "4");              //Load Funder
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetRSList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyID.ToString());
+        Procparam.Add("@User_ID", obj_Page.intUserID.ToString());
+        Procparam.Add("@Prefix", prefixText);
+        Procparam.Add("@OPTION", "18");                      //Load RS List against customer and Lessee
+        Procparam.Add("@Customer_ID", (obj_Page.ViewState["CustomerID"] != null) ? Convert.ToString(obj_Page.ViewState["CustomerID"]) : "0");
+        Procparam.Add("@Funder_ID", Convert.ToString(obj_Page.ddlFunderName.SelectedValue));
+        if (Convert.ToInt64(obj_Page.ddlTranche.SelectedValue) > 0)
+        {
+            Procparam.Add("@Tranche_ID", Convert.ToString(obj_Page.ddlTranche.SelectedValue));
+        }
+        Procparam.Add("@LobId", Convert.ToString(obj_Page.ddlLOB.SelectedValue));
+
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetNoteList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyID.ToString());
+        Procparam.Add("@User_ID", obj_Page.intUserID.ToString());
+        Procparam.Add("@Prefix", prefixText);
+        Procparam.Add("@OPTION", "23");
+        Procparam.Add("@Customer_ID", (obj_Page.ViewState["CustomerID"] != null) ? Convert.ToString(obj_Page.ViewState["CustomerID"]) : "0");
+        Procparam.Add("@LobId", Convert.ToString(obj_Page.ddlLOB.SelectedValue));
+
+        if (Convert.ToInt64(obj_Page.ddlFunderName.SelectedValue) > 0 && Convert.ToString(obj_Page.ddlFunderName.SelectedText) != "")
+        {
+            Procparam.Add("@Funder_ID", Convert.ToString(obj_Page.ddlFunderName.SelectedValue));
+        }
+
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetNoteTrancheList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyID.ToString());
+        Procparam.Add("@User_ID", obj_Page.intUserID.ToString());
+        Procparam.Add("@Prefix", prefixText);
+        Procparam.Add("@OPTION", "24");
+        Procparam.Add("@Customer_ID", (obj_Page.ViewState["CustomerID"] != null) ? Convert.ToString(obj_Page.ViewState["CustomerID"]) : "0");
+        Procparam.Add("@LobId", Convert.ToString(obj_Page.ddlLOB.SelectedValue));
+
+        if (obj_Page.grvRentalRcptDetails.FooterRow != null)
+        {
+            UserControls_S3GAutoSuggest ddlNoteNo = (UserControls_S3GAutoSuggest)obj_Page.grvRentalRcptDetails.FooterRow.FindControl("ddlNoteNo");
+            Procparam.Add("@Note_ID", Convert.ToString(ddlNoteNo.SelectedValue));
+        }
+
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetGLCodeList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggestions = new List<String>();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.CompanyId.ToString());
+        Procparam.Add("@LobId", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Prefix", prefixText);
+        Procparam.Add("@OPTION", "21");
+        suggestions = Utility.GetSuggestions(Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam));
+        return suggestions.ToArray();
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetSLCodeList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggestions = new List<String>();
+
+        Procparam.Clear();
+        Procparam.Add("@Customer_ID", (obj_Page.ViewState["CustomerID"] != null) ? Convert.ToString(obj_Page.ViewState["CustomerID"]) : "0");
+        Procparam.Add("@Prefix", prefixText);
+        Procparam.Add("@Option", "22");
+        suggestions = Utility.GetSuggestions(Utility.GetDefaultData("S3G_CLN_GETRCPTCMNLST_AGT", Procparam));
+        return suggestions.ToArray();
+    }
+}

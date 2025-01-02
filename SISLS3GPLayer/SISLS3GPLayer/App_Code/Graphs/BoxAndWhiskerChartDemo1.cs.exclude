@@ -1,0 +1,35 @@
+namespace Ujihara.Demo
+{
+    using org.jfree.chart;
+    using org.jfree.data.statistics;
+    using org.jfree.chart.axis;
+    using org.jfree.chart.renderer.category;
+    using org.jfree.chart.plot;
+    using org.jfree.chart.labels;
+
+    using System.Drawing;
+
+    public class BoxAndWhiskerChartDemo1 : ChartCreator
+    {
+        public override JFreeChart CreateChart()
+        {
+            BoxAndWhiskerCategoryDataset dataset = DatasetCreator.createBoxAndWhiskerCategoryDataset(5, 7);
+            CategoryAxis xAxis = new CategoryAxis("Type");
+            NumberAxis yAxis = new NumberAxis("Value");
+            yAxis.setAutoRangeIncludesZero(false);
+            BoxAndWhiskerRenderer renderer = new BoxAndWhiskerRenderer();
+            renderer.setFillBox(false);
+            renderer.setToolTipGenerator(new BoxAndWhiskerToolTipGenerator());
+            CategoryPlot plot = new CategoryPlot(dataset, xAxis, yAxis, renderer);
+
+            JFreeChart chart = new JFreeChart(
+                Name,
+                new Font(FontFamily.GenericSansSerif, 14, FontStyle.Bold),
+                plot,
+                true
+            );
+
+            return chart;
+        }
+    }
+}

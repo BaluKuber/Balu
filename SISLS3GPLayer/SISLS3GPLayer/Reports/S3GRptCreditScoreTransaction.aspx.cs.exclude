@@ -1,0 +1,502 @@
+﻿    #region Namespaces
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Globalization;
+using System.Collections.Generic;
+using S3GBusEntity;
+using ReportOrgColMgtServicesReference;
+using S3GBusEntity.Reports;
+#endregion
+
+public partial class Reports_S3GRptCreditScoreTransaction : ApplyThemeForProject
+{
+    #region Variable Declaration
+    UserInfo ObjUserInfo;
+    S3GSession ObjS3GSession = new S3GSession();
+    int CompanyId;
+    int UserId;
+    int LobId;
+    int BranchId;
+    int ProductId;
+    bool Is_Active;
+    public string strDateFormat;
+
+    Dictionary<string, string> Procparam;
+    string strPageName = "Credit Score Transaction";
+    DataTable dtTable = new DataTable();
+    ReportOrgColMgtServicesClient objSerClient;
+    #endregion
+
+    #region Page Load
+
+    /// <summary>
+    /// This Event is called when page is Loding
+    /// </summary>
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+        }
+        catch (Exception ex)
+        {
+            CVCreditScore.ErrorMessage = "Due to Data Problem, Unable to Load.";
+            CVCreditScore.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// This Method is called when page is Loding
+    /// </summary>
+
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            #region Application Standard Date Format
+            S3GSession ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;                  // to get the standard date format of the Application
+            CalendarExtender1.Format = strDateFormat;                       // assigning the first textbox with the End date
+            CalendarExtender2.Format = strDateFormat;                       // assigning the first textbox with the start date
+            txtStartDate.Attributes.Add("readonly", "readonly");
+            txtStartDate.Attributes.Add("readonly", "readonly");
+            #endregion
+
+            objSerClient = new ReportOrgColMgtServicesClient();
+            ObjUserInfo = new UserInfo();
+            CompanyId = ObjUserInfo.ProCompanyIdRW;
+            UserId = ObjUserInfo.ProUserIdRW;
+            if (!IsPostBack)
+            {
+                FunPriLoadLob(CompanyId, UserId);
+                FunPriLoadBranch(CompanyId, UserId, Is_Active);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load Credit Score Transaction Page");
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    /// <summary>
+    /// To Load Line of Business in DropDown List
+    /// </summary>
+    /// <param name="Company_id"></param>
+    /// <param name="User_id"></param>
+
+    private void FunPriLoadLob(int Company_id, int User_id)
+    {
+        try
+        {
+            byte[] byteLobs = objSerClient.FunPubGetLOB(Company_id, User_id);
+            List<ClsPubDropDownList> lobs = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlLOB.DataSource = lobs;
+            ddlLOB.DataTextField = "Description";
+            ddlLOB.DataValueField = "ID";
+            ddlLOB.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load LOB");
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    /// <summary>
+    /// To Load Branch in Drodown List
+    /// </summary>
+    /// <param name="Company_id"></param>
+    /// <param name="User_id"></param>
+    /// <param name="Is_active"></param>
+
+    private void FunPriLoadBranch(int Company_id, int User_id, bool Is_active)
+    {
+        try
+        {
+            objSerClient = new ReportOrgColMgtServicesClient();
+            byte[] byteLobs = objSerClient.FunPubGetBranch(Company_id, User_id, true);
+            List<ClsPubDropDownList> Branch = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlBranch.DataSource = Branch;
+            ddlBranch.DataTextField = "Description";
+            ddlBranch.DataValueField = "ID";
+            ddlBranch.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load Branch");
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    /// <summary>
+    /// To Load Product in Dropdown List
+    /// </summary>
+    /// <param name="Company_id"></param>
+    /// <param name="LOBId"></param>
+
+    private void FunPriLoadProduct(int Company_id, int LOBId)
+    {
+        try
+        {
+            byte[] byteLobs = objSerClient.FunPubGetProduct(CompanyId, Convert.ToInt32(ddlLOB.SelectedValue));
+            List<ClsPubDropDownList> product = (List<ClsPubDropDownList>)DeSeriliaze(byteLobs);
+            ddlProduct.DataSource = product;
+            ddlProduct.DataTextField = "Description";
+            ddlProduct.DataValueField = "ID";
+            ddlProduct.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw new ApplicationException("Unable to Load Product");
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    /// <summary>
+    /// To Bind the creditscoredetails Grid
+    /// </summary>
+
+    private void FunBindgrid()
+    {
+        try
+        {
+            pnlcreditscoredetails.Visible = true;
+            ClsPubCredit ObjCredit = new ClsPubCredit();
+            ObjCredit.CompanyId = CompanyId;
+            ObjCredit.LOBId = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjCredit.BranchId = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjCredit.ProductId = Convert.ToInt32(ddlProduct.SelectedValue);
+            ObjCredit.Start_Date = txtStartDate.Text;
+            ObjCredit.End_Date = txtEndDate.Text;
+            byte[] byteLobs = objSerClient.FunPubGetCreditScoreDetails(ObjCredit);
+            List<ClsPubCreditScoreDetails> Credit = (List<ClsPubCreditScoreDetails>)DeSeriliaze(byteLobs);
+
+            Session["Credit"] = Credit;
+            grvcreditscoredetails.DataSource = Credit;
+            grvcreditscoredetails.DataBind();
+            if (grvcreditscoredetails.Rows.Count != 0)
+            {
+                grvcreditscoredetails.HeaderRow.Style.Add("position", "relative");
+                grvcreditscoredetails.HeaderRow.Style.Add("z-index", "auto");
+                grvcreditscoredetails.HeaderRow.Style.Add("top", "auto");
+            }
+
+            if (grvcreditscoredetails.Rows.Count == 0)
+            {
+                grvcreditscoredetails.EmptyDataText = "No Credit Score Details Found";
+                grvcreditscoredetails.DataBind();
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+
+    /// <summary>
+    /// To clear the fields
+    /// </summary>
+
+    private void FunRptClear()
+    {
+        try
+        {
+            ddlLOB.SelectedValue = "-1";
+            ddlBranch.SelectedValue = "-1";
+            if (ddlProduct.Items.Count > 0)
+                ddlProduct.Items.Clear();
+            txtEndDate.Text = "";
+            txtStartDate.Text = "";
+            pnlcreditscoredetails.Visible = false;
+            grvcreditscoredetails.DataSource = null;
+            grvcreditscoredetails.DataBind();
+            pnlcustomersdetails.Visible = false;
+            grvCustDet.DataSource = null;
+            grvCustDet.DataBind();
+            btnPrint.Visible = false;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// To validate the Dates
+    /// </summary>
+
+    private void FunPriValidateFromEndDate()
+    {
+        grvcreditscoredetails.DataSource = grvCustDet.DataSource = null;
+        grvcreditscoredetails.DataBind();
+        grvCustDet.DataBind();
+        ClsPubCreditScoreHeaderDetails ObjHeader = new ClsPubCreditScoreHeaderDetails();
+        ObjHeader.Lob = ddlLOB.SelectedItem.ToString();
+        if (ddlBranch.Items.Count > 1)
+        {
+            if (ddlBranch.SelectedValue != "-1")
+                ObjHeader.Branch = ddlBranch.SelectedItem.ToString();
+        }
+        else
+        {
+            ObjHeader.Branch = "";
+        }
+        if (ddlProduct.Items.Count > 1)
+        {
+            if (ddlProduct.SelectedValue != "-1")
+                ObjHeader.Product = ddlProduct.SelectedItem.ToString();
+        }
+        else
+        {
+            ObjHeader.Product = "";
+        }
+        ObjHeader.StartDate = txtStartDate.Text;
+        ObjHeader.EndDate = txtEndDate.Text;
+        Session["Header1"] = ObjHeader;
+        //if ((!(string.IsNullOrEmpty(DateTime.Parse(txtStartDateSearch.Text, dtformat).ToString()))) &&
+        if ((!(string.IsNullOrEmpty(txtStartDate.Text))) &&
+           (!(string.IsNullOrEmpty(txtEndDate.Text))))                                   // If start and end date is not empty
+        {
+            //if (Convert.ToDateTime(DateTime.Parse(txtStartDateSearch.Text, dtformat).ToString()) > Convert.ToDateTime(DateTime.Parse(txtEndDateSearch.Text, dtformat))) // start date should be less than or equal to the enddate
+            if (Utility.StringToDate(txtStartDate.Text) > Utility.StringToDate(txtEndDate.Text)) // start date should be less than or equal to the enddate
+            {
+                Utility.FunShowAlertMsg(this, "Start Date should be lesser than or equal to the End Date");
+                txtEndDate.Text = "";
+                return;
+            }
+        }
+        if ((!(string.IsNullOrEmpty(txtStartDate.Text))) &&
+           ((string.IsNullOrEmpty(txtEndDate.Text))))
+        {
+            txtEndDate.Text = DateTime.Parse(DateTime.Now.ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+
+        }
+        if (((string.IsNullOrEmpty(txtStartDate.Text))) &&
+            (!(string.IsNullOrEmpty(txtEndDate.Text))))
+        {
+            txtStartDate.Text = txtEndDate.Text;
+
+        }
+        FunBindgrid();
+    }
+
+    private object DeSeriliaze(byte[] byteObj)
+    {
+        return ClsPubSerialize.DeSerialize(byteObj, SerializationMode.Binary, null);
+    }
+    #endregion
+
+    #region Page Events
+
+    /// <summary>
+    /// To Load the Product
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriLoadProduct(CompanyId, LobId);
+        grvcreditscoredetails.DataSource = grvCustDet.DataSource = null;
+        grvcreditscoredetails.DataBind();
+        grvCustDet.DataBind();
+    }
+
+    /// <summary>
+    /// To clear the fields
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunRptClear();
+        }
+        catch (Exception ex)
+        {
+            CVCreditScore.ErrorMessage = "Due to Data Problem, Unable to Clear.";
+            CVCreditScore.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// To bind the creditscoredetails Grid
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+
+            FunPriValidateFromEndDate();
+            if (grvcreditscoredetails.Rows.Count > 0 || grvCustDet.Rows.Count > 0)
+            {
+                btnPrint.Visible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            CVCreditScore.ErrorMessage = "Due to Data Problem, Unable to Load Credit Score/Customer Details Grid";
+            CVCreditScore.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// To bind the Activated Accounts
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void LnkBtnAccp_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            pnlcustomersdetails.Visible = true;
+            ClsPubCredit ObjCustomers = new ClsPubCredit();
+            ObjCustomers.CompanyId = CompanyId;
+            ObjCustomers.LOBId = Convert.ToInt32(ddlLOB.SelectedValue);
+            //int a = grvcreditscoredetails.Rows.Count;
+            string strFieldAtt = ((LinkButton)sender).ClientID;
+            string strVal = strFieldAtt.Substring(strFieldAtt.LastIndexOf("grvcreditscoredetails_")).Replace("grvcreditscoredetails_ctl", "");
+            int gRowIndex = Convert.ToInt32(strVal.Substring(0, strVal.LastIndexOf("_")));
+            gRowIndex = gRowIndex - 2;
+
+            Label lblBranchid = (Label)grvcreditscoredetails.Rows[gRowIndex].FindControl("lblBranchid");
+
+            Label lblProductid = (Label)grvcreditscoredetails.Rows[gRowIndex].FindControl("lblProductid");
+            ObjCustomers.BranchId = Convert.ToInt32(lblBranchid.Text);//ddlBranch.SelectedValue);
+            ObjCustomers.ProductId = Convert.ToInt32(lblProductid.Text);//ddlProduct.SelectedValue);
+            ObjCustomers.Start_Date = txtStartDate.Text;
+            ObjCustomers.End_Date = txtEndDate.Text;
+            ObjCustomers.Status = 6;
+            byte[] byteLobs = objSerClient.FunPubGetCustomersDetails(ObjCustomers);
+            List<ClsPubCustomersDetails> Customer = (List<ClsPubCustomersDetails>)DeSeriliaze(byteLobs);
+            Session["SESSION_CRPT_2"] = Customer;
+
+            grvCustDet.DataSource = Customer;
+            grvCustDet.DataBind();
+            if (grvCustDet.Rows.Count != 0)
+            {
+                grvCustDet.HeaderRow.Style.Add("position", "relative");
+                grvCustDet.HeaderRow.Style.Add("z-index", "auto");
+                grvCustDet.HeaderRow.Style.Add("top", "auto");
+            }
+            if (grvCustDet.Rows.Count == 0)
+            {
+                grvCustDet.EmptyDataText = "No Customer Details Found";
+                grvCustDet.DataBind();
+            }
+        }
+        catch (Exception ex)
+        {
+            CVCreditScore.ErrorMessage = "Due to Data Problem, Unable to Load Customer Details.";
+            CVCreditScore.IsValid = false;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+
+    /// <summary>
+    /// To bind the Rejected Accounts
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void LnkBtnRjtd_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            pnlcustomersdetails.Visible = true;
+            ClsPubCredit ObjCustomers = new ClsPubCredit();
+            ObjCustomers.CompanyId = CompanyId;
+            ObjCustomers.LOBId = Convert.ToInt32(ddlLOB.SelectedValue);
+            string strFieldAtt = ((LinkButton)sender).ClientID;
+            string strVal = strFieldAtt.Substring(strFieldAtt.LastIndexOf("grvcreditscoredetails_")).Replace("grvcreditscoredetails_ctl", "");
+            int gRowIndex = Convert.ToInt32(strVal.Substring(0, strVal.LastIndexOf("_")));
+            gRowIndex = gRowIndex - 2;
+
+            Label lblBranchid = (Label)grvcreditscoredetails.Rows[gRowIndex].FindControl("lblBranchid");
+
+            Label lblProductid = (Label)grvcreditscoredetails.Rows[gRowIndex].FindControl("lblProductid");
+
+            ObjCustomers.BranchId = Convert.ToInt32(lblBranchid.Text);
+            ObjCustomers.ProductId = Convert.ToInt32(lblProductid.Text);
+            ObjCustomers.Start_Date = txtStartDate.Text;
+            ObjCustomers.End_Date = txtEndDate.Text;
+            ObjCustomers.Status = 8;
+            byte[] byteLobs = objSerClient.FunPubGetCustomersDetails(ObjCustomers);
+            List<ClsPubCustomersDetails> Customer = (List<ClsPubCustomersDetails>)DeSeriliaze(byteLobs);
+            Session["SESSION_CRPT_2"] = Customer;
+
+            grvCustDet.DataSource = Customer;
+            grvCustDet.DataBind();
+            if (grvCustDet.Rows.Count != 0)
+            {
+                grvCustDet.HeaderRow.Style.Add("position", "relative");
+                grvCustDet.HeaderRow.Style.Add("z-index", "auto");
+                grvCustDet.HeaderRow.Style.Add("top", "auto");
+            }
+            if (grvCustDet.Rows.Count == 0)
+            {
+                grvCustDet.EmptyDataText = "No Customer Details Found";
+                grvCustDet.DataBind();
+            }
+        }
+        catch (Exception ex)
+        {
+            CVCreditScore.ErrorMessage = "Due to Data Problem, Unable to Load Customer Details.";
+            CVCreditScore.IsValid = false;
+        }
+        finally
+        {
+            objSerClient.Close();
+        }
+    }
+    #endregion
+
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        Response.Redirect("S3GRptCreditScoreReport.aspx");
+    }
+}

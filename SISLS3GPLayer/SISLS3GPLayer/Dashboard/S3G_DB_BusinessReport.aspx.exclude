@@ -1,0 +1,75 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/Common/S3GMasterPageCollapse.master"  CodeFile="S3G_DB_BusinessReport.aspx.cs" Inherits="Dashboard_S3G_DB_BusinessReport" %>
+
+<%@ Register Src="~/UserControls/S3GChartControl.ascx" TagName="S3GChart" TagPrefix="S3G" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <script type="text/javascript">
+        function PDFImage(Itype) {
+
+            if (Itype == "D") {
+                document.getElementById("<%=imgPdf.ClientID %>").src = "../Images/PDF_CASHFLOW_Over.png";
+            }
+            else {
+                document.getElementById("<%=imgPdf.ClientID %>").src = "../Images/PDF_CASHFLOW.png";
+            }
+        }
+        function ExcelImage(Itype) {
+
+            if (Itype == "D") {
+                document.getElementById("<%=imgExcel.ClientID %>").src = "../Images/Excel_Over.png";
+            }
+            else {
+                document.getElementById("<%=imgExcel.ClientID %>").src = "../Images/Excel.PNG";
+            }
+        }
+        function OpenDoc(Gtype) {
+
+            if (Gtype == "E") {
+                document.getElementById("<%=btnExport.ClientID %>").click();
+            }
+            else if (Gtype == "P") {
+                document.getElementById("<%=btnPrint.ClientID %>").click();
+            }
+    }
+    </script>
+    <asp:UpdatePanel ID="Upl" runat="server">
+        <ContentTemplate>
+    
+            <table style="width: 100%;">
+                <tr>
+                    <td class="stylePageHeading">
+                        <asp:Label ID="lblHeader" runat="server" Text="Business Report" CssClass="styleDisplayLabel"></asp:Label>
+                    </td>
+                </tr>
+                 <tr>
+                    <td  align="right">
+                        <asp:Button ID="btnExport" Style="display: none;" runat="server" Text="Export"
+                            OnClick="btnExport_Click" />
+
+                        <asp:Button ID="btnPrint" Style="display: none;" runat="server" Text="Print"
+                            OnClick="btnPrint_Click" />
+
+                        <img src="../Images/Excel.PNG" width="20" height="20" alt="Excel" id="imgExcel" onmouseout="ExcelImage('O');"
+                            onmouseover="ExcelImage('D');" onclick="OpenDoc('E');" runat="server" style="cursor: pointer;display:none;" />
+                        &nbsp;
+                                        <img src="../Images/PDF_CASHFLOW.png" width="20" height="20" alt="PDF" id="imgPdf"
+                                            onmouseout="PDFImage('O');" onmouseover="PDFImage('D');" onclick="OpenDoc('P');"
+                                            runat="server" style="cursor: pointer;" />
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <S3G:S3GChart ID="S3GChart1" runat="server" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:GridView ID="grData" runat="server" GridLines="None" Width="100%">
+                        </asp:GridView>
+                        <asp:HiddenField ID="hdnFilePath" runat="server" />
+                    </td>
+                </tr>
+            </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

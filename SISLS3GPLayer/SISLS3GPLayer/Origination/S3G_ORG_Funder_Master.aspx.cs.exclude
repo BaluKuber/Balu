@@ -1,0 +1,279 @@
+﻿
+#region Namespace
+
+using System;
+using System.Web;
+using System.Data;
+using System.Text;
+using S3GBusEntity.Origination;
+using S3GBusEntity;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.IO;
+using System.Web.Security;
+using System.Configuration;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Xml;
+using System.Xml.Linq;
+using System.Linq;
+using System.ServiceModel;
+using AjaxControlToolkit;
+
+#endregion
+
+public partial class Origination_S3G_ORG_Funder_Master : ApplyThemeForProject
+{
+    #region Common Variable declaration
+
+    int intCompanyID, intUserID = 0;
+    string strMode = string.Empty;
+    Dictionary<string, string> Procparam = null;
+    int intErrCode = 0;
+    int intFunderId;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strDateFormat = string.Empty;
+    //string strMode = string.Empty;
+    static string strPageName = "Funder Master Creation";
+    static string strSuffix = "";
+    FormsAuthenticationTicket Ticket;
+    public static Origination_S3G_ORG_Funder_Master obj_Page;
+
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Origination/S3GORGTransLander.aspx?Code=MRA";
+    string strRedirectPageAdd = "window.location.href='../Origination/S3G_ORG_MRA_ADD.aspx?qsMode=C'";
+    string strRedirectPageView = "window.location.href='../Origination/S3GORGTransLander.aspx?Code=MRA';";
+    string strErrorMessagePrefix = @"Correct the following validation(s): </br></br>   ";
+
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    S3GSession ObjS3GSession = new S3GSession();
+    int strDecMaxLength = 0;
+    int strPrefixLength = 0;
+    #endregion
+
+    #region "EVENTS"
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            obj_Page = this;
+            S3GSession ObjS3GSession = null;
+            //this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            strPrefixLength = ObjS3GSession.ProGpsPrefixRW;
+            strDecMaxLength = ObjS3GSession.ProGpsSuffixRW;
+
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID.ToString();
+            TextBox txtUserName = ((TextBox)ucCustomerCodeLov.FindControl("txtName"));
+            txtUserName.Attributes.Add("onfocus", "fnLoadCustomer()");
+            txtUserName.ToolTip = txtUserName.Text;
+
+            txtExpiryDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtExpiryDate.ClientID + "','" + strDateFormat + "',false,  true);");
+            txtSanctionDate.Attributes.Add("onblur", "fnDoDate(this,'" + txtSanctionDate.ClientID + "','" + strDateFormat + "',false,  false);");
+
+            ceExpiryDate.Format = ceSanctionDate.Format = strDateFormat;
+
+            FunPriSetPrefixSuffixLength();
+            FunPriLoadLov();
+        }
+        catch (Exception objException)
+        {
+        }
+    }
+
+    protected void btnCreateCustomer_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField hdnCustomerId = ucCustomerCodeLov.FindControl("hdnID") as HiddenField;
+            if (hdnCustomerId != null)
+            {
+                ViewState["CustomerID"] = hdnCustomerId.Value;
+                FunPriGetCustomerAddress(Convert.ToInt64(hdnCustomerId.Value));
+            }
+        }
+        catch (Exception objException)
+        {
+            cvFunder.ErrorMessage = objException.Message;
+            cvFunder.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region "Methods"
+
+    private void FunPriSetPrefixSuffixLength()
+    {
+        try
+        {
+            txtForeClosureRate.SetDecimalPrefixSuffix(3, 2, false, false, "Fore Closure Rate(%)");
+            txtDiscountRate.SetDecimalPrefixSuffix(3, 2, false, false, "Discount Rate");
+            txtProcessingFeePerc.SetDecimalPrefixSuffix(3, 2, false, false, "Processing Fee(%)");
+            txtOverDueRate.SetDecimalPrefixSuffix(3, 2, false, false, "Over Due Rate");
+            txtChqRtnChrgs.SetDecimalPrefixSuffix(5, 2, false, false, "Cheque Return Charges");
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriLoadLov()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            DataSet dsLov = Utility.GetDataset("S3G_ORG_GETFUNDERLOOKUP", Procparam);
+            if (dsLov != null && dsLov.Tables.Count > 0)
+            {
+                ddlGLAccount.FillDataTable(dsLov.Tables[0], "ID", "Name", true);
+                ddlAssetCategory.FillDataTable(dsLov.Tables[2], "ID", "Name", true);
+                ddlAccountType.FillDataTable(dsLov.Tables[3], "ID", "Name", true);
+                ddlPVCalcMethod.FillDataTable(dsLov.Tables[4], "ID", "Name", true);
+
+                DataTable dtAddress = dsLov.Tables[1];
+                DataTable dtSource = new DataTable();
+                if (dtAddress.Select("Category = 2").Length > 0)
+                {
+                    dtSource = dtAddress.Select("Category = 2").CopyToDataTable();
+                }
+                else
+                {
+                    dtSource = FunProAddAddrColumns(dtSource);
+                }
+                txtCorpState.FillDataTable(dtSource, "Name", "Name", false);
+                txtCommState.FillDataTable(dtSource, "Name", "Name", false);
+
+                dtSource = new DataTable();
+                if (dtAddress.Select("Category = 3").Length > 0)
+                {
+                    dtSource = dtAddress.Select("Category = 3").CopyToDataTable();
+                }
+                else
+                {
+                    dtSource = FunProAddAddrColumns(dtSource);
+                }
+                txtCommCountry.FillDataTable(dtSource, "Name", "Name", false);
+                txtCorpCountry.FillDataTable(dtSource, "Name", "Name", false);
+            }
+        }
+        catch (Exception ObjException)
+        {
+            throw ObjException;
+        }
+    }
+
+    protected DataTable FunProAddAddrColumns(DataTable dt)
+    {
+        try
+        {
+            dt.Columns.Add("ID");
+            dt.Columns.Add("Name");
+            dt.Columns.Add("Category");
+
+            return dt;
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriGetCustomerAddress(Int64 CustomerID)
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_Id", intCompanyID.ToString());
+            Procparam.Add("@ID", Convert.ToString(CustomerID));
+            Procparam.Add("@TypeID", "144");
+            DataTable dtCustomer = Utility.GetDefaultData("S3G_LOANAD_GETCustomerorEntityDetails", Procparam);
+            if (dtCustomer != null && dtCustomer.Rows.Count > 0)
+            {
+                TextBox txtName = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+                txtName.Text = txtCustomerCode.Text = Convert.ToString(dtCustomer.Rows[0]["Code"]);
+                ucCustomerAddress.SetCustomerDetails(Convert.ToString(dtCustomer.Rows[0]["Code"]),
+                        Convert.ToString(dtCustomer.Rows[0]["Address1"]) + "\n" +
+                        ((Convert.ToString(dtCustomer.Rows[0]["Address2"]) == "") ? "" : Convert.ToString(dtCustomer.Rows[0]["Address2"]) + "\n") +
+                Convert.ToString(dtCustomer.Rows[0]["city"]) + "\n" +
+                Convert.ToString(dtCustomer.Rows[0]["state"]) + "\n" +
+                Convert.ToString(dtCustomer.Rows[0]["country"]) + "\n" +
+                Convert.ToString(dtCustomer.Rows[0]["pincode"]), Convert.ToString(dtCustomer.Rows[0]["Name"]), Convert.ToString(dtCustomer.Rows[0]["Telephone"]),
+                Convert.ToString(dtCustomer.Rows[0]["mobile"]),
+                Convert.ToString(dtCustomer.Rows[0]["email"]), Convert.ToString(dtCustomer.Rows[0]["website"]));
+            }
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriClearDtls()
+    {
+        try
+        {
+            txtAccountNo.Text = txtBankBranch.Text = txtBankCity.Text = txtBankName.Text = txtBenificiaryName.Text = txtChqRtnChrgs.Text = txtCollateralDetails.Text =
+            txtCommAdress.Text = txtCommCity.Text = txtCommCountry.Text = txtCommEmailID.Text = txtCommMobileNo.Text = txtCommPincode.Text = txtCommState.Text =
+            txtCommTAN.Text = txtCommTelephoneNo.Text = txtCommTIN.Text = txtCorpAddress.Text = txtCorpCity.Text = txtCorpCountry.Text = txtCorpEmailID.Text =
+            txtCorpMobileNo.Text = txtCorpPincode.Text = txtCorpState.Text = txtCorpTAN.Text = txtCorpTelephoneNo.Text = txtCorpTIN.Text = txtCustomerCode.Text =
+            txtDiscountRate.Text = txtEndCustomer.Text = txtExpiryDate.Text = txtForeClosureRate.Text = txtFunderName.Text = txtIFSCCode.Text = txtLimit.Text =
+            txtMICRCode.Text = txtMiscCharges.Text = txtNote.Text = txtOverDueRate.Text = txtProcessingFee.Text = txtProcessingFeePerc.Text = txtRemarks.Text =
+            txtSanctionDate.Text = txtSanctionNo.Text = txtTenor.Text = string.Empty;
+
+            ddlAccountType.SelectedValue = ddlAssetCategory.SelectedValue = ddlGLAccount.SelectedValue = ddlPVCalcMethod.SelectedValue = "0";
+
+            ucCustomerCodeLov.FunPubClearControlValue();
+            ucCustomerAddress.ClearCustomerDetails();
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    private void FunPriCopyAddress()
+    {
+        try
+        {
+            txtCommAdress.Text = Convert.ToString(txtCorpAddress.Text);
+            txtCommAdress.Text = Convert.ToString(txtCorpCity.Text);
+            txtCommCountry.Text = Convert.ToString(txtCorpCountry.Text);
+            txtCommEmailID.Text = Convert.ToString(txtCorpEmailID.Text);
+            txtCommMobileNo.Text = Convert.ToString(txtCorpMobileNo.Text);
+            txtCommPincode.Text = Convert.ToString(txtCorpPincode.Text);
+            txtCommState.Text = Convert.ToString(txtCorpState.Text);
+            txtCommTAN.Text = Convert.ToString(txtCorpTAN.Text);
+            txtCommTelephoneNo.Text = Convert.ToString(txtCorpTelephoneNo.Text);
+            txtCommTIN.Text = Convert.ToString(txtCorpTIN.Text);
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+    #endregion
+}

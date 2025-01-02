@@ -1,0 +1,1349 @@
+﻿#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Collection
+/// Screen Name         :   Delinquent Parameter
+/// Created By          :   M.Saran
+/// Created Date        :   
+/// Purpose             :   To specify the age of arrears and provisioning percentages for marking delinquency.
+/// Last Updated By		:   M.Saran
+/// Last Updated Date   :   18-Oct-2011
+/// Reason              :   TO fix the UAT Bugs.
+/// <Program Summary>
+#endregion
+
+
+#region Namespaces
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.ServiceModel;
+using System.Text;
+using S3GBusEntity;
+using System.IO;
+#endregion
+
+public partial class Collection_S3GClnDelinquent_Parameter_Add : ApplyThemeForProject
+{
+    #region Variable Declaration Region
+    int intErrorCode = 0;
+    int intCompanyID = 0;
+    int intUserID = 0;
+    int intDelinqType = 0;
+    string strDateFormat = string.Empty;
+    string strDelinquency = string.Empty;
+    const string strvalidationmsgname = "CDL";
+    Dictionary<string, string> Procparam = null;
+    Dictionary<string, string> dictLOBMaster = null;
+
+    DataTable dtParameterdetails = new DataTable();
+    UserInfo ObjUserInfo = new UserInfo();
+    S3GSession ObjS3GSession = new S3GSession();
+    SerializationMode SerMode = SerializationMode.Binary;
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+    ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient objClnMaster_Client;
+    S3GBusEntity.Collection.ClnReceivableMgtServices.S3G_CLN_DelinquencyParameterDataTable objS3G_CLN_DelinquentDataTable = null;
+    S3GBusEntity.Collection.ClnReceivableMgtServices.S3G_CLN_DelinquencyParameterRow objS3G_CLN_DelinquentRow = null;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnDelinquent_Parameter_Add.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CDL';";
+    string strRedirectPage = "~/Collection/S3GClnTransLander.aspx?Code=CDL";
+    static string strPageName = "Delinquent Parameter";
+
+    #endregion
+
+    #region Page Load
+
+    protected new void Page_PreInit(object sender, EventArgs e)
+    {
+        try
+        {
+            if (Request.QueryString["Popup"] != null)
+            {
+                this.Page.MasterPageFile = "~/Common/MasterPage.master";
+                UserInfo ObjUserInfo = new UserInfo();
+                this.Page.Theme = ObjUserInfo.ProUserThemeRW;
+            }
+            else
+            {
+                this.Page.MasterPageFile = "~/Common/S3GMasterPageCollapse.master";
+                UserInfo ObjUserInfo = new UserInfo();
+                this.Page.Theme = ObjUserInfo.ProUserThemeRW;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+        }
+    }
+
+    /// <summary>
+    /// This event is handled for load the page
+    /// </summary>
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Due to Data Problem, Unable to Load the Delinquent Parameter.";
+            CVDelinquentParameter.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Page Events
+
+    #region Button (Save/Cancel/Clear)
+    /// <summary>
+    /// Save
+    /// </summary>
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+
+            FunPubDelinquencySave();
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Error in Saving.";
+            CVDelinquentParameter.IsValid = false;
+        }
+
+    }
+
+    /// <summary>
+    /// Cancel
+    /// </summary>
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect(strRedirectPage,false);
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Unable To Cancel.";
+            CVDelinquentParameter.IsValid = false;
+        }
+    }
+
+    /// <summary>
+    /// Clear
+    /// </summary>
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            txtCutOffMonth.Text = "";
+            ddlLOB.SelectedIndex = -1;
+            FunLoadGridInsert();
+            ddlPeriodtype.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Unable To Clear.";
+            CVDelinquentParameter.IsValid = false;
+        }
+
+    }
+
+    #endregion
+
+    #region Grid events
+    protected void grvDelinquentParameterdetails_OnRowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        try
+        {
+            if (e.CommandName == "Add")
+            {
+                FunPriAddDelinquentParameterDetails();
+            }
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Unable To add Due to Data Problem";
+            CVDelinquentParameter.IsValid = false;
+        }
+    }
+
+    protected void grvDelinquentParameterdetails_OnRowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            FunPriRemoveDelinquentParameterDetails(e.RowIndex);
+
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Unable To add Due to Data Problem";
+            CVDelinquentParameter.IsValid = false;
+        }
+    }
+
+    protected void grvDelinquentParameterdetails_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+        try
+        {
+            FunPriUpdateDelinquentParameter(e.RowIndex);
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Unable To Update";
+            CVDelinquentParameter.IsValid = false;
+        }
+    }
+
+    protected void grvDelinquentParameterdetails_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+    {
+        try
+        {
+            FunPriCancelDelinquentParameter(e.RowIndex);
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Unable To Cancel";
+            CVDelinquentParameter.IsValid = false;
+        }
+    }
+
+    protected void grvDelinquentParameterdetails_RowEditing(object sender, GridViewEditEventArgs e)
+    {
+        try
+        {
+            FunPriEditDelinquentParameter(e.NewEditIndex);
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Unable To Edit";
+            CVDelinquentParameter.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region TextBox Events
+
+    protected void txtMonthTo_OnTextChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            dtParameterdetails = (DataTable)ViewState["Parameterdetails"];
+            TextBox txtMonthTo = (TextBox)sender;
+            GridViewRow gvRow = (GridViewRow)txtMonthTo.Parent.Parent;
+            string stroriginalvalue = dtParameterdetails.Rows[gvRow.RowIndex]["To_Month"].ToString();
+            if (gvRow.RowIndex != (dtParameterdetails.Rows.Count - 1))      //This validation won't fire in Last Row of the grid because value can be anything
+            {
+                if (!string.IsNullOrEmpty(txtMonthTo.Text))             //To Month value cannot be Empty value 
+                {
+                    if (!string.IsNullOrEmpty(stroriginalvalue))        //Original value ie datatabl;e value should not be empty
+                    {
+                        if (stroriginalvalue != txtMonthTo.Text)        //If user enters different value other than actual value the condition sets true
+                        {
+                            DataRow[] drRow;
+                            drRow = dtParameterdetails.Select("From_Month <=" + Convert.ToInt32(txtMonthTo.Text) + " and To_Month >=" + Convert.ToInt32(txtMonthTo.Text) + "", "To_Month desc");
+                            if (drRow.Length == 0)
+                            {
+                                drRow = dtParameterdetails.Select("From_Month <=" + Convert.ToInt32(txtMonthTo.Text) + " or To_Month >=" + Convert.ToInt32(txtMonthTo.Text) + "", "To_Month desc");
+                                if (Convert.ToInt32(drRow[0].ItemArray[2].ToString()) < Convert.ToInt32(txtMonthTo.Text))
+                                {
+                                    //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('From and To Month Combination exceeds previous');", true);
+                                    //CDL_12
+                                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 12);
+                                    txtMonthTo.Focus();
+                                    txtMonthTo.Text = stroriginalvalue;
+                                    return;
+                                }
+                            }
+                            if (drRow.Length > 0)
+                            {
+
+                                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('From and To Month should not be overlaped');", true);
+                                //CDL_13
+                                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 13);
+                                txtMonthTo.Focus();
+                                txtMonthTo.Text = stroriginalvalue;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            CVDelinquentParameter.ErrorMessage = "Unable To Change";
+            CVDelinquentParameter.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region "Dropdown Events"
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        //txtCutOffMonth.Text = "";
+        FunLoadGridInsert();
+    }
+    protected void ddlPeriodtype_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (ddlPeriodtype.SelectedValue.ToString() == "2")
+        {
+            lblCutOffMonth.Text = "Cut off Days";
+            grvDelinquentParameterdetails.HeaderRow.Cells[1].Text = "From days";
+            grvDelinquentParameterdetails.HeaderRow.Cells[2].Text = "To days";
+
+           
+        }
+        else
+        {
+            lblCutOffMonth.Text = "Cut off Month";
+            grvDelinquentParameterdetails.HeaderRow.Cells[1].Text = "From Month";
+            grvDelinquentParameterdetails.HeaderRow.Cells[2].Text = "To Month";
+        }
+        
+    }
+    #endregion
+
+    #region "Radiobutton Events"
+    protected void RBLDelinquentType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        txtCutOffMonth.Text = "";
+        ddlLOB.SelectedIndex = -1;
+        FunLoadGridInsert();
+    }
+    #endregion
+
+    #region "Checkbox Events"
+    protected void chkIsManual_CheckedChanged(object sender, EventArgs e)
+    {
+        CheckBox chkbx = (CheckBox)sender;
+        GridViewRow gvRow = (GridViewRow)chkbx.Parent.Parent;
+        for (int i = 0; i <= grvDelinquentParameterdetails.Rows.Count - 1; i++)
+        {
+            CheckBox chkIsManual = (CheckBox)grvDelinquentParameterdetails.Rows[i].FindControl("chkIsManual");
+            if (i == gvRow.RowIndex)
+            {
+                chkIsManual.Checked = chkbx.Checked;
+            }
+            else
+            {
+                chkIsManual.Checked = false;
+            }
+        }
+    }
+    #endregion
+
+    #endregion
+
+    #region Page Methods
+
+
+    /// <summary>
+    /// This method will execute when page Loads
+    /// </summary>
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket formTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                strMode = Request.QueryString.Get("qsMode");
+                if (formTicket != null)
+                {
+                    strDelinquency = formTicket.Name;
+                }
+            }
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (!IsPostBack)
+            {
+                FunLoadLOBMaster();
+                FunLoadGridInsert();
+                if ((strDelinquency != "") && (strMode == "M"))                  // Modify
+                {
+                    FunPriDisableControls(1);
+                }
+                else if (strMode == "Q")                                        //((intDelinqType != "") && (strMode == "Q")) // Query 
+                {
+                    FunPriDisableControls(-1);
+                }
+                else                                                           //Create Mode
+                {
+                    FunPriDisableControls(0);
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    //To Load LOB
+    /// <summary>
+    /// This method is used to Load the Line of Business to a dropdown from stored Procedure using BindDatatable option.
+    /// </summary>
+    private void FunLoadLOBMaster()
+    {
+        try
+        {
+            ObjUserInfo = new UserInfo();
+            dictLOBMaster = new Dictionary<string, string>();
+            dictLOBMaster.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            dictLOBMaster.Add("@User_Id", Convert.ToString(ObjUserInfo.ProUserIdRW));
+            if (strMode == "C" || strMode == "")
+                dictLOBMaster.Add("@Is_Active", "1");
+            dictLOBMaster.Add("@Program_Id", "90");
+            //ddlLOB.BindDataTable(SPNames.LOBMaster, dictLOBMaster, true, "All", new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            ddlLOB.BindDataTable(SPNames.LOBMaster, dictLOBMaster, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            if (ddlLOB.Items.Count > 0)
+            {
+                ddlLOB.Items.RemoveAt(0);
+                if (ddlLOB.Items.Count != 1)
+                    ddlLOB.Items.Insert(0, (new System.Web.UI.WebControls.ListItem("--All--", "-1")));
+            }
+
+            
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+
+    /// <summary>
+    /// This method is used to empty the grid.
+    /// In create mode,this method is used to bind the Datarow to show the footer Row.
+    /// </summary>
+    public void FunLoadGridInsert()
+    {
+
+        try
+        {
+            DataRow drEmptyRow;
+            dtParameterdetails = new DataTable();
+
+            dtParameterdetails.Columns.Add("Delinquent_Parameter_ID");
+            dtParameterdetails.Columns.Add("Secure_Principal");
+            dtParameterdetails.Columns.Add("Insecure_Principal");
+            dtParameterdetails.Columns.Add("From_Month");
+            dtParameterdetails.Columns.Add("To_Month");
+            dtParameterdetails.Columns.Add("Interest_Income");
+            dtParameterdetails.Columns.Add("Other_Income");
+            dtParameterdetails.Columns.Add("IsManual");
+            dtParameterdetails.Columns["Interest_Income"].DataType = typeof(bool);
+            dtParameterdetails.Columns["Other_Income"].DataType = typeof(bool);
+            dtParameterdetails.Columns["IsManual"].DataType = typeof(bool);
+            drEmptyRow = dtParameterdetails.NewRow();
+            drEmptyRow["Interest_Income"] = 0;
+            drEmptyRow["Other_Income"] = 0;
+            drEmptyRow["IsManual"] = 0;
+            dtParameterdetails.Rows.Add(drEmptyRow);
+            ViewState["Parameterdetails"] = dtParameterdetails;
+            FunFillgrid(dtParameterdetails);
+            grvDelinquentParameterdetails.Rows[0].Visible = false;
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            dtParameterdetails.Dispose();
+            dtParameterdetails = null;
+        }
+    }
+
+
+    //To fill the Grid
+    /// <summary>
+    /// This method is used to load the datatable to a grid.
+    /// Here argument is used as datatable to bind the grid.
+    /// </summary>
+    /// <param name="dtparameterdetails"></param>
+    private void FunFillgrid(DataTable dtparameterdetails)
+    {
+        try
+        {
+            grvDelinquentParameterdetails.DataSource = dtparameterdetails;
+            grvDelinquentParameterdetails.DataBind();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    //To disable controls based on Create/Modify/Query
+    /// <summary>
+    ///This method is used to Disable the controls based on Create/Modify/Query Mode. 
+    ///Here argument is used as intModeID to differentiate the Modes.
+    /// </summary>
+    /// <param name="intModeID"></param>
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+
+                    if (!bCreate)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    chkIsActive.Enabled = false;
+                    chkIsActive.Checked = true;
+                    break;
+
+                case 1: // Modify Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    FunDelinquentsForModification();
+                    if (ViewState["TransactionExist"] != null && ViewState["TransactionExist"].ToString() == "1")//transaction exist means
+                    {
+                        QueryView();
+
+                    }
+                    else
+                    {
+                        btnClear.Enabled = false;
+                        //ddlLOB.Enabled = false;
+                        //txtCutOffMonth.ReadOnly = true;
+                        RBLDelinquentType.Enabled = false;
+
+                        if (ddlLOB.Items.Count > 0)
+                            ddlLOB.ClearDropDownList();
+
+                    }
+                    if (!bModify)
+                    {
+                        btnSave.Enabled = false;
+                    }
+                    else
+                    {
+                        btnSave.Enabled = true;
+                    }
+                    chkIsActive.Enabled = true;
+                    break;
+
+
+                case -1:// Query Mode
+
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+
+                    if (!bQuery)
+                    {
+                        Response.Redirect(strRedirectPage,false);
+                    }
+                    FunDelinquentsForModification();
+
+                    QueryView();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    private void QueryView()
+    {
+        btnSave.Enabled = btnClear.Enabled = false;
+        RBLDelinquentType.Enabled = false;
+        chkIsActive.Enabled = false;
+        //ddlLOB.Enabled = false;
+        txtCutOffMonth.ReadOnly = true;
+        if (ddlLOB.Items.Count > 0)
+            ddlLOB.ClearDropDownList();
+        grvDelinquentParameterdetails.FooterRow.Visible = false;
+        //grvDelinquentParameterdetails.Columns[grvDelinquentParameterdetails.Columns.Count - 2].Visible = false;
+        grvDelinquentParameterdetails.Columns[grvDelinquentParameterdetails.Columns.Count - 1].Visible = false;
+        if (grvDelinquentParameterdetails.Rows.Count > 0)
+        {
+            for (int Rowcount = 0; Rowcount < grvDelinquentParameterdetails.Rows.Count; Rowcount++)
+            {
+                ((CheckBox)grvDelinquentParameterdetails.Rows[Rowcount].FindControl("chkOtherIncome")).Enabled = false;
+                ((CheckBox)grvDelinquentParameterdetails.Rows[Rowcount].FindControl("chkInterestIncome")).Enabled = false;
+                ((CheckBox)grvDelinquentParameterdetails.Rows[Rowcount].FindControl("chkIsManual")).Enabled = false;
+            }
+        }
+    }
+
+
+
+    /// <summary>
+    ///To save delinquency parameter details
+    /// </summary>
+    public void FunPubDelinquencySave()
+    {
+        objClnMaster_Client = new ClnReceivableMgtServicesReference.ClnReceivableMgtServicesClient();
+        try
+        {
+            dtParameterdetails = (DataTable)ViewState["Parameterdetails"];
+            if (dtParameterdetails.Rows[0]["Delinquent_Parameter_ID"].ToString() == "")
+            {
+                //Utility.FunShowAlertMsg(this, "Add Atleast one Row in Delinquency Parameter grid");//CDL_1
+                //return;
+                Utility.FunShowValidationMsg(this, strvalidationmsgname, 1);
+                return;
+            }
+
+            objS3G_CLN_DelinquentDataTable = new S3GBusEntity.Collection.ClnReceivableMgtServices.S3G_CLN_DelinquencyParameterDataTable();
+            objS3G_CLN_DelinquentRow = objS3G_CLN_DelinquentDataTable.NewS3G_CLN_DelinquencyParameterRow();
+            objS3G_CLN_DelinquentRow.Company_ID = intCompanyID;
+            if (RBLDelinquentType.SelectedValue == "0")
+                objS3G_CLN_DelinquentRow.Delinquency_Type = "Statutory";
+            else
+                objS3G_CLN_DelinquentRow.Delinquency_Type = "Company";
+            if (Convert.ToInt32(ddlLOB.SelectedValue) > 0)
+            {
+                objS3G_CLN_DelinquentRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            }
+            objS3G_CLN_DelinquentRow.Cut_Off_Month = Convert.ToInt32(txtCutOffMonth.Text.Trim());
+            if (strDelinquency == string.Empty)//For Create Mode
+            {
+                objS3G_CLN_DelinquentRow.Created_By = intUserID;
+
+                if (strMode == "C" || strMode == "")
+                    objS3G_CLN_DelinquentRow.IsAdd = true;
+                else
+                    objS3G_CLN_DelinquentRow.IsAdd = false;
+            }
+            if (strDelinquency != string.Empty)//For Modify Mode
+            {
+                objS3G_CLN_DelinquentRow.Modified_By = intUserID;
+                objS3G_CLN_DelinquentRow.Delinquent_Param_ID = strDelinquency;
+
+            }
+            objS3G_CLN_DelinquentRow.Is_Active = chkIsActive.Checked;
+            objS3G_CLN_DelinquentRow.Period_Type = ddlPeriodtype.SelectedValue.ToString();
+            if (dtParameterdetails.Rows.Count > 0)
+                objS3G_CLN_DelinquentRow.XMLDelinquentDetails = FunPriGenerateXMLDelinquentParameters().ToString();
+            string DSNO = string.Empty;
+
+            objS3G_CLN_DelinquentDataTable.AddS3G_CLN_DelinquencyParameterRow(objS3G_CLN_DelinquentRow);
+
+            if (strDelinquency == string.Empty)
+                intErrorCode = objClnMaster_Client.FunPubCreateDelinquentParameters(out DSNO, SerMode, ClsPubSerialize.Serialize(objS3G_CLN_DelinquentDataTable, SerMode));
+            else
+                intErrorCode = objClnMaster_Client.FunPubModifyDelinquentParameters(SerMode, ClsPubSerialize.Serialize(objS3G_CLN_DelinquentDataTable, SerMode));
+            if (intErrorCode == 0 && strDelinquency == string.Empty)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Delinquency parameters" +  DSNO  + " defined sucessfully');" + strRedirectPageAdd, true);
+                strAlert = "Delinquency Parameter \"" + DSNO + "\" added successfully";
+                strAlert += @"\n\nWould you like to add one more Delinquency Parameter?";
+                strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                strRedirectPageView = "";
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+
+            }
+            else if (intErrorCode == 0 && strDelinquency != string.Empty)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Delinquency parameters Updated sucessfully');" + strRedirectPageView, true);
+                //CDL_2
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 2, "S3GClnTransLander.aspx?Code=CDL");
+                return;
+
+            }
+            else
+            {
+                // ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Document Sequence Number not yet defined Delinquency Parameter');", true);
+                //CDL_3
+                // ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Delinquent Parameters has already defined for this And Line of Business');", true);
+                //CDL_4
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Delinquent Parameters have already been defined at Company Level');", true);
+                //CDL_5
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, intErrorCode);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (objClnMaster_Client != null)
+            {
+                objClnMaster_Client.Close();
+                if(objS3G_CLN_DelinquentDataTable!=null)
+                objS3G_CLN_DelinquentDataTable.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    ///Add a row into the grid
+    /// </summary>
+    private void FunPriAddDelinquentParameterDetails()
+    {
+        try
+        {
+            if ((txtCutOffMonth.Text.Trim()).Length == 0)
+            {
+                //CDL_14
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 14);
+                txtCutOffMonth.Focus();
+                return;
+            }
+
+            TextBox txtMonthFromAdd = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtMonthFromAdd");
+            TextBox txtMonthToAdd = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtMonthToAdd");
+            TextBox txtSecurePrincipalPercentageAdd = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtSecurePrincipalPercentageAdd");
+            TextBox txtUnsecurePrincipalPercentageAdd = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtUnsecurePrincipalPercentageAdd");
+            CheckBox chkInterestIncomeAdd = (CheckBox)grvDelinquentParameterdetails.FooterRow.FindControl("chkInterestIncomeAdd");
+            CheckBox chkOtherIncomeAdd = (CheckBox)grvDelinquentParameterdetails.FooterRow.FindControl("chkOtherIncomeAdd");
+            Label lblUnsecurePrincipalPercentage = (Label)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lblUnsecurePrincipalPercentage");
+            Label txtSecurePrincipalPercentage = (Label)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("txtSecurePrincipalPercentage");
+            if (txtMonthFromAdd.Text.Trim() == string.Empty)
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Please Enter From Month');", true);
+                //CDL_6
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 6);
+                txtMonthFromAdd.Focus();
+                return;
+            }
+            else if ((txtMonthToAdd.Text.Trim()).Length == 0)
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Please Enter To Month');", true);
+                //CDL_7
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 7);
+                txtMonthToAdd.Focus();
+                return;
+            }
+            else if ((txtUnsecurePrincipalPercentageAdd.Text.Trim()).Length == 0)
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Please Enter Unsecure Principal Percentage');", true);
+                //CDL_8
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 8);
+                txtUnsecurePrincipalPercentageAdd.Focus();
+                return;
+            }
+            else if ((txtSecurePrincipalPercentageAdd.Text.Trim()).Length == 0)
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Please Enter Secure Principal Percentage');", true);
+                //CDL_9
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 9);
+                txtSecurePrincipalPercentageAdd.Focus();
+                return;
+            }
+            else if (Convert.ToInt32(txtMonthFromAdd.Text) > Convert.ToInt32(txtMonthToAdd.Text))
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('To Month should not be Lesser than From Month');", true);
+                //CDL_10
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 10);
+                txtMonthToAdd.Focus();
+                return;
+            }
+            if (Convert.ToInt32(txtSecurePrincipalPercentageAdd.Text) <= 0 && Convert.ToInt32(txtUnsecurePrincipalPercentageAdd.Text) <= 0)
+            {
+                //Utility.FunShowAlertMsg(this, "Both Secured Principal % and UnSecured Principal % cannot be zero");
+                //CDL_15
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 15);
+                return;
+
+            }
+
+            if (txtUnsecurePrincipalPercentageAdd.Text != "" && lblUnsecurePrincipalPercentage.Text != "")
+            {
+                if (Convert.ToInt32(txtUnsecurePrincipalPercentageAdd.Text) < Convert.ToInt32(lblUnsecurePrincipalPercentage.Text))
+                {
+                    //Utility.FunShowAlertMsg(this, "UnSecured Principal % should be greater than previous UnSecured Principal %");
+                    //CDL_16
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 16);
+                    return;
+                }
+
+            }
+
+            if (txtSecurePrincipalPercentageAdd.Text != "" && txtSecurePrincipalPercentage.Text != "")
+            {
+                if (Convert.ToInt32(txtSecurePrincipalPercentageAdd.Text) < Convert.ToInt32(txtSecurePrincipalPercentage.Text))
+                {
+                    //Utility.FunShowAlertMsg(this, "Secured Principal % should be greater than previous Secured Principal %");
+                    //CDL_17
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 17);
+                    return;
+                }
+
+            }
+
+            DataRow drRow;
+            dtParameterdetails = (DataTable)ViewState["Parameterdetails"];
+            if (dtParameterdetails.Rows[0]["Delinquent_Parameter_ID"].ToString() == "")
+            {
+                dtParameterdetails.Rows[0].Delete();
+            }
+            foreach (DataRow dRow in dtParameterdetails.Rows)
+            {
+                if (txtMonthFromAdd.Text == dRow["From_Month"].ToString())
+                {
+                    //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('From values need to be distinct');", true);
+                    //CDL_11
+                    Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 11);
+                    txtMonthFromAdd.Text = "";
+                    txtMonthFromAdd.Focus();
+                    return;
+                }
+            }
+            drRow = dtParameterdetails.NewRow();
+            drRow["Delinquent_Parameter_ID"] = "0";
+            drRow["Secure_Principal"] = txtSecurePrincipalPercentageAdd.Text.Trim();
+            drRow["Insecure_Principal"] = txtUnsecurePrincipalPercentageAdd.Text.Trim();
+            drRow["From_Month"] = txtMonthFromAdd.Text.Trim();
+            drRow["To_Month"] = txtMonthToAdd.Text.Trim();
+            drRow["Interest_Income"] = chkInterestIncomeAdd.Checked;
+            drRow["Other_Income"] = chkOtherIncomeAdd.Checked;
+            drRow["IsManual"] = false;
+            dtParameterdetails.Rows.Add(drRow);
+            ViewState["Parameterdetails"] = dtParameterdetails;
+            FunFillgrid(dtParameterdetails);
+            TextBox txtMonthFrom = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtMonthFromAdd");
+            txtMonthFrom.Text = Convert.ToString(Convert.ToInt32(txtMonthToAdd.Text.Trim()) + Convert.ToInt32("1"));
+            ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("btnRemove")).Visible = true;
+
+            ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lnkEdit")).Visible = true;
+            //included as per the UAT fix dated on 19-10-2011 as per the discussion with Vasantharajan and Bashyam.
+            FunPriSetVisibleFooterRow(Convert.ToInt32(txtSecurePrincipalPercentageAdd.Text), Convert.ToInt32(txtUnsecurePrincipalPercentageAdd.Text));
+            FunPriSetValue(txtSecurePrincipalPercentageAdd.Text, txtUnsecurePrincipalPercentageAdd.Text);
+            FunPriSetVisibleFooterRow(txtMonthFrom);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+
+    /// <summary>
+    /// This method is used to set 100% for secured n unsecured % based on 100% of previous row.
+    /// //included as per the UAT fix dated on 19-10-2011 as per the discussion with Vasantharajan and Bashyam.
+    /// </summary>
+    /// <param name="txtMonthFrom"></param>
+    private void FunPriSetValue(string txtsecured, string txtunsecured)
+    {
+        if (txtunsecured != "")
+        {
+            if (Convert.ToInt32(txtunsecured) == 100)
+            {
+                if (grvDelinquentParameterdetails.FooterRow != null && grvDelinquentParameterdetails.FooterRow.Visible)
+                {
+                    TextBox txtUnsecurePrincipalPercentageAdd = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtUnsecurePrincipalPercentageAdd");
+                    txtUnsecurePrincipalPercentageAdd.Text = "100";
+                    txtUnsecurePrincipalPercentageAdd.ReadOnly = true;
+                }
+            }
+            else
+            {
+                if (grvDelinquentParameterdetails.FooterRow != null && grvDelinquentParameterdetails.FooterRow.Visible)
+                {
+                    TextBox txtUnsecurePrincipalPercentageAdd = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtUnsecurePrincipalPercentageAdd");
+                    txtUnsecurePrincipalPercentageAdd.ReadOnly = false;
+                }
+            }
+        }
+        if (txtsecured != "")
+        {
+            if (Convert.ToInt32(txtsecured) == 100)
+            {
+                if (grvDelinquentParameterdetails.FooterRow != null && grvDelinquentParameterdetails.FooterRow.Visible)
+                {
+                    TextBox txtSecurePrincipalPercentageAdd = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtSecurePrincipalPercentageAdd");
+                    txtSecurePrincipalPercentageAdd.Text = "100";
+                    txtSecurePrincipalPercentageAdd.ReadOnly = true;
+                }
+            }
+            else
+            {
+                if (grvDelinquentParameterdetails.FooterRow != null && grvDelinquentParameterdetails.FooterRow.Visible)
+                {
+                    TextBox txtUnsecurePrincipalPercentageAdd = (TextBox)grvDelinquentParameterdetails.FooterRow.FindControl("txtSecurePrincipalPercentageAdd");
+                    txtUnsecurePrincipalPercentageAdd.ReadOnly = false;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// This method is used to show or hide footerrow visibility if sequenct ends with 1000
+    /// </summary>
+    /// <param name="txtMonthFrom"></param>
+    private void FunPriSetVisibleFooterRow(TextBox txtMonthFrom)
+    {
+        if (txtMonthFrom.Text != null && txtMonthFrom.Text.Length > 0)
+        {
+            if (Convert.ToInt32(txtMonthFrom.Text) >= 1000)
+            {
+                grvDelinquentParameterdetails.FooterRow.Visible = false;
+            }
+            //else
+            //{
+            //    grvDelinquentParameterdetails.FooterRow.Visible = true;
+            //}
+        }
+    }
+
+
+    /// <summary>
+    /// This method is used to show or hide footerrow visibility if both secured n unsecured % is 100%
+    /// </summary>
+    /// <param name="txtMonthFrom"></param>
+    private void FunPriSetVisibleFooterRow(int secured, int unsecured)
+    {
+
+        if (secured >= 100 && unsecured >= 100)
+        {
+            grvDelinquentParameterdetails.FooterRow.Visible = false;
+        }
+        else
+        {
+            grvDelinquentParameterdetails.FooterRow.Visible = true;
+        }
+
+    }
+
+    /// <summary>
+    ///Remove a row from the grid
+    /// </summary>
+    private void FunPriRemoveDelinquentParameterDetails(int intRowIndex)
+    {
+        try
+        {
+            dtParameterdetails = (DataTable)ViewState["Parameterdetails"];
+            dtParameterdetails.Rows.RemoveAt(intRowIndex);
+            if (dtParameterdetails.Rows.Count == 0)
+            {
+                FunLoadGridInsert();
+            }
+            else
+            {
+
+                FunFillgrid(dtParameterdetails);
+                TextBox txtFromMonthUpd = grvDelinquentParameterdetails.FooterRow.FindControl("txtMonthFromAdd") as TextBox;
+                Label lblMonthTo = grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lblMonthTo") as Label;
+
+                txtFromMonthUpd.Text = Convert.ToString(Convert.ToDecimal(lblMonthTo.Text.Trim()) + Convert.ToInt32("1"));
+                ViewState["Parameterdetails"] = dtParameterdetails;
+                //included as per the UAT fix dated on 19-10-2011 as per the discussion with Vasantharajan and Bashyam.
+                Label txtUnsecurePrincipalPercentage = (Label)grvDelinquentParameterdetails.Rows[intRowIndex - 1].FindControl("lblUnsecurePrincipalPercentage");
+                Label txtSecurePrincipalPercentage = (Label)grvDelinquentParameterdetails.Rows[intRowIndex - 1].FindControl("txtSecurePrincipalPercentage");
+                FunPriSetVisibleFooterRow(Convert.ToInt32(txtSecurePrincipalPercentage.Text), Convert.ToInt32(txtUnsecurePrincipalPercentage.Text));
+                FunPriSetValue(txtSecurePrincipalPercentage.Text, txtUnsecurePrincipalPercentage.Text);
+                FunPriSetVisibleFooterRow(txtFromMonthUpd);
+            }
+            ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("btnRemove")).Visible = true;
+            ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lnkEdit")).Visible = true;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    /// <summary>
+    ///Update a row in grid
+    /// </summary>
+    private void FunPriUpdateDelinquentParameter(int intRowIndex)
+    {
+        try
+        {
+            dtParameterdetails = (DataTable)ViewState["Parameterdetails"];
+            DataRow drow = dtParameterdetails.Rows[intRowIndex];
+            GridViewRow gvRow = grvDelinquentParameterdetails.Rows[intRowIndex];
+            Label txtMonthFrom = (Label)gvRow.FindControl("txtMonthFrom");
+            Label txtMonthTo = (Label)gvRow.FindControl("txtMonthTo");
+            TextBox txtUnsecurePrincipalPercentage = (TextBox)gvRow.FindControl("txtUnsecurePrincipalPercentage");
+            TextBox txtSecurePrincipalPercentage = (TextBox)gvRow.FindControl("txtSecurePrincipalPercentage");
+            CheckBox EditchkInterestIncome = (CheckBox)gvRow.FindControl("EditchkInterestIncome");
+            CheckBox EditchkOtherIncome = (CheckBox)gvRow.FindControl("EditchkOtherIncome");
+            if ((txtMonthFrom.Text.Trim()).Length == 0)
+            //if (txtMonthFrom.Text.Trim() == string.Empty)
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Please Enter From Month');", true);
+                //CDL_6
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 6);
+                txtMonthFrom.Focus();
+                return;
+            }
+            else if ((txtMonthTo.Text.Trim()).Length == 0)
+            //else if (txtMonthTo.Text.Trim() == string.Empty)
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Please Enter To Month');", true);
+                //CDL_7
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 7);
+                txtMonthTo.Focus();
+                return;
+            }
+            else if ((txtUnsecurePrincipalPercentage.Text.Trim()).Length == 0)
+            //else if (txtUnsecurePrincipalPercentage.Text.Trim() == string.Empty)
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Please Enter Unsecure Principal Percentage');", true);
+                //CDL_8
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 8);
+                txtUnsecurePrincipalPercentage.Focus();
+                return;
+            }
+            else if ((txtSecurePrincipalPercentage.Text.Trim()).Length == 0)
+            //else if (txtSecurePrincipalPercentage.Text.Trim() == string.Empty)
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Please Enter Secure Principal Percentage');", true);
+                //CDL_9
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 9);
+                txtSecurePrincipalPercentage.Focus();
+                return;
+            }
+            else if (Convert.ToInt32(txtMonthFrom.Text) > Convert.ToInt32(txtMonthTo.Text))
+            {
+                //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('To Month should not be Lesser than From Month');", true);
+                //CDL_10
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 10);
+                txtMonthTo.Focus();
+                return;
+            }
+
+            if (Convert.ToInt32(txtUnsecurePrincipalPercentage.Text) <= 0 && Convert.ToInt32(txtSecurePrincipalPercentage.Text) <= 0)
+            {
+                //Utility.FunShowAlertMsg(this, "Both Secured Principal % and UnSecured Principal % cannot be zero");
+                //CDL_15
+                Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 15);
+                return;
+            }
+            if (intRowIndex > 0)
+            {
+                Label lblUnsecurePrincipalPercentageP = (Label)grvDelinquentParameterdetails.Rows[intRowIndex - 1].FindControl("lblUnsecurePrincipalPercentage");
+                Label txtSecurePrincipalPercentageP = (Label)grvDelinquentParameterdetails.Rows[intRowIndex - 1].FindControl("txtSecurePrincipalPercentage");
+
+                if (txtUnsecurePrincipalPercentage.Text != "" && lblUnsecurePrincipalPercentageP.Text != "")
+                {
+                    if (Convert.ToInt32(txtUnsecurePrincipalPercentage.Text) < Convert.ToInt32(lblUnsecurePrincipalPercentageP.Text))
+                    {
+                        //Utility.FunShowAlertMsg(this, "UnSecured Principal % should be greater than previous UnSecured Principal %");
+                        //CDL_16
+                        Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 16);
+                        return;
+                    }
+
+                }
+
+                if (txtSecurePrincipalPercentage.Text != "" && txtSecurePrincipalPercentageP.Text != "")
+                {
+                    if (Convert.ToInt32(txtSecurePrincipalPercentage.Text) < Convert.ToInt32(txtSecurePrincipalPercentageP.Text))
+                    {
+                        //Utility.FunShowAlertMsg(this, "Secured Principal % should be greater than previous Secured Principal %");
+                        //CDL_17  
+                        Utility.FunShowValidationMsg(this.Page, strvalidationmsgname, 17);
+                        return;
+                    }
+
+                }
+            }
+
+            drow.BeginEdit();
+            drow["To_Month"] = txtMonthTo.Text;
+            drow["Secure_Principal"] = txtSecurePrincipalPercentage.Text;
+            drow["Insecure_Principal"] = txtUnsecurePrincipalPercentage.Text;
+            drow["Interest_Income"] = EditchkInterestIncome.Checked;
+            drow["Other_Income"] = EditchkOtherIncome.Checked;
+            drow.EndEdit();
+            ViewState["Parameterdetails"] = dtParameterdetails;
+            grvDelinquentParameterdetails.EditIndex = -1;
+            grvDelinquentParameterdetails.ShowFooter = true;
+            dtParameterdetails = (DataTable)ViewState["Parameterdetails"];
+            FunFillgrid(dtParameterdetails);
+            TextBox txtFromMonthUpd = grvDelinquentParameterdetails.FooterRow.FindControl("txtMonthFromAdd") as TextBox;
+            Label lblMonthTo = grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lblMonthTo") as Label;
+            txtFromMonthUpd.Text = Convert.ToString(Convert.ToDecimal(lblMonthTo.Text.Trim()) + Convert.ToInt32("1"));
+            // grvDelinquentParameterdetails.Columns[grvDelinquentParameterdetails.Columns.Count - 1].Visible = true;
+            ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lnkEdit")).Visible = true;
+            ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("btnRemove")).Visible = true;
+            //included as per the UAT fix dated on 19-10-2011 as per the discussion with Vasantharajan and Bashyam.
+            FunPriSetVisibleFooterRow(Convert.ToInt32(txtSecurePrincipalPercentage.Text), Convert.ToInt32(txtUnsecurePrincipalPercentage.Text));
+            FunPriSetValue(txtSecurePrincipalPercentage.Text, txtUnsecurePrincipalPercentage.Text);
+            FunPriSetVisibleFooterRow(txtFromMonthUpd);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    ///Cancel the update row
+    /// </summary>
+    private void FunPriCancelDelinquentParameter(int intRowIndex)
+    {
+        try
+        {
+            grvDelinquentParameterdetails.EditIndex = -1;
+            grvDelinquentParameterdetails.ShowFooter = true;
+            dtParameterdetails = (DataTable)ViewState["Parameterdetails"];
+            FunFillgrid(dtParameterdetails);
+            TextBox txtFromMonthUpd = grvDelinquentParameterdetails.FooterRow.FindControl("txtMonthFromAdd") as TextBox;
+            Label lblMonthTo = grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lblMonthTo") as Label;
+            txtFromMonthUpd.Text = Convert.ToString(Convert.ToDecimal(lblMonthTo.Text.Trim()) + Convert.ToInt32("1"));
+            //grvDelinquentParameterdetails.Columns[grvDelinquentParameterdetails.Columns.Count - 1].Visible = true;
+            ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("btnRemove")).Visible = true;
+            ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lnkEdit")).Visible = true;
+            //included as per the UAT fix dated on 19-10-2011 as per the discussion with Vasantharajan and Bashyam.
+            GridViewRow gvRow = grvDelinquentParameterdetails.Rows[intRowIndex];
+            Label txtUnsecurePrincipalPercentage = (Label)grvDelinquentParameterdetails.Rows[intRowIndex].FindControl("lblUnsecurePrincipalPercentage");
+            Label txtSecurePrincipalPercentage = (Label)grvDelinquentParameterdetails.Rows[intRowIndex].FindControl("txtSecurePrincipalPercentage");
+            FunPriSetVisibleFooterRow(Convert.ToInt32(txtSecurePrincipalPercentage.Text), Convert.ToInt32(txtUnsecurePrincipalPercentage.Text));
+            FunPriSetValue(txtSecurePrincipalPercentage.Text, txtUnsecurePrincipalPercentage.Text);
+            FunPriSetVisibleFooterRow(txtFromMonthUpd);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    ///Edit the row
+    /// </summary>
+    private void FunPriEditDelinquentParameter(int intNewEditIndex)
+    {
+        try
+        {
+            grvDelinquentParameterdetails.ShowFooter = false;
+            grvDelinquentParameterdetails.EditIndex = intNewEditIndex;
+            dtParameterdetails = (DataTable)ViewState["Parameterdetails"];
+            DataRow drEditRow = dtParameterdetails.Rows[intNewEditIndex];
+            FunFillgrid(dtParameterdetails);
+            //grvDelinquentParameterdetails.Columns[grvDelinquentParameterdetails.Columns.Count - 1].Visible = false;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private StringBuilder FunPriGenerateXMLDelinquentParameters()
+    {
+        StringBuilder strXMLDelinquentParameterDet = new StringBuilder();
+
+        try
+        {
+            string strFrom_Month = string.Empty;
+            string strTo_Month = string.Empty;
+            string strSecure_Principle = string.Empty;
+            string strUnsecure_Principle = string.Empty;
+            string strInterest_Income = string.Empty;
+            string strOther_Income = string.Empty;
+            string strIsManual = string.Empty;
+
+            strXMLDelinquentParameterDet.Append("<Root>");
+
+            foreach (GridViewRow grvContracts in grvDelinquentParameterdetails.Rows)
+            {
+
+                strFrom_Month = ((Label)grvContracts.FindControl("lblMonthFrom")).Text;
+                strTo_Month = ((Label)grvContracts.FindControl("lblMonthTo")).Text;
+                strSecure_Principle = ((Label)grvContracts.FindControl("txtSecurePrincipalPercentage")).Text;
+                strUnsecure_Principle = ((Label)grvContracts.FindControl("lblUnsecurePrincipalPercentage")).Text;
+                strInterest_Income = ((CheckBox)grvContracts.FindControl("chkInterestIncome")).Checked == true ? "1" : "0";
+                strOther_Income = ((CheckBox)grvContracts.FindControl("chkOtherIncome")).Checked == true ? "1" : "0";
+                strIsManual = ((CheckBox)grvContracts.FindControl("chkIsManual")).Checked == true ? "1" : "0";
+
+                strXMLDelinquentParameterDet.Append(" <Details FromMonth='" + strFrom_Month +
+                                                                    "' ToMonth='" + strTo_Month +
+                                                                    "' SecurePrinciple='" + strSecure_Principle +
+                                                                    "' UnsecurePrinciple='" + strUnsecure_Principle +
+                                                                    "' InterestIncome='" + strInterest_Income +
+                                                                    "' OtherIncome='" + strOther_Income +
+                                                                    "' IsManual='" + strIsManual +
+                                                                    "' /> ");
+
+
+            }
+            strXMLDelinquentParameterDet.Append("</Root>");
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        return strXMLDelinquentParameterDet;
+    }
+
+
+
+    #region "Modify and Query Mode"
+
+    /// <summary>
+    /// This Method is used to Load the Pre defined Records ((i.e) Already Created Records).
+    /// This function is applicable other than Create mode.
+    /// </summary>
+    private void FunDelinquentsForModification()
+    {
+        try
+        {
+            DataSet DelinquentParameterDetailsMod = new DataSet();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Delinquent_Parameter_ID ", strDelinquency);
+            Procparam.Add("@Company_ID ", intCompanyID.ToString());
+            DelinquentParameterDetailsMod = Utility.GetDataset(SPNames.S3G_CLN_GetDelinquentsforModify, Procparam);
+            DelinquentParameterDetailsMod.Tables[0].TableName = "DelinquentParameterDetailsHeader";
+            DelinquentParameterDetailsMod.Tables[1].TableName = "DelinquentParameterDetailsGrid";
+            DelinquentParameterDetailsMod.Tables[2].TableName = "DelinquentParameterTransactionExist";
+
+            if (DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows.Count > 0)
+            {
+                if (!string.IsNullOrEmpty(DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["Delinquency_Type"].ToString()))
+                {
+                    if ((DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["Delinquency_Type"].ToString()) == "Statutory")
+                        RBLDelinquentType.SelectedValue = "0";
+                    else
+                        RBLDelinquentType.SelectedValue = "1";
+                }
+                int result;
+                if (int.TryParse(DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["LOB_ID"].ToString(), out result))
+                {
+                    ddlLOB.SelectedValue = DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["LOB_ID"].ToString();
+                }
+                if (int.TryParse(DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["Cut_Off_Month"].ToString(), out result))
+                {
+                    txtCutOffMonth.Text = DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["Cut_Off_Month"].ToString();
+                }
+                if (DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["Is_Active"] != null)
+                {
+                    chkIsActive.Checked = Convert.ToBoolean(DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["Is_Active"]);
+                }
+                if (DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["Deliq_Type"] != null)
+                {
+                    ddlPeriodtype.SelectedValue = DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsHeader"].Rows[0]["Deliq_Type"].ToString();
+                }
+            }
+            if (DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsGrid"].Rows.Count > 0)
+            {
+                ViewState["Parameterdetails"] = DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsGrid"];
+                FunFillgrid(DelinquentParameterDetailsMod.Tables["DelinquentParameterDetailsGrid"]);
+                TextBox txtFromMonthUpd = grvDelinquentParameterdetails.FooterRow.FindControl("txtMonthFromAdd") as TextBox;
+                Label lblMonthTo = grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lblMonthTo") as Label;
+                Label txtSecurePrincipalPercentage = grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("txtSecurePrincipalPercentage") as Label;
+                Label lblUnsecurePrincipalPercentage = grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lblUnsecurePrincipalPercentage") as Label;
+                txtFromMonthUpd.Text = Convert.ToString(Convert.ToDecimal(lblMonthTo.Text.Trim()) + Convert.ToInt32("1"));
+                ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("btnRemove")).Visible = true;
+                ((LinkButton)grvDelinquentParameterdetails.Rows[grvDelinquentParameterdetails.Rows.Count - 1].FindControl("lnkEdit")).Visible = true;
+                if (lblMonthTo.Text != null && lblMonthTo.Text.Length > 0)
+                {
+                    if (Convert.ToInt32(lblMonthTo.Text) >= 999)
+                    {
+                        grvDelinquentParameterdetails.FooterRow.Visible = false;
+                    }
+                }
+                //txtSecurePrincipalPercentage,lblUnsecurePrincipalPercentage
+                FunPriSetVisibleFooterRow(Convert.ToInt32(txtSecurePrincipalPercentage.Text), Convert.ToInt32(lblUnsecurePrincipalPercentage.Text));
+                FunPriSetValue(txtSecurePrincipalPercentage.Text, lblUnsecurePrincipalPercentage.Text);
+                FunPriSetVisibleFooterRow(txtFromMonthUpd);
+            }
+
+            if (DelinquentParameterDetailsMod.Tables["DelinquentParameterTransactionExist"].Rows.Count > 0)
+            {
+                if (DelinquentParameterDetailsMod.Tables["DelinquentParameterTransactionExist"].Rows[0]["Exist"] != null)
+                {
+                    ViewState["TransactionExist"] = DelinquentParameterDetailsMod.Tables["DelinquentParameterTransactionExist"].Rows[0]["Exist"].ToString();
+                }
+            }
+            if (ddlPeriodtype.SelectedValue.ToString() == "2")
+            {
+                grvDelinquentParameterdetails.HeaderRow.Cells[1].Text = "From days";
+                grvDelinquentParameterdetails.HeaderRow.Cells[2].Text = "To days";
+            }
+            else
+            {
+                grvDelinquentParameterdetails.HeaderRow.Cells[1].Text = "From Month";
+                grvDelinquentParameterdetails.HeaderRow.Cells[2].Text = "To Month";
+            }
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    #endregion
+
+
+    #endregion
+
+
+
+}

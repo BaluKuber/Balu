@@ -1,0 +1,50 @@
+using System;
+using System.Collections;
+using System.Reflection;
+
+namespace Ujihara.Demo
+{
+    public class CreatorEnumerator : IEnumerator
+    {
+        private Type[] types;
+        private int typesIndex;
+        private object current;
+
+        public CreatorEnumerator()
+        {
+            Reset();
+        }
+
+        public void Reset()
+        {
+            Assembly asm = typeof(ChartCreator).Assembly;
+            types = asm.GetTypes();
+            typesIndex = 0;
+        }
+
+        public bool MoveNext()
+        {
+            while (typesIndex < types.Length)
+            {
+                System.Type type = types[typesIndex++];
+                if (type.IsClass && !type.IsAbstract && typeof(ChartCreator).IsAssignableFrom(type))
+                {
+                    current = type;
+                    return true;
+                }
+            }
+            current = null;
+            return false;
+        }
+
+        public object Current
+        {
+            get
+            {
+                if (current == null)
+                    throw new InvalidOperationException();
+                return current;
+            }
+        }
+    }
+}

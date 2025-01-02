@@ -1,0 +1,1275 @@
+﻿#region Page Header
+
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Collection
+/// Screen Name			: ECS SPOOL Format DETAILS
+/// Created By			: Kannan RC
+/// Created Date		: 12-oct-2010
+/// Modified By         : Chandra Sekhar BS
+/// Modified Date       : 18-Sep-2013
+/// Purpose             : SQL Performance
+/// <Program Summary>
+
+#endregion
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using S3GBusEntity.Origination;
+using System.ServiceModel;
+using System.Data;
+using System.IO;
+using System.Globalization;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using System.Web.Security;
+using System.Text;
+using S3GBusEntity.Collection;
+using System.Configuration;
+using ClnReceiptMgtServicesReference;
+
+#endregion
+
+public partial class Collection_S3GClnECSSpoolFormatDetails_Add : ApplyThemeForProject
+{
+    #region Initialization
+    public static Collection_S3GClnECSSpoolFormatDetails_Add obj_Page;
+    Dictionary<string, string> Procparam = null;
+    int intErrCode;
+    int intCompanyId;
+    int intUserId;
+    int intECSID;
+    string strMode = "";
+    DataTable dtECS = new DataTable();
+    DataTable dtECSHDR = new DataTable();
+    static string strPageName = "ECS Spool Format";
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bIsActive = false;
+    bool bMakerChecker = false;
+    bool bClearList = false;
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnECSSpoolFormatDetails_View.aspx';";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnECSSpoolFormatDetails_Add.aspx';";
+    SerializationMode SerMode = SerializationMode.Binary;
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient ObjECSSpoolClient;
+    ListItemCollection lstCollection = new ListItemCollection();
+
+    #endregion
+
+    #region Page Events
+
+    #region PageLoad
+
+    /// <summary>
+    /// This event is handled for load the page
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// 
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        if (Request.QueryString["Popup"] != null)  //transaction screen page load
+            btnCancel.Enabled = false;
+        if (Request.QueryString["qsViewId"] != null)
+        {
+            FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            intECSID = Convert.ToInt32(fromTicket.Name);
+            strMode = Request.QueryString["qsMode"];
+        }
+        UserInfo ObjUserInfo = new UserInfo();
+        intCompanyId = ObjUserInfo.ProCompanyIdRW;
+        intUserId = ObjUserInfo.ProUserIdRW;
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        bIsActive = ObjUserInfo.ProIsActiveRW;
+        bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+        if (!IsPostBack)
+        {
+            ViewState["LookUpValues"] = null;
+            FunProClearGrid(false);
+
+            if (strMode == "")
+            {
+                FunProGetLookUpBankList();
+                FunProGetLookUpLOBList();
+                FunProGetLookupBranchList();
+            }
+            CBEbtnGo.Enabled = false;
+            if ((intECSID > 0) && (strMode == "M"))
+            {
+                FunProDisableControls(1);
+            }
+            else if ((intECSID > 0) && (strMode == "Q"))
+            {
+                FunProDisableControls(-1);
+            }
+            else
+            {
+                FunProDisableControls(0);
+            }
+
+            ddlLOB.Focus();
+        }
+    }
+    protected void Page_Load_Old(object sender, EventArgs e)
+    {
+        if (Request.QueryString["Popup"] != null)  //transaction screen page load
+            btnCancel.Enabled = false;
+        if (Request.QueryString["qsViewId"] != null)
+        {
+            FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+            intECSID = Convert.ToInt32(fromTicket.Name);
+            strMode = Request.QueryString["qsMode"];
+        }
+        UserInfo ObjUserInfo = new UserInfo();
+        intCompanyId = ObjUserInfo.ProCompanyIdRW;
+        intUserId = ObjUserInfo.ProUserIdRW;
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        bIsActive = ObjUserInfo.ProIsActiveRW;
+        bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+        if (!IsPostBack)
+        {
+            ViewState["LookUpValues"] = null;
+            FunProClearGrid(false);
+            FunProGetLookUpBankList();
+            FunProGetLookUpLOBList();
+            if (strMode != "C")
+            {
+                FunProGetLookupBranchList();
+            }
+            CBEbtnGo.Enabled = false;
+            if ((intECSID > 0) && (strMode == "M"))
+            {
+                FunProDisableControls(1);
+            }
+            else if ((intECSID > 0) && (strMode == "Q"))
+            {
+                FunProDisableControls(-1);
+            }
+            else
+            {
+                FunProDisableControls(0);
+            }
+
+            ddlLOB.Focus();
+        }
+    }
+    #endregion
+
+    #region Common Events
+
+    /// <summary>
+    /// Save Clear and Cancel button events
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// 
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        ObjECSSpoolClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        try
+        {
+            if (ViewState["GridTable"] == null || ((DataTable)(DataTable)ViewState["GridTable"]).Rows.Count == 0)
+            {
+                cvECS.ErrorMessage = "Cannot save record without spool format details.";
+                cvECS.IsValid = false;
+                return;
+            }
+
+            SerializationMode SerMode = SerializationMode.Binary;
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSSpoolDataTable ObjS3G_ECSInsDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSSpoolDataTable();
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSSpoolRow ObjECSInsRow;
+
+            ObjECSInsRow = ObjS3G_ECSInsDataTable.NewS3G_CLN_ECSSpoolRow();
+            if (intECSID > 0)
+            {
+                ObjECSInsRow.ECS_Spool_ID = intECSID;
+            }
+            else
+            {
+                ObjECSInsRow.ECS_Spool_ID = 0;
+            }
+            ObjECSInsRow.Company_ID = intCompanyId;
+            ObjECSInsRow.Created_By = intUserId;
+            ObjECSInsRow.Created_On = DateTime.Now;
+            ObjECSInsRow.Modified_By = intUserId;
+            ObjECSInsRow.Modified_On = DateTime.Now;
+            ObjECSInsRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            if (!string.IsNullOrEmpty(ddlBranch.SelectedValue))
+                ObjECSInsRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjECSInsRow.Bank_ID = Convert.ToInt32(ddlBankCode.SelectedValue);
+            ObjECSInsRow.Txn_ID = 10;
+            ObjECSInsRow.XML_ECSDeltails = FunProFormXML();
+            ObjS3G_ECSInsDataTable.AddS3G_CLN_ECSSpoolRow(ObjECSInsRow);
+            byte[] ObjS3G_ECSFormatDataTable = ClsPubSerialize.Serialize(ObjS3G_ECSInsDataTable, SerMode);
+
+            if (intECSID > 0)
+            {
+                intErrCode = ObjECSSpoolClient.FunPubModifyECSFormat(SerMode, ObjS3G_ECSFormatDataTable);
+            }
+            else
+            {
+                intErrCode = ObjECSSpoolClient.FunPubCreateECSFormat(SerMode, ObjS3G_ECSFormatDataTable);
+            }
+            if (intErrCode == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                if (intECSID > 0)
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "ECS File Spool format Details updated successfully");
+                }
+                else
+                {
+                    strAlert = "ECS File Spool format Details added successfully";
+                    strAlert += @"\n\nWould you like to add one more record?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPageView = "";
+                }
+
+            }
+            else if (intErrCode == 1)
+            {
+                strAlert = strAlert.Replace("__ALERT__", "ECS File Spool format Details already exists");
+                strRedirectPageView = "";
+            }
+
+            ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", strAlert + strRedirectPageView, true);
+            lblErrorMessage.Text = string.Empty;
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            ObjECSSpoolClient.Close();
+        }
+    }
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect("../Collection/S3GClnECSSpoolFormatDetails_View.aspx");
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        ddlBankCode.SelectedIndex = 0;
+        //ddlBranch.SelectedIndex = 0;
+        ddlBranch.Clear();
+        ddlLOB.SelectedIndex = 0;
+        ViewState["HdrGridTable"] =
+        ViewState["GridTable"] == null;
+        ViewState["LookUpValues"] = null;
+        FunProClearGrid(false);
+        ddlLOB.Focus();
+    }
+
+    #endregion
+    #region Grid Header Control Events
+    protected void gvECSHdr_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            dtECSHDR = (DataTable)ViewState["HdrGridTable"];
+
+            if (e.Row.RowType == DataControlRowType.Footer)
+            {
+                TextBox txtFHeader1 = e.Row.FindControl("txtFHeader1") as TextBox;
+                TextBox txtFrom1 = e.Row.FindControl("txtFFrom1") as TextBox;
+                TextBox txtTo1 = e.Row.FindControl("txtFTo1") as TextBox;
+                TextBox txtLen1 = e.Row.FindControl("txtFLength1") as TextBox;
+                Button btnAdd1 = e.Row.FindControl("btnAddrow") as Button;
+                DropDownList ddlFType1 = e.Row.FindControl("ddlFType1") as DropDownList;
+
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyId.ToString());
+                Procparam.Add("@LookupType_Code", "44");
+                Procparam.Add("@LOB_Code", ddlLOB.SelectedValue.ToString());
+                Procparam.Add("@Header_Details", "H");
+                ddlFType1.BindDataTable("S3G_LOANAD_GetLookUpValues_Hdr", Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+                foreach (System.Web.UI.WebControls.ListItem lstItem in lstCollection)
+                {
+                    if (ddlFType1.Items.Contains(lstItem))
+                    {
+                        ddlFType1.Items.Remove(lstItem);
+                    }
+                }
+
+                if ((intECSID > 0) && (strMode == "Q"))
+                {
+                    btnAdd1.Enabled = false;
+                    ddlFType1.Enabled = false;
+                }
+
+                txtLen1.Attributes.Add("readonly", "readonly");
+                //txtFrom.Attributes.Add("readonly", "readonly");
+
+                if (dtECSHDR != null)
+                {
+                    if (dtECSHDR.Rows.Count == 0)
+                    {
+                        txtFrom1.Text = "1";
+                        btnAdd1.OnClientClick = "javascript:return FunCheckForOverlap('1','" + txtFrom1.ClientID + "','" + txtTo1.ClientID + "','" + txtLen1.ClientID + "','0', '" + ddlFType1.ClientID + "');";
+                    }
+                    else
+                    {
+                        txtFrom1.Text = (Convert.ToInt32(Convert.ToString(dtECSHDR.Rows[dtECSHDR.Rows.Count - 1]["ECS_To_position"])) + 1).ToString();
+
+                        btnAdd1.OnClientClick = "javascript:return FunCheckForOverlap('2','" + txtFrom1.ClientID + "','" + txtTo1.ClientID + "','" + txtLen1.ClientID + "','" + Convert.ToString(dtECSHDR.Rows[dtECSHDR.Rows.Count - 1]["ECS_To_position"]) + "', '" + ddlFType1.ClientID + "');";
+                    }
+                }
+
+                txtFrom1.Focus();
+            }
+
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Button Ltnbtn1 = e.Row.FindControl("btnRemove1") as Button;
+                Label lblCode1 = e.Row.FindControl("lblCode1") as Label;
+                Label lblDesc1 = e.Row.FindControl("lblDesc1") as Label;
+
+                if (dtECSHDR != null && e.Row.RowIndex != dtECSHDR.Rows.Count - 1)
+                {
+                    Ltnbtn1.Visible = false;
+                }
+
+                System.Web.UI.WebControls.ListItem lstItem = new System.Web.UI.WebControls.ListItem(lblDesc1.Text, lblCode1.Text);
+                lstCollection.Add(lstItem);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            throw ex;
+        }
+    }
+    protected void gvECSHdr_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        DataRow dr;
+        if (e.CommandName == "AddNew")
+        {
+            TextBox txtHeader1 = (TextBox)gvECSHdr.FooterRow.FindControl("txtFHeader1");
+            TextBox txtFromAmt1 = (TextBox)gvECSHdr.FooterRow.FindControl("txtFFrom1");
+            TextBox txtToAmt1 = (TextBox)gvECSHdr.FooterRow.FindControl("txtFTo1");
+            TextBox txtLength1 = (TextBox)gvECSHdr.FooterRow.FindControl("txtFLength1");
+            DropDownList ddlField1 = (DropDownList)gvECSHdr.FooterRow.FindControl("ddlFType1");
+
+            foreach (GridViewRow gr in gvECSHdr.Rows)
+            {
+                Label lblRowlob1 = (Label)gr.FindControl("lblDesc1");
+                Label lblHeader1 = (Label)gr.FindControl("lblHeader1");
+
+                if (ddlField1.SelectedItem.Text.Trim().ToUpper() == lblRowlob1.Text.Trim().ToUpper())
+                {
+                    cvECS.ErrorMessage = "Select another Field Description";
+                    cvECS.IsValid = false;
+                    ddlField1.Focus();
+                    return;
+                }
+            }
+
+            dtECSHDR = (DataTable)ViewState["HdrGridTable"];
+            dr = dtECSHDR.NewRow();
+            dr["ECS_Line_Type"] = txtHeader1.Text.Trim();
+            dr["ECS_From_Position"] = txtFromAmt1.Text.Trim();
+            dr["ECS_To_position"] = txtToAmt1.Text.Trim();
+            dr["ECS_Length"] = txtLength1.Text.Trim();
+            dr["Lookup_Description"] = ddlField1.SelectedItem.Text;
+            dr["Lookup_Code"] = ddlField1.SelectedValue;
+            dtECSHDR.Rows.Add(dr);
+            gvECSHdr.DataSource = dtECSHDR;
+            gvECSHdr.DataBind();
+
+
+            if (Convert.ToString(dtECSHDR.Rows[dtECSHDR.Rows.Count - 1]["ECS_To_position"]) == "999")
+            {
+                gvECSHdr.FooterRow.Visible = false;
+            }
+            else
+            {
+                gvECSHdr.FooterRow.Visible = true;
+            }
+
+            ViewState["HdrGridTable"] = dtECSHDR;
+
+            CBEbtnGo.Enabled = true;
+        }
+
+    }
+    protected void gvECSHdr_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        DataTable dtDelete1;
+        dtDelete1 = (DataTable)ViewState["HdrGridTable"];
+        dtDelete1.Rows.RemoveAt(e.RowIndex);
+        if (dtDelete1.Rows.Count == 0)
+        {
+            FunProSetinitialRowHdr();
+        }
+        else
+        {
+            gvECSHdr.FooterRow.Visible = true;
+            gvECSHdr.DataSource = ViewState["HdrGridTable"] = dtDelete1;
+            gvECSHdr.DataBind();
+        }
+    }
+    #endregion
+    #region Grid Control Events
+
+    /// <summary>
+    /// Grid Control Events
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// 
+
+    protected void gvECS_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        dtECS = (DataTable)ViewState["GridTable"];
+
+        if (e.Row.RowType == DataControlRowType.Footer)
+        {
+            TextBox txtFHeader = e.Row.FindControl("txtFHeader") as TextBox;
+            TextBox txtFrom = e.Row.FindControl("txtFFrom") as TextBox;
+            TextBox txtTo = e.Row.FindControl("txtFTo") as TextBox;
+            TextBox txtLen = e.Row.FindControl("txtFLength") as TextBox;
+            Button btnAdd = e.Row.FindControl("btnAddrow") as Button;
+            DropDownList ddlFType = e.Row.FindControl("ddlFType") as DropDownList;
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@LookupType_Code", "44");
+            Procparam.Add("@LOB_Code", ddlLOB.SelectedValue.ToString());
+            Procparam.Add("@Header_Details", "D");
+            ddlFType.BindDataTable("S3G_LOANAD_GetLookUpValues_Hdr", Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+            foreach (System.Web.UI.WebControls.ListItem lstItem in lstCollection)
+            {
+                if (ddlFType.Items.Contains(lstItem))
+                {
+                    ddlFType.Items.Remove(lstItem);
+                }
+            }
+
+            if ((intECSID > 0) && (strMode == "Q"))
+            {
+                btnAdd.Enabled = false;
+                ddlFType.Enabled = false;
+            }
+
+            txtLen.Attributes.Add("readonly", "readonly");
+            //txtFrom.Attributes.Add("readonly", "readonly");
+
+            if (dtECS != null)
+            {
+                if (dtECS.Rows.Count == 0)
+                {
+                    txtFrom.Text = "1";
+                    btnAdd.OnClientClick = "javascript:return FunCheckForOverlap('1','" + txtFrom.ClientID + "','" + txtTo.ClientID + "','" + txtLen.ClientID + "','0', '" + ddlFType.ClientID + "');";
+
+                    //txtTo.Attributes.Add("onfocusout", "javascript:FunCheckForOverlap('1','" + txtFrom.ClientID + "','" + txtTo.ClientID + "','" + txtLen.ClientID + "','0');");
+                    //txtFrom.Attributes.Add("onblur", "javascript:FunCheckForOverlap('2','" + txtFrom.ClientID + "','" + txtTo.ClientID + "','" + txtLen.ClientID + "','0');");
+                }
+                else
+                {
+                    txtFrom.Text = (Convert.ToInt32(Convert.ToString(dtECS.Rows[dtECS.Rows.Count - 1]["ECS_To_position"])) + 1).ToString();
+
+                    btnAdd.OnClientClick = "javascript:return FunCheckForOverlap('2','" + txtFrom.ClientID + "','" + txtTo.ClientID + "','" + txtLen.ClientID + "','" + Convert.ToString(dtECS.Rows[dtECS.Rows.Count - 1]["ECS_To_position"]) + "', '" + ddlFType.ClientID + "');";
+
+                    //txtTo.Attributes.Add("onfocusout", "javascript:FunCheckForOverlap('1','" + txtFrom.ClientID + "','" + txtTo.ClientID + "','" + txtLen.ClientID + "','" + Convert.ToString(dtECS.Rows[dtECS.Rows.Count - 1]["ECS_To_position"]) + "');");
+                    //txtFrom.Attributes.Add("onblur", "javascript:FunCheckForOverlap('2','" + txtFrom.ClientID + "','" + txtTo.ClientID + "','" + txtLen.ClientID + "','" + Convert.ToString(dtECS.Rows[dtECS.Rows.Count - 1]["ECS_To_position"]) + "');");
+                }
+            }
+
+            txtFrom.Focus();
+        }
+
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            Button Ltnbtn = e.Row.FindControl("btnRemove") as Button;
+            Label lblCode = e.Row.FindControl("lblCode") as Label;
+            Label lblDesc = e.Row.FindControl("lblDesc") as Label;
+
+            if (dtECS != null && e.Row.RowIndex != dtECS.Rows.Count - 1)
+            {
+                Ltnbtn.Visible = false;
+            }
+
+            System.Web.UI.WebControls.ListItem lstItem = new System.Web.UI.WebControls.ListItem(lblDesc.Text, lblCode.Text);
+            lstCollection.Add(lstItem);
+        }
+    }
+
+    protected void gvECS_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        DataRow dr;
+        if (e.CommandName == "AddNew")
+        {
+
+            TextBox txtHeader = (TextBox)gvECS.FooterRow.FindControl("txtFHeader");
+            TextBox txtFromAmt = (TextBox)gvECS.FooterRow.FindControl("txtFFrom");
+            TextBox txtToAmt = (TextBox)gvECS.FooterRow.FindControl("txtFTo");
+            TextBox txtLength = (TextBox)gvECS.FooterRow.FindControl("txtFLength");
+            DropDownList ddlField = (DropDownList)gvECS.FooterRow.FindControl("ddlFType");
+
+            foreach (GridViewRow gr in gvECS.Rows)
+            {
+                Label lblRowlob = (Label)gr.FindControl("lblDesc");
+                Label lblHeader = (Label)gr.FindControl("lblHeader");
+
+                //if (lblHeader.Text.Trim().ToUpper() == txtHeader.Text.Trim().ToUpper())
+                //{
+                //    cvECS.ErrorMessage = "Header name already entered";
+                //    cvECS.IsValid = false;
+                //    txtHeader.Focus();
+                //    return;
+                //}
+
+                if (ddlField.SelectedItem.Text.Trim().ToUpper() == lblRowlob.Text.Trim().ToUpper())
+                {
+                    cvECS.ErrorMessage = "Select another Field Description";
+                    cvECS.IsValid = false;
+                    ddlField.Focus();
+                    return;
+                }
+            }
+
+            dtECS = (DataTable)ViewState["GridTable"];
+            dr = dtECS.NewRow();
+            dr["ECS_Line_Type"] = txtHeader.Text.Trim();
+            dr["ECS_From_Position"] = txtFromAmt.Text.Trim();
+            dr["ECS_To_position"] = txtToAmt.Text.Trim();
+            dr["ECS_Length"] = txtLength.Text.Trim();
+            dr["Lookup_Description"] = ddlField.SelectedItem.Text;
+            dr["Lookup_Code"] = ddlField.SelectedValue;
+            dtECS.Rows.Add(dr);
+            gvECS.DataSource = dtECS;
+            gvECS.DataBind();
+
+
+            if (Convert.ToString(dtECS.Rows[dtECS.Rows.Count - 1]["ECS_To_position"]) == "999")
+            {
+                gvECS.FooterRow.Visible = false;
+            }
+            else
+            {
+                gvECS.FooterRow.Visible = true;
+            }
+
+            ViewState["GridTable"] = dtECS;
+
+            CBEbtnGo.Enabled = true;
+        }
+
+    }
+
+    protected void gvECS_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        DataTable dtDelete;
+        dtDelete = (DataTable)ViewState["GridTable"];
+        dtDelete.Rows.RemoveAt(e.RowIndex);
+        if (dtDelete.Rows.Count == 0)
+        {
+            FunProSetinitialRow();
+        }
+        else
+        {
+            gvECS.FooterRow.Visible = true;
+            gvECS.DataSource = ViewState["GridTable"] = dtDelete;
+            gvECS.DataBind();
+        }
+    }
+
+    #region Grid Control Events (Not Used)
+
+    protected void gvECS_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+        DataTable dtGrid = (DataTable)ViewState["GridTable"];
+
+        TextBox txtHeader = gvECS.Rows[e.RowIndex].FindControl("txtHeader") as TextBox;
+        TextBox txtFrom = gvECS.Rows[e.RowIndex].FindControl("txtFrom") as TextBox;
+        TextBox txtTo = gvECS.Rows[e.RowIndex].FindControl("txtTo") as TextBox;
+        TextBox txtLen = gvECS.Rows[e.RowIndex].FindControl("txtLength") as TextBox;
+
+        DropDownList ddlType = gvECS.Rows[e.RowIndex].FindControl("ddlType") as DropDownList;
+
+        dtGrid.Rows[e.RowIndex]["ECS_Line_Type"] = txtHeader.Text.Trim();
+        dtGrid.Rows[e.RowIndex]["ECS_From_Position"] = txtFrom.Text.Trim();
+        dtGrid.Rows[e.RowIndex]["ECS_To_position"] = txtTo.Text.Trim();
+        dtGrid.Rows[e.RowIndex]["ECS_Length"] = txtLen.Text.Trim();
+        dtGrid.Rows[e.RowIndex]["Lookup_Description"] = ddlType.SelectedItem.Text;
+        dtGrid.Rows[e.RowIndex]["Lookup_Code"] = ddlType.SelectedValue;
+
+        dtGrid.AcceptChanges();
+
+        gvECS.EditIndex = -1;
+        ViewState["GridTable"] = gvECS.DataSource = dtGrid;
+        gvECS.DataBind();
+
+        gvECS.FooterRow.Visible = true;
+    }
+
+    protected void gvECS_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+    {
+        try
+        {
+            gvECS.EditIndex = -1;
+            gvECS.DataSource = (DataTable)ViewState["GridTable"];
+            gvECS.DataBind();
+        }
+        catch (Exception ex)
+        {
+            cvECS.ErrorMessage = "Unable To Cancel";
+            cvECS.IsValid = false;
+        }
+    }
+
+    protected void gvECS_RowEditing(object sender, GridViewEditEventArgs e)
+    {
+        try
+        {
+            gvECS.EditIndex = e.NewEditIndex;
+            gvECS.DataSource = (DataTable)ViewState["GridTable"];
+            gvECS.DataBind();
+
+            DropDownList ddlType = gvECS.Rows[e.NewEditIndex].FindControl("ddlType") as DropDownList;
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@LookupType_Code", "44");
+            Procparam.Add("@Header_Details", "D");
+            ddlType.BindDataTable("S3G_LOANAD_GetLookUpValues_Hdr", Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+
+            DataTable dtGrid = (DataTable)ViewState["GridTable"];
+            ddlType.SelectedValue = Convert.ToString(dtGrid.Rows[e.NewEditIndex]["Lookup_Code"]);
+
+            gvECS.FooterRow.Visible = false;
+        }
+        catch (Exception ex)
+        {
+            cvECS.ErrorMessage = "Unable To Edit";
+            cvECS.IsValid = false;
+        }
+
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Other Control Events
+
+    /// <summary>
+    /// Other Controls Events
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            ddlBranch.SelectedText = "--Select--";
+            ddlBranch.SelectedValue = "0";
+            ddlBankCode.SelectedIndex = 0;
+            FunProClearGrid(false);
+            ddlLOB.Focus();
+            FunProGetLookupBranchList();
+        }
+        catch (Exception ex)
+        {
+            cvECS.ErrorMessage = "Unable To clear the details";
+            cvECS.IsValid = false;
+        }
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            ddlBankCode.SelectedIndex = 0;
+            FunProClearGrid(false);
+            ddlBranch.Focus();
+
+        }
+        catch (Exception ex)
+        {
+            cvECS.ErrorMessage = "Unable To clear the details";
+            cvECS.IsValid = false;
+        }
+    }
+
+    protected void ddlBankCode_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProClearGrid(false);
+            ddlBankCode.Focus();
+        }
+        catch (Exception ex)
+        {
+            cvECS.ErrorMessage = "Unable To clear the details";
+            cvECS.IsValid = false;
+        }
+    }
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProClearGrid(false);
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+            Procparam.Add("@Bank_ID", ddlBankCode.SelectedValue.ToString());
+            Procparam.Add("@COMPANY_ID", intCompanyId.ToString());
+
+            DataTable dtExists = Utility.GetDefaultData("S3G_CLN_CheckECSFormatExist", Procparam);
+
+            if (dtExists.Rows[0]["Result"].ToString() == "1")
+            {
+                Utility.FunShowAlertMsg(this, "Spool format details exists for the selected combination");
+            }
+            else
+            {
+                gvECSHdr.FooterRow.Visible = gvECS.FooterRow.Visible = true;
+
+                //For ECS Header Method
+                DropDownList ddlFType1 = gvECSHdr.FooterRow.FindControl("ddlFType1") as DropDownList;
+                ddlFType1.Items.Clear();
+                ddlFType1.SelectedValue = null;
+
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyId.ToString());
+                Procparam.Add("@LookupType_Code", "44");
+                Procparam.Add("@LOB_Code", ddlLOB.SelectedValue.ToString());
+                Procparam.Add("@Header_Details", "H");
+                ddlFType1.BindDataTable("S3G_LOANAD_GetLookUpValues_Hdr", Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+                //End
+
+                //For ECS Details Method
+                DropDownList ddlFType = gvECS.FooterRow.FindControl("ddlFType") as DropDownList;
+                ddlFType.Items.Clear();
+                ddlFType.SelectedValue = null;
+
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", intCompanyId.ToString());
+                Procparam.Add("@LookupType_Code", "44");
+                Procparam.Add("@LOB_Code", ddlLOB.SelectedValue.ToString());
+                Procparam.Add("@Header_Details", "D");
+                ddlFType.BindDataTable("S3G_LOANAD_GetLookUpValues_Hdr", Procparam, new string[] { "Lookup_Code", "Lookup_Description" });
+                //End
+            }
+
+            //btnGo.Enabled = false;
+        }
+        catch (Exception ex)
+        {
+            cvECS.ErrorMessage = "Unable To clear the details";
+            cvECS.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Page Methods
+
+    /// <summary>
+    /// Protected Page Methods 
+    /// </summary>
+    /// 
+
+    protected void FunProGetLookUpLOBList()
+    {
+        Dictionary<string, string> Procparam = new Dictionary<string, string>();
+        if (intECSID == 0)
+        {
+            Procparam.Add("@Is_Active", "1");
+        }
+        Procparam.Add("@User_Id", intUserId.ToString());
+        Procparam.Add("@Program_ID", "99");
+        Procparam.Add("@Company_ID", intCompanyId.ToString());
+        //ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+        ddlLOB.BindDataTable("S3G_CLN_GetECS_LOB", Procparam, new string[] { "LOB_ID", "LOB_Name" });
+
+        //if (intECSID == 0)
+        //{
+        //    Procparam.Add("@Is_Active", "1");
+        //}
+        //Procparam.Add("@User_Id", intUserId.ToString());
+        //Procparam.Add("@Program_ID", "99");
+        //Procparam.Add("@Company_ID", intCompanyId.ToString());
+        //Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+        //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+    }
+
+    protected void FunProGetLookupBranchList()
+    {
+        //Dictionary<string, string> Procparam = new Dictionary<string, string>();
+        //if (intECSID == 0)
+        //{
+        //    Procparam.Add("@Is_Active", "1");
+        //}
+        //Procparam.Add("@User_Id", intUserId.ToString());
+        //Procparam.Add("@Program_ID", "99");
+        //Procparam.Add("@Company_ID", intCompanyId.ToString());
+        //Procparam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+        //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+        //if (ddlBranch.Items.Count == 2)
+        //    ddlBranch.SelectedIndex = 1;
+        //else
+        //    ddlBranch.SelectedIndex = 0;
+    }
+
+    protected void FunProGetLookUpBankList()
+    {
+        Dictionary<string, string> Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", intCompanyId.ToString());
+        ddlBankCode.BindDataTable("S3G_CLN_GetBankCode", Procparam, new string[] { "Bank_ID", "BANK_NAME" });
+    }
+
+    protected void FunProSetinitialRow()
+    {
+        DataTable dt = new DataTable();
+        DataRow dr;
+        dt.Columns.Add("ECS_Spool_Detail_ID");
+        dt.Columns.Add("ECS_Line_Type");
+        dt.Columns.Add("ECS_From_Position");
+        dt.Columns.Add("ECS_To_position");
+        dt.Columns.Add("ECS_Length");
+        dt.Columns.Add("Lookup_Code");
+        dt.Columns.Add("Lookup_Description");
+
+        dr = dt.NewRow();
+        dr["ECS_Spool_Detail_ID"] = string.Empty;
+        dr["ECS_Line_Type"] = string.Empty;
+        dr["ECS_From_Position"] = string.Empty;
+        dr["ECS_To_position"] = string.Empty;
+        dr["ECS_Length"] = string.Empty;
+        dr["Lookup_Code"] = string.Empty;
+        dr["Lookup_Description"] = string.Empty;
+
+        dt.Rows.Add(dr);
+
+        gvECS.DataSource = dt;
+        ViewState["GridTable"] = dt.Copy();
+        ((DataTable)ViewState["GridTable"]).Rows.RemoveAt(0);
+        gvECS.DataBind();
+        gvECS.Rows[0].Visible = false;
+        CBEbtnGo.Enabled = false;
+    }
+    /// <summary>
+    /// For Header Method
+    /// </summary>
+    /// <returns></returns>
+    /// 
+    protected void FunProSetinitialRowHdr()
+    {
+        DataTable dt = new DataTable();
+        DataRow dr;
+        dt.Columns.Add("ECS_Spool_Detail_ID");
+        dt.Columns.Add("ECS_Line_Type");
+        dt.Columns.Add("ECS_From_Position");
+        dt.Columns.Add("ECS_To_position");
+        dt.Columns.Add("ECS_Length");
+        dt.Columns.Add("Lookup_Code");
+        dt.Columns.Add("Lookup_Description");
+
+        dr = dt.NewRow();
+        dr["ECS_Spool_Detail_ID"] = string.Empty;
+        dr["ECS_Line_Type"] = string.Empty;
+        dr["ECS_From_Position"] = string.Empty;
+        dr["ECS_To_position"] = string.Empty;
+        dr["ECS_Length"] = string.Empty;
+        dr["Lookup_Code"] = string.Empty;
+        dr["Lookup_Description"] = string.Empty;
+
+        dt.Rows.Add(dr);
+
+        gvECSHdr.DataSource = dt;
+        ViewState["HdrGridTable"] = dt.Copy();
+        ((DataTable)ViewState["HdrGridTable"]).Rows.RemoveAt(0);
+        gvECSHdr.DataBind();
+        gvECSHdr.Rows[0].Visible = false;
+        CBEbtnGo.Enabled = false;
+    }
+    protected string FunProFormXML()
+    {
+        StringBuilder strbuXML = new StringBuilder();
+        strbuXML.Append("<Root>");
+        foreach (GridViewRow grvDataHdr in gvECSHdr.Rows)
+        {
+            string strDetailsID1 = ((Label)grvDataHdr.FindControl("lblECSSpoolDetID1")).Text.Trim();
+            string strFieldType1 = ((Label)grvDataHdr.FindControl("lblCode1")).Text.Trim();
+            string strHeader1 = ((Label)grvDataHdr.FindControl("lblHeader1")).Text.Trim();
+            string strID1 = Convert.ToString(intECSID);
+            string strFrom1 = ((Label)grvDataHdr.FindControl("lblFrom1")).Text.Trim();
+            string strTo1 = ((Label)grvDataHdr.FindControl("lblTo1")).Text.Trim();
+            string strLength1 = ((Label)grvDataHdr.FindControl("lblLength1")).Text.Trim();
+            string strTypeCode1 = "44";
+            string strCompanyID1 = Convert.ToString(intCompanyId);
+            string strHeader_Detail1 = "H";
+            strbuXML.Append(" <Details  ECS_Line_Type='" + strHeader1.ToString() + "' ECS_From_Position='" + strFrom1.ToString() + "' ECS_Spool_ID='" + strID1.ToString() + "' ECS_Spool_Detail_ID='" + strDetailsID1.ToString() +
+             "' ECS_To_position='" + strTo1.ToString() + "' ECS_Length='" + strLength1.ToString() + "' Field_Name_Code ='" + strTypeCode1.ToString() + "' Field_Name='" + strFieldType1.ToString() + "' Header_Detail='" + strHeader_Detail1.ToString() + "' Company_ID = '" + strCompanyID1.ToString() + "'/>");
+        }
+        foreach (GridViewRow grvData in gvECS.Rows)
+        {
+            string strDetailsID = ((Label)grvData.FindControl("lblECSSpoolDetID")).Text.Trim();
+            string strFieldType = ((Label)grvData.FindControl("lblCode")).Text.Trim();
+            string strHeader = ((Label)grvData.FindControl("lblHeader")).Text.Trim();
+            string strID = Convert.ToString(intECSID);
+            string strFrom = ((Label)grvData.FindControl("lblFrom")).Text.Trim();
+            string strTo = ((Label)grvData.FindControl("lblTo")).Text.Trim();
+            string strLength = ((Label)grvData.FindControl("lblLength")).Text.Trim();
+            string strTypeCode = "44";
+            string strCompanyID = Convert.ToString(intCompanyId);
+            string strHeader_Detail = "D";
+            strbuXML.Append(" <Details  ECS_Line_Type='" + strHeader.ToString() + "' ECS_From_Position='" + strFrom.ToString() + "' ECS_Spool_ID='" + strID.ToString() + "' ECS_Spool_Detail_ID='" + strDetailsID.ToString() +
+             "' ECS_To_position='" + strTo.ToString() + "' ECS_Length='" + strLength.ToString() + "' Field_Name_Code ='" + strTypeCode.ToString() + "' Field_Name='" + strFieldType.ToString() + "' Header_Detail='" + strHeader_Detail.ToString() + "' Company_ID = '" + strCompanyID.ToString() + "'/>");
+        }
+        strbuXML.Append("</Root>");
+        return strbuXML.ToString();
+    }
+
+    protected void FunProDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                if (!bCreate)
+                {
+                    btnSave.Enabled = false;
+                }
+                break;
+
+            case 1: // Modify Mode                  
+                FunProGetECSFormat_QueryMode();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                if (!bModify)
+                {
+                    btnSave.Enabled = false;
+                }
+                ddlLOB.ClearDropDownList();
+                ddlBranch.Enabled = false;
+                ddlBankCode.ClearDropDownList();
+                btnClear.Enabled = btnGo.Enabled = false;
+                break;
+
+            case -1:// Query Mode                
+                FunProGetECSFormat_QueryMode();
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPageView);
+                }
+                if (bClearList)
+                {
+                    ddlLOB.ClearDropDownList();
+                    ddlBranch.Enabled = false;
+                    ddlBankCode.ClearDropDownList();
+                }
+                gvECS.FooterRow.Visible = gvECSHdr.FooterRow.Visible = false;
+                gvECS.Columns[7].Visible = gvECSHdr.Columns[7].Visible = false;
+                btnClear.Enabled = btnGo.Enabled = btnSave.Enabled = false;
+                break;
+        }
+    }
+    protected void FunProGetECSFormat_QueryMode()
+    {
+        try
+        {
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@ECS_Spool_ID", intECSID.ToString());
+            dictParam.Add("@Company_ID", intCompanyId.ToString());
+            dictParam.Add("@Field_Name_Code", "44");
+            DataSet dstECS = Utility.GetDataset("S3G_CLN_GetECSFormatDetails", dictParam);
+
+            DataTable dtECSDetails = dstECS.Tables[0];
+            DataRow dtRow = dtECSDetails.Rows[0];
+
+            if (dtRow["LOB_ID"].ToString() != "" && dtRow["LOB_ID"].ToString() != "0")
+            {
+                System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem(dtRow["LOB_Name"].ToString(), dtRow["LOB_ID"].ToString());
+                ddlLOB.Items.Add(LIB);
+            }
+            else
+            {
+                System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem("--SELECT--", "0");
+                ddlLOB.Items.Add(LIB);
+            }
+            ddlLOB.SelectedValue = dtRow["LOB_ID"].ToString();
+
+            if (dtRow["Location_ID"].ToString() != "" && dtRow["Location_ID"].ToString() != "0")
+            {
+                ddlBranch.SelectedText = dtRow["Location_Name"].ToString();
+                ddlBranch.SelectedValue = dtRow["Location_ID"].ToString();
+            }
+            else
+            {
+                ddlBranch.SelectedText = "--All--";
+                ddlBranch.SelectedValue = "0";
+            }
+            ddlBranch.SelectedValue = dtRow["Location_ID"].ToString();
+
+            if (dtRow["Bank_ID"].ToString() != "" && dtRow["Bank_ID"].ToString() != "0")
+            {
+                System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem(dtRow["Bank_Name"].ToString(), dtRow["Bank_ID"].ToString());
+                ddlBankCode.Items.Add(LIB);
+            }
+            else
+            {
+                System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem("--SELECT--", "0");
+                ddlBankCode.Items.Add(LIB);
+            }
+            //ddlBankCode.SelectedValue = dtRow["Bank_ID"].ToString();
+            //Procparam = new Dictionary<string, string>();
+            //Procparam.Add("@Company_ID", intCompanyId.ToString());
+            //Procparam.Add("@LookupType_Code", "44");
+            //Procparam.Add("@LOB_Code", ddlLOB.SelectedValue.ToString());
+            //Procparam.Add("@Header_Details", "H");           
+            //ViewState["LookUpValues"] = Utility.GetDefaultData("S3G_LOANAD_GetLookUpValues_Hdr", Procparam);
+
+
+            if (PageMode == PageModes.Modify)
+            {
+                if (dstECS.Tables[1] != null && dstECS.Tables[1].Rows.Count > 0)
+                {
+                    gvECSHdr.DataSource = ViewState["HdrGridTable"] = dstECS.Tables[1];
+                    gvECSHdr.DataBind();
+                }
+                if (dstECS.Tables[2] != null && dstECS.Tables[2].Rows.Count > 0)
+                {
+                    gvECS.DataSource = ViewState["GridTable"] = dstECS.Tables[2];
+                    gvECS.DataBind();
+                }
+            }
+            else
+            {
+                if (dstECS.Tables[1] != null && dstECS.Tables[1].Rows.Count > 0)
+                {
+                    gvECSHdr.DataSource = ViewState["HdrGridTable"] = dstECS.Tables[1];
+                    gvECSHdr.DataBind();
+                }
+                if (dstECS.Tables[2] != null && dstECS.Tables[2].Rows.Count > 0)
+                {
+                    gvECS.DataSource = ViewState["GridTable"] = dstECS.Tables[2];
+                    gvECS.DataBind();
+                }
+
+                //gvECSHdr.DataSource = ViewState["HdrGridTable"] = dstECS.Tables[1];
+                //gvECSHdr.DataBind();
+                //gvECS.DataSource = ViewState["GridTable"] = dstECS.Tables[2];
+                //gvECS.DataBind();
+            }
+
+            if (dstECS.Tables[1] != null && dstECS.Tables[1].Rows.Count > 0)
+            {
+                if (Convert.ToString(dstECS.Tables[1].Rows[dstECS.Tables[1].Rows.Count - 1]["ECS_To_position"]) == "999")
+                {
+                    gvECSHdr.FooterRow.Visible = false;
+                }
+                else
+                {
+                    gvECSHdr.FooterRow.Visible = true;
+                }
+            }
+            else
+            {
+                gvECSHdr.FooterRow.Visible = true;
+            }
+            if (dstECS.Tables[2] != null && dstECS.Tables[2].Rows.Count > 0)
+            {
+                if (Convert.ToString(dstECS.Tables[2].Rows[dstECS.Tables[2].Rows.Count - 1]["ECS_To_position"]) == "999")
+                {
+                    gvECS.FooterRow.Visible = false;
+                }
+                else
+                {
+                    gvECS.FooterRow.Visible = true;
+                }
+            }
+            else
+            {
+                gvECS.FooterRow.Visible = true;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    protected void FunProGetECSFormat()
+    {
+        try
+        {
+            Dictionary<string, string> dictParam = new Dictionary<string, string>();
+            dictParam.Add("@ECS_Spool_ID", intECSID.ToString());
+            dictParam.Add("@Company_ID", intCompanyId.ToString());
+            dictParam.Add("@Field_Name_Code", "44");
+            DataSet dstECS = Utility.GetDataset("S3G_CLN_GetECSFormatDetails", dictParam);
+
+            DataTable dtECSDetails = dstECS.Tables[0];
+            DataRow dtRow = dtECSDetails.Rows[0];
+            ddlLOB.SelectedValue = dtRow["LOB_ID"].ToString();
+            ddlBranch.SelectedValue = dtRow["Location_ID"].ToString();
+            ddlBankCode.SelectedValue = dtRow["Bank_ID"].ToString();
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@LookupType_Code", "44");
+            Procparam.Add("@LOB_Code", ddlLOB.SelectedValue.ToString());
+            Procparam.Add("@Header_Details", "H");
+            ViewState["LookUpValues"] = Utility.GetDefaultData("S3G_LOANAD_GetLookUpValues_Hdr", Procparam);
+
+
+            if (PageMode == PageModes.Modify)
+            {
+                DataRow[] dRowArr = dstECS.Tables[1].Select("Lookup_Code=9");
+                //DropDownList ddlFType = (DropDownList)gvECS.FooterRow.FindControl("ddlFType");
+                DataTable dt = (DataTable)ViewState["LookUpValues"];
+                DataRow[] dRowArr1 = dt.Select("Lookup_Code=9");
+                if (dRowArr.Length > 0 && dRowArr1.Length == 0)
+                {
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), "Alert", "alert('Global parameter setup has been changed for Sub account applicability. Redefine the Spool format.');", true);
+                    FunProSetinitialRow();
+                }
+                else
+                {
+                    gvECS.DataSource = ViewState["GridTable"] = dstECS.Tables[1];
+                    gvECS.DataBind();
+                }
+            }
+            else
+            {
+                gvECS.DataSource = ViewState["GridTable"] = dstECS.Tables[1];
+                gvECS.DataBind();
+            }
+
+
+            //if (PageMode == PageModes.Modify)
+            //{
+            //    DataRow[] dRowArr = dstECS.Tables[1].Select("Lookup_Code=9");
+            //    DropDownList ddlFType = (DropDownList)gvECS.FooterRow.FindControl("ddlFType");
+            //    if (dRowArr.Length > 0 && ddlFType.Items.FindByValue("9") == null)
+            //    {
+            //        ScriptManager.RegisterStartupScript(this, this.GetType(), "Alert", "alert('Global parameter setup has been changed for Sub account applicability. Redefine the Spool format.');", true);
+            //        FunProSetinitialRow();
+            //    }
+            //}
+
+            if (Convert.ToString(dstECS.Tables[1].Rows[dstECS.Tables[1].Rows.Count - 1]["ECS_To_position"]) == "999")
+            {
+                gvECS.FooterRow.Visible = false;
+            }
+            else
+            {
+                gvECS.FooterRow.Visible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    protected void FunProClearGrid(bool ShowFooter)
+    {
+        try
+        {
+            //For ECS Header Method
+            //Added By Palani Kumar.A on 21/11/2013
+            if (ViewState["HdrGridTable"] == null || ((DataTable)ViewState["HdrGridTable"]).Rows.Count > 0)
+            {
+                FunProSetinitialRowHdr();
+            }
+            gvECSHdr.FooterRow.Visible = ShowFooter;
+
+            TextBox txtHeader1 = (TextBox)gvECSHdr.FooterRow.FindControl("txtFHeader1");
+            TextBox txtFFrom1 = (TextBox)gvECSHdr.FooterRow.FindControl("txtFFrom1");
+            TextBox txtToAmt1 = (TextBox)gvECSHdr.FooterRow.FindControl("txtFTo1");
+            TextBox txtLength1 = (TextBox)gvECSHdr.FooterRow.FindControl("txtFLength1");
+            DropDownList ddlField1 = (DropDownList)gvECSHdr.FooterRow.FindControl("ddlFType1");
+
+            txtHeader1.Text = txtToAmt1.Text = txtLength1.Text = "";
+            ddlField1.SelectedValue = "0";
+
+            txtFFrom1.Focus();
+            //End
+            //For ECS Header Method
+            if (ViewState["GridTable"] == null || ((DataTable)ViewState["GridTable"]).Rows.Count > 0)
+            {
+                FunProSetinitialRow();
+            }
+            gvECS.FooterRow.Visible = ShowFooter;
+
+            TextBox txtHeader = (TextBox)gvECS.FooterRow.FindControl("txtFHeader");
+            TextBox txtFFrom = (TextBox)gvECS.FooterRow.FindControl("txtFFrom");
+            TextBox txtToAmt = (TextBox)gvECS.FooterRow.FindControl("txtFTo");
+            TextBox txtLength = (TextBox)gvECS.FooterRow.FindControl("txtFLength");
+            DropDownList ddlField = (DropDownList)gvECS.FooterRow.FindControl("ddlFType");
+
+            txtHeader.Text = txtToAmt.Text = txtLength.Text = "";
+            ddlField.SelectedValue = "0";
+
+            txtFFrom.Focus();
+            //btnGo.Enabled = true;
+        }
+        catch (Exception ex)
+        {
+            cvECS.ErrorMessage = "Unable To clear the details";
+            cvECS.IsValid = false;
+        }
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyId.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", obj_Page.intUserId.ToString());
+        Procparam.Add("@Program_Id", "99");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    #endregion
+
+}
+

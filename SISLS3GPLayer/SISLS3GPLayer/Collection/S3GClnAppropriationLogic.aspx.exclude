@@ -1,0 +1,271 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnAppropriationLogic.aspx.cs" Inherits="Collection_S3GClnAppropriationLogic"
+    Title="Appropriation Logic" %>
+
+<%@ Register Assembly="iCONWebComponents" Namespace="iCON.Web.Components" TagPrefix="cc2" %>
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading" colspan="2">
+                        <asp:Label runat="server" Text="Appropriation Logic" ID="lblHeading" CssClass="styleDisplayLabel"> </asp:Label>
+                        <input id="HidConfirm" type="hidden" runat="server" />
+                        <%--  <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="Appropriation Logic" ID="lblHeading" CssClass="styleDisplayLabel"> </asp:Label>
+                                    <input id="HidConfirm" type="hidden" runat="server" />
+                                </td>
+                            </tr>
+                        </table>--%>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <table width="100%" align="center" cellpadding="0" cellspacing="0">
+
+                            <tr>
+                                <td class="styleFieldLabel">&nbsp;
+                                </td>
+
+                            </tr>
+                            <tr>
+                                <td>
+                                    <table width="40%">
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label runat="server" Text="Line of Business" ID="lblLOB" CssClass="styleDisplayLabel"></asp:Label>
+                                            </td>
+
+                                            <td>
+                                                <asp:DropDownList ID="ddlLOB" runat="server" Width="165px" ToolTip="Line of Business">
+                                                </asp:DropDownList>
+                                                <%-- <asp:RequiredFieldValidator ID="rfvddlLOB" runat="server" Display="None"
+                         InitialValue="0" ValidationGroup="btnSave" ErrorMessage="Select Line of Business from the List."
+                        ControlToValidate="ddlLob" SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label runat="server" Text="Type" ID="lblType" CssClass="styleDisplayLabel"></asp:Label>
+                                                <span class="styleMandatory">*</span>
+                                            </td>
+                                            <td>
+                                                <asp:DropDownList ID="ddlType" runat="server" Width="165px" ToolTip="Type">
+                                                    <%--<asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
+                            <asp:ListItem Text="Horizontal" Value="H"></asp:ListItem>
+                            <asp:ListItem Text="Vertical" Value="V"></asp:ListItem>--%>
+                                                </asp:DropDownList>
+                                                <asp:RequiredFieldValidator ID="rfvddlType" runat="server" Display="None"
+                                                    InitialValue="0" ValidationGroup="btnSave" ErrorMessage="Select Type from the List."
+                                                    ControlToValidate="ddlType" SetFocusOnError="True"></asp:RequiredFieldValidator>
+
+                                            </td>
+
+                                        </tr>
+
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label runat="server" Text="Full Due" ID="isTotalDue">
+                                                </asp:Label>
+                                            </td>
+                                            <td>
+                                                <asp:CheckBox ID="chkTotalDue" runat="server" ToolTip="Full Due" />
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td class="styleFieldLabel">
+                                                <asp:Label runat="server" Text="Active" ID="lblActive" CssClass="styleDisplayLabel">
+                                                </asp:Label>
+                                            </td>
+                                            <td>
+                                                <asp:CheckBox ID="chkActive" runat="server" ToolTip="Active Indicator" />
+                                            </td>
+                                        </tr>
+
+                                    </table>
+                                </td>
+
+
+
+
+
+                            </tr>
+                            <tr>
+                                <td class="styleFieldLabel">&nbsp;
+                                </td>
+                                <td class="styleFieldAlign">&nbsp; </td>
+                            </tr>
+                            <tr>
+                                <td class="styleFieldLabel"></td>
+                                <td class="styleFieldAlign"></td>
+                            </tr>
+
+                        </table>
+                    </td>
+                </tr>
+
+                <%--  For grid--%>
+                <tr>
+                    <td>
+                        <table border="0" width="100%" align="center" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td align="center">
+                                    <asp:UpdatePanel ID="UpdatePanel_ApprLogic" runat="server">
+                                        <ContentTemplate>
+                                            <%-- <div style="height: 235px; margin-bottom: 10px; margin-top: 10px; overflow-x: hidden;
+                                    overflow-y: auto;">--%>
+                                            <asp:Panel runat="server" ID="pnlAppropriationLogic" CssClass="stylePanel" GroupingText="Appropriation Logic Details" Width="50%">
+                                                &nbsp;
+                                        <asp:GridView ID="gvAppropriationLogic" HorizontalAlign="Center" runat="server" AutoGenerateColumns="false"
+                                            Width="100%" ShowFooter="true" OnRowDataBound="gvAppropriationLogic_RowDataBound"
+                                            OnRowCommand="gvAppropriationLogic_RowCommand" OnRowDeleting="gvAppropriationLogic_RowDeleting" OnRowEditing="gvAppropriationLogic_RowEditing" OnRowCancelingEdit="gvAppropriationLogic_RowCancelingEdit"
+                                            OnRowUpdating="gvAppropriationLogic_RowUpdating">
+                                            <Columns>
+                                                <asp:TemplateField HeaderText="S.No.">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblSerialNo" runat="server" Text='<%#Container.DataItemIndex+1%>'></asp:Label>
+                                                        <asp:HiddenField ID="hdnSlno" runat="server" Value='<%#Eval("Serial_Number") %>' />
+                                                    </ItemTemplate>
+
+
+                                                    <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" />
+                                                    <ItemStyle Width="2%" HorizontalAlign="Center" />
+
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Receipt Type">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblLookupCode" Visible="false" runat="server" Text='<%#Eval("CashFlow_Flag_ID") %>' />
+                                                        <asp:Label ID="lblReceiptType" runat="server" Text='<%#Eval("CashFlowFlag_Desc") %>'></asp:Label>
+                                                    </ItemTemplate>
+
+                                                    <EditItemTemplate>
+                                                        <asp:DropDownList ID="ddlReceiptTypeEdit" runat="server" ToolTip="Receipt Type" />
+                                                        <asp:HiddenField ID="hdnLookupcode" runat="server" Value='<%#Eval("CashFlow_Flag_ID") %>' />
+                                                        <asp:RequiredFieldValidator ID="rfvtxtReceiptType" runat="server" Display="None"
+                                                            ErrorMessage="Please Select the Receipt Type." ControlToValidate="ddlReceiptTypeEdit"
+                                                            SetFocusOnError="true" ValidationGroup="vgAdd"></asp:RequiredFieldValidator>
+                                                    </EditItemTemplate>
+
+                                                    <FooterTemplate>
+                                                        <asp:DropDownList ID="ddlReceiptType" runat="server" ToolTip="Receipt Type" />
+                                                        <%-- <asp:DropDownList ID="ddlLookupcode" runat ="server" />--%>
+                                                        <asp:RequiredFieldValidator ID="rfvtxtReceiptType" runat="server" Display="None"
+                                                            ErrorMessage="Please Select the Receipt Type." ControlToValidate="ddlReceiptType"
+                                                            SetFocusOnError="true" ValidationGroup="vgAdd"></asp:RequiredFieldValidator>
+                                                    </FooterTemplate>
+                                                    <HeaderStyle HorizontalAlign="Left" VerticalAlign="Middle" />
+                                                    <ItemStyle Width="10%" HorizontalAlign="Left" />
+                                                    <FooterStyle Width="10%" HorizontalAlign="Left" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField HeaderText="Percentage">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblPercent" runat="server" Text='<%#Eval("Percentage") %>'></asp:Label>
+                                                    </ItemTemplate>
+
+                                                    <EditItemTemplate>
+                                                        <asp:TextBox ID="txtpercent" Width="50px" MaxLength="6" ToolTip="Percentage" runat="server" Text='<%#Bind("Percentage") %>' onblur="funChkDecimial(this,3,2,'Percentage');ChkIsZero(this,'Percentage');"></asp:TextBox>
+
+                                                        <%--<asp:RangeValidator runat="server" ID="rvtxtpercent" ControlToValidate="txtPercent"
+                                                            SetFocusOnError="True" ErrorMessage="Percentage should be in the range 0.1 To 99.99" Type="Double"
+                                                            MinimumValue="0.1" MaximumValue="99.99" Display="None" ValidationGroup="vgAdd"
+                                                            CssClass="styleMandatoryLabel"></asp:RangeValidator>--%>
+                                                        <%--<cc1:MaskedEditExtender ID="MEEtxtPercentage" runat="server" InputDirection="RightToLeft"
+                                                            Mask="99.99" MaskType="Number" TargetControlID="txtPercent">
+                                                        </cc1:MaskedEditExtender>--%>
+                                                    </EditItemTemplate>
+
+                                                    <FooterTemplate>
+                                                        <asp:TextBox ID="txtPercent" runat="server" Width="50px" MaxLength="6" ToolTip="Percentage"
+                                                            onblur="funChkDecimial(this,3,2,'Percentage',true);"></asp:TextBox>
+                                                        <%--onblur="funChkDecimial(this,3,2,'Percentage');ChkIsZero(this,'Percentage');" ></asp:TextBox>--%>
+                                                        <%-- onblur="funChkDecimial(this,6,4);ChkIsZero(this);"--%>
+                                                        <%--<asp:RequiredFieldValidator ID="rfvtxtPercent" runat="server" Display="None" ValidationGroup="vgAdd"
+                                                            ErrorMessage="Please enter the Percentage." ControlToValidate="txtPercent" SetFocusOnError="True"></asp:RequiredFieldValidator>--%>
+                                                        <%--<asp:RangeValidator runat="server" ID="rvtxtpercent" ControlToValidate="txtPercent"
+                                                            SetFocusOnError="True" ErrorMessage="Percentage should be in the range 0.1 To 99.99" Type="Double"
+                                                            MinimumValue="0.1" MaximumValue="99.99" Display="None" ValidationGroup="vgAdd"
+                                                            CssClass="styleMandatoryLabel"></asp:RangeValidator>--%>
+                                                        <%--<cc1:MaskedEditExtender ID="MEEtxtPercentage" runat="server" InputDirection="RightToLeft"
+                                                            Mask="99.99" MaskType="Number" TargetControlID="txtPercent">
+                                                        </cc1:MaskedEditExtender>--%>
+                                                    </FooterTemplate>
+                                                    <HeaderStyle HorizontalAlign="Left" VerticalAlign="Middle" />
+                                                    <ItemStyle Width="5%" HorizontalAlign="right" />
+                                                    <FooterStyle Width="5%" HorizontalAlign="right" />
+                                                </asp:TemplateField>
+                                                <asp:TemplateField>
+                                                    <ItemTemplate>
+                                                        &nbsp; 
+                                                        <asp:LinkButton ID="lnkEdit" runat="server" Text="Edit" CommandArgument='<%#Container.DataItemIndex%>'
+                                                            CommandName="Edit" CausesValidation="false"></asp:LinkButton>
+                                                        &nbsp; 
+                                                        <asp:LinkButton ID="lnkRemove" runat="server" Text="Delete" CommandName="Delete"
+                                                            OnClientClick="return confirm('Do you want to delete?');" CausesValidation="false"></asp:LinkButton>
+                                                    </ItemTemplate>
+                                                    <EditItemTemplate>
+                                                        <asp:LinkButton ID="lnkUpdate" runat="server" Text="Update" CommandName="Update"
+                                                            CausesValidation="false"></asp:LinkButton>
+                                                        &nbsp; &nbsp; 
+                                                        <asp:LinkButton ID="lnkCancel" runat="server" Text="Cancel" CommandName="Cancel"
+                                                            CausesValidation="false"></asp:LinkButton>
+                                                    </EditItemTemplate>
+                                                    <FooterTemplate>
+                                                        <asp:LinkButton ID="lnkAdd" runat="server" Text="Add" CommandName="Add" ValidationGroup="vgAdd"
+                                                            CausesValidation="true"></asp:LinkButton>
+                                                    </FooterTemplate>
+                                                    <ItemStyle Width="20%" Font-Bold="true" HorizontalAlign="Center" />
+                                                    <FooterStyle Width="20%" Font-Bold="true" HorizontalAlign="Center" />
+                                                </asp:TemplateField>
+                                            </Columns>
+
+                                            <%--<RowStyle HorizontalAlign="Center" />--%>
+                                        </asp:GridView>
+
+                                            </asp:Panel>
+                                            <%--   </div>--%>
+                                        </ContentTemplate>
+                                    </asp:UpdatePanel>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="styleFieldAlign">&nbsp;
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="styleFieldAlign">&nbsp;
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td align="center" colspan="2">&nbsp;&nbsp;<asp:Button ID="btnSave" runat="server" CausesValidation="true" OnClientClick="return fnCheckPageValidators('btnSave');"
+                                    CssClass="styleSubmitButton" OnClick="btnSave_Click" Text="Save" ValidationGroup="btnSave" />
+                                    &nbsp;<asp:Button ID="btnClear" runat="server" CausesValidation="false" CssClass="styleSubmitButton"
+                                        OnClientClick="return fnConfirmClear();" Text="Clear" OnClick="btnClear_Click" />
+                                    &nbsp;<asp:Button ID="btnCancel" runat="server" CausesValidation="False" CssClass="styleSubmitButton"
+                                        OnClick="btnCancel_Click" Text="Cancel" />
+                                    &nbsp;&nbsp;&nbsp;
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center">&nbsp;
+                            <%--   <asp:RequiredFieldValidator ID="rfvddlLOB" runat="server" ControlToValidate="ddlLOB"
+                            ErrorMessage="Please select a Line of Business Code" CssClass="styleMandatoryLabel" Display="None"
+                            InitialValue="0" SetFocusOnError="True" ValidationGroup="btnSave" ></asp:RequiredFieldValidator>--%>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+            </table>
+            <asp:ValidationSummary ID="vgAdd" runat="server" ValidationGroup="vgAdd" CssClass="styleMandatoryLabel"
+                HeaderText="Correct the following validation(s):" ShowSummary="true" />
+            <asp:CustomValidator ID="cvAppropriationLogic" runat="server" CssClass="styleMandatoryLabel"
+                Enabled="true" Width="98%" />
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

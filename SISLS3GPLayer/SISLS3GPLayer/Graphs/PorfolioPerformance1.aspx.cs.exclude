@@ -1,0 +1,568 @@
+﻿using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Data.Sql;
+using System.Data.SqlClient;
+using System.IO;
+using System.Reflection;
+using org.jfree.chart;
+using org.jfree.chart.plot;
+using org.jfree.chart.urls;
+using Ujihara.Demo;
+using org.jfree.chart.renderer.category;
+using System.Drawing;
+using org.jfree.data.xy;
+using org.jfree.data.time;
+using org.jfree.chart.renderer.xy;
+using org.jfree.chart.axis;
+using org.jfree.ui;
+using java.awt.image;
+using java.awt;
+using java.awt.geom;
+using org.jfree.data.category;
+
+
+public partial class PorfolioPerformance1 :ApplyThemeForProject
+{
+    #region Initial Values
+    private const string TagName = "map";
+    public const string ImageDirName = "image";
+    private const string DetailsURL = "PortfolioDetails1.aspx";
+    public SqlConnection SqlConn;
+    public SqlCommand SqlComnd;
+    public SqlDataAdapter SqlDaAdp;
+    public string StrQuery = "";
+    public string chartName = "";
+    public string strProcedureName = "S3G_RPT_GET_BranchDetails";
+    public DataSet DSQuery;
+    public DataSet CDSQuery;
+    public DataSet CDSQuery1;
+
+    public const string ACCDesc = "ACC-ACC Desc";
+    public const string PrintingMachine = "CPM-Printing Machine";
+    public const string Asset = "Asset Count";
+
+    public const string Aug = "Aug";
+    public const string Sep = "Sep";
+    public const string Oct = "Oct";
+    public const string Nov = "Nov";
+    public const string Dec = "Dec";
+
+    private static string[] seriesArray = { ACCDesc, PrintingMachine, Asset, };
+    private static string[] categoriesArray = { Aug, Sep, Oct, Nov, Dec };
+    private static double[][] valuesArray = {
+            new double[] {50000, 25000, 30000, 40000, 5000, },
+            new double[] {20000, 30000, 15000, 25000, 10000,},
+            new double[] {10, 16, 23, 17, 6, },
+        };
+    #endregion
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        SqlConn = new SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["s3gconnectionstring"].ConnectionString);
+
+        if (!IsPostBack)
+        {
+            FunPriLoadLocation();
+            FunPriLoadLOB();
+            List<String> list = new List<string>();
+            IEnumerator etor = new CreatorEnumerator();
+            while (etor.MoveNext())
+            {
+                Type type = (System.Type)etor.Current;
+                ConstructorInfo ci = type.GetConstructor(Type.EmptyTypes);
+                ChartCreator cc = (ChartCreator)ci.Invoke(new Object[] { });
+                list.Add(cc.Name);
+            }
+            list.Sort();
+
+        }
+
+    }
+
+    private void FunPriLoadLocation()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand(strProcedureName, SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlLocation1.DataSource = dt;
+            ddlLocation1.DataTextField = "LOCATION";
+            ddlLocation1.DataValueField = "LOCATION_ID";
+            ddlLocation1.DataBind();
+            ddlLocation1.Items.Insert(0, new ListItem("--Select--", "0"));
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void FunPriLoadLOB()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand("S3G_RPT_GetRepayLobDetails", SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+            SqlComnd.Parameters.Add("@USER_ID", SqlDbType.Int).Value = 3;
+            SqlComnd.Parameters.Add("@PROGRAM_ID", SqlDbType.Int).Value = 175;
+            SqlComnd.Parameters.Add("@OPTION", SqlDbType.Int).Value = 1;
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlLOB.DataSource = dt;
+            ddlLOB.DataTextField = "LOB_NAME";
+            ddlLOB.DataValueField = "LOB_ID";
+            ddlLOB.DataBind();
+            ddlLOB.Items.Insert(0, "--Select--");
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void PopulateAssetClass()
+    {
+        try
+        {
+            SqlComnd = new SqlCommand("S3G_CLN_GetAsset", SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@Company_ID", SqlDbType.Int).Value = 1;
+            SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLOB.SelectedValue);
+            if(ddlLocation1.SelectedIndex>0)
+                SqlComnd.Parameters.Add("@Location_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLocation1.SelectedValue);
+            
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlAssetClass.DataSource = dt;
+            ddlAssetClass.DataTextField = "Category_Description";
+            ddlAssetClass.DataValueField = "CLASS_ID";
+            ddlAssetClass.DataBind();
+            ddlAssetClass.Items.Insert(0, "--ALL--");
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void PopulateAssetMake()
+    {
+         try
+        {
+            if (ddlAssetClass.SelectedIndex > 0)
+            {
+            SqlComnd = new SqlCommand("S3G_CLN_GetAsset", SqlConn);
+            SqlComnd.CommandType = CommandType.StoredProcedure;
+            SqlComnd.Parameters.Add("@Company_ID", SqlDbType.Int).Value = 1;
+            SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLOB.SelectedValue);
+            SqlComnd.Parameters.Add("@AssClass", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetClass.SelectedValue);
+            SqlDaAdp = new SqlDataAdapter(SqlComnd);
+            DSQuery = new DataSet();
+            SqlDaAdp.Fill(DSQuery);
+            DataTable dt = DSQuery.Tables[0];
+            ddlAssetMake.DataSource = dt;
+            ddlAssetMake.DataTextField = "Category_Description";
+            ddlAssetMake.DataValueField = "MAKE_ID";
+            ddlAssetMake.DataBind();
+            //ddlAssetMake.Items[0].Text = "--ALL--";
+            ddlAssetMake.Items.Insert(0, "--ALL--");
+            }
+        }
+         catch (Exception ex)
+         {
+             throw ex;
+         }
+    }
+
+    private void PopulateAssetType()
+    {
+        try
+        {
+            if (ddlAssetMake.SelectedIndex > 0)
+            {
+                SqlComnd = new SqlCommand("S3G_CLN_GetAsset", SqlConn);
+                SqlComnd.CommandType = CommandType.StoredProcedure;
+                SqlComnd.Parameters.Add("@Company_ID", SqlDbType.Int).Value = 1;
+                SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLOB.SelectedValue);
+                SqlComnd.Parameters.Add("@AssClass", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetClass.SelectedValue);
+                SqlComnd.Parameters.Add("@AssMake", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetMake.SelectedValue);
+                SqlDaAdp = new SqlDataAdapter(SqlComnd);
+                DSQuery = new DataSet();
+                SqlDaAdp.Fill(DSQuery);
+                DataTable dt = DSQuery.Tables[0];
+                ddlAssetType.DataSource = dt;
+                ddlAssetType.DataTextField = "Category_Description";
+                ddlAssetType.DataValueField = "TYPE_ID";
+                ddlAssetType.DataBind();
+                //ddlAssetType.Items[0].Text = "--ALL--";
+                ddlAssetType.Items.Insert(0, "--ALL--");
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void PopulateAssetModel()
+    {
+        try
+        {
+            if (ddlAssetType.SelectedIndex > 0)
+            {
+                SqlComnd = new SqlCommand("S3G_CLN_GetAsset", SqlConn);
+                SqlComnd.CommandType = CommandType.StoredProcedure;
+                SqlComnd.Parameters.Add("@Company_ID", SqlDbType.Int).Value = 1;
+                SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLOB.SelectedValue);
+                SqlComnd.Parameters.Add("@AssClass", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetClass.SelectedValue);
+                SqlComnd.Parameters.Add("@AssMake", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetMake.SelectedValue);
+                SqlComnd.Parameters.Add("@AssType", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetType.SelectedValue);
+                SqlDaAdp = new SqlDataAdapter(SqlComnd);
+                DSQuery = new DataSet();
+                SqlDaAdp.Fill(DSQuery);
+                DataTable dt = DSQuery.Tables[0];
+                ddlAssetModel.DataSource = dt;
+                ddlAssetModel.DataTextField = "Category_Description";
+                ddlAssetModel.DataValueField = "MODEL_ID";
+                ddlAssetModel.DataBind();
+                //ddlAssetModel.Items[0].Text = "--ALL--";
+                ddlAssetModel.Items.Insert(0, "--ALL--");
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (ddlLOB.SelectedIndex > 0)
+        {
+            PopulateAssetClass();
+        }
+    }
+
+    protected void ddlLocation_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (ddlLocation1.SelectedIndex > 0)
+        {
+            PopulateAssetClass();
+        }
+    }
+
+    protected void ddlAssetClass_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        ddlAssetType.Items.Clear();
+        ddlAssetModel.Items.Clear();
+        ddlAssetMake.Items.Clear();
+        PopulateAssetMake();
+    }
+
+    protected void ddlAssetMake_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        
+        ddlAssetType.Items.Clear();
+        ddlAssetModel.Items.Clear();
+        PopulateAssetType();
+    }
+
+    protected void ddlAssetType_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        ddlAssetModel.Items.Clear();
+        PopulateAssetModel();
+    }
+
+    public static DefaultCategoryDataset createDefaultCategoryDataset(DataSet DS)
+    {
+    //    if (start == -1 && end == -1)
+    //    {
+    //        start = 0;
+    //        end = seriesArray.Length;
+    //    }
+    //    if (start < 0)
+    //        throw new ArgumentException();
+
+    DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+    //    for (int i = start; i < end; i++)
+    //    {
+    //        switch (i)
+    //        {
+    //            case 0:
+    //            case 1:
+    //            case 2:
+    //                for (int j = 0; j < categoriesArray.Length; j++)
+    //                    dataset.addValue(valuesArray[i][j], seriesArray[i], categoriesArray[j]);
+    //                break;
+    //            default:
+    //                for (int j = 0; j < categoriesArray.Length; j++)
+    //                    dataset.addValue(10000.0 * (Math.Sin((0.1 + 0.3 * j) * i) + 1), i.ToString(), categoriesArray[j]);
+    //                break;
+    //        }
+    //    }
+            return dataset;
+    }
+    public void FunPubCreateCategoryDS(DataSet DSQuery,out DefaultCategoryDataset DS1,out DefaultCategoryDataset DS2)
+    {
+       
+        DataTable DtCounttbl = DSQuery.Tables[0].DefaultView.ToTable("Table", true, new string[] { "ASSET_COUNT", "ASSET_DESCRIPTION", "MONTH" });
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        seriesArray = new string[DtCounttbl.DefaultView.ToTable(true, "ASSET_DESCRIPTION").Rows.Count];
+        for (int rowidx = 0; rowidx < DtCounttbl.DefaultView.ToTable(true, "ASSET_DESCRIPTION").Rows.Count; rowidx++)
+        {
+            seriesArray[rowidx] = DtCounttbl.DefaultView.ToTable(true, "ASSET_DESCRIPTION").Rows[rowidx]["ASSET_DESCRIPTION"].ToString();
+        }
+
+
+
+        for (int seridx = 0; seridx < seriesArray.Length; seridx++)
+        {
+            DataRow[] DRData = DSQuery.Tables[0].Select("ASSET_DESCRIPTION = '" + seriesArray[seridx].ToString() + "'");
+            for (int rowidx = 0; rowidx < DRData.Length; rowidx++)
+			{
+                dataset.addValue(Convert.ToDouble(DRData[rowidx]["ASSET_FINANCED"].ToString()), seriesArray[seridx], DRData[rowidx]["MONTH"].ToString()); 
+			}
+        }
+        DS1 = dataset;
+
+        dataset = new DefaultCategoryDataset();
+        for (int seridx = 0; seridx < seriesArray.Length; seridx++)
+        {
+            DataRow[] DRData = DtCounttbl.Select("ASSET_DESCRIPTION = '" + seriesArray[seridx].ToString() + "'");
+            for (int rowidx = 0; rowidx < DRData.Length; rowidx++)
+            {
+                dataset.addValue(Convert.ToDouble(DRData[rowidx]["ASSET_COUNT"].ToString()), seriesArray[seridx], DRData[rowidx]["MONTH"].ToString());
+            }
+        }
+        DS2 = dataset;
+        //for (int i = start; i < end; i++)
+        //{
+        //    switch (i)
+        //    {
+        //        case 0:
+        //        case 1:
+        //        case 2:
+        //            for (int j = 0; j < categoriesArray.Length; j++)
+        //                dataset.addValue(valuesArray[i][j], seriesArray[i], categoriesArray[j]);
+        //            break;
+        //        default:
+        //            for (int j = 0; j < categoriesArray.Length; j++)
+        //                dataset.addValue(10000.0 * (Math.Sin((0.1 + 0.3 * j) * i) + 1), i.ToString(), categoriesArray[j]);
+        //            break;
+        //    }
+        //}
+            
+    }
+    protected void bntGenReport_Click(object sender, EventArgs e)
+    {
+        
+        Session["StartDate"] = txtStartDate.Text;
+        Session["EndDate"] = txtEndDate.Text;
+        PnlChart.Visible = true;
+        bool urlGen = false;
+        SqlComnd = new SqlCommand("S3G_RPT_GetAssetDetailsForPortfolio", SqlConn);
+        SqlComnd.CommandType = CommandType.StoredProcedure;
+        SqlComnd.Parameters.Add("@COMPANY_ID", SqlDbType.Int).Value = 1;
+        SqlComnd.Parameters.Add("@USER_ID", SqlDbType.Int).Value = 3;
+        SqlComnd.Parameters.Add("@LOB_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLOB.SelectedValue);
+        SqlComnd.Parameters.Add("@PROGRAM_ID", SqlDbType.Int).Value = 175;
+        SqlComnd.Parameters.Add("@LOCATION_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlLocation1.SelectedValue);
+        //if (ddlLocation2.SelectedIndex > 0)
+        //{
+        //    SqlComnd.Parameters.Add("@LOCATION_ID2", SqlDbType.Int).Value = Convert.ToInt32(ddlLocation2.SelectedValue);
+        //}
+        if (ddlAssetClass.SelectedIndex > 0)
+        {
+            SqlComnd.Parameters.Add("@CLASS_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetClass.SelectedValue);
+        }
+        if (ddlAssetMake.SelectedIndex > 0)
+        {
+            SqlComnd.Parameters.Add("@MAKE_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetMake.SelectedValue);
+        }
+        if (ddlAssetType.SelectedIndex > 0)
+        {
+            SqlComnd.Parameters.Add("@TYPE_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetType.SelectedValue);
+        }
+        if (ddlAssetModel.SelectedIndex > 0)
+        {
+            SqlComnd.Parameters.Add("@MODEL_ID", SqlDbType.Int).Value = Convert.ToInt32(ddlAssetModel.SelectedValue);
+        }
+        SqlComnd.Parameters.Add("@FROMMONTH_STARTDATE", SqlDbType.DateTime).Value = Convert.ToDateTime(txtStartDate.Text);
+        SqlComnd.Parameters.Add("@TOMONTH_ENDDATE", SqlDbType.DateTime).Value = Convert.ToDateTime(txtEndDate.Text);
+        SqlDaAdp = new SqlDataAdapter(SqlComnd);
+        DSQuery = new DataSet();
+        SqlDaAdp.Fill(DSQuery);                                              
+         
+       // bool urlGen = false;
+        DefaultCategoryDataset dataset1;
+        DefaultCategoryDataset dataset2;
+        FunPubCreateCategoryDS(DSQuery, out dataset1, out dataset2);
+
+        JFreeChart chart = ChartFactory.createBarChart(
+            "Portfolio Performance",
+            "Month",
+            "Amount in Rupees",
+            dataset1,
+            PlotOrientation.VERTICAL,
+            true,
+            true,
+            false);
+
+        CategoryPlot plot1 = chart.getCategoryPlot();
+        plot1.setDomainAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
+        plot1.getDomainAxis().setMaximumCategoryLabelLines(2);
+
+        {
+            int datasetIndex = 1;
+            int axisIndex = 2;
+            plot1.setDataset(datasetIndex, dataset2);
+            plot1.mapDatasetToRangeAxis(datasetIndex, axisIndex);
+            plot1.setRangeAxis(axisIndex, new NumberAxis("Asset Count"));
+            plot1.setRenderer(datasetIndex, new LineAndShapeRenderer());
+        }
+
+        Plot plot = chart.getPlot();
+        try
+        {
+            if (plot is MultiplePiePlot)
+            {
+                MultiplePiePlot pp = (MultiplePiePlot)plot;
+                plot = pp.getPieChart().getPlot();
+            }
+            if (plot is PiePlot)
+            {
+                PiePlot pp = (PiePlot)plot;
+                pp.setURLGenerator(new StandardPieURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is CombinedDomainCategoryPlot)
+            {
+                CombinedDomainCategoryPlot cdcp = (CombinedDomainCategoryPlot)plot;
+                java.util.Iterator itor = cdcp.getSubplots().iterator();
+                while (itor.hasNext())
+                {
+                    CategoryPlot pp = (CategoryPlot)itor.next();
+                    pp.getRenderer().setBaseItemURLGenerator(new StandardCategoryURLGenerator(DetailsURL));
+                    urlGen = true;
+                }
+            }
+            else if (plot is CategoryPlot)
+            {
+                CategoryPlot pp = (CategoryPlot)plot;
+                pp.getRenderer().setBaseItemURLGenerator(new StandardCategoryURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is XYPlot)
+            {
+                XYPlot pp = (XYPlot)plot;
+                pp.getRenderer().setURLGenerator(new StandardXYURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+            else if (plot is ContourPlot)
+            {
+                ContourPlot pp = (ContourPlot)plot;
+                pp.setURLGenerator(new StandardXYURLGenerator(DetailsURL));
+                urlGen = true;
+            }
+        }
+        catch (Exception)
+        {
+            // ignore
+        }
+
+        //ChartPanel CP = new ChartPanel(chart);
+        //CP.setPreferredSize(new Dimension(90000, 5000));
+
+        string filename = Guid.NewGuid().ToString() + ".png";
+        ChartRenderingInfo cri = new ChartRenderingInfo();
+        String dir = Server.MapPath(ImageDirName);
+        FileInfo imageFile = new FileInfo(Path.Combine(dir, filename));
+        try
+        {
+            imageFile.Create().Close();
+        }
+        catch (Exception)
+        {
+            Response.Write(Server.HtmlEncode("You need to give ASP.NET a privilege to write to " + "<" + dir + ">" + "."));
+            Response.End();
+            return;
+        }
+        ChartUtilities.saveChartAsPNG(imageFile, chart, 900, 600, cri);
+        string chartHtml = "<img src=\"image/" + filename
+            + "\" usemap=\"#" + TagName + "\""
+            + " />";
+        if (urlGen)
+            chartHtml = chartHtml + ChartUtilities.getImageMap(TagName, cri);
+        chartHtml = chartHtml.Replace("area", "area target=\"_blank\"");
+        ChartSpan.InnerHtml = chartHtml;
+    }
+
+    public static DefaultCategoryDataset createDefaultCategoryDataset(int start, int end)
+    {
+        if (start == -1 && end == -1)
+        {
+            start = 0;
+            end = seriesArray.Length;
+        }
+        if (start < 0)
+            throw new ArgumentException();
+
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        for (int i = start; i < end; i++)
+        {
+            switch (i)
+            {
+                case 0:
+                case 1:
+                case 2:
+                    for (int j = 0; j < categoriesArray.Length; j++)
+                        dataset.addValue(valuesArray[i][j], seriesArray[i], categoriesArray[j]);
+                    break;
+                default:
+                    for (int j = 0; j < categoriesArray.Length; j++)
+                        dataset.addValue(10000.0 * (Math.Sin((0.1 + 0.3 * j) * i) + 1), i.ToString(), categoriesArray[j]);
+                    break;
+            }
+        }
+        return dataset;
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+
+        ddlLOB.ClearSelection();
+        ddlLocation1.ClearSelection();
+
+        txtStartDate.Text = "";
+        txtEndDate.Text = "";
+        
+        PnlChart.Visible = false;
+
+    }
+
+}

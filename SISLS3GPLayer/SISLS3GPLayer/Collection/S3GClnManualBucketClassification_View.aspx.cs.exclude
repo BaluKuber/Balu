@@ -1,0 +1,550 @@
+﻿
+
+#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   
+/// Screen Name         :   
+/// Created By          :   
+/// Created Date        :   
+/// Purpose             :   
+/// Last Updated By		:   NULL
+/// Last Updated Date   :   NULL
+/// Reason              :   NULL
+/// <Program Summary>
+#endregion
+
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using S3GBusEntity;
+using System.ServiceModel;
+
+
+public partial class Collection_S3GClnManualBucketClassification_View : ApplyThemeForProject
+{
+    public static Collection_S3GClnManualBucketClassification_View obj_Page;
+    int intUserID = 0;
+    int intCompanyID = 0;
+    Dictionary<string, string> ObjDictParams = null;
+    Dictionary<string, string> Procparam = null;
+    //User Authorization variable declaration
+    UserInfo ObjUserInfo = new UserInfo();
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bIsActive = false;
+    bool bMakerChecker = false;
+    //Declaration end
+    static string strPageName = "Manual Bucket Classification View";
+    string strRedirectPage = "~/Collection/S3GClnManualBucketClassification.aspx";
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        //User Authorization
+        obj_Page = this;
+        intCompanyID = ObjUserInfo.ProCompanyIdRW;
+        intUserID = ObjUserInfo.ProUserIdRW;
+
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        bIsActive = ObjUserInfo.ProIsActiveRW;
+        //Authorization Code end
+
+        #region Paging Config
+        arrSearchVal = new ArrayList(intNoofSearch);
+        ProPageNumRW = 1;
+        TextBox txtPageSize = (TextBox)ucCustomPaging.FindControl("txtPageSize");
+        if (txtPageSize.Text != "")
+            ProPageSizeRW = Convert.ToInt32(txtPageSize.Text);
+        else
+            ProPageSizeRW = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GridPageSize"));
+
+        PageAssignValue obj = new PageAssignValue(this.AssignValue);
+        ucCustomPaging.callback = obj;
+        ucCustomPaging.ProPageNumRW = ProPageNumRW;
+        ucCustomPaging.ProPageSizeRW = ProPageSizeRW;
+
+        #endregion
+
+        if (!IsPostBack)
+        {
+            lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Details);
+            FunProLoadLOB();
+            //FunProLoadBranch();
+            FunProLoadDebtCollectorDemandMonth();
+            FunPriBindGrid();
+            ucCustomPaging.Visible =
+                    grvPaging.Visible = false;
+            //User Authorization
+            if (!bIsActive)
+            {
+                grvPaging.Columns[1].Visible = false;
+                grvPaging.Columns[0].Visible = false;
+                // btnCreate.Enabled = false;
+                return;
+            }
+            else
+            {
+                if (!bModify)
+                {
+                    grvPaging.Columns[1].Visible = false;
+                }
+                if (!bQuery)
+                {
+                    grvPaging.Columns[0].Visible = false;
+                }
+
+                //Authorization Code end
+            }
+        }
+    }
+
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProLoadDemandMonth();
+            FunProLoadDebtCollector();
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassificationView.ErrorMessage = "Error in search.";
+            CVBucketClassificationView.IsValid = false;
+        }
+    }
+
+    protected void ddlLineofBusiness_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            ddlBranch.Clear();
+            FunProLoadBranch();
+            FunProLoadDebtCollector();
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassificationView.ErrorMessage = "Error in search.";
+            CVBucketClassificationView.IsValid = false;
+        }
+    }
+
+    protected void ddlDemandMonth_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProLoadDebtCollector();
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassificationView.ErrorMessage = "Error in search.";
+            CVBucketClassificationView.IsValid = false;
+        }
+    }
+
+    protected void FunProLoadLOB()
+    {
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            ObjDictParams.Add("@User_Id", Convert.ToString(ObjUserInfo.ProUserIdRW));
+            ObjDictParams.Add("@Program_Id", "102");
+            ObjDictParams.Add("@Is_Active", "1");
+            ddlLineofBusiness.BindDataTable(SPNames.LOBMaster, ObjDictParams, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            ddlLineofBusiness.SelectedValue = "3";
+            ddlLineofBusiness.RemoveDropDownList();
+            ObjDictParams = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    protected void FunProLoadBranch()
+    {
+        try
+        {
+            //ObjDictParams = new Dictionary<string, string>();
+            //ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            //ObjDictParams.Add("@User_ID", ObjUserInfo.ProUserIdRW.ToString());
+            //if (ddlLineofBusiness.SelectedIndex > 0)
+            //    ObjDictParams.Add("@Lob_ID", ddlLineofBusiness.SelectedValue);
+            //ObjDictParams.Add("@Is_Active", "1");
+            //ObjDictParams.Add("@Program_Id", "102");
+            ////ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, ObjDictParams, new string[] { "Branch_ID", "Branch_CODE", "Branch_NAME" });
+            ////ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, ObjDictParams, new string[] { "Location_ID", "Location" });
+            //ddlBranch.BindDataTable("S3G_Get_DemandLocations", ObjDictParams, new string[] { "Location_ID", "Location" });
+            //ObjDictParams = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    protected void FunProLoadDebtCollectorDemandMonth()
+    {
+        try
+        {
+            FunProLoadDemandMonth();
+            FunProLoadDebtCollector();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+
+    protected void FunProLoadDebtCollector()
+    {
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@Option", "1");
+            ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            if (ddlLineofBusiness.SelectedIndex > 0)
+                ObjDictParams.Add("@LOB_ID", ddlLineofBusiness.SelectedValue);
+            if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+                ObjDictParams.Add("@Location_ID", ddlBranch.SelectedValue);
+            if (ddlDemandMonth.SelectedIndex > 0)
+                ObjDictParams.Add("@DemandMonth", ddlDemandMonth.SelectedValue);
+
+            ddlDebtCollector.BindDataTable("S3G_CLN_GetManualBucketClassificationDebtCollectorLists", ObjDictParams, new string[] { "DebtCollector_Code", "Name" });
+            ObjDictParams = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    protected void FunProLoadDemandMonth()
+    {
+        try
+        {
+            ObjDictParams = new Dictionary<string, string>();
+            ObjDictParams.Add("@Option", "2");
+            ObjDictParams.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            if (ddlLineofBusiness.SelectedIndex > 0)
+                ObjDictParams.Add("@LOB_ID", ddlLineofBusiness.SelectedValue);
+            if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+            {
+                ObjDictParams.Add("@Location_ID", ddlBranch.SelectedValue);
+            }
+            ddlDemandMonth.BindDataTable("S3G_CLN_GetManualBucketClassificationDebtCollectorLists", ObjDictParams, new string[] { "Demand_Month", "Demand_Month" });
+            ObjDictParams = null;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    protected void btnclear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProClearDetails();
+
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassificationView.ErrorMessage = "Error in Clear.";
+            CVBucketClassificationView.IsValid = false;
+        }
+    }
+
+
+    protected void btnSearch_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriBindGrid();
+
+        }
+        catch (Exception ex)
+        {
+
+            CVBucketClassificationView.ErrorMessage = "Error in search.";
+            CVBucketClassificationView.IsValid = false;
+        }
+    }
+
+
+    protected void FunProClearDetails()
+    {
+        try
+        {
+            //ddlBranch.SelectedIndex =
+            ddlBranch.Clear();
+            ddlLineofBusiness.SelectedIndex =
+            ddlDebtCollector.SelectedIndex =
+            ddlDemandMonth.SelectedIndex = -1;
+            grvPaging.DataSource = null;
+            grvPaging.DataBind();
+            ucCustomPaging.Visible = false;
+            
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    protected void grvPaging_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            //User Authorization
+            Label lblUserID = (Label)e.Row.FindControl("lblUserID");
+            Label lblUserLevelID = (Label)e.Row.FindControl("lblUserLevelID");
+            Label lblActive = (Label)e.Row.FindControl("lblActive");
+            ImageButton imgbtnEdit = (ImageButton)e.Row.FindControl("imgbtnEdit");
+            //commented as per the discussion with guna and Sp rama 
+            /*  if ((bModify) && (ObjUserInfo.IsUserLevelUpdate(Convert.ToInt32(lblUserID.Text), Convert.ToInt32(lblUserLevelID.Text))))
+              {
+                  imgbtnEdit.Enabled = true;
+              }
+              else
+              {
+                  imgbtnEdit.Enabled = false;
+                  imgbtnEdit.CssClass = "styleGridEditDisabled";
+              }
+              //Authorization code end
+
+              if (e.Row.Cells[7].Text == "1")
+              {
+                  imgbtnEdit.Enabled = true;
+              }
+              else
+              {
+                  imgbtnEdit.Enabled = false;
+                  imgbtnEdit.CssClass = "styleGridEditDisabled";
+
+              }*/
+            if (lblActive != null)
+            {
+                if (lblActive.Text == "0")
+                {
+                    imgbtnEdit.Enabled = false;
+                    imgbtnEdit.CssClass = "styleGridEditDisabled";
+                }
+                else
+                {
+                    imgbtnEdit.Enabled = true;
+                }
+            }
+
+        }
+    }
+
+    protected void grvPaging_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(e.CommandArgument.ToString(), false, 0);
+        switch (e.CommandName.ToLower())
+        {
+            case "modify":
+                strRedirectPage = strRedirectPage + "?qsViewId=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=M";
+                strRedirectPage += "&qsLob=" + ddlLineofBusiness.SelectedItem.Text;
+                if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+                    strRedirectPage += "&qsLoc=" + ddlBranch.SelectedText;
+                Response.Redirect(strRedirectPage,false);
+                break;
+            case "query":
+                strRedirectPage = strRedirectPage + "?qsViewId=" + FormsAuthentication.Encrypt(Ticket) + "&qsMode=Q";
+                strRedirectPage += "&qsLob=" + ddlLineofBusiness.SelectedItem.Text;
+                if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+                    strRedirectPage += "&qsLoc=" + ddlBranch.SelectedText;
+                Response.Redirect(strRedirectPage,false);
+                break;
+        }
+    }
+
+    #region "paging"
+    int intNoofSearch = 1;
+    string[] arrSortCol = new string[] { "DebtCollector_Code" };
+    string strProcName = "S3G_CLN_TransLander_ManualBucketClassification";
+    ArrayList arrSearchVal = new ArrayList(1);
+    PagingValues ObjPaging = new PagingValues();
+    public delegate void PageAssignValue(int ProPageNumRW, int intPageSize);
+
+    public int ProPageNumRW
+    {
+        get;
+        set;
+    }
+
+    public int ProPageSizeRW
+    {
+        get;
+        set;
+
+    }
+
+    protected void AssignValue(int intPageNum, int intPageSize)
+    {
+        ProPageNumRW = intPageNum;
+        ProPageSizeRW = intPageSize;
+        FunPriBindGrid();
+    }
+
+    #region Paging and Searching Methods For Grid
+
+
+    private void FunPriGetSearchValue()
+    {
+        arrSearchVal = grvPaging.FunPriGetSearchValue(arrSearchVal, intNoofSearch);
+    }
+
+    private void FunPriClearSearchValue()
+    {
+        grvPaging.FunPriClearSearchValue(arrSearchVal);
+    }
+
+    private void FunPriSetSearchValue()
+    {
+        grvPaging.FunPriSetSearchValue(arrSearchVal);
+    }
+
+    protected void FunProHeaderSearch(object sender, EventArgs e)
+    {
+
+
+    }
+
+    private string FunPriGetSortDirectionStr(string strColumn)
+    {
+        string strSortDirection = string.Empty;
+        string strSortExpression = string.Empty;
+        // By default, set the sort direction to ascending.
+        string strOrderBy = string.Empty;
+        strSortDirection = "DESC";
+
+        return strSortDirection;
+    }
+
+
+
+    protected void FunProSortingColumn(object sender, EventArgs e)
+    {
+
+    }
+
+
+
+    private void FunPriBindGrid()
+    {
+        try
+        {
+            int intTotalRecords = 0;
+            bool bIsNewRow = false;
+            ObjPaging.ProCompany_ID = ObjUserInfo.ProCompanyIdRW;
+            ObjPaging.ProUser_ID = ObjUserInfo.ProUserIdRW;
+            ObjPaging.ProTotalRecords = intTotalRecords;
+            ObjPaging.ProCurrentPage = ProPageNumRW;
+            ObjPaging.ProPageSize = ProPageSizeRW;
+            ObjPaging.ProSearchValue = hdnSearch.Value;
+            ObjPaging.ProOrderBy = hdnOrderBy.Value;
+
+            FunPriGetSearchValue();
+
+            Procparam = new Dictionary<string, string>();
+            if (Convert.ToInt32(ddlBranch.SelectedValue) > 0)
+            {
+                //Procparam.Add("@Branch_Id", ddlBranch.SelectedValue);
+                Procparam.Add("@Location_Id", ddlBranch.SelectedValue);
+            }
+            Procparam.Add("@LOB_ID","3");
+            if (ddlDemandMonth.SelectedIndex > 0)
+                Procparam.Add("@Demand_Month", ddlDemandMonth.SelectedValue);
+            if (ddlDebtCollector.SelectedIndex > 0)
+                Procparam.Add("@DebtCollector_Code", ddlDebtCollector.SelectedValue);
+            grvPaging.BindGridView(strProcName, Procparam, out intTotalRecords, ObjPaging, out bIsNewRow);
+            grvPaging.Visible = true;
+            //This is to hide first row if grid is empty
+            if (bIsNewRow)
+            {
+                grvPaging.Rows[0].Visible = false;
+            }
+
+            FunPriSetSearchValue();
+            ucCustomPaging.Visible = true;
+            ucCustomPaging.Navigation(intTotalRecords, ProPageNumRW, ProPageSizeRW);
+            ucCustomPaging.setPageSize(ProPageSizeRW);
+
+
+
+            //Paging Config End
+        }
+        catch (FaultException<UserMgtServicesReference.ClsPubFaultException> objFaultExp)
+        {
+            //lblErrorMessage.Text = objFaultExp.Detail.ProReasonRW;
+        }
+        catch (Exception ex)
+        {
+            lblErrorMessage.Text = ex.Message;
+        }
+
+    }
+
+
+
+
+
+    #endregion
+
+
+    #endregion
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "102");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLineofBusiness.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+}

@@ -1,0 +1,1773 @@
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true" CodeFile="S3G_CLN_RECEIPTPROCESSING_OPC.aspx.cs" Inherits="Collection_S3G_CLN_RECEIPTPROCESSING_OPC" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<%@ Register TagPrefix="uc3" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
+<%@ Register Src="../UserControls/S3GCustomerAddress.ascx" TagName="S3GCustomerAddress"
+    TagPrefix="uc1" %>
+<%@ Register Src="~/UserControls/LOBMasterView.ascx" TagName="LOV" TagPrefix="uc2" %>
+<%@ Register Src="~/UserControls/PageNavigator.ascx" TagPrefix="uc1" TagName="PageNavigator" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script type="text/javascript" language="javascript">
+
+        function fnLoadCustomer() {
+            document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_tbgeneral_btnCreateCustomer').click();
+        }
+
+        function funshowaddless() {
+
+            document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_TabMainPage_btnAddLess').click();
+            document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_TabMainPage_cpeDemo_ClientState').collapsed = !document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_TabMainPage_cpeDemo_ClientState').collapsed;
+
+        }
+
+        function checkDate_DocDate(sender, args) {
+            //debugger;
+            var varDocDate = document.getElementById('<%=txtDocDate.ClientID%>').value;
+            if (varDocDate != "") {
+                var selectedDate = sender._selectedDate;
+                var millsecondsdiff = Math.abs(Date.parseInvariant(varDocDate, sender._format) - sender._selectedDate);
+                var millisecondsPerDay = 1000 * 60 * 60 * 24;
+                var days = Math.floor(millsecondsdiff / millisecondsPerDay);
+                var varGapDays = "<%=strValueDateGapDays%>";
+                if (days > varGapDays) {
+                    var varAlert = "Gap Days between Receipt Date and Value Date should be " + varGapDays + " days";
+                    document.getElementById('<%=txtValueDate.ClientID%>').value = "";
+                    alert(varAlert);
+                    return;
+                }
+            }
+
+        }
+
+        //new function to validate gap days on  - ONBLUR and editable textbox date field.
+        function checkDate_DocDateOnBlur(el, erID, eFormat, IsFutureDateValidation, IsBackDateValidation) {
+            //debugger;
+            fnDoDate(el, erID, eFormat, IsFutureDateValidation, IsBackDateValidation);
+            //debugger;
+            var varDocDate = document.getElementById('<%=txtDocDate.ClientID%>').value;
+            var varValueDate = document.getElementById('<%=txtValueDate.ClientID%>').value;
+
+            if (varValueDate !== "" && varDocDate != "") {
+                //var selectedDate = sender._selectedDate;
+                var millsecondsdiff = Math.abs(Date.parseInvariant(varDocDate, eFormat) - Date.parseInvariant(varValueDate, eFormat));
+                var millisecondsPerDay = 1000 * 60 * 60 * 24;
+                var days = Math.floor(millsecondsdiff / millisecondsPerDay);
+                var varGapDays = "<%=strValueDateGapDays%>";
+                if (days > varGapDays) {
+                    var varAlert = "Gap Days between Receipt Date and Value Date should be " + varGapDays + " days";
+                    document.getElementById('<%=txtValueDate.ClientID%>').value = "";
+                    alert(varAlert);
+                    return;
+                }
+            }
+        }
+
+        function checkDate_InstrumentDate(sender, args) {
+            //debugger;
+            var varDocDate = document.getElementById('<%=txtDocDate.ClientID%>').value;
+            var selectedDate = sender._selectedDate;
+            var millsecondsdiff = sender._selectedDate - new Date();
+            var millisecondsPerDay = 1000 * 60 * 60 * 24;
+            var days = Math.floor(millsecondsdiff / millisecondsPerDay);
+            var varGapDays = "<%=strInstrumentDateGapDays%>";
+            if (days < ((-1) * varGapDays)) {
+                var varAlert = "Instrument Date should be less than or equal to " + varGapDays + " days";
+                document.getElementById('<%=txtInstrumentDate.ClientID%>').value = (new Date()).format(sender._format);
+                alert(varAlert);
+                return;
+            }
+            if (days > varGapDays) {
+                var varAlert = "Instrument Date should be less than or equal to " + varGapDays + " days";
+                document.getElementById('<%=txtInstrumentDate.ClientID%>').value = (new Date()).format(sender._format);
+                alert(varAlert);
+                return;
+            }
+        }
+
+        function checkDate_InstrumentDate_OnBlur(el, erID, eFormat, IsFutureDateValidation, IsBackDateValidation) {
+
+            fnDoDate(el, erID, eFormat, IsFutureDateValidation, IsBackDateValidation);
+
+            //debugger;
+            var varDocDate = document.getElementById('<%=txtInstrumentDate.ClientID%>').value;
+            if (varDocDate != "") {
+                var millsecondsdiff = Date.parseInvariant(varDocDate, eFormat) - new Date();
+                var millisecondsPerDay = 1000 * 60 * 60 * 24;
+                var days = Math.floor(millsecondsdiff / millisecondsPerDay);
+                var varGapDays = "<%=strInstrumentDateGapDays%>";
+                if (days < ((-1) * varGapDays)) {
+                    var varAlert = "Instrument Date should be less than or equal to " + varGapDays + " days";
+                    document.getElementById('<%=txtInstrumentDate.ClientID%>').value = (new Date()).format(eFormat);
+                    alert(varAlert);
+                    return;
+                }
+                if (days > varGapDays) {
+                    var varAlert = "Instrument Date should be less than or equal to " + varGapDays + " days";
+                    document.getElementById('<%=txtInstrumentDate.ClientID%>').value = (new Date()).format(eFormat);
+                    alert(varAlert);
+                    return;
+                }
+            }
+        }
+
+        function fnChkEnableOtherBank() {
+            var Mode = document.getElementById('<%=ddlDraweeBank.ClientID%>').value;
+            if (Mode == "Others") {
+                document.getElementById('<%=txtOtherDraweeBank.ClientID%>').value = "";
+                document.getElementById('<%=txtOtherDraweeBank.ClientID%>').style.display = '';
+            }
+            else {
+                document.getElementById('<%=txtOtherDraweeBank.ClientID%>').value = "";
+                document.getElementById('<%=txtOtherDraweeBank.ClientID%>').style.display = 'none';
+            }
+        }
+
+        function fnChkInstrumentNo() {
+            var Instrument_No = document.getElementById('<%=txtInstrumentNo.ClientID%>').value;
+            if (Instrument_No != "" && parseInt(Instrument_No) == 0) {
+                alert("Instrument No should not be Zero");
+                document.getElementById('<%=txtInstrumentNo.ClientID%>').value = "";
+            }
+            else if (Instrument_No != "" && Instrument_No.length < 6) {
+                alert("Instrument No should be 6 Numbers");
+                document.getElementById('<%=txtInstrumentNo.ClientID%>').focus();
+            }
+    }
+
+    // Code Changed for Call Id : 4665 Start
+
+    function fnSelectAll(chkSelectAllBranch, chkSelectBranch) {
+        var lblTtl;
+        var txtAmt;
+        var TotAmt = 0;
+        var gvBranchWise = document.getElementById('<%=gvShowInstallment.ClientID%>');
+
+        var gvLen;
+        if (gvBranchWise.rows.length < 10)
+            gvLen = '0' + gvBranchWise.rows.length;
+        else
+            gvLen = gvBranchWise.rows.length;
+
+        lblTtl = document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_tbgeneral_gvShowInstallment_ctl' + gvLen + '_lblTotal');
+
+        var TargetChildControl = chkSelectBranch;
+        //Get all the control of the type INPUT in the base control.
+        var Inputs = gvBranchWise.getElementsByTagName("input");
+        //Checked/Unchecked all the checkBoxes in side the GridView.
+        for (var n = 0; n < Inputs.length; ++n) {
+
+            if (Inputs[n].type == 'checkbox' && Inputs[n].id.indexOf(TargetChildControl, 0) >= 0)
+                Inputs[n].checked = chkSelectAllBranch.checked;
+
+            if (Inputs[n].type == 'text' && chkSelectAllBranch.checked) {
+                txtAmt = Inputs[n];
+                if (txtAmt.value != '')
+                    TotAmt += parseFloat(txtAmt.value);
+            }
+        }
+        lblTtl.innerText = TotAmt.toFixed(2);
+    }
+
+    function fnfndrSelectAll(chkSelectAllBranch, chkSelectBranch) {
+        var txtAmt;
+        var TotAmt = 0;
+        var gvBranchWise = document.getElementById('<%=grvFunderInstallments.ClientID%>');
+
+        var gvLen;
+        if (gvBranchWise.rows.length < 10)
+            gvLen = '0' + gvBranchWise.rows.length;
+        else
+            gvLen = gvBranchWise.rows.length;
+
+        var lblTtl = document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_tbgeneral_grvFunderInstallments_ctl' + gvLen + '_lblTotal');
+        var TargetChildControl = chkSelectBranch;
+        //Get all the control of the type INPUT in the base control.
+        var Inputs = gvBranchWise.getElementsByTagName("input");
+        //Checked/Unchecked all the checkBoxes in side the GridView.
+        for (var n = 0; n < Inputs.length; ++n) {
+            if (Inputs[n].type == 'checkbox' && Inputs[n].id.indexOf(TargetChildControl, 0) >= 0)
+                Inputs[n].checked = chkSelectAllBranch.checked;
+            if (Inputs[n].type == 'text' && chkSelectAllBranch.checked) {
+                txtAmt = Inputs[n];
+                if (txtAmt.value != '')
+                    TotAmt += parseFloat(txtAmt.value);
+            }
+        }
+        lblTtl.innerText = TotAmt.toFixed(2);
+    }
+
+    //Added On 28Jan2016 Starts Here
+    function fnChkFndrDue(chkSelect) {
+        var txtAmt;
+        var gv = document.getElementById('<%= grvFunderInstallments.ClientID%>');
+
+        var gvLen;
+        if (gv.rows.length < 10)
+            gvLen = '0' + gv.rows.length;
+        else
+            gvLen = gv.rows.length;
+
+        var chk = document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_tbgeneral_grvFunderInstallments_ctl01_chkFunderSelectAll');
+        var lblTtl = document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_tbgeneral_grvFunderInstallments_ctl' + gvLen + '_lblTotal');
+
+        var gvRwCnt = gv.rows.length - 2;
+        var TotAmt = 0;
+        var ChcCnt = 0;
+        if (chkSelect.checked == false) {
+            chk.checked = false;
+            for (var i = 0; i < gv.rows.length; ++i) {
+                var Input = gv.rows[i].getElementsByTagName("input");
+                for (var n = 0; n < Input.length; ++n) {
+                    if (Input[n].type == 'text')
+                        txtAmt = Input[n];
+                    if (Input[n].type == 'checkbox') {
+                        if (Input[n].checked == true) {
+                            ++ChcCnt;
+                            if (txtAmt.value != '')
+                                TotAmt = TotAmt + parseFloat(txtAmt.value);
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            for (var i = 0; i < gv.rows.length; ++i) {
+                var Inputs = gv.rows[i].getElementsByTagName("input");
+                for (var n = 0; n < Inputs.length; ++n) {
+                    if (Inputs[n].type == 'text')
+                        txtAmt = Inputs[n];
+                    if (Inputs[n].type == 'checkbox') {
+                        if (Inputs[n].checked == true) {
+                            ++ChcCnt;
+                            if (txtAmt.value != '')
+                                TotAmt += parseFloat(txtAmt.value)
+                        }
+                    }
+                }
+            }
+            if (ChcCnt == gvRwCnt)
+                chk.checked = true;
+            else
+                chk.checked = false;
+        }
+
+        lblTtl.innerText = TotAmt.toFixed(2);
+    }
+
+    function fnChkOPCDue(chkSelect) {
+        var txtAmt;
+        var lblTtl;
+        var gv = document.getElementById('<%= gvShowInstallment.ClientID%>');
+
+            var gvLen;
+            if (gv.rows.length < 10)
+                gvLen = '0' + gv.rows.length;
+            else
+                gvLen = gv.rows.length;
+
+            var chk = document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_tbgeneral_gvShowInstallment_ctl01_chkSelectAll');
+
+            lblTtl = document.getElementById('ctl00_ContentPlaceHolder1_tcReceipt_tbgeneral_gvShowInstallment_ctl' + gvLen + '_lblTotal');
+
+            var gvRwCnt = gv.rows.length - 2;
+            var TotAmt = 0;
+            if (chkSelect.checked == false) {
+                chk.checked = false;
+                for (var i = 0; i < gv.rows.length; ++i) {
+                    var Input = gv.rows[i].getElementsByTagName("input");
+                    for (var n = 0; n < Input.length; ++n) {
+                        if (Input[n].type == 'text')
+                            txtAmt = Input[n];
+                        if (Input[n].type == 'checkbox') {
+                            if (Input[n].checked == true) {
+                                if (txtAmt.value != '')
+                                    TotAmt = TotAmt + parseFloat(txtAmt.value);
+                            }
+                        }
+                    }
+                }
+            }
+            else {
+                var ChcCnt = 0;
+                for (var i = 0; i < gv.rows.length; ++i) {
+                    var Inputs = gv.rows[i].getElementsByTagName("input");
+                    for (var n = 0; n < Inputs.length; ++n) {
+                        if (Inputs[n].type == 'text')
+                            txtAmt = Inputs[n];
+                        if (Inputs[n].type == 'checkbox') {
+                            if (Inputs[n].checked == true) {
+                                ++ChcCnt;
+                                if (txtAmt.value != '')
+                                    TotAmt += parseFloat(txtAmt.value)
+                            }
+                        }
+                    }
+                }
+                if (ChcCnt == gvRwCnt)
+                    chk.checked = true;
+                else
+                    chk.checked = false;
+            }
+            lblTtl.innerText = TotAmt.toFixed(2);
+        }
+
+        // Code Changes End for Call Id : 4665
+
+        //Added On 28Jan2016 Ends Here
+
+    </script>
+
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td class="stylePageHeading">
+                                    <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+
+                        <cc1:TabContainer ID="tcReceipt" runat="server" CssClass="styleTabPanel" ScrollBars="None" ActiveTabIndex="0">
+                            <cc1:TabPanel runat="server" HeaderText="General" ID="tbgeneral" CssClass="tabpan"
+                                BackColor="Red" ToolTip="General" Width="99%">
+                                <HeaderTemplate>
+                                    General
+                                </HeaderTemplate>
+                                <ContentTemplate>
+                                    <asp:UpdatePanel ID="updtpnlGeneral" runat="server">
+                                        <ContentTemplate>
+                                            <table width="98%">
+                                                <tr valign="top">
+                                                    <td width="50%">
+                                                        <asp:Panel GroupingText="Receipt Information" ID="pnlReceiptInformation" runat="server" CssClass="stylePanel">
+                                                            <table width="98%">
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblLineofBusiness" runat="server" Text="Line of Business" CssClass="styleReqFieldLabel" Width="100px"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <asp:DropDownList ID="ddlLOB" runat="server" ToolTip="Line of Business"></asp:DropDownList>
+                                                                        <asp:RequiredFieldValidator ID="rfvLOB" runat="server" ControlToValidate="ddlLOB" InitialValue="0" Display="None"
+                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select a Line of Business" ValidationGroup="vsSave" SetFocusOnError="true">
+                                                                        </asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblLocation" runat="server" Text="Location" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <uc3:Suggest ID="ddlLocation" runat="server" ServiceMethod="GetBranchList" IsMandatory="true" ValidationGroup="vsSave"
+                                                                            ErrorMessage="Select the Location" ToolTip="Location" OnItem_Selected="ddlLocation_Item_Selected" AutoPostBack="true" />
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblMode" runat="server" Text="Mode" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <asp:DropDownList ID="ddlMode" runat="server" ToolTip="Mode" OnSelectedIndexChanged="ddlMode_SelectedIndexChanged"
+                                                                            AutoPostBack="true">
+                                                                        </asp:DropDownList>
+                                                                        <asp:RequiredFieldValidator ID="rfvMode" runat="server" ControlToValidate="ddlMode" InitialValue="0" Display="None"
+                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select a Mode" ValidationGroup="vsSave" SetFocusOnError="true">
+                                                                        </asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblReceiptType" runat="server" Text="Receipt Type" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <asp:DropDownList ID="ddlReceiptType" runat="server" ToolTip="Receipt Type" AutoPostBack="true"
+                                                                            OnSelectedIndexChanged="ddlReceiptType_SelectedIndexChanged">
+                                                                        </asp:DropDownList>
+                                                                        <asp:RequiredFieldValidator ID="rfvReceiptType" runat="server" ControlToValidate="ddlReceiptType" InitialValue="0" Display="None"
+                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select a Receipt Type" ValidationGroup="vsSave" SetFocusOnError="true">
+                                                                        </asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblDocNo" runat="server" Text="Receipt No" CssClass="styleDisplayLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <asp:TextBox ID="txtDocNo" runat="server" ReadOnly="true" ToolTip="Receipt No"></asp:TextBox>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblDocDate" runat="server" Text="Receipt Date" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <asp:TextBox ID="txtDocDate" runat="server" MaxLength="12" ToolTip="Receipt Date"></asp:TextBox>
+                                                                        <asp:Image ID="imgDocDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                                        <cc1:CalendarExtender ID="ceDocDate" runat="server" Enabled="true"
+                                                                            PopupButtonID="imgDocDate"
+                                                                            TargetControlID="txtDocDate">
+                                                                        </cc1:CalendarExtender>
+                                                                        <asp:RequiredFieldValidator ID="rfvDocDate" runat="server" ControlToValidate="txtDocDate" Enabled="true" CssClass="styleMandatoryLabel"
+                                                                            ErrorMessage="Enter the Receipt Date" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblDocAmount" runat="server" Text="Doc Amount" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <asp:TextBox ID="txtDocAmount" runat="server" ToolTip="Dcoument Amount" MaxLength="16" onkeypress="fnAllowNumbersOnly(true,false,this)"></asp:TextBox>
+                                                                        <cc1:FilteredTextBoxExtender ID="ftbeDocAmount" runat="server" TargetControlID="txtDocAmount" FilterType="Custom,Numbers"
+                                                                            ValidChars="." Enabled="true">
+                                                                        </cc1:FilteredTextBoxExtender>
+                                                                        <asp:RequiredFieldValidator ID="rfvDocAmount" runat="server" ControlToValidate="txtDocAmount" Enabled="true" CssClass="styleMandatoryLabel"
+                                                                            ErrorMessage="Enter the Doc Amount" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblValueDate" runat="server" Text="Value Date" CssClass="styleReqFieldLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <asp:TextBox ID="txtValueDate" runat="server" MaxLength="12" ToolTip="Value Date"></asp:TextBox>
+                                                                        <asp:Image ID="imgValueDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                                        <cc1:CalendarExtender ID="ceValueDate" runat="server" Enabled="true"
+                                                                            PopupButtonID="imgValueDate"
+                                                                            TargetControlID="txtValueDate" OnClientDateSelectionChanged="checkDate_DocDate">
+                                                                        </cc1:CalendarExtender>
+                                                                        <asp:RequiredFieldValidator ID="rfvValueDate" runat="server" ControlToValidate="txtValueDate" Enabled="true" CssClass="styleMandatoryLabel"
+                                                                            ErrorMessage="Enter the Value Date" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblTranche" runat="server" Text="Tranche" CssClass="styleDisplayLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <uc3:Suggest ID="ddlTranche" runat="server" ServiceMethod="GetTrancheList" ToolTip="Tranche" AutoPostBack="true"
+                                                                            OnItem_Selected="ddlTranche_Item_Selected" />
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblGLBased" runat="server" Text="GL Based" CssClass="styleDisplayLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <asp:DropDownList ID="ddlGLBased" runat="server" ToolTip="GL Based"></asp:DropDownList>
+                                                                        <asp:RequiredFieldValidator ID="rfvGLBased" runat="server" ControlToValidate="ddlGLBased" Enabled="true" CssClass="styleMandatoryLabel"
+                                                                            ErrorMessage="Select the GL Based" Display="None" InitialValue="-1" ValidationGroup="vsSave">
+                                                                        </asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblReceiptTo" runat="server" Text="Lessee Name" CssClass="styleDisplayLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">
+                                                                        <uc3:Suggest ID="ddlReceiptTo" runat="server" ServiceMethod="GetLOVListCode" ToolTip="Lessee Name" AutoPostBack="true"
+                                                                            OnItem_Selected="ddlReceiptTo_Item_Selected" />
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:CheckBox ID="chkExt" runat="server" Text="Extension RS" AutoPostBack="true" Enabled="false" OnCheckedChanged="chkExt_CheckedChanged" />
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </asp:Panel>
+                                                    </td>
+                                                    <td width="50%">
+                                                        <asp:Panel GroupingText="Lessee/Funder Information" ID="pnlLesseeInfo" runat="server" CssClass="stylePanel">
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td align="left">
+                                                                        <asp:Label runat="server" ToolTip="Receipt From" Text="Receipt From" ID="lblReceiptFrom"
+                                                                            CssClass="styleMandatoryLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td align="left">
+                                                                        <asp:DropDownList ID="ddlReceiptFrom" Enabled="false" OnSelectedIndexChanged="ddlReceiptFrom_SelectedIndexChanged" AutoPostBack="true" runat="server" ToolTip="Receipt From"></asp:DropDownList>
+                                                                        <asp:RequiredFieldValidator ID="rfvReceiptFrom" runat="server" ControlToValidate="ddlReceiptFrom" InitialValue="0" Display="None"
+                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select a Receipt From" Enabled="false" ValidationGroup="vsSave" SetFocusOnError="true">
+                                                                        </asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td align="left" width="35%">
+                                                                        <asp:Label runat="server" ToolTip="Receipt Information" Text="Lessee" ID="lblCode"
+                                                                            CssClass="styleMandatoryLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td align="left">
+                                                                        <asp:TextBox ID="txtCustomerCode" ToolTip="Lessee or Funder code" runat="server"
+                                                                            Style="display: none;" MaxLength="50"></asp:TextBox>
+                                                                        <uc2:LOV ID="ucCustomerCodeLov" onblur="fnLoadCustomer()" runat="server" strLOV_Code="CMD"
+                                                                            DispalyContent="Code" />
+                                                                        <asp:Button ID="btnCreateCustomer"
+                                                                            runat="server" Text="Create" Style="display: none;" CssClass="styleSubmitButton" OnClick="btnCreateCustomer_Click"
+                                                                            CausesValidation="false" />
+                                                                        <asp:RequiredFieldValidator ID="rfvcmbCustomer" runat="server" ControlToValidate="txtCustomerCode"
+                                                                            ErrorMessage="Select a Lessee" ValidationGroup="vsSave" CssClass="styleMandatoryLabel"
+                                                                            Display="None" SetFocusOnError="True"></asp:RequiredFieldValidator>
+                                                                        <asp:RequiredFieldValidator ID="rfvcmbCustomer1" runat="server" ControlToValidate="txtCustomerCode"
+                                                                            ErrorMessage="Select a Lessee" ValidationGroup="vsShow" CssClass="styleMandatoryLabel"
+                                                                            Display="None" SetFocusOnError="True"></asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td colspan="2">
+                                                                        <asp:Panel ID="pnlAddressDetails" runat="server">
+                                                                            <uc1:S3GCustomerAddress ID="ucCustomerAddress" runat="server" />
+                                                                        </asp:Panel>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </asp:Panel>
+                                                        <table width="100%">
+                                                            <tr>
+                                                                <td align="right">
+                                                                    <asp:Button runat="server" ID="btnShow" CssClass="styleSubmitButton" Text="Map Invoice" ValidationGroup="vsShow" Visible="false"
+                                                                        OnClick="btnShow_Click" ToolTip="Show Invoice Details" />
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                        <table width="100%" style="vertical-align: bottom;">
+                                                            <tr>
+                                                                <td align="right">
+                                                                    <asp:Label ID="lblTotalAmount" runat="server" Text="Total Amount : " Font-Bold="true" CssClass="styleDisplayLabel"></asp:Label>&nbsp&nbsp&nbsp&nbsp
+                                                                        <asp:Label ID="lblTotalRcptAmt" runat="server" Text="" Style="text-align: right;" CssClass="styleDisplayLabel" Font-Bold="true"></asp:Label>
+                                                                    <asp:TextBox ID="txtTotalAmount" runat="server" Text="" ReadOnly="true" Style="text-align: right;" Visible="false"></asp:TextBox>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+                                            <%-- <table width="98%">
+                                                <tr>
+                                                    <td>
+                                                        
+                                                    </td>
+                                                </tr>
+                                            </table>--%>
+                                            <table width="80%">
+                                                <tr>
+                                                    <td>
+                                                        <asp:Panel GroupingText="Filter Criteria" ID="pnlFilterCriteria" runat="server" CssClass="stylePanel">
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:Label ID="lblFilTranche" runat="server" Text="Tranche" CssClass="styleDisplayLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td>
+                                                                        <uc3:Suggest ID="ddlFilTranche" runat="server" ServiceMethod="GetTrancheList" ToolTip="Tranche" />
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:Label ID="lblFilInstalmentDate" runat="server" Text="Instalment From Date" CssClass="styleDisplayLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:TextBox ID="txtFilInstalmentDate" runat="server"></asp:TextBox>
+                                                                        <asp:Image ID="imgFilInstalmentDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                                        <cc1:CalendarExtender ID="ceFilInstalmentDate" runat="server" Enabled="true"
+                                                                            PopupButtonID="imgFilInstalmentDate"
+                                                                            TargetControlID="txtFilInstalmentDate">
+                                                                        </cc1:CalendarExtender>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:Label ID="lblToDate" runat="server" Text="Instalment To Date" CssClass="styleDisplayLabel"></asp:Label>
+                                                                    </td>
+                                                                    <td>
+                                                                        <asp:TextBox ID="txtFilInstalmentToDate" runat="server"></asp:TextBox>
+                                                                        <asp:Image ID="imgFilInstalmentToDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                                        <cc1:CalendarExtender ID="ceFilInstalmentToDate" runat="server" Enabled="true"
+                                                                            PopupButtonID="imgFilInstalmentToDate"
+                                                                            TargetControlID="txtFilInstalmentToDate">
+                                                                        </cc1:CalendarExtender>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </asp:Panel>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table width="98%">
+                                                <tr>
+                                                    <td>
+                                                        <asp:Panel GroupingText="Receipt Details" ID="pnlRcptDtls" runat="server" CssClass="stylePanel">
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:Button runat="server" ID="btnPendingInstallments" CssClass="styleSubmitButton" Text="Show" Visible="false" ValidationGroup="vsShow"
+                                                                            OnClick="btnPendingInstallments_Click" ToolTip="Show Rental Schedule Details" />
+                                                                    </td>
+                                                                    <td align="right">
+                                                                        <asp:Label ID="lblTtlOPCAmtDesc" runat="server" Text="Sub Total : " Font-Bold="true" CssClass="styleDisplayLabel"></asp:Label>&nbsp&nbsp&nbsp&nbsp
+                                                                        <asp:Label ID="lblTtlOPCAmt" runat="server" Text="" Style="text-align: right;" CssClass="styleDisplayLabel" Font-Bold="true"></asp:Label>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:GridView ID="grvRentalRcptDetails" runat="server" AutoGenerateColumns="false" Width="99%" ShowFooter="true"
+                                                                            OnRowDataBound="grvRentalRcptDetails_RowDataBound">
+                                                                            <Columns>
+                                                                                <asp:TemplateField HeaderText="S No">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblRentalSNo" Text='<%# Container.DataItemIndex+1%>' runat="server"></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Rental Schedule ID" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvRsID" runat="server" Text='<%#Bind("RS_ID") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Rental Schedule No">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvRSNo" runat="server" Text='<%#Bind("RS_No") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <uc3:Suggest ID="ddlRSNo" runat="server" ServiceMethod="GetRSList" IsMandatory="true" ValidationGroup="vsAdd"
+                                                                                            ErrorMessage="Select the Rental Schedule No" ToolTip="Rental Schedule No" AutoPostBack="true"
+                                                                                            OnItem_Selected="ddlRSNo_Item_Selected" />
+                                                                                    </FooterTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <%--Added by Chandru K on 28-Jul-2016 for CR_OPCSL_052--%>
+                                                                                <asp:TemplateField HeaderText="Invoice No">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblInvoiceNo" runat="server" Text='<%#Bind("Invoice_No") %>' />
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Invoice Date">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblInvoiceDate" runat="server" Text='<%#Bind("Invoice_Date") %>' />
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <%--End--%>
+                                                                                <asp:TemplateField HeaderText="Account Description ID" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblCashFlowID" runat="server" Text='<%#Bind("CashFlow_ID") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Account Description">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblCashFlowDesc" runat="server" Text='<%#Bind("CashFlow_Desc") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:DropDownList ID="ddlAccountDescription" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlAccountDescription_SelectedIndexChanged">
+                                                                                        </asp:DropDownList>
+                                                                                        <asp:RequiredFieldValidator ID="rfvFooterAcctDesc" runat="server" ControlToValidate="ddlAccountDescription" Enabled="true" Display="None" InitialValue="0"
+                                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select the Account Description" ValidationGroup="vsAdd"></asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="GL Code" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblGLCode" runat="server" Text='<%#Bind("GL_Code") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="GL Code Desc">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblGLCodeDesc" runat="server" Text='<%#Bind("GL_Code_Desc") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:DropDownList ID="ddlFooterGLCode" runat="server" OnSelectedIndexChanged="ddlFooterGLCode_SelectedIndexChanged" AutoPostBack="true"></asp:DropDownList>
+                                                                                        <asp:RequiredFieldValidator ID="rfvFooterGLCode" runat="server" ControlToValidate="ddlFooterGLCode" Enabled="true" Display="None" InitialValue="0"
+                                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select the GL Code" ValidationGroup="vsAdd"></asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="SL Code" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblSLCode" runat="server" Text='<%#Bind("SL_Code") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="SL Code Desc">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblSLCodeDesc" runat="server" Text='<%#Bind("SL_Code_Desc") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:DropDownList ID="ddlFooterSLCode" runat="server"></asp:DropDownList>
+                                                                                    </FooterTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Cashflow Flag ID" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblCashFlowFlagID" runat="server" Text='<%#Bind("CashFlow_Flag_ID") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:Label ID="lblFooterCashFlowFlagID" runat="server" Text=""></asp:Label>
+                                                                                    </FooterTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <%--Added by Arunkumar K on 15-Jul-2016 for Remarks Field inclusion--%>
+                                                                                <asp:TemplateField HeaderText="Remarks">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:TextBox ID="lblDescription" ToolTip="Remarks" Width="75%" runat="server"
+                                                                                            TextMode="MultiLine" onkeyup="maxlengthfortxt(500);" Text='<%#Eval("Remarks")%>'> </asp:TextBox>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:TextBox ID="txtFooterDescription" ToolTip="Remarks" TextMode="MultiLine"
+                                                                                            Width="75%" MaxLength="100" onkeyup="maxlengthfortxt(500);" runat="server" Wrap="true"></asp:TextBox>
+                                                                                    </FooterTemplate>
+                                                                                    <HeaderStyle CssClass="styleGridHeader" />
+                                                                                </asp:TemplateField>
+                                                                                <%--Added by Arunkumar K on 15-Jul-2016 for Remarks Field inclusion--%>
+
+                                                                                <asp:TemplateField HeaderText="Amount">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvAmount" runat="server" Text='<%#Bind("Amount") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <ItemStyle HorizontalAlign="Right" />
+                                                                                    <FooterTemplate>
+                                                                                        <asp:TextBox ID="txtFooterAmount" runat="server" Text="" MaxLength="16" onkeypress="fnAllowNumbersOnly(true,false,this)"></asp:TextBox>
+                                                                                        <cc1:FilteredTextBoxExtender ID="ftbeFooterAmount" runat="server" TargetControlID="txtFooterAmount" Enabled="true"
+                                                                                            FilterType="Custom,Numbers" ValidChars=".">
+                                                                                        </cc1:FilteredTextBoxExtender>
+                                                                                        <asp:RequiredFieldValidator ID="rfvFooterAmount" runat="server" ControlToValidate="txtFooterAmount" Enabled="true" Display="None"
+                                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Enter the Amount" ValidationGroup="vsAdd"></asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Action">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:LinkButton ID="lblgvRemove" runat="server" Text="Remove" ToolTip="Remove Detail" OnClick="lblgvRemove_Click"></asp:LinkButton>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:Button ID="btnFooterAdd" runat="server" CssClass="styleSubmitButton" Width="50px" Text="Add" ValidationGroup="vsAdd"
+                                                                                            OnClick="btnFooterAdd_Click"></asp:Button>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle HorizontalAlign="Center" />
+                                                                                    <FooterStyle HorizontalAlign="Center" />
+                                                                                </asp:TemplateField>
+                                                                            </Columns>
+                                                                        </asp:GridView>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </asp:Panel>
+
+                                                        <asp:Panel GroupingText="Funder Receipt Details" ID="pnlFunderRcpt" runat="server" CssClass="stylePanel">
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td align="left">
+                                                                        <asp:Button runat="server" ID="btnShowFndrDues" CssClass="styleSubmitButton" Text="Show" ValidationGroup="vsShow"
+                                                                            Visible="false" OnClick="btnShowFndrDues_Click" ToolTip="Show Funder Dues" />
+                                                                        <asp:Button runat="server" ID="btnMapInvoice" CssClass="styleSubmitButton" Text="Map Invoice" Visible="false"
+                                                                            OnClick="btnMapInvoice_Click" ToolTip="Map Invoices" ValidationGroup="vsShow" />
+                                                                    </td>
+                                                                    <td align="right">
+                                                                        <asp:Label ID="lblFunderTotalAmount" runat="server" Text="Sub Total : " Font-Bold="true" CssClass="styleDisplayLabel"></asp:Label>&nbsp&nbsp&nbsp&nbsp
+                                                                        <asp:Label ID="lblFunderRcptAmount" runat="server" Text="" Style="text-align: right;" CssClass="styleDisplayLabel" Font-Bold="true"></asp:Label>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:GridView ID="grvFunderReceipt" runat="server" AutoGenerateColumns="false" Width="99%" ShowFooter="true"
+                                                                            OnRowDataBound="grvFunderReceipt_RowDataBound">
+                                                                            <Columns>
+                                                                                <asp:TemplateField HeaderText="S No">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblFunderSNo" Text='<%# Container.DataItemIndex+1%>' runat="server"></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <ItemStyle Width="5%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Note ID" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvFndrNoteID" runat="server" Text='<%#Bind("Note_ID") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Note No">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvFndrNoteNo" runat="server" Text='<%#Bind("Note_No") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <uc3:Suggest ID="ddlNoteNo" runat="server" ServiceMethod="GetNoteList" IsMandatory="true" ValidationGroup="vsFunderAdd"
+                                                                                            ErrorMessage="Enter and Select the Note No" ToolTip="Note No" OnItem_Selected="ddlNoteNo_Item_Selected"
+                                                                                            AutoPostBack="true" />
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="15%" />
+                                                                                    <FooterStyle Width="15%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Tranche ID" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvFndrTrancheID" runat="server" Text='<%#Bind("Tranche_ID") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Tranche Name">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvFndrTrancheName" runat="server" Text='<%#Bind("Tranche_Name") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <uc3:Suggest ID="ddlfndrTrancheNo" runat="server" ServiceMethod="GetNoteTrancheList" IsMandatory="false" ToolTip="Tranche Name" />
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="15%" />
+                                                                                    <FooterStyle Width="15%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Account Description ID" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblFndrCashFlowID" runat="server" Text='<%#Bind("CashFlow_ID") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Account Description">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblFndrCFDesc" runat="server" Text='<%#Bind("CashFlow_Desc") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:DropDownList ID="ddlFndrCFDesc" runat="server" OnSelectedIndexChanged="ddlFndrCFDesc_SelectedIndexChanged" AutoPostBack="true">
+                                                                                        </asp:DropDownList>
+                                                                                        <asp:RequiredFieldValidator ID="rfvFndrCFDesc" runat="server" ControlToValidate="ddlFndrCFDesc" Enabled="true" Display="None" InitialValue="0"
+                                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select the Account Description" ValidationGroup="vsFunderAdd"></asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="20%" />
+                                                                                    <FooterStyle Width="20%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="GL Code">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblFndrGLCodeDesc" runat="server" Text='<%#Bind("GL_Code_Desc") %>'></asp:Label>
+                                                                                        <%--<uc3:Suggest ID="ddlFndrHdrGLCode" runat="server" ServiceMethod="GetGLCodeList" />--%>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <uc3:Suggest ID="ddlFndrGLCode" runat="server" ServiceMethod="GetGLCodeList" IsMandatory="true" ValidationGroup="vsFunderAdd"
+                                                                                            ErrorMessage="Select GL Code" Width="80px" />
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="10%" />
+                                                                                    <FooterStyle Width="10%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="SL Code">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblFndrSLCodeDesc" runat="server" Text='<%#Bind("SL_Code_Desc") %>'></asp:Label>
+                                                                                        <%--<uc3:Suggest ID="ddlFndrHdrSLCode" runat="server" ServiceMethod="GetSLCodeList" />--%>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <uc3:Suggest ID="ddlFndrSLCode" runat="server" ServiceMethod="GetSLCodeList" IsMandatory="true" ValidationGroup="vsFunderAdd"
+                                                                                            ErrorMessage="Select SL Code" Width="80px" />
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="10%" />
+                                                                                    <FooterStyle Width="10%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Cashflow Flag ID" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblFndrCFFlagID" runat="server" Text='<%#Bind("CashFlow_Flag_ID") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:Label ID="lblFooterFndrCFFlagID" runat="server" Text=""></asp:Label>
+                                                                                    </FooterTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Amount">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvFunderAmount" runat="server" Text='<%#Bind("Amount") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:TextBox ID="txtFooterFunderAmount" runat="server" Text="" MaxLength="16" onkeypress="fnAllowNumbersOnly(true,false,this)"></asp:TextBox>
+                                                                                        <cc1:FilteredTextBoxExtender ID="ftbeFooterFunderAmount" runat="server" TargetControlID="txtFooterFunderAmount" Enabled="true"
+                                                                                            FilterType="Custom,Numbers" ValidChars=".">
+                                                                                        </cc1:FilteredTextBoxExtender>
+                                                                                        <asp:RequiredFieldValidator ID="rfvFooterFunderAmount" runat="server" ControlToValidate="txtFooterFunderAmount" Enabled="true" Display="None"
+                                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Enter the Amount" ValidationGroup="vsFunderAdd"></asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="15%" HorizontalAlign="Right" />
+                                                                                    <FooterStyle Width="15%" HorizontalAlign="Right" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Action">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:LinkButton ID="lnkgvFunderRemove" runat="server" Text="Remove" ToolTip="Remove Detail" OnClick="lnkgvFunderRemove_Click"></asp:LinkButton>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:Button ID="btnFooterFunderAdd" runat="server" CssClass="styleSubmitButton" Width="80px" Text="Add" ValidationGroup="vsFunderAdd"
+                                                                                            OnClick="btnFooterFunderAdd_Click"></asp:Button>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="10%" HorizontalAlign="Center" />
+                                                                                    <FooterStyle Width="10%" HorizontalAlign="Center" />
+                                                                                </asp:TemplateField>
+                                                                            </Columns>
+                                                                        </asp:GridView>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </asp:Panel>
+
+
+                                                        <asp:Panel ID="divAddLess" runat="server" CssClass="accordionHeader" Width="98%">
+                                                            <div style="float: left;">
+                                                                Add/Less details
+                                                            </div>
+                                                            <div style="float: left; margin-left: 20px;">
+                                                                <asp:Button ID="btnAddLess" runat="server" Style="display: none;" CssClass="styleSubmitButton"
+                                                                    Text="Show Details..." />
+                                                                <asp:Label ID="lblDetails" runat="server" onclick='funshowaddless()'>(Show Details...)</asp:Label>
+                                                            </div>
+                                                            <div style="float: right; vertical-align: middle;">
+                                                                <asp:ImageButton ID="imgDetails" runat="server" OnClientClick="funshowaddless()"
+                                                                    ImageUrl="~/Images/expand_blue.jpg" AlternateText="(Show Details...)" />
+                                                            </div>
+                                                        </asp:Panel>
+
+                                                        <asp:Panel ID="pnlAddLess" runat="server" CssClass="stylePanel" Width="99.5%">
+                                                            <table width="100%">
+                                                                <tr>
+                                                                    <td>
+                                                                        <asp:GridView ID="grvAddLessDtls" runat="server" AutoGenerateColumns="false" Width="99%" ShowFooter="true"
+                                                                            OnRowDataBound="grvAddLessDtls_RowDataBound">
+                                                                            <Columns>
+
+                                                                                <asp:TemplateField HeaderText="S No">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblAddLessSNo" Text='<%# Container.DataItemIndex+1%>' runat="server"></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Rental Schedule No">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvAddLessRsID" runat="server" Text='<%#Bind("RS_ID") %>' Visible="false"></asp:Label>
+                                                                                        <asp:Label ID="lblgvAddLessRSNo" runat="server" Text='<%#Bind("RS_No") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <uc3:Suggest ID="ddlAddLessRSNo" runat="server" ServiceMethod="GetRSList" IsMandatory="false" ValidationGroup="vsAddLess"
+                                                                                            ErrorMessage="Select the Rental Schedule No" ToolTip="Rental Schedule No" />
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="20%" />
+                                                                                    <FooterStyle Width="20%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Add Or Less">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblAddLessID" runat="server" Text='<%#Bind("AddLess_ID") %>' Visible="false"></asp:Label>
+                                                                                        <asp:Label ID="lblAddLessDesc" runat="server" Text='<%#Bind("AddLess_Desc") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:DropDownList ID="ddlAddLessDesc" runat="server">
+                                                                                            <asp:ListItem Value="-1" Text="--Select--"></asp:ListItem>
+                                                                                            <asp:ListItem Value="1" Text="Add"></asp:ListItem>
+                                                                                            <asp:ListItem Value="0" Text="Less"></asp:ListItem>
+                                                                                        </asp:DropDownList>
+                                                                                        <asp:RequiredFieldValidator ID="rfvAddLessDesc" runat="server" ControlToValidate="ddlAddLessDesc" Enabled="true" Display="None" InitialValue="-1"
+                                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select the Add or Less" ValidationGroup="vsAddLess"></asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="10%" />
+                                                                                    <FooterStyle Width="10%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Tax Type">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblTaxTypeID" runat="server" Text='<%#Bind("TaxType_ID") %>' Visible="false"></asp:Label>
+                                                                                        <asp:Label ID="lblTaxTypeDesc" runat="server" Text='<%#Bind("TaxType_Desc") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:DropDownList ID="ddlTaxType" runat="server" OnSelectedIndexChanged="ddlTaxType_SelectedIndexChanged" AutoPostBack="true"></asp:DropDownList>
+                                                                                        <asp:RequiredFieldValidator ID="rfvTaxType" runat="server" ControlToValidate="ddlTaxType" Enabled="true" Display="None" InitialValue="0"
+                                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Select the Tax Type" ValidationGroup="vsAddLess"></asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="15%" />
+                                                                                    <FooterStyle Width="15%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="GL Account">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblAddLessGLCodeDesc" runat="server" Text='<%#Bind("GL_Code_Desc") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:Label ID="lblFooterAddLessGLCodeDesc" runat="server" Text=""></asp:Label>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="8%" />
+                                                                                    <FooterStyle Width="8%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="SL Account">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblAddLessSLCodeDesc" runat="server" Text='<%#Bind("SL_Code_Desc") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:Label ID="lblFooterAddLessSLCodeDesc" runat="server" Text=""></asp:Label>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="8%" />
+                                                                                    <FooterStyle Width="8%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Section No">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblAddLessSectionNo" runat="server" Text='<%#Bind("Section_No") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:TextBox ID="txtFooterAddLessSectionNo" runat="server" Text="" MaxLength="30"></asp:TextBox>
+                                                                                        <asp:RequiredFieldValidator ID="rfvFooterAddLessSectionNo" runat="server" ControlToValidate="txtFooterAddLessSectionNo"
+                                                                                            Enabled="false" Display="None" CssClass="styleMandatoryLabel" ErrorMessage="Enter the Section No" ValidationGroup="vsAddLess">
+                                                                                        </asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="8%" />
+                                                                                    <FooterStyle Width="8%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="CashFlow Flag ID" Visible="false">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblAddLessDueFlag" runat="server" Text='<%#Bind("Cashflow_Flag_ID") %>' Visible="false"></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:Label ID="lblFooterAddLessDueFlag" runat="server" Text=""></asp:Label>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="8%" />
+                                                                                    <FooterStyle Width="8%" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Amount">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:Label ID="lblgvAddLessAmount" runat="server" Text='<%#Bind("Amount") %>'></asp:Label>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:TextBox ID="txtFooterAddLessAmount" runat="server" Text="" MaxLength="16" onkeypress="fnAllowNumbersOnly(true,false,this)"></asp:TextBox>
+                                                                                        <cc1:FilteredTextBoxExtender ID="ftbeFooterAddLessAmount" runat="server" TargetControlID="txtFooterAddLessAmount" Enabled="true"
+                                                                                            FilterType="Custom,Numbers" ValidChars=".">
+                                                                                        </cc1:FilteredTextBoxExtender>
+                                                                                        <asp:RequiredFieldValidator ID="rfvFooterAddLessAmount" runat="server" ControlToValidate="txtFooterAddLessAmount" Enabled="true" Display="None"
+                                                                                            CssClass="styleMandatoryLabel" ErrorMessage="Enter the Amount" ValidationGroup="vsAddLess"></asp:RequiredFieldValidator>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="15%" HorizontalAlign="Right" />
+                                                                                    <FooterStyle Width="15%" HorizontalAlign="Right" />
+                                                                                </asp:TemplateField>
+                                                                                <asp:TemplateField HeaderText="Action">
+                                                                                    <ItemTemplate>
+                                                                                        <asp:LinkButton ID="lnkgvAddLessRemove" runat="server" Text="Remove" ToolTip="Remove Detail" OnClick="lnkgvAddLessRemove_Click"></asp:LinkButton>
+                                                                                    </ItemTemplate>
+                                                                                    <FooterTemplate>
+                                                                                        <asp:Button ID="btnAddLessInsert" runat="server" CssClass="styleSubmitButton" Width="50px" Text="Add" ValidationGroup="vsAddLess" OnClick="btnAddLessInsert_Click"></asp:Button>
+                                                                                    </FooterTemplate>
+                                                                                    <ItemStyle Width="7%" HorizontalAlign="Center" />
+                                                                                    <FooterStyle Width="7%" HorizontalAlign="Center" />
+                                                                                </asp:TemplateField>
+                                                                            </Columns>
+                                                                        </asp:GridView>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td align="right">
+                                                                        <asp:Label ID="lblAddAmount" runat="server" Text="Total Add" CssClass="styleDisplayLabel" Font-Bold="true"></asp:Label>
+                                                                        <asp:TextBox ID="txtAddAmount" runat="server" ReadOnly="true" Style="text-align: right;"></asp:TextBox>
+                                                                    </td>
+                                                                </tr>
+
+                                                                <tr>
+                                                                    <td align="right">
+                                                                        <asp:Label ID="lblLessAmount" runat="server" Text="Total Less" CssClass="styleDisplayLabel" Font-Bold="true"></asp:Label>
+                                                                        <asp:TextBox ID="txtLessAmount" runat="server" ReadOnly="true" Style="text-align: right;"></asp:TextBox></td>
+                                                                </tr>
+                                                            </table>
+                                                        </asp:Panel>
+
+                                                        <cc1:CollapsiblePanelExtender ID="cpeDemo" runat="Server" TargetControlID="pnlAddLess"
+                                                            ExpandControlID="divAddLess" CollapseControlID="divAddLess" Collapsed="True"
+                                                            TextLabelID="lblDetails" ImageControlID="imgDetails" ExpandedText="(Hide Details...)"
+                                                            CollapsedText="(Show Details...)" ExpandedImage="~/Images/collapse_blue.jpg"
+                                                            CollapsedImage="~/Images/expand_blue.jpg" SuppressPostBack="false" SkinID="CollapsiblePanelDemo" />
+
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+
+                                            <table width="98%">
+                                                <tr>
+                                                    <td width="100%">
+                                                        <asp:Panel ID="pnlShowMethod" runat="server" CssClass="stylePanel" GroupingText="OPC Instalment Details" Visible="false"
+                                                            Width="98%">
+                                                            <asp:UpdatePanel ID="updShow" runat="server" UpdateMode="Conditional">
+                                                                <ContentTemplate>
+                                                                    <div id="div12" style="overflow: auto; width: 98%; padding-left: 1%;" runat="server">
+                                                                        <table width="100%" align="center">
+                                                                            <tr>
+                                                                                <td>
+                                                                                    <asp:GridView ID="gvShowInstallment" runat="server" AutoGenerateColumns="false" Width="100%"
+                                                                                        OnRowDataBound="gvShowInstallment_RowDataBound" ShowFooter="true">
+                                                                                        <Columns>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Tranche Name">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblPendingTrancheName" runat="server" Text='<%#Bind("Tranche_Name") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Rental Schedule No">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblPendingPanum" runat="server" Text='<%#Bind("PrimeAccountNo") %>' />
+                                                                                                    <asp:Label ID="lblPendingPASARefID" runat="server" Text='<%#Bind("Pa_Sa_Ref_ID") %>' Visible="false" />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <%--Added by Chandru K on 28-Jul-2016 for CR_OPCSL_052--%>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Invoice No">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblInvoiceNo" runat="server" Text='<%#Bind("Invoice_No") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Instalment Date">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblPendingInstallmentDate" runat="server" Text='<%#Bind("InstallmentDate") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <%--End--%>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Account Description">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblPendingCashflowDesc" runat="server" Text='<%#Bind("AccountDescription") %>' />
+                                                                                                </ItemTemplate>
+                                                                                                <%-- Code Added for Call Id : 4665 Start --%>
+                                                                                                <FooterTemplate>
+                                                                                                    <asp:Label ID="lblTot" runat="server" Text="Total Amount" />
+                                                                                                </FooterTemplate>
+                                                                                                <FooterStyle HorizontalAlign="Right" />
+                                                                                                <%-- Code Added for Call Id : 4665 End --%>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Amount" ItemStyle-HorizontalAlign="Right">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblPendingAmount" runat="server" Text='<%#Bind("Amount") %>' Visible="false" />
+                                                                                                    <asp:TextBox ID="txtPendingAmount" runat="server" Text='<%#Bind("Amount") %>' Style="text-align: right"></asp:TextBox>
+                                                                                                    <cc1:FilteredTextBoxExtender ID="ftbePendingAmount" runat="server" TargetControlID="txtPendingAmount" FilterType="Custom,Numbers"
+                                                                                                        ValidChars="." Enabled="true">
+                                                                                                    </cc1:FilteredTextBoxExtender>
+                                                                                                </ItemTemplate>
+                                                                                                <%-- Code Added for Call Id : 4665 Start --%>
+                                                                                                <FooterTemplate>
+                                                                                                    <asp:Label ID="lblTotal" runat="server" Text="0.00" />
+                                                                                                </FooterTemplate>
+                                                                                                <FooterStyle HorizontalAlign="Right" />
+                                                                                                <%-- Code Added for Call Id : 4665 End --%>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="false" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblFlagId" runat="server" Text='<%#Bind("AccountDescriptionId") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="false" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblCFMId" runat="server" Text='<%#Bind("CFMID") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="false" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblGL_Account" runat="server" Text='<%#Bind("GL_Account") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="false" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblSL_Account" runat="server" Text='<%#Bind("SL_Account") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <HeaderTemplate>
+                                                                                                    <asp:CheckBox ID="chkSelectAll" runat="server" onclick="javascript:fnSelectAll(this,'chkSelect');" />
+                                                                                                </HeaderTemplate>
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:CheckBox ID="chkSelect" runat="server" OnClick="javascript:fnChkOPCDue(this);" />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                        </Columns>
+                                                                                    </asp:GridView>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td align="center">
+                                                                                    <asp:Button ID="btnShowApply" runat="server" CausesValidation="true" Visible="false"
+                                                                                        CssClass="styleSubmitButton" Text="Apply" OnClick="btnShowApply_OnClick" />
+                                                                                    <asp:Button ID="btnOPCShowCancel" runat="server" CausesValidation="true" Visible="false"
+                                                                                        CssClass="styleSubmitButton" Text="Cancel" OnClick="btnOPCShowCancel_Click" />
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </div>
+                                                                </ContentTemplate>
+                                                            </asp:UpdatePanel>
+                                                        </asp:Panel>
+
+                                                        <asp:Panel ID="pnlShowFunderDue" runat="server" CssClass="stylePanel" GroupingText="Funder Due Details" Visible="false"
+                                                            Width="98%">
+                                                            <asp:UpdatePanel ID="updtpnlFD" runat="server" UpdateMode="Conditional">
+                                                                <ContentTemplate>
+                                                                    <div id="divFD" style="overflow: auto; width: 98%; padding-left: 1%;" runat="server">
+                                                                        <table width="100%" align="center">
+                                                                            <tr>
+                                                                                <td>
+                                                                                    <asp:GridView ID="grvFunderInstallments" runat="server" AutoGenerateColumns="false" ShowFooter="true" Width="100%">
+                                                                                        <Columns>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Note No">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblFndPndNoteNo" runat="server" Text='<%#Bind("Note_No") %>' />
+                                                                                                    <asp:Label ID="lblFndPndNoteID" runat="server" Text='<%#Bind("Note_ID") %>' Visible="false" />
+                                                                                                </ItemTemplate>
+                                                                                                <ItemStyle Width="15%" />
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Tranche Name">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblFndPndTrancheID" runat="server" Text='<%#Bind("Tranche_ID") %>' Visible="false" />
+                                                                                                    <asp:Label ID="lblFndPndTrancheName" runat="server" Text='<%#Bind("Tranche_Name") %>' />
+                                                                                                </ItemTemplate>
+                                                                                                <ItemStyle Width="15%" />
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Account Description">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblFndPndCFDesc" runat="server" Text='<%#Bind("Account_Description") %>' />
+                                                                                                </ItemTemplate>
+                                                                                                <ItemStyle Width="20%" />
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Due Date" ItemStyle-HorizontalAlign="Right">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblFndPndDueDate" runat="server" Text='<%#Bind("Due_Date") %>' Width="80px" />
+                                                                                                </ItemTemplate>
+                                                                                                <ItemStyle Width="10%" />
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Due Amount" ItemStyle-HorizontalAlign="Right">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblFndPndAmount" runat="server" Text='<%#Bind("Due_Amount") %>' Width="120px" />
+                                                                                                </ItemTemplate>
+                                                                                                <ItemStyle Width="10%" />
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="false" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblFndPndCFFlagId" runat="server" Text='<%#Bind("CashFlow_Flag_ID") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="false" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:Label ID="lblFndPndCFMId" runat="server" Text='<%#Bind("CashFlow_ID") %>' />
+                                                                                                </ItemTemplate>
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Funder GL Code" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <ItemTemplate>
+                                                                                                    <uc3:Suggest ID="ddlFunderGLCode" runat="server" ServiceMethod="GetGLCodeList" ToolTip="GL Code" Width="100px" Visible="false" />
+                                                                                                    <asp:Label ID="lblFndPndGLCode" runat="server" Text='<%#Bind("FunderGLCode") %>' />
+                                                                                                </ItemTemplate>
+                                                                                                <ItemStyle Width="10%" />
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Funder SL Code" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <ItemTemplate>
+                                                                                                    <uc3:Suggest ID="ddlFunderSLCode" runat="server" ServiceMethod="GetSLCodeList" ToolTip="SL Code" Width="100px" Visible="false" />
+                                                                                                    <asp:Label ID="lblFndPndSLCode" runat="server" Text='<%#Bind("FunderSLCode") %>' />
+                                                                                                </ItemTemplate>
+                                                                                                <%-- Code Added for Call Id : 4665 Start --%>
+                                                                                                <FooterTemplate>
+                                                                                                    <asp:Label ID="lblTot" runat="server" Text="Total Amount" />
+                                                                                                </FooterTemplate>
+                                                                                                <FooterStyle HorizontalAlign="Right" />
+                                                                                                <%-- Code Added for Call Id : 4665 End --%>
+                                                                                                <ItemStyle Width="10%" />
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField Visible="true" HeaderText="Amount to be Entered">
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:TextBox ID="txtFndrDueAmt" runat="server" MaxLength="16" onkeypress="fnAllowNumbersOnly(true,false,this)"
+                                                                                                        Style="text-align: right" Text='<%#Bind("Receipt_Amount") %>'></asp:TextBox>
+                                                                                                    <cc1:FilteredTextBoxExtender ID="ftbeFndrDueAmt" runat="server" TargetControlID="txtFndrDueAmt" FilterType="Custom,Numbers"
+                                                                                                        ValidChars="." Enabled="true">
+                                                                                                    </cc1:FilteredTextBoxExtender>
+                                                                                                </ItemTemplate>
+                                                                                                <%-- Code Added for Call Id : 4665 Start --%>
+                                                                                                <FooterTemplate>
+                                                                                                    <asp:Label ID="lblTotal" runat="server" Text="0.00" />
+                                                                                                </FooterTemplate>
+                                                                                                <FooterStyle HorizontalAlign="Right" />
+                                                                                                <%-- Code Added for Call Id : 4665 End --%>
+                                                                                                <ItemStyle Width="10%" HorizontalAlign="Right" />
+                                                                                            </asp:TemplateField>
+                                                                                            <asp:TemplateField HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center">
+                                                                                                <HeaderTemplate>
+                                                                                                    <asp:CheckBox ID="chkFunderSelectAll" runat="server" onclick="javascript:fnfndrSelectAll(this,'chkFunderSelect');" />
+                                                                                                </HeaderTemplate>
+                                                                                                <ItemTemplate>
+                                                                                                    <asp:CheckBox ID="chkFunderSelect" runat="server" OnClick="javascript:fnChkFndrDue(this);" />
+                                                                                                </ItemTemplate>
+                                                                                                <ItemStyle Width="5%" />
+                                                                                            </asp:TemplateField>
+                                                                                        </Columns>
+                                                                                    </asp:GridView>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td align="center">
+                                                                                    <asp:Button ID="btnApplyFndrDue" runat="server" CausesValidation="true" Visible="false"
+                                                                                        CssClass="styleSubmitButton" Text="Apply" OnClick="btnApplyFndrDue_Click" />
+                                                                                    <asp:Button ID="btnFndrShowCancel" runat="server" CausesValidation="true" Visible="false"
+                                                                                        CssClass="styleSubmitButton" Text="Cancel" OnClick="btnFndrShowCancel_Click" />
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </div>
+                                                                </ContentTemplate>
+                                                            </asp:UpdatePanel>
+                                                        </asp:Panel>
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+                                        </ContentTemplate>
+                                    </asp:UpdatePanel>
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                            <cc1:TabPanel runat="server" HeaderText="Drawee Bank" ID="tbDraweeBank" CssClass="tabpan"
+                                BackColor="Red" ToolTip="Drawee Bank" Width="99%">
+                                <HeaderTemplate>
+                                    Drawee Bank
+                                </HeaderTemplate>
+                                <ContentTemplate>
+                                    <asp:UpdatePanel ID="updtpnlDraweeBank" runat="server">
+                                        <ContentTemplate>
+                                            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblInstrumentNo" runat="server" Text="Instrument No" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtInstrumentNo" runat="server" ToolTip="Instrument No" MaxLength="6" onblur="fnChkInstrumentNo();"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="ftbeInstrumentNo" runat="server" TargetControlID="txtInstrumentNo" FilterType="Numbers"
+                                                            Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                        <asp:RequiredFieldValidator ID="rfvInstrumentNo" runat="server" ControlToValidate="txtInstrumentNo" Enabled="false" CssClass="styleMandatoryLabel"
+                                                            ErrorMessage="Enter the Instrument No" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                    </td>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblPaymentGatewayRefNo" runat="server" Text="Payment Gateway Ref No" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtPaymentGatewayRefNo" runat="server" ToolTip="Payment Gateway Ref No" MaxLength="20"></asp:TextBox>
+                                                        <asp:RequiredFieldValidator ID="rfvPaymentGatewayRefNo" runat="server" ControlToValidate="txtPaymentGatewayRefNo" Enabled="false" CssClass="styleMandatoryLabel"
+                                                            ErrorMessage="Enter the Payment Gateway Ref No" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblInstrumentDate" runat="server" Text="Instrument Date" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtInstrumentDate" runat="server" ToolTip="Instrument Date" MaxLength="12"></asp:TextBox>
+                                                        <asp:Image ID="imgInstrumentDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="False" />
+                                                        <cc1:CalendarExtender ID="ceInstrumentDate" runat="server" Enabled="true"
+                                                            PopupButtonID="imgInstrumentDate"
+                                                            TargetControlID="txtInstrumentDate" OnClientDateSelectionChanged="checkDate_InstrumentDate">
+                                                        </cc1:CalendarExtender>
+                                                        <asp:RequiredFieldValidator ID="rfvInstrumentDate" runat="server" ControlToValidate="txtInstrumentDate" Enabled="false" CssClass="styleMandatoryLabel"
+                                                            ErrorMessage="Enter the Instrument Date" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                    </td>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblAckNo" runat="server" Text="Ack No" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtAckNo" runat="server" ToolTip="Ack No" MaxLength="12"></asp:TextBox>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblDraweeBank" runat="server" Text="Drawee Bank" CssClass="styleDisplayLabel"></asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:DropDownList ID="ddlDraweeBank" runat="server" ToolTip="Drawee Bank" onchange="fnChkEnableOtherBank();"></asp:DropDownList>
+                                                        <asp:TextBox ID="txtOtherDraweeBank" runat="server" Text="" MaxLength="60"></asp:TextBox>
+                                                        <asp:RequiredFieldValidator ID="rfvDraweeBank" runat="server" ControlToValidate="ddlDraweeBank" Enabled="false" CssClass="styleMandatoryLabel" InitialValue="0"
+                                                            ErrorMessage="Select the Drawee Bank" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
+                                                    </td>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblBankLocation" runat="server" Text="Location" CssClass="styleDisplayLabel" Visible="false"></asp:Label>
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtBankLocation" runat="server" ToolTip="Bank Location" MaxLength="50" Visible="false"></asp:TextBox>
+                                                        <cc1:FilteredTextBoxExtender ID="ftbeBankLocation" runat="server" TargetControlID="txtBankLocation"
+                                                            FilterType="LowercaseLetters,UppercaseLetters" Enabled="true">
+                                                        </cc1:FilteredTextBoxExtender>
+                                                        <%--<asp:RequiredFieldValidator ID="rfvBankLocation" runat="server" ControlToValidate="txtBankLocation" Enabled="false" CssClass="styleMandatoryLabel"
+                                                            ErrorMessage="Enter the Bank Location" Display="None" ValidationGroup="vsSave"></asp:RequiredFieldValidator>--%>
+                                                    </td>
+
+                                                </tr>
+
+                                                <tr width="100%">
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblDepositBank" ToolTip="Deposit Bank" runat="server" Text="Deposit Bank" CssClass="styleReqFieldLabel" />
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:DropDownList ID="ddlDepositBankName" ToolTip="Bank Name" runat="server" AutoPostBack="true"
+                                                            OnSelectedIndexChanged="ddlDepositBankName_SelectedIndexChanged" />
+                                                        <asp:RequiredFieldValidator ID="rfvDepbankname" runat="server" Display="None" ControlToValidate="ddlDepositBankName"
+                                                            ValidationGroup="vsSave" InitialValue="0" ErrorMessage="Select Deposit Bank" CssClass="styleMandatoryLabel"
+                                                            Enabled="false" SetFocusOnError="True"></asp:RequiredFieldValidator>
+                                                    </td>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblDepAcctnumber" ToolTip="Account Number" runat="server" Text="Account Number"
+                                                            CssClass="styleReqFieldLabel" />
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:DropDownList ID="ddlDepAcctNumber" ToolTip="Account Number" runat="server" AutoPostBack="true"
+                                                            OnSelectedIndexChanged="ddlDepAcctNumber_SelectedIndexChanged" />
+                                                        <asp:RequiredFieldValidator ID="rfvDepActNumber" runat="server" Display="None" ControlToValidate="ddlDepAcctNumber"
+                                                            ValidationGroup="vsSave" InitialValue="0" ErrorMessage="Select Account Number"
+                                                            CssClass="styleMandatoryLabel" Enabled="false" SetFocusOnError="True"></asp:RequiredFieldValidator>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblIFSC_Code" runat="server" ToolTip="IFSC Code" Text="IFSC Code"
+                                                            CssClass="styleReqFieldLabel" />
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtIFSC_Code" runat="server" ToolTip="IFSC Code" ReadOnly="true" />
+                                                    </td>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblBankbranch" runat="server" ToolTip="Bank Branch" Text="Bank Branch" />
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtBankbranch" runat="server" ToolTip="Bank Branch" ReadOnly="true" />
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblGLcode" runat="server" ToolTip="GL Code" Text="GL Code" CssClass="styleReqFieldLabel" />
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtGLCode" runat="server" ToolTip="GL Code" ReadOnly="true" />
+                                                        <asp:RequiredFieldValidator ID="rfvDepGlCode" runat="server" Display="None" ControlToValidate="txtGLCode"
+                                                            ValidationGroup="vsSave" ErrorMessage="GL Code should not be blank" CssClass="styleMandatoryLabel"
+                                                            Enabled="false" SetFocusOnError="True"></asp:RequiredFieldValidator>
+                                                    </td>
+                                                    <td class="styleFieldLabel">
+                                                        <asp:Label ID="lblSLcode" runat="server" ToolTip="SL Code" Text="SL Code" />
+                                                    </td>
+                                                    <td class="styleFieldAlign">
+                                                        <asp:TextBox ID="txtSLCode" runat="server" ToolTip="SL Code" ReadOnly="true" />
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </ContentTemplate>
+                                    </asp:UpdatePanel>
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                            <cc1:TabPanel runat="server" HeaderText="PO Details" ID="tbPoInvoiceDtl" CssClass="tabpan"
+                                BackColor="Red" ToolTip="PO Details" Width="99%">
+                                <HeaderTemplate>
+                                    PO Details
+                                </HeaderTemplate>
+                                <ContentTemplate>
+                                    <asp:Panel GroupingText="PO Details" ID="Panel1" runat="server" CssClass="stylePanel">
+                                        <table width="100%">
+                                            <tr>
+                                                <td>
+                                                    <asp:GridView ID="grvLesseeInvoiceDtls" runat="server" AutoGenerateColumns="false" Width="99%">
+                                                        <Columns>
+                                                            <asp:TemplateField HeaderText="S No">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseeSNo" Text='<%# Container.DataItemIndex+1%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Dealer Name">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseeVendorID" Text='<%# Bind("Vendor_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                                    <asp:Label ID="lblLesseDealerName" Text='<%# Bind("Vendor_Name")%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="PO No">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLessePoID" Text='<%# Bind("PO_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                                    <asp:Label ID="lblLessePoNo" Text='<%# Bind("Po_No")%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="PI No">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLessePerformaInvoiceID" Text='<%# Bind("PInvoice_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                                    <asp:Label ID="lblLessePerformaInvoiceNo" Text='<%# Bind("PInvoice_No")%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="PI Date">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseePIDate" Text='<%# Bind("PI_Date")%>' runat="server" Width="80px"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="VI No">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseVendorInvoiceID" Text='<%# Bind("VendorInvoice_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                                    <asp:Label ID="lblLesseVendorInvoiceNo" Text='<%# Bind("VendorInvoice_No")%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="VI Date">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseeVIDate" Text='<%# Bind("VI_Date")%>' runat="server" Width="80px"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Rental Schedule No">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseRentalScheduleID" Text='<%# Bind("RentalSchedule_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                                    <asp:Label ID="lblLesseRentalScheduleNo" Text='<%# Bind("RentalSchedule_No")%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Tranche Name">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseTrancheID" Text='<%# Bind("Tranche_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                                    <asp:Label ID="lblLesseTrancheNo" Text='<%# Bind("Tranche_Name")%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Note No">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseNoteID" Text='<%# Bind("Note_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                                    <asp:Label ID="lblLesseNoteNo" Text='<%# Bind("Note_No")%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Amount">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblLesseInvoiceAmount" Text='<%# Bind("Invoice_Amount")%>' runat="server"></asp:Label>
+                                                                </ItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:Label ID="lblgdFtrTtlInvAmt" runat="server"></asp:Label>
+                                                                </FooterTemplate>
+                                                                <FooterStyle HorizontalAlign="Right" Font-Bold="true" />
+                                                                <ItemStyle HorizontalAlign="Right" />
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Receipt Amount">
+                                                                <ItemTemplate>
+                                                                    <%--<asp:TextBox ID="txtLesseRcptAmount" runat="server" Text='<%# Bind("Rcpt_Amount")%>'></asp:TextBox>--%>
+                                                                    <asp:Label ID="lblLesseRcptAmount" runat="server" Text='<%# Bind("Rcpt_Amount")%>'></asp:Label>
+                                                                </ItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:Label ID="lblgdFtrTtlRcptAmt" runat="server"></asp:Label>
+                                                                </FooterTemplate>
+                                                                <FooterStyle HorizontalAlign="Right" Font-Bold="true" />
+                                                                <ItemStyle HorizontalAlign="Right" />
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Action">
+                                                                <ItemTemplate>
+                                                                    <asp:LinkButton ID="lnkRcptRemove" runat="server" Text="Remove" ToolTip="Remove PO Detail" OnClick="lnkRcptRemove_Click"></asp:LinkButton>
+                                                                </ItemTemplate>
+                                                            </asp:TemplateField>
+                                                        </Columns>
+                                                    </asp:GridView>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </asp:Panel>
+                                </ContentTemplate>
+                            </cc1:TabPanel>
+                        </cc1:TabContainer>
+
+                    </td>
+                </tr>
+            </table>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr class="styleButtonArea">
+                    <td align="center">
+                        <asp:Button runat="server" ID="btnSave" ValidationGroup="vsSave" OnClientClick="return fnCheckPageValidators('vsSave');"
+                            CssClass="styleSubmitButton" Text="Save" OnClick="btnSave_Click" ToolTip="Save Receipt" />
+                        <asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton" ToolTip="Clear Receipt"
+                            Text="Clear" OnClientClick="return confirm('Do you want to clear?');" OnClick="btnClear_Click" />
+                        <asp:Button runat="server" ID="btnCancel" Text="Cancel" CausesValidation="false"
+                            CssClass="styleSubmitButton" OnClick="btnCancel_Click" />
+                        <asp:Button runat="server" ID="btnPrint" Text="Print" CausesValidation="false" Enabled="false" ToolTip="Print Receipt"
+                            CssClass="styleSubmitButton" OnClick="btnPrint_Click" />
+                        <asp:Button runat="server" ID="btnReceiptCancel" Text="Receipt Cancel" CausesValidation="false" Enabled="false"
+                            CssClass="styleSubmitButton" OnClientClick="return confirm('Do you want to cancel this receipt?');" OnClick="btnReceiptCancel_Click" />
+                    </td>
+                </tr>
+                <tr class="styleButtonArea">
+                    <td>
+                        <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                    </td>
+                </tr>
+            </table>
+
+            <asp:ValidationSummary runat="server" ID="vsSave" ValidationGroup="vsSave"
+                HeaderText="Please correct the following validation(s):" Height="400px" CssClass="styleMandatoryLabel"
+                Width="500px" ShowMessageBox="false" ShowSummary="true" />
+            <asp:ValidationSummary runat="server" ID="vsAdd" ValidationGroup="vsAdd"
+                HeaderText="Please correct the following validation(s):" Height="400px" CssClass="styleMandatoryLabel"
+                Width="500px" ShowMessageBox="false" ShowSummary="true" />
+            <asp:ValidationSummary runat="server" ID="vsShow" ValidationGroup="vsShow"
+                HeaderText="Please correct the following validation(s):" Height="400px" CssClass="styleMandatoryLabel"
+                Width="500px" ShowMessageBox="false" ShowSummary="true" />
+            <asp:ValidationSummary runat="server" ID="vsAddLess" ValidationGroup="vsAddLess"
+                HeaderText="Please correct the following validation(s):" Height="400px" CssClass="styleMandatoryLabel"
+                Width="500px" ShowMessageBox="false" ShowSummary="true" />
+            <asp:ValidationSummary runat="server" ID="vsFunderAdd" ValidationGroup="vsFunderAdd"
+                HeaderText="Please correct the following validation(s):" Height="400px" CssClass="styleMandatoryLabel"
+                Width="500px" ShowMessageBox="false" ShowSummary="true" />
+            <asp:CustomValidator ID="cvMRA" runat="server" CssClass="styleMandatoryLabel"
+                Enabled="true" Width="98%" />
+        </ContentTemplate>
+    </asp:UpdatePanel>
+
+
+    <cc1:ModalPopupExtender ID="moePoInvoiceDtls" runat="server" TargetControlID="btnModal" PopupControlID="pnlPoInvoiceDtls"
+        BackgroundCssClass="styleModalBackground" Enabled="true" />
+    <asp:Panel ID="pnlPoInvoiceDtls" Style="display: none; vertical-align: middle" runat="server"
+        BorderStyle="Solid" BackColor="White" Width="95%" ScrollBars="Auto">
+        <div id="divPoInvoiceDtls" runat="server" style="max-height: 500px; overflow: auto">
+            <asp:UpdatePanel ID="updtPnlPoInvoiceDtls" runat="server">
+                <ContentTemplate>
+                    <table width="1200px" align="center" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>&nbsp&nbsp&nbsp&nbsp&nbsp
+                                <asp:Label ID="lblPoSearch" runat="server" Text="Search Type" CssClass="styleDisplayLabel"></asp:Label>
+                                <asp:DropDownList ID="ddlSearchType" runat="server" ToolTip="Search Type"></asp:DropDownList>
+                                <asp:TextBox ID="txtSearchValue" runat="server" Text="" MaxLength="50" ToolTip="Search Text" Width="200px"></asp:TextBox>
+                                <asp:Button ID="btnPoSearch" runat="server" Text="Search" CssClass="styleSubmitButton" OnClick="btnPoSearch_Click" ValidationGroup="vsPOSearch" ToolTip="Seacrh" />
+                                <asp:RequiredFieldValidator ID="rfvPOSearchType" runat="server" ControlToValidate="ddlSearchType" InitialValue="0" Display="None"
+                                    CssClass="styleMandatoryLabel" ErrorMessage="Select a Search Type" ValidationGroup="vsPOSearch" SetFocusOnError="true">
+                                </asp:RequiredFieldValidator>
+                                <asp:RequiredFieldValidator ID="rfvSearchTypeText" runat="server" ControlToValidate="txtSearchValue" Display="None"
+                                    CssClass="styleMandatoryLabel" ErrorMessage="Enter a Search Type Text" ValidationGroup="vsPOSearch" SetFocusOnError="true">
+                                </asp:RequiredFieldValidator>
+                            </td>
+                            <td align="right">
+                                <asp:ImageButton ID="imgPopupClose" runat="server" ImageUrl="~/Images/delete1.png" Height="20px" ToolTip="Close" OnClick="imgPopupClose_Click" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <asp:GridView ID="grvPoInvoiceDetails" runat="server" AutoGenerateColumns="false" Width="1500px"
+                                    OnRowDataBound="grvPoInvoiceDetails_RowDataBound">
+                                    <Columns>
+                                        <asp:TemplateField HeaderText="PO No">
+                                            <HeaderTemplate>
+                                                <table cellpadding="0" cellspacing="0" border="0">
+                                                    <tr align="center">
+                                                        <td>
+                                                            <asp:LinkButton ID="lnkbtnSort1" runat="server" Text="PO No" ToolTip="Sort By PO No"
+                                                                CssClass="styleGridHeaderLinkBtn" OnClick="FunProSortingColumn"> </asp:LinkButton>
+                                                            <asp:ImageButton ID="imgbtnSort1" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr align="left">
+                                                        <td>
+                                                            <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch1" runat="server" AutoPostBack="true"
+                                                                OnTextChanged="FunProHeaderSearch" CssClass="styleSearchBox"></asp:TextBox>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </HeaderTemplate>
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblPoID" Text='<%# Bind("PO_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                <asp:Label ID="lblPoNo" Text='<%# Bind("Po_No")%>' runat="server"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="100px" />
+                                            <ItemStyle Width="100px" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="PI No">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblPerformaInvoiceID" Text='<%# Bind("PInvoice_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                <asp:Label ID="lblPerformaInvoiceNo" Text='<%# Bind("PInvoice_No")%>' runat="server"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="100px" />
+                                            <ItemStyle Width="100px" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="PI Date">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblInvPIDate" Text='<%# Bind("PI_Date")%>' runat="server" Width="80px"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="80px" />
+                                            <ItemStyle Width="80px" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="VI No">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblVendorInvoiceID" Text='<%# Bind("VendorInvoice_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                <asp:Label ID="lblVendorInvoiceNo" Text='<%# Bind("VendorInvoice_No")%>' runat="server"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="100px" />
+                                            <ItemStyle Width="100px" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="VI Date">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblInvVIDate" Text='<%# Bind("VI_Date")%>' runat="server" Width="80px"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="80px" />
+                                            <ItemStyle Width="80px" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Rental Schedule No">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblRentalScheduleID" Text='<%# Bind("RentalSchedule_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                <asp:Label ID="lblRentalScheduleNo" Text='<%# Bind("RentalSchedule_No")%>' runat="server"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="100px" />
+                                            <ItemStyle Width="100px" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Tranche Name">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblTrancheID" Text='<%# Bind("Tranche_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                <asp:Label ID="lblTrancheNo" Text='<%# Bind("Tranche_Name")%>' runat="server"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="100px" />
+                                            <ItemStyle Width="100px" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Note No">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblNoteID" Text='<%# Bind("Note_ID")%>' runat="server" Visible="false"></asp:Label>
+                                                <asp:Label ID="lblNoteNo" Text='<%# Bind("Note_No")%>' runat="server"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="100px" />
+                                            <ItemStyle Width="100px" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Dealer Name">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblDealerName" Text='<%# Bind("Vendor_Name")%>' runat="server"></asp:Label>
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="100px" />
+                                            <ItemStyle Width="100px" HorizontalAlign="Left" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Invocie Amount">
+                                            <ItemTemplate>
+                                                <asp:Label ID="lblInvoiceAmount" Text='<%# Bind("Invoice_Amount")%>' runat="server"></asp:Label>
+                                            </ItemTemplate>
+                                            <FooterTemplate>
+                                                <asp:Label ID="lblFtrTtlInvAmt" runat="server"></asp:Label>
+                                            </FooterTemplate>
+                                            <FooterStyle HorizontalAlign="Right" Font-Bold="true" />
+                                            <HeaderStyle Width="100px" />
+                                            <ItemStyle Width="100px" HorizontalAlign="Right" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Select Indicator">
+                                            <HeaderTemplate>
+                                                <asp:Label ID="lblSlctAll" runat="server" Text="Select All"></asp:Label>
+                                                <asp:CheckBox ID="chkSelectAllInvoice" runat="server" AutoPostBack="true" Text="" OnCheckedChanged="chkSelectAllInvoice_CheckedChanged" />
+                                            </HeaderTemplate>
+                                            <ItemTemplate>
+                                                <asp:CheckBox ID="chkSelectIndicator" runat="server" AutoPostBack="true" OnCheckedChanged="chkSelectIndicator_CheckedChanged"
+                                                    Checked='<%# Eval("Select_Indicator").ToString() == "1" ?  true:false %>' />
+                                            </ItemTemplate>
+                                            <HeaderStyle Width="50px" />
+                                            <ItemStyle Width="50px" HorizontalAlign="Center" />
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Amount to be entered">
+                                            <ItemTemplate>
+                                                <asp:TextBox ID="txtRcptAmount" runat="server" Text='<%# Bind("Rcpt_Amount")%>' OnTextChanged="txtRcptAmount_TextChanged" AutoPostBack="true" MaxLength="16"
+                                                    onkeypress="fnAllowNumbersOnly(true,false,this)" Style="text-align: right;"></asp:TextBox>
+                                                <cc1:FilteredTextBoxExtender ID="ftbeRcptAmount" runat="server" TargetControlID="txtRcptAmount" Enabled="true"
+                                                    FilterType="Custom,Numbers" ValidChars=".">
+                                                </cc1:FilteredTextBoxExtender>
+                                            </ItemTemplate>
+                                            <FooterTemplate>
+                                                <asp:Label ID="lblFtrTtlRcptAmt" runat="server"></asp:Label>
+                                            </FooterTemplate>
+                                            <HeaderStyle Width="150px" />
+                                            <ItemStyle Width="150px" HorizontalAlign="Right" />
+                                            <FooterStyle HorizontalAlign="Right" Font-Bold="true" />
+                                        </asp:TemplateField>
+                                    </Columns>
+                                </asp:GridView>
+                            </td>
+                        </tr>
+                        <tr align="center">
+                            <td colspan="2">
+                                <uc1:PageNavigator ID="ucCustomPaging" runat="server" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align="center">
+                                <span runat="server" id="lblPagingErrorMessage" style="color: Red; font-size: medium"></span>
+                            </td>
+                        </tr>
+                    </table>
+                    <table width="100%">
+                        <tr>
+                            <td align="center">
+                                <asp:Button runat="server" ID="btnAddPOInvoice" CssClass="styleSubmitButton" Text="ADD" OnClick="btnAddPOInvoice_Click" />
+                            </td>
+                        </tr>
+                    </table>
+                    <asp:ValidationSummary runat="server" ID="vsPOSearch" ValidationGroup="vsPOSearch"
+                        HeaderText="Please correct the following validation(s):" Height="10px" CssClass="styleMandatoryLabel"
+                        Width="500px" ShowMessageBox="false" ShowSummary="true" />
+                    <input type="hidden" id="hdnSortDirection" runat="server" />
+                    <input type="hidden" id="hdnSortExpression" runat="server" />
+                    <input type="hidden" id="hdnSearch" runat="server" />
+                    <input type="hidden" id="hdnOrderBy" runat="server" />
+                </ContentTemplate>
+            </asp:UpdatePanel>
+        </div>
+    </asp:Panel>
+    <asp:Button ID="btnModal" Style="display: none" runat="server" />
+</asp:Content>
+

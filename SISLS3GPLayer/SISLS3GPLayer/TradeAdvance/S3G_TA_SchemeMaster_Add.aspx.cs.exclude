@@ -1,0 +1,521 @@
+﻿#region Page Header
+
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Trade Advance
+/// Screen Name			: Scheme Master
+/// Created By			: Thangam M
+/// Start Date		    : 02-nov-2012
+/// End Date		    : 
+/// Purpose	            : To fetch Scheme Master Details
+/// Modified By         : Sathish R
+/// Modified Date       : 19-Nov-2012
+///  
+///
+#endregion
+
+using System;
+using System.Web.UI;
+using System.Data;
+using System.Text;
+using S3GBusEntity.LoanAdmin;
+using S3GBusEntity;
+using System.Web.UI.WebControls;
+using System.IO;
+using System.Web.Security;
+using System.Configuration;
+using System.Collections.Generic;
+using System.Globalization;
+using System.ServiceModel;
+using Resources;
+using CrystalDecisions.Shared;
+using CrystalDecisions.CrystalReports.Engine;
+using S3GBusEntity.Origination;
+using S3GBusEntity.TradeAdvance;
+
+public partial class TradeAdvance_S3GTASchemeMaster_Add : ApplyThemeForProject
+{
+    #region initialization
+    SerializationMode SerMode = SerializationMode.Binary;
+
+    TradeAdvanceMgtServicesReference.TradeAdvanceMgtServicesClient ObjTradeAdvanceServices;
+
+    PagingValues ObjPaging = new PagingValues();
+    int intErrCode = 0;
+    int intSchemeID = 0;
+    int intUserID = 0;
+    int intCompanyID = 0;
+    int intRowId = 0;
+    int intLOBID = 0;
+    string strKey = "Insert";
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    Dictionary<string, string> Procparam = null;
+    Dictionary<string, string> Procparam1 = null;
+    string strRedirectPageView = "window.location.href='../TradeAdvance/S3G_TA_SchemeMaster_View.aspx';";
+    string strRedirectPageAdd = "window.location.href='../TradeAdvance/S3G_TA_SchemeMaster_Add.aspx?qsMode=C';";
+    string strRedirectPage = "~/TradeAdvance/S3G_TA_SchemeMaster_View.aspx";
+    string strAlert = "alert('__ALERT__');";
+    string strMJVNumber = string.Empty;
+    string strDateFormat = string.Empty;
+    DataTable dtGLMtr = new DataTable();
+
+    #endregion
+
+    #region PageLoad
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+        UserInfo ObjUserInfo = new UserInfo();
+        intCompanyID = ObjUserInfo.ProCompanyIdRW;
+        intUserID = ObjUserInfo.ProUserIdRW;
+        S3GSession ObjS3GSession = new S3GSession();
+        strDateFormat = ObjS3GSession.ProDateFormatRW;
+
+        if (Request.QueryString["qsMode"] != null)
+            strMode = Request.QueryString["qsMode"];
+        if (Request.QueryString["qsID"] != null)
+        {
+            FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsID"));
+            if (fromTicket != null)
+            {
+                intSchemeID = Convert.ToInt32(fromTicket.Name);
+            }
+        }
+
+        bCreate = ObjUserInfo.ProCreateRW;
+        bModify = ObjUserInfo.ProModifyRW;
+        bQuery = ObjUserInfo.ProViewRW;
+        if (!IsPostBack)
+        {
+            FunPriLoadLOB();
+            FunPriLoadSchemeType();
+
+            bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+
+            if (PageMode == PageModes.Create)
+            {
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                FunPriInitializeRateGrid(true);
+            }
+
+            if (strMode == "M" || strMode == "Q")
+            {
+                FunPriBindModifyData();
+
+
+                if (strMode == "M")
+                {
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    btnSave.Enabled = true;
+                    btnClear.Enabled = false;
+                    txtSchemeCode.ReadOnly = txtSchemeDesc.ReadOnly = true;
+                    ddlSchemeType.ClearDropDownList();
+                    CheckboxActive.Enabled = true;
+
+                }
+                else
+                {
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    btnSave.Enabled = false;
+                    txtSchemeCode.ReadOnly = true;
+                    txtSchemeDesc.ReadOnly = true;
+                    btnClear.Enabled = btnSave.Enabled = false;
+                    ddlSchemeType.ClearDropDownList();
+                    grvRateDetails.Columns[grvRateDetails.Columns.Count - 1].Visible = false;
+                }
+            }
+        }
+
+    }
+    #endregion
+
+    #region Page Events
+    public override void VerifyRenderingInServerForm(Control control)
+    {
+        base.VerifyRenderingInServerForm(control);
+    }
+    public void btnSave_Click(object sender, EventArgs e)
+    {
+        string LOB_Id = "";
+        foreach (GridViewRow rw in grvLOBDetails.Rows)
+        {
+            if (rw.RowType == DataControlRowType.DataRow)
+            {
+                CheckBox chkBx = (CheckBox)rw.FindControl("chkSelect");
+
+                if (chkBx != null && chkBx.Checked)
+                {
+                    Label lb = (Label)rw.FindControl("lblLOBID");
+                    if (LOB_Id == "")
+                        LOB_Id = lb.Text;
+                    else
+                        LOB_Id += "," + lb.Text;
+                }
+            }
+        }
+
+        try
+        {
+            S3GBusEntity.TradeAdvance.TradeAdvanceMgtServices.TASchemeMasterDataTable ObjTASchemeMasterDataTable;
+
+
+            ObjTASchemeMasterDataTable = new TradeAdvanceMgtServices.TASchemeMasterDataTable();
+            S3GBusEntity.TradeAdvance.TradeAdvanceMgtServices.TASchemeMasterRow ObjTASchemeMasterDataRow;
+            ObjTASchemeMasterDataRow = ObjTASchemeMasterDataTable.NewTASchemeMasterRow();
+            ObjTASchemeMasterDataRow.Product_ID = intSchemeID;
+            ObjTASchemeMasterDataRow.Product_Code = txtSchemeCode.Text;
+            ObjTASchemeMasterDataRow.Product_Desc = txtSchemeDesc.Text;
+            ObjTASchemeMasterDataRow.Product_Type = ddlSchemeType.SelectedValue;
+            ObjTASchemeMasterDataRow.LOB = LOB_Id;
+            if (CheckboxActive.Checked)
+            {
+                ObjTASchemeMasterDataRow.IsActive = "True";
+            }
+            else
+            {
+                ObjTASchemeMasterDataRow.IsActive = "False";
+            }
+            ObjTASchemeMasterDataRow.Company_Id = Convert.ToString(intCompanyID);
+            ObjTASchemeMasterDataRow.Xml_Rate = ((DataTable)ViewState["DtRate"]).FunPubFormXml();
+            ObjTASchemeMasterDataTable.AddTASchemeMasterRow(ObjTASchemeMasterDataRow);
+            ObjTradeAdvanceServices = new TradeAdvanceMgtServicesReference.TradeAdvanceMgtServicesClient();
+            intErrCode = ObjTradeAdvanceServices.FunPubTradeAdvanceAdd(SerMode, ClsPubSerialize.Serialize(ObjTASchemeMasterDataTable, SerMode));
+
+            if (intErrCode == 0)
+            {
+                btnSave.Enabled = false;
+                if (intSchemeID == 0)
+                {
+                    strAlert = "Trade Advance Details added successfully.";
+                    strAlert += @"\n\nWould you like to add one more Trade Advance Details?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPageView = "";
+                }
+                else
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Scheme Details Updated successfully");
+                }
+
+            }
+            else if (intErrCode == 10)
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Scheme code already exists");
+                strRedirectPageView = "";
+            }
+            else
+            {
+                strAlert = strAlert.Replace("__ALERT__", "Error in saving Trade Advance Details");
+                strRedirectPageView = "";
+            }
+
+            ScriptManager.RegisterStartupScript(this, this.GetType(), "Save", strAlert + strRedirectPageView, true);
+
+        }
+        catch (Exception ex)
+        {
+
+            Utility.FunShowAlertMsg(this.Page, ex.ToString());
+        }
+        finally
+        {
+
+        }
+    }
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+
+        txtSchemeCode.Text = txtSchemeDesc.Text = "";
+        ddlSchemeType.SelectedIndex = 0;
+        FunPriInitializeRateGrid(false);
+
+    }
+    #endregion
+
+    #region Page Methods
+    private void FunPriLoadLOB()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        Procparam.Add("@User_Id", Convert.ToString(intUserID));
+        Procparam.Add("@Program_Id", "219");
+        if (PageMode == PageModes.Create)
+        {
+            Procparam.Add("@Is_Active", "1");
+        }
+
+        DataTable dtLOB = Utility.GetDefaultData(SPNames.LOBMaster, Procparam);
+
+        dtLOB.Columns.Add("Select");
+
+        grvLOBDetails.DataSource = dtLOB;
+        grvLOBDetails.DataBind();
+
+    }
+
+    private void FunPriLoadSchemeType()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Option", "1");
+        Procparam.Add("@Param1", "Scheme_Type");
+
+        ddlSchemeType.BindDataTable("S3G_ORG_GetGlobalLookUp", Procparam, new string[] { "Lookup_ID", "Name" });
+    }
+
+    private void FunPriInitializeRateGrid(bool blShowFooter)
+    {
+
+        DataTable dtRateFixing = new DataTable();
+        DataRow dr;
+
+        dtRateFixing.Columns.Add("Rate_ID");
+        dtRateFixing.Columns.Add("FromAmt", typeof(decimal));
+        dtRateFixing.Columns.Add("ToAmt", typeof(decimal));
+        dtRateFixing.Columns.Add("Rate");
+        dr = dtRateFixing.NewRow();
+
+        dtRateFixing.Rows.Add(dr);
+
+        FunPriBindRateGridDetails(dtRateFixing, blShowFooter);
+
+        dtRateFixing.Rows[0].Delete();
+        ViewState["DtRate"] = dtRateFixing;
+
+        grvRateDetails.Rows[0].Visible = false;
+        ViewState["dtRateFixing"] = dtRateFixing;
+    }
+
+    private void FunPriBindRateGridDetails(DataTable dtRate, bool blShowFooter)
+    {
+        ViewState["DtRate"] = dtRate;
+        grvRateDetails.DataSource = dtRate;
+        grvRateDetails.DataBind();
+
+        grvRateDetails.FooterRow.Visible = blShowFooter;
+    }
+
+    #endregion
+
+    protected void FunProResetGrids()
+    {
+
+        FunPriInitializeRateGrid(false);
+    }
+
+    protected bool FunProCheckRateOverlap(string strFrom, string strTo)
+    {
+        DataTable dtRate = (DataTable)ViewState["DtRate"];
+        DataRow[] dRow = dtRate.Select("FromAmt <= " + strFrom + " and ToAmt >= " + strFrom);
+
+        if (dRow.Length > 0)
+        {
+            return false;
+        }
+        dRow = dtRate.Select("FromAmt <= " + strTo + " and ToAmt >= " + strTo);
+        if (dRow.Length > 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected void grvRateDetails_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        DataTable DtRate = (DataTable)ViewState["DtRate"];
+        TextBox txtFromAmt = (TextBox)grvRateDetails.FooterRow.FindControl("txtFromAmt");
+        TextBox txtToAmt = (TextBox)grvRateDetails.FooterRow.FindControl("txtToAmt");
+        TextBox txtRate = (TextBox)grvRateDetails.FooterRow.FindControl("txtRate");
+
+
+        if (e.CommandName == "AddNew")
+        {
+            if (decimal.Parse(txtToAmt.Text) < decimal.Parse(txtFromAmt.Text))
+            {
+                Utility.FunShowAlertMsg(this.Page, "To amount should be greater than are equal to From amount");
+                txtToAmt.Focus();
+                return;
+            }
+
+            if (!FunProCheckRateOverlap(txtFromAmt.Text, txtToAmt.Text))
+            {
+                Utility.FunShowAlertMsg(this, "From and To amounts getting overlap");
+                txtFromAmt.Focus();
+                return;
+            }
+
+            DataRow dr = DtRate.NewRow();
+
+            dr["Rate_ID"] = "0";
+            dr["FromAmt"] = txtFromAmt.Text;
+            dr["ToAmt"] = txtToAmt.Text;
+            dr["Rate"] = txtRate.Text;
+
+            DtRate.Rows.Add(dr);
+
+            FunPriBindRateGridDetails(DtRate, true);
+
+            btnSave.Enabled = true;
+        }
+    }
+
+    protected void grvRateDetails_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        DataTable DtRate = (DataTable)ViewState["DtRate"];
+        DtRate.Rows.RemoveAt(e.RowIndex);
+        if (DtRate.Rows.Count == 0)
+        {
+            FunPriInitializeRateGrid(true);
+        }
+        else
+        {
+            FunPriBindRateGridDetails(DtRate, true);
+        }
+    }
+
+    protected void grvRateDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (e.Row.RowType == DataControlRowType.Footer)
+        {
+            TextBox txtFromAmt = (TextBox)e.Row.FindControl("txtFromAmt");
+            TextBox txtToAmt = (TextBox)e.Row.FindControl("txtToAmt");
+            TextBox txtRate = (TextBox)e.Row.FindControl("txtRate");
+
+            txtFromAmt.SetDecimalPrefixSuffix(10, 0, true, "From amount value");
+            txtToAmt.SetDecimalPrefixSuffix(10, 0, true, "To amount value");
+            txtRate.SetDecimalPrefixSuffix(3, 2, true, "Rate value");
+        }
+        else if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            Label lblRate_ID = (Label)e.Row.FindControl("lblRate_ID");
+            LinkButton lnkDelete = (LinkButton)e.Row.FindControl("lnkDelete");
+            if (lblRate_ID.Text != "0" && strMode == "M")
+            {
+
+                lnkDelete.Enabled = true;
+
+                lnkDelete.OnClientClick = string.Empty;
+            }
+            else
+            {
+                lnkDelete.Enabled = false;
+            }
+        }
+    }
+
+    protected void grvLOBDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        if (e.Row.RowType == DataControlRowType.DataRow)
+        {
+            CheckBox chkSelect = e.Row.FindControl("chkSelect") as CheckBox;
+
+            CheckBox chkSelectAll = grvLOBDetails.HeaderRow.FindControl("chkSelectAll") as CheckBox;
+            if (chkSelect != null)
+            {
+                chkSelect.Attributes.Add("onclick", "javascript:fnSelectLOB(" + chkSelect.ClientID + "," + chkSelectAll.ClientID + ");");
+            }
+        }
+    }
+    protected void lnkDelete_Click(object sender, EventArgs e)
+    {
+
+    }
+    public void FunInitializeLOBGrid()
+    {
+
+
+    }
+    protected void Button1_Click(object sender, EventArgs e)
+    {
+
+
+    }
+    protected void grvRateDetails_SelectedIndexChanged(object sender, EventArgs e)
+    {
+    }
+    private void FunPriBindModifyData()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_Id", intCompanyID.ToString());
+        Procparam.Add("@Product_ID", intSchemeID.ToString());
+
+        DataSet dSet = Utility.GetDataset("S3G_TA_GetSchemeDetails", Procparam);
+        if (dSet.Tables.Count > 2)
+        {
+            DataTable ObjDataTable = dSet.Tables[0];
+            if (ObjDataTable.Rows.Count > 0)
+            {
+                DataRow dRow = ObjDataTable.Rows[0];
+                ddlSchemeType.SelectedValue = dRow["Product_Type"].ToString();
+                txtSchemeCode.Text = dRow["Product_Code"].ToString();
+                txtSchemeDesc.Text = dRow["Product_Desc"].ToString();
+                if (dRow["Is_Active"].ToString() == "True")
+                {
+                    CheckboxActive.Checked = true;
+                }
+                else
+                {
+                    CheckboxActive.Checked = false;
+                }
+
+            }
+
+            ObjDataTable = new DataTable();
+            ObjDataTable = dSet.Tables[2];
+            if (strMode == "M")
+            {
+                FunPriBindRateGridDetails(dSet.Tables[1], true);
+                foreach (GridViewRow gvRow in grvLOBDetails.Rows)
+                {
+                    if (gvRow.RowType == DataControlRowType.DataRow)
+                    {
+                        Label LOB_ID = (Label)gvRow.FindControl("lblLOBID");
+
+                        for (int i = 0; i < ObjDataTable.Rows.Count; i++)
+                        {
+                            if (LOB_ID.Text == ObjDataTable.Rows[i]["Lob_Id"].ToString())
+                                ((CheckBox)gvRow.FindControl("chkSelect")).Checked = true;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                FunPriBindRateGridDetails(dSet.Tables[1], false);
+                ((CheckBox)grvLOBDetails.HeaderRow.FindControl("chkSelectAll")).Enabled = false;
+                foreach (GridViewRow gvRow in grvLOBDetails.Rows)
+                {
+                    if (gvRow.RowType == DataControlRowType.DataRow)
+                    {
+                        Label LOB_ID = (Label)gvRow.FindControl("lblLOBID");
+
+                        for (int i = 0; i < ObjDataTable.Rows.Count; i++)
+                        {
+                            if (LOB_ID.Text == ObjDataTable.Rows[i]["Lob_Id"].ToString())
+                                ((CheckBox)gvRow.FindControl("chkSelect")).Checked = true;
+                            ((CheckBox)gvRow.FindControl("chkSelect")).Enabled = false;
+
+
+
+                        }
+                    }
+                }
+
+            }
+
+
+        }
+
+    }
+
+
+}

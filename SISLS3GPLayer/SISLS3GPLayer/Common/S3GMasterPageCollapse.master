@@ -1,0 +1,294 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeFile="S3GMasterPageCollapse.master.cs"
+    Inherits="SmartLend3G.S3GMasterPageCollapse" EnableTheming="true" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head id="Head1" runat="server">
+
+    <script type="text/javascript" src="../Scripts/Common.js"></script>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>SMARTLEND 3G</title>
+
+    <script type="text/javascript" language="javascript">
+
+
+        function GetSize(img) {
+            debugger;
+            alert(img.title);
+        }
+
+
+        window.history.forward(1);
+        window.history.forward();
+
+        window.onerror = function () { return true; }
+
+        //Narayanan - start
+
+        var message = "Sorry, that function is disabled.\nThis Page Copyrighted and\nImages and Text protected!\nALL RIGHTS RESERVED";
+
+        // Don't edit below!
+
+        function click(e) {
+            if (document.all) {
+                if (event.button == 2) {
+                    //                    alert(message);
+                    //                    return false;
+                }
+            }
+            if (document.layers) {
+                if (e.which == 3) {
+                    //                    alert(message);
+                    //                    return false;
+                }
+            }
+        }
+        if (document.layers) {
+            document.captureEvents(Event.MOUSEDOWN);
+        }
+        document.onmousedown = click;
+        // --> 
+
+        //Narayanan - End
+
+        window.onload = window_onload;
+        var prm;
+        var focusedElementId = "";
+        function window_onload() {
+            prm = Sys.WebForms.PageRequestManager.getInstance();
+            prm.add_initializeRequest(InitializeRequest);
+            prm.add_endRequest(EndRequest);
+            prm.add_pageLoaded(PageLoaded);
+
+            //document.getElementById('divLoading').style.display='none';
+            //GetMenuVisibility();
+        }
+
+        function InitializeRequest(sender, args) {
+
+            $get('up_container').style.cursor = 'wait';
+            $get('up_container').disabled = true;
+            document.getElementById('imgRefresh').style.display = 'none';
+            document.getElementById('imgLoading').style.display = 'block';
+
+            if (prm.get_isInAsyncPostBack()) {
+                args.set_cancel(true);
+            }
+        }
+
+        function PageLoaded(sender, args) {
+            
+            $get('up_container').style.cursor = 'auto';
+            $get('up_container').disabled = false;
+            document.getElementById('imgRefresh').style.display = 'block';
+            document.getElementById('imgLoading').style.display = 'none';
+
+            autoResize();
+        }
+
+        function EndRequest(sender, args) {
+           
+            if (args.get_error() != undefined) {
+                $get('up_container').style.cursor = 'auto';
+                $get('up_container').disabled = false;
+                document.getElementById('imgRefresh').style.display = 'block';
+                document.getElementById('imgLoading').style.display = 'none';
+                args.set_errorHandled(true);
+            }
+        }
+
+        
+        function autoResize() {
+            var newheight;
+            var newwidth;
+
+            try {
+                //debugger;
+                if (window.frames.frameElement == null) {
+                    window.parent.location.href = '../SessionExpired.aspx';
+                    return;
+                }
+                if (window.parent.document.getElementById('hdnMenuState') != null && window.parent.document.getElementById(window.frames.frameElement.id)) {
+                    
+                    newheight = window.parent.document.getElementById(window.frames.frameElement.id).contentWindow.document.body.scrollHeight;
+                    newwidth = window.parent.document.getElementById(window.frames.frameElement.id).contentWindow.document.body.scrollWidth;
+
+                    window.parent.document.getElementById(window.frames.frameElement.id).height = newheight;
+                    window.parent.document.getElementById(window.frames.frameElement.id).width = newwidth;
+                    window.parent.document.getElementById(window.frames.frameElement.id).style.minHeight = 420;
+
+                    if (window.parent.document.getElementById('hdnMenuState').value == "0") {
+                        if (newwidth < screen.width - 257) {
+                            window.parent.document.getElementById(window.frames.frameElement.id).width = (screen.width - 257);
+                            window.document.body.style.width = (screen.width - 259);
+                        }
+                        else {
+                            window.parent.document.getElementById(window.frames.frameElement.id).width = newwidth;
+                            window.document.body.style.width = window.document.body.offsetWidth; //newwidth - 3;
+                        }
+                    }
+                    else {
+                        if (newwidth < screen.width - 53) {
+                            window.parent.document.getElementById(window.frames.frameElement.id).width = (screen.width - 53);
+                            window.document.body.style.width = (screen.width - 54);
+                        }
+                        else {
+                            window.parent.document.getElementById(window.frames.frameElement.id).width = newwidth;
+                            window.document.body.style.width = window.document.body.offsetWidth;  //newwidth - 3;
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                //alert(e);
+            }
+        }
+
+        
+
+        function shouldCancelbackspace(e) {
+            var key;
+            if (e) {
+                key = e.which ? e.which : e.keyCode;
+                if (key == null || (key != 8 && key != 13)) { // return when the key is not backspace key. 
+                    return false;
+                }
+            } else {
+                return false;
+            }
+
+            if (e.srcElement) { // in IE 
+                tag = e.srcElement.tagName.toUpperCase();
+                type = e.srcElement.type;
+                readOnly = e.srcElement.readOnly;
+                if (type == null) { // Type is null means the mouse focus on a non-form field. disable backspace button 
+                    return true;
+                } else {
+                    type = e.srcElement.type.toUpperCase();
+                }
+
+            } else { // in FF 
+                tag = e.target.nodeName.toUpperCase();
+                type = (e.target.type) ? e.target.type.toUpperCase() : "";
+            }
+
+            // we don't want to cancel the keypress (ever) if we are in an input/text area 
+            if (tag == 'INPUT' || type == 'TEXT' || type == 'TEXTAREA') {
+                if (readOnly == true) // if the field has been dsabled, disbale the back space button 
+                    return true;
+                if (((tag == 'INPUT' && type == 'RADIO') || (tag == 'INPUT' && type == 'CHECKBOX'))
+    && (key == 8 || key == 13)) {
+                    return true; // the mouse is on the radio button/checkbox, disbale the backspace button 
+                }
+                return false;
+            }
+
+            // if we are not in one of the above things, then we want to cancel (true) if backspace 
+            return (key == 8 || key == 13);
+        }
+
+        // check the browser type 
+        function whichBrs() {
+            var agt = navigator.userAgent.toLowerCase();
+            if (agt.indexOf("opera") != -1) return 'Opera';
+            if (agt.indexOf("staroffice") != -1) return 'Star Office';
+            if (agt.indexOf("webtv") != -1) return 'WebTV';
+            if (agt.indexOf("beonex") != -1) return 'Beonex';
+            if (agt.indexOf("chimera") != -1) return 'Chimera';
+            if (agt.indexOf("netpositive") != -1) return 'NetPositive';
+            if (agt.indexOf("phoenix") != -1) return 'Phoenix';
+            if (agt.indexOf("firefox") != -1) return 'Firefox';
+            if (agt.indexOf("safari") != -1) return 'Safari';
+            if (agt.indexOf("skipstone") != -1) return 'SkipStone';
+            if (agt.indexOf("msie") != -1) return 'Internet Explorer';
+            if (agt.indexOf("netscape") != -1) return 'Netscape';
+            if (agt.indexOf("mozilla/5.0") != -1) return 'Mozilla';
+
+            if (agt.indexOf('\/') != -1) {
+                if (agt.substr(0, agt.indexOf('\/')) != 'mozilla') {
+                    return navigator.userAgent.substr(0, agt.indexOf('\/'));
+                } else
+                    return 'Netscape';
+            } else if (agt.indexOf(' ') != -1)
+                return navigator.userAgent.substr(0, agt.indexOf(' '));
+            else
+                return navigator.userAgent;
+        }
+
+        // Global events (every key press) 
+
+        var browser = whichBrs();
+        if (browser == 'Internet Explorer') {
+            document.onkeydown = function () { return !shouldCancelbackspace(event); }
+        } else if (browser == 'Firefox') {
+            document.onkeypress = function (e) { return !shouldCancelbackspace(e); }
+        }
+    </script>
+       <script type="text/javascript">
+           function forceClose() {
+               alert('You have been forcefully logged out by the Administrator!');
+               window.parent.location.href = '../LoginPage.aspx';
+           }
+
+    </script>
+</head>
+<body id="bodyMaster" runat="server" style="margin-right: 0px; margin-left: 1px; margin-bottom: 0px; margin-top: 2px;" oncontextmenu="return false;">
+    <form id="form1" style="margin: 0px" runat="server" >
+
+        <asp:ScriptManager ID="ScriptManager1" runat="server" AsyncPostBackTimeout="1800" EnablePageMethods="true">
+        </asp:ScriptManager>
+
+        <asp:SiteMapDataSource ID="SiteMapDataSource1" runat="server" ShowStartingNode="False" />
+        <div id="up_container">
+            <table style="width: 100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="padding-left: 5px; padding-bottom: 3px" valign="top">
+
+                        <asp:SiteMapPath ID="SiteMapPath1" runat="server" PathSeparator=" > " EnableTheming="True"
+                            CssClass="styleSitepath">
+                            <PathSeparatorStyle CssClass="stylePathsep" />
+                            <CurrentNodeStyle CssClass="styleCurrentNode" />
+                            <NodeStyle CssClass="styleNode" />
+                            <RootNodeStyle CssClass="styleRootNode" />
+                        </asp:SiteMapPath>
+
+                        <img src="../Images/refresh.png" id="imgRefresh" onclick="location.reload();" style="float: right; height: 18px; position: absolute; cursor: pointer; left:97%; top:0px" title="Refresh Page" />
+                        <img src="../Images/LoadingPage.gif" id="imgLoading" style="float: right; height: 18px; position: absolute; cursor: pointer; left:97%; top:0px; display:none" title="Loading.." />
+
+                    </td>
+                </tr>
+                <tr>
+                    <td onclick="autoResize()">
+
+
+                        <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server">
+                        </asp:ContentPlaceHolder>
+                        <asp:UpdateProgress ID="UpProgress" DisplayAfter="1"
+                            runat="server" Visible="false">
+                            <ProgressTemplate>
+                                <cc1:DropShadowExtender ID="dseProspect" runat="server" TargetControlID="progress"
+                                    Opacity=".2" Rounded="false" TrackPosition="true" />
+                                <div id="progress" runat="server" style="background-image: url(../images/login/login_box_bg_01.gif); background-repeat: repeat-x; border-color: #c8c8c8; border-style: solid; border-width: 1px; width: 140px; height: 30px; position: absolute; top: 50%; left: 50%; margin-top: -30px; margin-left: -30px; z-index: 100001; vertical-align: middle; text-align: left">
+                                    <%--<img src="../images/processing_new.gif" style="position:absolute; vertical-align:middle; padding-top:5px" />--%>
+                                    <img src="../images/processing_new.gif" style="position: absolute; vertical-align: middle; padding-top: 2px; padding-left: 10px; height: 25px" />
+                                    <span style="position: absolute; font-weight: bold; font-size: medium; padding-left: 50px; padding-top: 5px">Loading..</span>
+                                </div>
+                            </ProgressTemplate>
+                        </asp:UpdateProgress>
+                    </td>
+
+                </tr>
+                   <tr>
+                    <td>
+                        <asp:HiddenField ID="hdndate" runat="server" />
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </form>
+</body>
+</html>
+

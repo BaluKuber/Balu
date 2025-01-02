@@ -1,0 +1,33 @@
+namespace Ujihara.Demo
+{
+    using org.jfree.chart;
+    using org.jfree.chart.block;
+    using org.jfree.chart.plot;
+    using org.jfree.chart.title;
+    using org.jfree.ui;
+
+    using System.Drawing;
+
+    public class PieChart3DDemo1 : ChartCreator
+    {
+        public override JFreeChart CreateChart()
+        {
+            PiePlot3D plot = new PiePlot3D(DatasetCreator.createPieDataset());
+            plot.setLabelBackgroundPaint(Color.White);
+            plot.setLabelLinksVisible(false);
+            plot.setShadowPaint(Color.Gray);
+            plot.setForegroundAlpha(0.5f);
+
+            JFreeChart chart = new JFreeChart(
+                Name,
+                JFreeChart.DEFAULT_TITLE_FONT,
+                plot,
+                true);
+            LegendTitle legend = chart.getLegend();
+            legend.setPosition(RectangleEdge.TOP);
+            legend.setBorder(BlockBorder.NONE);
+
+            return chart;
+        }
+    }
+}

@@ -1,0 +1,26 @@
+namespace Ujihara.Demo
+{
+    using java.text;
+    using org.jfree.chart;
+    using org.jfree.chart.axis;
+    using org.jfree.chart.plot;
+
+
+    public class CandlestickChartDemo1 : ChartCreator
+    {
+        public override JFreeChart CreateChart()
+        {
+            JFreeChart chart = ChartFactory.createCandlestickChart(
+                Name,
+                "Time",
+                "YEN",
+                DatasetCreator.createDefaultHighLowDataset(60),
+                true);
+
+            XYPlot plot = chart.getXYPlot();
+            ((DateAxis)plot.getDomainAxis()).setDateFormatOverride(new SimpleDateFormat("y-M-d"));
+
+            return chart;
+        }
+    }
+}

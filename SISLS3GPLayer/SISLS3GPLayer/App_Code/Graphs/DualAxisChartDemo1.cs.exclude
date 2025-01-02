@@ -1,0 +1,44 @@
+namespace Ujihara.Demo
+{
+    using org.jfree.chart;
+    using org.jfree.chart.plot;
+    using org.jfree.chart.axis;
+    using org.jfree.data.category;
+    using org.jfree.chart.renderer.category;
+
+
+    public class DualAxisChartDemo1 : ChartCreator
+    {
+        public override JFreeChart CreateChart()
+        {
+            CategoryDataset dataset1 = DatasetCreator.createDefaultCategoryDataset(0, 2);
+            CategoryDataset dataset2 = DatasetCreator.createDefaultCategoryDataset(2, 3);
+
+            JFreeChart chart = ChartFactory.createBarChart(
+                Name,
+                "Category",
+                "USD",
+                dataset1,
+                PlotOrientation.VERTICAL,
+                true,
+                false,
+                false);
+
+            CategoryPlot plot = chart.getCategoryPlot();
+            plot.setDomainAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
+            plot.getDomainAxis().setMaximumCategoryLabelLines(2);
+
+            {
+                int datasetIndex = 1;
+                int axisIndex = 2;
+                plot.setDataset(datasetIndex, dataset2);
+                plot.mapDatasetToRangeAxis(datasetIndex, axisIndex);
+                plot.setRangeAxis(axisIndex, new NumberAxis("EUR"));
+
+                plot.setRenderer(datasetIndex, new LineAndShapeRenderer());
+            }
+
+            return chart;
+        }
+    }
+}

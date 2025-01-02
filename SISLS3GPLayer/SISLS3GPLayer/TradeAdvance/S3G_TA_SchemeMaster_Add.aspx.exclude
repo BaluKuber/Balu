@@ -1,0 +1,301 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" EnableEventValidation="false"
+    AutoEventWireup="true" CodeFile="S3G_TA_SchemeMaster_Add.aspx.cs" Inherits="TradeAdvance_S3GTASchemeMaster_Add" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <table width="100%" align="center" cellpadding="0" cellspacing="0">
+        <tr>
+            <td>
+                <asp:UpdatePanel ID="UpdatePanel2" runat="server">
+                    <ContentTemplate>
+                        <table width="100%">
+                            <tr>
+                                <td class="stylePageHeading">
+                                    <table>
+                                        <tr>
+                                            <td>
+                                                <asp:Label runat="server" ID="lblHeading" CssClass="styleDisplayLabel">
+                                                </asp:Label>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width: 100%">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td valign="top" style="width: 100%">
+                                                <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                                    <tr>
+                                                        <td class="styleFieldLabel" width="20%">
+                                                            <asp:Label ID="lblSchemeCode" runat="server" Text="Scheme Code"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign" style="padding-left: 10px" width="30%">
+                                                            <asp:TextBox ID="txtSchemeCode" Width="107px" ToolTip="Scheme Code" 
+                                                                runat="server"></asp:TextBox>
+                                                        </td>
+                                                        <td class="styleFieldLabel" width="20%">
+                                                            <asp:Label ID="lblIsActive" runat="server" Text="Active"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign" width="30%">
+                                                            <asp:CheckBox ID="CheckboxActive" runat="server" Checked="true" Enabled="false" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label ID="lblSchemeDesc" runat="server" CssClass="styleReqFieldLabel" Text="Scheme Description"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign">
+                                                            <asp:TextBox ID="txtSchemeDesc" Width="220px" ToolTip="Scheme Descrition" 
+                                                                runat="server" MaxLength="25"></asp:TextBox>
+                                                            <asp:RequiredFieldValidator ErrorMessage="Enter the Scheme Descrition" ValidationGroup="Header"
+                                                                ID="rfvSchemeDesc" runat="server" ControlToValidate="txtSchemeDesc" CssClass="styleMandatoryLabel"
+                                                                Display="None"></asp:RequiredFieldValidator>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label ID="lblSchemeType" runat="server" CssClass="styleReqFieldLabel" Text="Scheme Type"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldAlign">
+                                                            <asp:DropDownList ID="ddlSchemeType" ValidationGroup="Header" ToolTip="Scheme Type"
+                                                                runat="server" AutoPostBack="True">
+                                                            </asp:DropDownList>
+                                                            <asp:RequiredFieldValidator ErrorMessage="Select the Scheme Type" ValidationGroup="Header"
+                                                                ID="rfvSchemeType" runat="server" InitialValue="0" ControlToValidate="ddlSchemeType"
+                                                                CssClass="styleMandatoryLabel" Display="None"></asp:RequiredFieldValidator>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-top: 10px;">
+                                                <table width="100%">
+                                                    <tr>
+                                                        <td width="30%" valign="top">
+                                                            <asp:Panel GroupingText="Line of Business Details" runat="server" ID="pnlLOB" CssClass="stylePanel">
+                                                                <asp:GridView runat="server" DataKeyNames="LOB_ID" OnRowDataBound="grvLOBDetails_RowDataBound"
+                                                                    ID="grvLOBDetails" Width="100%" AutoGenerateColumns="False" EmptyDataText="No Line of Business Found!....">
+                                                                    <Columns>
+                                                                        <asp:TemplateField ItemStyle-Width="25px" HeaderText="Sl.No.">
+                                                                            <ItemTemplate>
+                                                                                <asp:Label runat="server" ID="lblLOBID" Text='<%#Eval("LOB_ID")%>' Visible="false"></asp:Label>
+                                                                                <asp:Label runat="server" ID="lblSNO" ToolTip="Sl.No." Text='<%#Container.DataItemIndex+1%>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle HorizontalAlign="Center" />
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField HeaderText="Line Of Business" >
+                                                                            <ItemTemplate>
+                                                                                <asp:Label ID="lblLOB" runat="server" Text='<%#Bind("LOB_Name") %>'></asp:Label>
+                                                                            </ItemTemplate>
+                                                                        </asp:TemplateField>
+                                                                        <asp:TemplateField ItemStyle-Wrap="false" HeaderText="Select">
+                                                                            <HeaderTemplate>
+                                                                                <asp:CheckBox ID="chkSelectAll" runat="server" onclick="javascript:fnSelectAll(this,'chkSelect');" />
+                                                                            </HeaderTemplate>
+                                                                            <ItemTemplate>
+                                                                                <asp:CheckBox runat="server" ID="chkSelect" ToolTip="Active" />
+                                                                            </ItemTemplate>
+                                                                            <ItemStyle HorizontalAlign="Center" />
+                                                                        </asp:TemplateField>
+                                                                    </Columns>
+                                                                    <HeaderStyle CssClass="styleGridHeader" />
+                                                                </asp:GridView>
+                                                            </asp:Panel>
+                                                        </td>
+                                                        <td width="70%" valign="top">
+                                                            <asp:Panel GroupingText="Rate Fixing" runat="server" ID="Panel2" CssClass="stylePanel">
+                                                            <asp:GridView ID="grvRateDetails" runat="server" AutoGenerateColumns="False" 
+                                                    OnRowCommand="grvRateDetails_RowCommand" 
+                                                    OnRowDataBound="grvRateDetails_RowDataBound" 
+                                                    OnRowDeleting="grvRateDetails_RowDeleting" 
+                                                    onselectedindexchanged="grvRateDetails_SelectedIndexChanged" ShowFooter="true" 
+                                                    Width="100%">
+                                                    <Columns>
+                                                        <asp:TemplateField HeaderText="Sl.No." ItemStyle-Width="25px">
+                                                            <ItemTemplate>
+                                                                <asp:Label ID="lblRate_ID" runat="server" Text='<%#Eval("Rate_ID")%>' 
+                                                                    Visible="false"></asp:Label>
+                                                                <asp:Label ID="lblSNO" runat="server" Text="<%#Container.DataItemIndex+1%>" 
+                                                                    ToolTip="Sl.No."></asp:Label>
+                                                            </ItemTemplate>
+                                                            <ItemStyle HorizontalAlign="Center" />
+                                                        </asp:TemplateField>
+                                                        <asp:TemplateField HeaderText="From" ItemStyle-Wrap="false">
+                                                            <ItemTemplate>
+                                                                <asp:Label ID="lblFrom" runat="server" Text='<%#Eval("FromAmt")%>' 
+                                                                    ToolTip="From"></asp:Label>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
+                                                                <asp:TextBox ID="txtFromAmt" runat="server" AutoPostBack="false" MaxLength="13" 
+                                                                    Style="text-align: right;" ToolTip="From Year" Width="100px">
+                                                                                </asp:TextBox>
+                                                                <cc1:FilteredTextBoxExtender ID="fltFromYear" runat="server" 
+                                                                    FilterType="Numbers" TargetControlID="txtFromAmt">
+                                                                </cc1:FilteredTextBoxExtender>
+                                                                <asp:RequiredFieldValidator ID="rfvFromAmt" runat="server" 
+                                                                    ControlToValidate="txtFromAmt" CssClass="styleMandatoryLabel" Display="None" 
+                                                                    ErrorMessage="Enter the From amount" ValidationGroup="Rate"></asp:RequiredFieldValidator>
+                                                            </FooterTemplate>
+                                                            <ItemStyle HorizontalAlign="Right" />
+                                                            <FooterStyle HorizontalAlign="Right" />
+                                                        </asp:TemplateField>
+                                                        <asp:TemplateField HeaderText="To" ItemStyle-Wrap="false">
+                                                            <ItemTemplate>
+                                                                <asp:Label ID="lblTo" runat="server" Text='<%#Eval("ToAmt")%>' ToolTip="To"></asp:Label>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
+                                                                <asp:TextBox ID="txtToAmt" runat="server" MaxLength="13" 
+                                                                    Style="text-align: right;" ToolTip="To Year" ValidationGroup="Rate" 
+                                                                    Width="100px">
+                                                                                </asp:TextBox>
+                                                                <cc1:FilteredTextBoxExtender ID="fltToAmt" runat="server" FilterType="Numbers" 
+                                                                    TargetControlID="txtToAmt">
+                                                                </cc1:FilteredTextBoxExtender>
+                                                                <asp:RequiredFieldValidator ID="rfvToYear" runat="server" 
+                                                                    ControlToValidate="txtToAmt" CssClass="styleMandatoryLabel" Display="None" 
+                                                                    ErrorMessage="Enter the To amount" ValidationGroup="Rate"></asp:RequiredFieldValidator>
+                                                            </FooterTemplate>
+                                                            <ItemStyle HorizontalAlign="Right" />
+                                                            <FooterStyle HorizontalAlign="Right" />
+                                                        </asp:TemplateField>
+                                                        <asp:TemplateField HeaderText="Rate" ItemStyle-HorizontalAlign="Right" 
+                                                            ItemStyle-Wrap="false">
+                                                            <ItemTemplate>
+                                                                <asp:Label ID="lblMaxAmount" runat="server" Style="text-align: right;" 
+                                                                    Text='<%#Eval("Rate")%>' ToolTip="Rate"></asp:Label>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
+                                                                <asp:TextBox ID="txtRate" runat="server" MaxLength="6" 
+                                                                    Style="text-align: right;" ToolTip="Rate" Width="60px">
+                                                                                </asp:TextBox>
+                                                                <cc1:FilteredTextBoxExtender ID="flttxtRate" runat="server" 
+                                                                    FilterType="Numbers,Custom" TargetControlID="txtRate" ValidChars=".">
+                                                                </cc1:FilteredTextBoxExtender>
+                                                                <asp:RequiredFieldValidator ID="rfvtxtRate" runat="server" 
+                                                                    ControlToValidate="txtRate" CssClass="styleMandatoryLabel" Display="None" 
+                                                                    ErrorMessage="Enter the Rate" ValidationGroup="Rate"></asp:RequiredFieldValidator>
+                                                                <asp:RangeValidator ID="rgvRate" runat="server" ControlToValidate="txtRate" 
+                                                                    Display="None" ErrorMessage="Rate should not exceed 100%" MaximumValue="100" 
+                                                                    MinimumValue="1" Type="Double" ValidationGroup="Rate"></asp:RangeValidator>
+                                                            </FooterTemplate>
+                                                            <ItemStyle HorizontalAlign="Right" />
+                                                            <FooterStyle HorizontalAlign="Right" />
+                                                        </asp:TemplateField>
+                                                        <asp:TemplateField HeaderText="Action">
+                                                            <ItemTemplate>
+                                                                <asp:LinkButton ID="lnkDelete" runat="server" CommandName="Delete" 
+                                                                    onclick="lnkDelete_Click" 
+                                                                    OnClientClick="return confirm('Are you sure you want to Delete this record?');" 
+                                                                    Text="Delete" ToolTip="Delete">
+                                                                                </asp:LinkButton>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
+                                                                <asp:Button ID="btnAdd" runat="server" CommandName="AddNew" 
+                                                                    CssClass="styleSubmitShortButton" Text="Add" ToolTip="Add" 
+                                                                    ValidationGroup="Rate" Width="50px" />
+                                                            </FooterTemplate>
+                                                            <ItemStyle HorizontalAlign="Center" />
+                                                            <FooterStyle HorizontalAlign="Center" />
+                                                        </asp:TemplateField>
+                                                    </Columns>
+                                                    <HeaderStyle CssClass="styleGridHeader" />
+                                                    <RowStyle HorizontalAlign="left" />
+                                                </asp:GridView>
+                                                            
+                                                            </asp:Panel>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr class="styleButtonArea" align="center" style="padding-left: 4px">
+                                <td>
+                                    <asp:Button runat="server" ID="btnSave" Enabled="false" ToolTip="Save" OnClientClick="return fnCheckPageValidators('Header');"
+                                        CssClass="styleSubmitButton" ValidationGroup="Header" Text="Save" 
+                                        OnClick="btnSave_Click" />
+                                    <asp:Button runat="server" ID="btnClear" CausesValidation="false" ToolTip="Clear"
+                                        CssClass="styleSubmitButton" Text="Clear" OnClientClick="return fnConfirmClear();"
+                                        OnClick="btnClear_Click" />
+                                    <asp:Button runat="server" ID="btnCancel" Text="Cancel" ToolTip="Cancel" CausesValidation="false"
+                                        CssClass="styleSubmitButton" OnClick="btnCancel_Click" />
+                                </td>
+                            </tr>
+                            <tr class="styleButtonArea">
+                                <td>
+                                    <asp:ValidationSummary runat="server" ID="vsUserMgmt" HeaderText="Correct the following validation(s):"
+                                        CssClass="styleMandatoryLabel" ValidationGroup="Header" Width="500px" ShowMessageBox="false"
+                                        ShowSummary="true" />
+                                    <asp:ValidationSummary runat="server" ID="ValidationSummary1" HeaderText="Correct the following validation(s):"
+                                        CssClass="styleMandatoryLabel" ValidationGroup="Footer" Width="500px" ShowMessageBox="false"
+                                        ShowSummary="true" Height="106px" />
+                                    <asp:ValidationSummary runat="server" ID="ValidationSummary2" HeaderText="Correct the following validation(s):"
+                                        CssClass="styleMandatoryLabel" ValidationGroup="Rate" Width="500px" ShowMessageBox="false"
+                                        ShowSummary="true" />
+                                    <input type="hidden" runat="server" value="0" id="hdnRowID" />
+                                    <input type="hidden" runat="server" value="1" id="hdnAccValid" />
+                                    <input type="hidden" runat="server" value="0" id="hdnStatus" />
+                                    <asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </ContentTemplate>
+                </asp:UpdatePanel>
+            </td>
+        </tr>
+    </table>
+
+    <script language="javascript" type="text/javascript">
+        function fnCancelClick() {
+            if (confirm('Are you sure you want to cancel?')) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        function fnSelectLOB(chkSelect, chkSelectAll) {
+
+            var grvLOB = document.getElementById('ctl00_ContentPlaceHolder1_grvLOBDetails');
+            var TargetChildControl = chkSelectAll;
+            var selectall = 0;
+            var Inputs = grvLOB.getElementsByTagName("input");
+            if (!chkSelect.checked) {
+                chkSelectAll.checked = false;
+            }
+            else {
+                for (var n = 0; n < Inputs.length; ++n) {
+                    if (Inputs[n].type == 'checkbox') {
+                        if (Inputs[n].checked) {
+                            selectall = selectall + 1;
+                        }
+                    }
+                }
+                if (selectall == grvLOB.rows.length - 1) {
+                    chkSelectAll.checked = true;
+                }
+            }
+
+        }
+
+        ///Function for Select/Unselect All LOB's
+        function fnSelectAll(chkSelectAll, chkSelect) {
+            var grvLOB = document.getElementById('ctl00_ContentPlaceHolder1_grvLOBDetails');
+            var TargetChildControl = chkSelect;
+            //Get all the control of the type INPUT in the base control.
+            var Inputs = grvLOB.getElementsByTagName("input");
+            //Checked/Unchecked all the checkBoxes in side the GridView.
+            for (var n = 0; n < Inputs.length; ++n)
+                if (Inputs[n].type == 'checkbox' &&
+            Inputs[n].id.indexOf(TargetChildControl, 0) >= 0)
+                Inputs[n].checked = chkSelectAll.checked;
+        }
+       
+    </script>
+
+</asp:Content>

@@ -1,0 +1,462 @@
+﻿#region Header
+
+//Module Name      :   Dashboard
+//Screen Name      :   S3G_Chart_LeadAnalysisReport.aspx
+//Created By       :   Shibu 
+//Created Date     :   03-Feb-2014
+//Purpose          :   
+
+#endregion
+
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using System.Globalization;
+using System.Web.UI.WebControls;
+using System.Web.UI.DataVisualization.Charting;
+using System.Web.UI.DataVisualization.Charting.Utilities;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using System.Web;
+using System.Text;
+using System.Net;
+#endregion
+
+public partial class Dashboard_S3G_Chart_LeadAnalysisReport : ApplyThemeForProject
+{
+
+    #region Declaration
+
+    int intCompanyID, intUserID = 0, intErrCode = 0;
+    public Dictionary<string, string> Procparam = null;
+    string intAssetVerificationNo = string.Empty;
+    int ProgCode = 262;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Dashboard/S3G_Chart_LeadAnalysisReport.aspx";
+    #endregion      
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            FunLoadLOB();
+            FunLoadFilter();
+            FunLoadChart();
+        }
+       
+    }
+
+    private void FunLoadLOB()
+    {
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@User_Id", intUserID.ToString());
+        Procparam.Add("@Company_ID", intCompanyID.ToString());
+        Procparam.Add("@Program_ID", ProgCode.ToString());
+        ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+
+    }
+
+    private void FunLoadFilter()
+    {
+        DataSet ds = new DataSet();
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", "1");
+     
+        ds = Utility.GetDataset("S3G_SYSAD_GetHierachyMasterDetails", Procparam);
+
+        cbxlsHierarchyList.DataSource = ds.Tables[0];
+        cbxlsHierarchyList.DataValueField = "Hierachy";
+        cbxlsHierarchyList.DataTextField = "Location_Description";
+        cbxlsHierarchyList.DataBind();
+
+    }
+
+    public void FunLoadChart()
+    {
+
+
+       DataTable dt = new DataTable();
+        DataSet ds=new DataSet();
+        //dt.Columns.Add("xAxis");
+        //dt.Columns.Add("Data");
+        //dt.Columns.Add("Series");
+        //dt.Rows.Add("Success", 34,"Shibu");
+        //dt.Rows.Add("Missing", 2, "Shibu");
+        //dt.Rows.Add("Failed", 10, "Shibu");
+        //dt.Rows.Add("Success", 34, "Kupp");
+        //dt.Rows.Add("Missing", 2, "Kupp");
+        //dt.Rows.Add("Failed", 10, "Kupp");
+
+        if (Procparam != null)
+            Procparam.Clear();
+        else
+            Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", "1");
+        Procparam.Add("@HierarchyLevel", "1");
+        if (rbtnAccount.Checked)
+        {
+            ds = Utility.GetDataset("S3G_GRP_GetHierarchyList_Account", Procparam);
+            UCS3GChart1.showChartTitle = "Hierachy - "+ rbtnAccount.Text;
+            UCS3GChart1.showUserDefineCondition = "HType=1&HName=" + rbtnAccount.Text;
+        }
+        else if (rbtnApplication.Checked)
+        {
+            ds = Utility.GetDataset("S3G_GRP_GetHierarchyList_Application", Procparam);
+            UCS3GChart1.showChartTitle = "Hierachy - " + rbtnApplication.Text;
+            UCS3GChart1.showUserDefineCondition = "HType=1&HName=" + rbtnApplication.Text;
+        }
+        
+        UCS3GChart1.setChartWidth = 500;
+        UCS3GChart1.setChartHeight = 400;
+        if(cbxAssetClass.Checked)
+            UCS3GChart1.showChartType= SeriesChartType.Column;
+        else
+            UCS3GChart1.showChartType = SeriesChartType.Bar;
+        UCS3GChart1.setChartFontSize = 9;
+        //UCS3GChart1.setDrawStyleCylinder = true;
+        UCS3GChart1.setLableValue = true;
+        UCS3GChart1.setLegendsValue = true;
+        UCS3GChart1.setChartMultipleSeries = true;
+        UCS3GChart1.setCustomePalette = true;
+        if(rbtnApplication.Checked)
+           UCS3GChart1.showCustomesPaletteColor = "#00A0B1~#2E8DEF~#A700AE~#643EBF~#BF1E4B~#DC572E~#00A600~#0A5BC4";
+        if (rbtnAccount.Checked)
+            UCS3GChart1.showCustomesPaletteColor = "#006AC1~#008287~#199900~#00C13F~#F3B200~#77B900~#2572EB~#AD103C~#632F00~#B01E00~#C1004F~#7200AC~#4617B4~#006AC1~#008287~#199900~#00C13F~#FF981D~#FF2E12~#FF1D77~#AA40FF~#1FAEFF~#56C5FF";
+       //UCS3GChart1.setMaximumChartColor = true;
+        //UCS3GChart1.showMaximumChartColor = "#F50A0A";
+        UCS3GChart1.setUserDefineCondition = true;
+        UCS3GChart1.setToolTipDrillChart = true;
+        UCS3GChart1.setClickDrillChartDetails = true;
+        UCS3GChart1.setDataTableSeries1 = ds.Tables[0];
+        if (cbxAssetClass.Checked)
+        {
+            UCS3GChart1.setChartSecondaryLine = true;
+            UCS3GChart1.showChartSecondaryType = SeriesChartType.Line;
+            UCS3GChart1.setChartSeries2 = "Asset Class";
+            UCS3GChart1.setSecondaryToolTipValues = true;
+            UCS3GChart1.setSecondaryLegendsValue = true;
+            UCS3GChart1.setDataTableSeries2 = ds.Tables[2];
+        }
+        UCS3GChart1.setSaveChartImage = true;
+        UCS3GChart1.BindChart();
+        hdnFilePath.Value = UCS3GChart1.returnSaveImagePath;
+
+
+
+        grdData.DataSource = ViewState["grdData"] = ds.Tables[1];
+        grdData.DataBind();
+    }
+    protected void rbtnApplication_CheckedChanged(object sender, EventArgs e)
+    {
+        FunLoadChart();
+    }
+    protected void rbtnAccount_CheckedChanged(object sender, EventArgs e)
+    {
+        FunLoadChart();
+    }
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        GeneratePDF();
+    }
+    protected void btnExport_Click(object sender, EventArgs e)
+    {
+        FunForExportExcel();
+    }
+
+    protected void GeneratePDF()
+    {
+        Document doc = new Document();
+        doc.SetPageSize(iTextSharp.text.PageSize.A4);
+        doc.SetMargins(25, 25, 25, 25);
+        iTextSharp.text.Font contentHeaderFont = iTextSharp.text.FontFactory.GetFont("Segoe UI", 8, iTextSharp.text.Font.BOLD, iTextSharp.text.BaseColor.BLACK);
+        iTextSharp.text.Font contentFont = iTextSharp.text.FontFactory.GetFont("Segoe UI", 8, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.DARK_GRAY);
+
+
+       
+        //FontFactory.Register("c:/windows/fonts/Vijaya.ttf", "my_bold_font");
+        //Font myBoldFont = FontFactory.GetFont("my_bold_font");
+        //BaseFont bf = myBoldFont.getBaseFont();
+
+
+        string sFileName = "LeadAnalysisReport" + "_" + DateTime.Now.ToString("yyyyMMddhhmmss") + ".PDF";
+        string sFilePath = (Server.MapPath(".") + "\\PDFFiles\\" + sFileName);
+        PdfWriter writer = PdfWriter.GetInstance(doc, new FileStream(sFilePath, FileMode.Create));
+
+        PDFPageSetup page = new PDFPageSetup(ObjUserInfo.ProCompanyNameRW, true);
+        writer.PageEvent = page;
+        doc.AddCreator("Sundaram Infotech Solutions");
+        doc.AddTitle(lblHeader.Text);
+        doc.AddSubject(lblHeader.Text);
+
+        doc.Open();
+        doc.Add(new Phrase(Environment.NewLine));
+        doc.AddAuthor("Sundaram Infotech Solutions");
+        //  doc.Add(new Phrase(Environment.NewLine));
+        PdfPTable otable = new PdfPTable(1);
+
+        Single[] sWidth = {15.0f };
+        otable.WidthPercentage = 95;
+        otable.SetTotalWidth(sWidth);
+
+        PdfPCell sCellE11 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCellE11.Border = 0;
+        sCellE11.BorderWidth = 0;
+        sCellE11.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCellE11);
+        PdfPCell sCellE1 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCellE1.Border = 0;
+        sCellE1.BorderWidth = 0;
+        sCellE1.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCellE1);
+        PdfPCell sCellE2 = new PdfPCell(new Phrase(lblHeader.Text));
+        sCellE2.Border = 0;
+        sCellE2.BorderWidth = 0;
+        sCellE2.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        sCellE2.HorizontalAlignment = iTextSharp.text.Element.ALIGN_LEFT;
+        otable.AddCell(sCellE2);
+        PdfPCell sCellE3 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCellE3.Border = 0;
+        sCellE3.BorderWidth = 0;
+        sCellE3.Colspan = 4;
+        sCellE3.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCellE3);
+        PdfPCell sCell2 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCell2.Border = 0;
+        sCell2.BorderWidth = 0;
+        sCell2.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell2);
+        iTextSharp.text.Image iImages = iTextSharp.text.Image.GetInstance(HttpContext.Current.Request.PhysicalApplicationPath + "Dashboard\\Image\\" + hdnFilePath.Value);
+        iImages.Alignment = iTextSharp.text.Element.ALIGN_CENTER;
+        iImages.ScalePercent(60.0F);
+        PdfPCell sCell3 = new PdfPCell(iImages);
+        sCell3.Border = 0;
+        sCell3.BorderWidth = 0;
+        sCell2.HorizontalAlignment = iTextSharp.text.Element.ALIGN_MIDDLE;
+        sCell3.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell3);
+        PdfPCell sCell22 = new PdfPCell(new Phrase(Environment.NewLine));
+        sCell22.Border = 0;
+        sCell22.BorderWidth = 0;
+        sCell22.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell22);
+        PdfPCell sCell23 = new PdfPCell(GetGriddata());
+        sCell23.Border = 0;
+        sCell23.BorderWidth = 0;
+        sCell23.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell23);
+        //doc.Add(otable);
+        //doc.Close();
+        //string fontpath = Server.MapPath(".");
+        //string fontPath = Path.GetFullPath("C:\\Windows\\Fonts\\Latha.ttf");
+
+        //BaseFont customfont = BaseFont.CreateFont(fontPath, BaseFont.CP1252, BaseFont.EMBEDDED);
+        // Font font = new Font(customfont, 12);
+
+        //string s = "My expensive custom font.";
+
+       // doc.Add(new Paragraph(s, font));
+
+         string fontpath = Environment.GetEnvironmentVariable("SystemRoot") + "\\fonts\\Vijaya.TTF";
+         BaseFont basefont = BaseFont.CreateFont(fontpath, BaseFont.IDENTITY_H, true);
+         Font AVVAIYARFont = new iTextSharp.text.Font(basefont, 12, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.BLUE); /*For test color blue is placed with some foramtting.*/
+
+         Paragraph pr1 = new Paragraph("மார்ச் 2014 இல் உங்கள் கடன் தொகை ரூபாய் 14000 என்று தெரிவிக்க விரும்புகிறேன்", AVVAIYARFont);
+
+
+         //PdfPCell sCell122 = new PdfPCell(new Phrase(new Chunk(Resources.LocalizationResources.lblCalendar.ToString(), font)));
+         PdfPCell sCell122 = new PdfPCell(pr1);
+        sCell122.Border = 0;
+
+        sCell122.BorderWidth = 0;
+        sCell122.VerticalAlignment = iTextSharp.text.Element.ALIGN_TOP;
+        otable.AddCell(sCell122);
+        doc.Add(otable);
+        doc.Close();
+       
+        openPdf(sFilePath, sFileName);
+        //}
+        //catch (Exception ex)
+        //{
+        //ClsPubCommErrorLog.CustomErrorRoutine(ex, strPageName);
+        //throw ex;
+        //}
+    }
+
+    protected PdfPTable GetGriddata()
+    {   
+        iTextSharp.text.Font contentHeaderFont = iTextSharp.text.FontFactory.GetFont("Segoe UI", 8, iTextSharp.text.Font.BOLD, iTextSharp.text.BaseColor.BLUE);
+        iTextSharp.text.Font contentFont = iTextSharp.text.FontFactory.GetFont("Segoe UI", 8, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.BLUE);
+
+        DataTable dt=(DataTable)ViewState["grdData"];
+        PdfPTable oTable = new PdfPTable(dt.Columns.Count);
+        Single[] sWidth = new Single[dt.Columns.Count];
+        for (int i = 0; i <dt.Columns.Count; i++)
+             sWidth[i] = 4.0f;
+        
+        oTable.WidthPercentage = 95;
+        oTable.SetTotalWidth(sWidth);
+        for (int i = 0; i <dt.Columns.Count; i++)
+        {
+            PdfPCell cell = new PdfPCell(new Phrase(dt.Columns[i].Caption.ToString(), contentHeaderFont));
+            cell.BorderWidth = 0.5f;    
+          cell.BorderColorBottom = iTextSharp.text.BaseColor.BLUE;
+          oTable.AddCell(cell);
+        }
+        foreach (DataRow drow in dt.Rows)      
+        {
+            for(int i=0;i<dt.Columns.Count;i++)
+            {
+                for (int j = 0; j <dt.Rows.Count-1; j++)
+                {
+                    PdfPCell cell = new PdfPCell(new Phrase(dt.Rows[j][i].ToString(), contentFont));
+                    cell.BorderWidth = 0.5f;                 
+                    cell.BorderColorBottom = iTextSharp.text.BaseColor.BLUE;
+                    oTable.AddCell(cell);
+                }
+            }
+        }
+        return oTable;
+    }
+    //Open the Attachment PDF
+    //Open the Attachment PDF
+    protected void openPdf(string sFilePath, string sFileName)
+    {
+         try
+        {
+            string strFileName = string.Empty;
+            strFileName = sFileName;
+            System.Threading.Thread.Sleep(1500);
+            string virtualPath = "http://" + Request.ServerVariables["HTTP_HOST"].ToString() + "\\Dashboard\\PDFFiles\\" + strFileName;
+            //Response.Redirect(virtualPath);
+
+            //Newly Added
+            string strFilePath = Server.MapPath(".") + "\\PDFFiles\\" + strFileName;
+            
+            var outputStream = new MemoryStream();
+            //var pdfReader = new PdfReader(strFilePath);
+            //var pdfStamper = new PdfStamper(pdfReader, outputStream);
+            //Add the auto-print javascript
+            //var writer = pdfStamper.Writer;
+            //writer.AddJavaScript(GetAutoPrintJs());
+            //pdfStamper.Close();
+            var content = outputStream.ToArray();
+            outputStream.Close();
+            Response.ContentType = "application/pdf";
+            Response.BinaryWrite(content);
+            Response.End();
+            outputStream.Close();
+            outputStream.Dispose(); //Upto This
+
+        }
+        catch (Exception ex)
+        {
+            //lblErrorMsg.Text = ex.Message;
+        }
+    }
+
+   
+
+    //And This
+    protected string GetAutoPrintJs()
+    {
+        var script = new StringBuilder();
+        script.Append("var pp = getPrintParams();");
+        script.Append("pp.interactive= pp.constants.interactionLevel.full;");
+        script.Append("print(pp);"); return script.ToString();
+    }
+  
+    protected void FunForExportExcel()
+    {
+        StringBuilder shtml = new StringBuilder();
+        shtml.Append("<html><head>");
+        shtml.Append("<style type='text/css'>");
+        shtml.Append(".stylePageHeading{background-image:url('../../images/title_headerBG.jpg');font-family:calibri,Verdana;font-weight:bold;font-size:13px;color:Navy;width:99.5%; padding-left:3px;border-bottom:0px solid #788783;border-top:0px solid #788783;margin-bottom:2px;filter:glow(color=InactiveCaptionText,strength=50);}");
+        shtml.Append(".styleGridHeader{color:Navy;text-decoration:none;background-color:aliceblue;font-weight:bold;}");
+        shtml.Append(".styleInfoLabel{font-family:calibri,Verdana;font-weight:normal;font-size:13px;color:Navy;text-decoration:none;background-color:White;}");
+        shtml.Append("</style>");
+        shtml.Append("</head>");
+        shtml.Append("<Body>");
+        shtml.Append("<table width='100%'>");
+        shtml.Append("<tr>");
+        shtml.Append("<td class='stylePageHeading' style='width:50%;' align='left' colspan=" + 5 + " " + " scope='col'>");
+        shtml.Append(ObjUserInfo.ProCompanyNameRW);
+        shtml.Append("</td>");
+        shtml.Append("<td class='stylePageHeading' style='width:50%;' align='right' colspan=" + 5 + " " + " scope='col'>");
+        shtml.Append(" <img src='..//Images//SfLogo.jpg' />");
+        shtml.Append("</td>");
+        shtml.Append("<tr>");
+        shtml.Append("<td  class='stylePageHeading' align='left' colspan=" + 10 + " " + " scope='col' >");
+        shtml.Append("&nbsp;&nbsp;&nbsp;" + lblHeader.Text + "</td>");
+        shtml.Append("</tr>");
+
+        shtml.Append("<tr>");
+        shtml.Append("<td class='stylePageHeading' style='width:100%;' align='right' colspan=" + 10 + " " + " scope='col'>");
+        shtml.Append("<img src=..//Images//"+ hdnFilePath.Value +" />");
+        shtml.Append("</td>");
+        shtml.Append("</tr>");
+        shtml.Append("</table>");
+        shtml.Append(" <table class='styleGridView' cellspacing='0' cellpadding='1' rules='all' border='0'style='color: #003D9E; font-family: calibri;font-size: 13px; font-weight: normal; width: 100%; border-collapse: collapse;>");
+        shtml.Append("<tr>");
+        shtml.Append("<td style='width:100%;'>");
+        shtml.Append("</td>");
+        shtml.Append("</tr>");
+        shtml.Append("<table width='100%'>");
+        shtml.Append("<tr>");
+        shtml.Append("<td align='left'  class='stylePageHeading' colspan=" + 10 + " " + " scope='col'>");
+        shtml.Append("</td>");
+        shtml.Append("</tr>");
+        shtml.Append("<tr>");
+        shtml.Append("<td align='left'  class='stylePageHeading' colspan=" + 10 + " " + " scope='col'>");
+        shtml.Append(ObjUserInfo.ProUserNameRW);
+        shtml.Append("</td>");
+        shtml.Append("</tr>");
+        shtml.Append("<tr>");
+        shtml.Append("<td align='left'  class='stylePageHeading' colspan=" + 14 + " " + " scope='col'>");
+        shtml.Append(System.DateTime.Now);
+        shtml.Append("</td>");
+        shtml.Append("</tr>");
+        shtml.Append("</table>");
+        shtml.Append("</Body></html>");
+        try
+        {
+            string attachment = "attachment; filename=LeadAnalysisReport.xls";
+            Response.ClearContent();
+            Response.AddHeader("content-disposition", attachment);
+            Response.ContentType = "application/vnd.xls";
+            Response.Write(shtml);
+            Response.End();
+        }
+        catch (Exception ex)
+        {
+        }
+    }
+
+
+
+    public override void VerifyRenderingInServerForm(Control control)
+    {
+
+    }
+    protected void cbxAssetClass_CheckedChanged(object sender, EventArgs e)
+    {
+        FunLoadChart();
+    }
+}

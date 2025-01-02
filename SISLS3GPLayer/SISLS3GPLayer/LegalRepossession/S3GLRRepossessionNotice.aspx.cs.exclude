@@ -1,0 +1,2251 @@
+﻿
+#region PageHeader
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name         :   Legal Repossession
+/// Screen Name         :   Repossession Notice
+/// Created By          :   Muni Kavitha    
+/// Created Date        :   4-Apr-2011
+/// Purpose             :   To generate Repossession Notice to the 
+///                         Customer,Police and Magistrate in PDF/Word Format
+///                         
+/// Last Updated By     :   Muni Kavitha    
+/// Last Updated Date   :   9-May-2011
+/// Reason              :   Table changes are updated
+
+/// Last Updated By     :   Muni Kavitha    
+/// Last Updated Date   :   1-June-2011
+/// Reason              :   Report Files are added and code changed for PDF/Word generation 
+
+/// Last Updated By     :   Muni Kavitha    
+/// Last Updated Date   :   8-Aug-2011
+/// Reason              :   Bug fixing Round 1
+
+/// Last Updated By     :   Muni Kavitha    
+/// Last Updated Date   :   7-Sep-2011
+/// Reason              :   Bug fixing Round 2
+/// 
+/// Last Updated By     :   Muni Kavitha    
+/// Last Updated Date   :   17-Sep-2011
+/// Reason              :   Bug fixing Round 3
+
+/// Last Updated By     :   Bhuvaneswari and Muni Kavitha    
+/// Last Updated Date   :   22-Sep-2011
+/// Reason              :   For Performance testing Objects Closed and Bug fixing Round 4
+
+/// Last Updated By     :   Sangeetha    
+/// Last Updated Date   :   27-Sep-2011
+/// Reason              :   For Location Changes
+/// <Program Summary>
+#endregion
+
+
+#region Namespaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Globalization;
+using System.ServiceModel;
+using System.Text;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using System.Web.Security;
+using System.IO;
+using System.Xml;
+using S3GBusEntity.LegalRepossession;
+//This NameSpace for PDF Format
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.xml;
+using iTextSharp.text.html;
+using CrystalDecisions.Shared;
+using CrystalDecisions.CrystalReports.Engine;
+#endregion
+
+public partial class LegalRepossession_S3GLRRepossessionNotice : ApplyThemeForProject
+{
+    #region Common Variable declaration
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> Procparam = null;
+    string strApprLogicID = "0";
+    int intErrCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode SerMode = SerializationMode.Binary;
+    //LegalRepossessionMgtServices ObjLegalRepossessionMgtServices = null;
+    LegalAndRepossessionMgtServicesReference.LegalAndRepossessionMgtServicesClient ObjLegalRepossessionMgtServices;
+    LegalRepossessionMgtServices.S3G_LR_RepossessionNoticeDataTable ObjS3G_LR_RepossessionNoticeDataTable = null;
+    LegalRepossessionMgtServices.S3G_LR_RepossessionNoticeRow ObjS3G_LR_RepossessionNoticeRow = null;
+
+    S3GAdminServicesReference.S3GAdminServicesClient objS3GAdminServicesClient;
+    StringBuilder strbRepossessDetailsXML = new StringBuilder();
+    DataTable dtLetterDetails = null;
+    S3GSession ObjS3GSession = null;
+
+    public static LegalRepossession_S3GLRRepossessionNotice obj_Page;
+
+    int i = 0;
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "S3GLRTransLander.aspx?Code=GNO";
+
+    string strRedirectPageAdd = "S3GLRRepossessionNotice.aspx";
+    string strRedirectPageView = "window.location.href='../LegalRepossession/S3GLRRepossessionNotice.aspx';";
+    string strDateFormat = string.Empty;
+    //string strcode = "";
+    static string strPageName = "Repossession Notice";
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    string strRN_ID = "";
+    string strRN_No = "";
+    int intRN_ID = 0;
+    DataTable dtMagistrateAddress = null;
+    DataTable dtPoliceAddress = null;
+    bool bPDF = false;
+    bool bWORD = false;
+
+    string LMPath = "null";
+    string LPPath = "null";
+    string LCPath = "null";
+
+    string LMPathWord = "null";
+    string LPPathWord = "null";
+    string LCPathWord = "null";
+
+    string Followup_Desc = "";
+    string LMDesc = "";
+    string LPDesc = "";
+    string LCDesc = "";
+
+    string strXMLRepossessDetails = "<Root><Details Desc='0' /></Root>";
+
+    #endregion
+
+    #region Load Page
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            obj_Page = this;
+            FunPriLoadPage();
+        }
+        catch (Exception ex)
+        {
+            cvRepossessionNotice.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_PageLoad + this.Page.Header.Title;
+            cvRepossessionNotice.IsValid = false;
+        }
+    }
+
+    private void FunPriLoadPage()
+    {
+
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            //FunPubSetIndex(1);
+
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            strMode = Request.QueryString.Get("qsMode");
+            if (Request.QueryString["qsViewId"] != null)
+            {
+
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strRN_ID = fromTicket.Name;
+            }
+
+
+            if (ObjS3GSession.ProPINCodeDigitsRW > 0)
+            {
+                txtMagistPin.MaxLength = txtPolicePin.MaxLength = ObjS3GSession.ProPINCodeDigitsRW;
+                if (ObjS3GSession.ProPINCodeTypeRW.ToUpper() == "ALPHA NUMERIC")
+                {
+                    FtMagistPin.FilterType = AjaxControlToolkit.FilterTypes.Numbers | AjaxControlToolkit.FilterTypes.Custom | AjaxControlToolkit.FilterTypes.UppercaseLetters | AjaxControlToolkit.FilterTypes.LowercaseLetters;
+                    FtPolicePin.FilterType = AjaxControlToolkit.FilterTypes.Numbers | AjaxControlToolkit.FilterTypes.Custom | AjaxControlToolkit.FilterTypes.UppercaseLetters | AjaxControlToolkit.FilterTypes.LowercaseLetters;
+                }
+                else
+                {
+                    FtMagistPin.FilterType = AjaxControlToolkit.FilterTypes.Numbers;
+                    FtPolicePin.FilterType = AjaxControlToolkit.FilterTypes.Numbers;
+                }
+            }
+
+            ddlLRNNumber.AddItemToolTip();
+            if (!IsPostBack)
+            {
+                FunPriLoadLineOfBusiness();
+                if (ddlLOB.Items.Count == 2)
+                {
+                    ddlLOB.SelectedIndex = 1;
+                    FunPriLoadLRNNumber();
+                }
+                if (Request.QueryString["qsMode"] != "C")
+                {
+                    FunPriLoadBranch();
+                }
+                if (ddlBranch.SelectedValue != "")
+                {
+                    //ddlBranch.SelectedIndex = 1;
+                    FunPriLoadLRNNumber();
+                }
+                tcRepossessNotice.ActiveTabIndex = 0;
+
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunPriRepossessNoticeModify(strRN_ID);
+                    FunPriDisableControls(-1);
+                }
+                else if (Request.QueryString["qsMode"] == "M")
+                {
+                    FunPriRepossessNoticeModify(strRN_ID);
+                    // GetRepossessionDate();
+                    FunPriDisableControls(1);
+
+                    // ViewState["AllowModify"] = objS3GAdminServicesClient.FunGetScalarValue("S3G_INS_AllowModifyAssetInsEntry", Procparam);
+
+                    //ddlLOB.Focus();
+
+
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+
+
+                }
+
+
+            }
+
+            //btnPDF .Attributes .Add ("onclick","return fn_IsLetterExists();");
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    #endregion
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", obj_Page.intCompanyID.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", obj_Page.ObjUserInfo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "141");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+
+    #region Functions
+
+    //Function To load LOB
+    private void FunPriLoadLineOfBusiness()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            Procparam.Add("@FilterOption", "'HP','LN','OL','FL'");
+            if (strMode == "C")
+                Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Program_ID", "137");
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            //ddlLOB.Focus();
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    //Function To load Location
+    private void FunPriLoadBranch()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            Procparam.Add("@User_ID", ObjUserInfo.ProUserIdRW.ToString());
+            if (strMode == "C")
+                Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Program_ID", "137");
+            Procparam.Add("@Lob_Id", Convert.ToString(ddlLOB.SelectedValue));
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, Procparam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+            Procparam = null;
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    //Function To load LRN Numbers
+    private void FunPriLoadLRNNumber()
+    {
+        try
+        {
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            //Procparam.Add("@User_ID", ObjUserInfo.ProUserIdRW.ToString());
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+            Procparam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+            Procparam.Add("@Action", "2");
+            if (strRN_ID == "")
+                Procparam.Add("@ProgramCode", "GNO");
+            ddlLRNNumber.BindDataTable(SPNames.S3G_LR_GetLRNNumber, Procparam, new string[] { "LRN_ID", "LRN_No", "Customer_Name" });
+            Procparam = null;
+            if (ddlLRNNumber.Items.Count == 2)
+            {
+                ddlLRNNumber.SelectedIndex = 1;
+                FunProLoadCGDetails();
+            }
+            ddlLRNNumber.AddItemToolTip();
+        }
+        catch (Exception ex)
+        {
+
+            cvRepossessionNotice.ErrorMessage = "Unable to Load LRN Number";
+            cvRepossessionNotice.IsValid = false;
+        }
+
+
+    }
+
+    //Function for Loading Customer and Guarantor Details
+    protected void FunProLoadCGDetails()
+    {
+
+        if (ddlLRNNumber.SelectedItem.Text != "--Select--")
+        {
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            Procparam.Add("@LRN_ID", ddlLRNNumber.SelectedValue.ToString());
+            DataSet Dst = Utility.GetDataset(SPNames.S3G_LR_GetLRNNumDetails, Procparam);
+            DataTable dtLRNNumDetails = Dst.Tables[0];
+            DataTable dtGuarDetails = Dst.Tables[1];
+            //DataTable dtLRNNumDetails = Utility.GetDefaultData("S3G_LR_GetLRNNumDetails", Procparam);
+            if (dtLRNNumDetails.Rows.Count != 0)
+            {
+
+                //}
+                //else
+                //{
+                txtPANum.Text = dtLRNNumDetails.Rows[0]["PANum"].ToString();
+                txtSANum.Text = dtLRNNumDetails.Rows[0]["SANum"].ToString();
+                //txtCustName.Text = dtLRNNumDetails.Rows[0]["Customer_Name"].ToString();
+                // txtCustAddr.Text = dtLRNNumDetails.Rows[0]["Comm_Address1"].ToString();
+                txtAccDate.Text = DateTime.Parse(dtLRNNumDetails.Rows[0]["Created_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                txtAmtFin.Text = dtLRNNumDetails.Rows[0]["Finance_Amount"].ToString();
+                txtTenure.Text = dtLRNNumDetails.Rows[0]["Tenure"].ToString();
+                hdnCustID.Value = dtLRNNumDetails.Rows[0]["Customer_ID"].ToString();
+                S3GCustomerAddress1.SetCustomerDetails(dtLRNNumDetails.Rows[0], true);
+            }
+
+            if (dtGuarDetails.Rows.Count < 1)
+            {
+                lblGuarDetails.Visible = true;
+                lblGuarDetails.Font.Size = 12;
+                gvGuarDetails.DataSource = null;
+                gvGuarDetails.DataBind();
+            }
+            else
+            {
+                lblGuarDetails.Visible = false;
+                gvGuarDetails.DataSource = dtGuarDetails;
+                gvGuarDetails.DataBind();
+            }
+            pnlCustDetails.Visible = true;
+            pnlGuarDetails.Visible = true;
+        }
+        else
+        {
+            txtAccDate.Text = txtAmtFin.Text = txtPANum.Text = txtSANum.Text = txtTenure.Text = "";
+            S3GCustomerAddress1.ClearCustomerDetails();
+            gvGuarDetails.DataSource = null;
+            gvGuarDetails.DataBind();
+            pnlCustDetails.Visible = false;
+            pnlGuarDetails.Visible = false;
+        }
+
+    }
+
+    //For verifying whether Asset Identification is completed/not
+    protected bool FunProChkAssetIdentification()
+    {
+        DataSet Dst = null;
+        Procparam = new Dictionary<string, string>();
+        Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+        Procparam.Add("@PANum", txtPANum.Text.Trim());
+        if (txtSANum.Text == "")
+            Procparam.Add("@SANum", txtPANum.Text.Trim() + "DUMMY");
+        else
+            Procparam.Add("@SANum", txtSANum.Text.Trim());
+        Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+        //Procparam.Add("@LRN_ID", ddlLRNNumber.SelectedValue.ToString());
+
+        Dst = Utility.GetDataset(SPNames.S3G_LR_GetAssetDetails, Procparam);
+
+        DataTable dtAssetIdent = Dst.Tables[0];
+        //DataTable dtcompany = Dst.Tables[1];
+        for (int i = 0; i < dtAssetIdent.Rows.Count; i++)
+        {
+            if (string.IsNullOrEmpty(dtAssetIdent.Rows[i]["REGN_NUMBER"].ToString()))
+            {
+                Utility.FunShowAlertMsg(this.Page, @"Asset Identification has to be done.\n\nRepossession Notice can not be generated");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //Function To clear the Data in the Page
+    private void FunPriClearPage()
+    {
+        try
+        {
+
+            ddlLOB.SelectedValue = "0";
+            //ddlBranch.SelectedValue = "0";
+            //ddlBranch.Items.Clear();
+            ddlLOB.Focus();
+            ddlLRNNumber.Items.Clear();
+            ddlLRNNumber.Items.Add("--Select--");
+            FunPriLoadLRNNumber();
+
+            //FunPriLoadPage();
+
+            //FunPriLoadLineOfBusiness();
+
+
+            txtMagistaddr.Text = txtMagistCity.Text = txtMagistCourt.Text = txtMagistDistrict.Text = txtMagistPin.Text = txtMagistPlace.Text = txtMagistState.Text = "";
+            txtPoliceAddr.Text = txtPoliceCity.Text = txtPoliceDistrict.Text = txtPolicePin.Text = txtPolicePlace.Text = txtPoliceState.Text = txtPoliceStation.Text = "";
+            chkCustomer.Checked = chkMagistrate.Checked = chkPolice.Checked = false;
+
+            txtAccDate.Text = txtAmtFin.Text = txtPANum.Text = txtSANum.Text = txtTenure.Text = "";
+
+            //gvGuarDetails .d
+            S3GCustomerAddress1.ClearCustomerDetails();
+            pnlCustDetails.Visible = false;
+
+            gvGuarDetails.DataSource = null;
+            gvGuarDetails.DataBind();
+            pnlGuarDetails.Visible = false;
+
+            if (ddlLOB.Items.Count == 2)
+            {
+                ddlLOB.SelectedIndex = 1;
+                FunPriLoadLRNNumber();
+            }
+            else
+                ddlLOB.SelectedValue = "0";
+
+            FunPriLoadBranch();
+
+            if (ddlBranch.SelectedText != "")
+            {
+                //ddlBranch.SelectedIndex = 1;
+                FunPriLoadLRNNumber();
+            }
+            else
+                ddlBranch.SelectedValue = "0";
+
+
+            tcRepossessNotice.ActiveTabIndex = 0;
+
+
+
+        }
+        catch (Exception ex)
+        {
+
+            cvRepossessionNotice.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_Clear + this.Page.Header.Title;
+            cvRepossessionNotice.IsValid = false;
+        }
+
+    }
+
+    //To set the PDF FileName and Notice generation based on user selections
+    protected void PreviewPDF_Click()
+    {
+        try
+        {
+            if (chkMagistrate.Checked == true)
+            {
+                //string htmlText = GetHTMLText(1);
+                string strnewFile;
+                string strFileName;
+                if (ViewState["MP"] == null)
+                {
+                    LMPath = "LM" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+                    ViewState["MP"] = LMPath;
+                }
+                else
+                    LMPath = ViewState["MP"].ToString();
+
+
+                strnewFile = Server.MapPath(".") + "\\PDF Files\\" + LMPath;
+                strFileName = "/LegalRepossession/PDF Files/" + LMPath;
+                //Generate_PDF(strnewFile, strFileName, 1);
+                Generate_PDF_Word(strnewFile, "P", 1);
+
+
+            }
+            if (chkPolice.Checked == true)
+            {
+                // string htmlText = GetHTMLText(2);
+                string strnewFile;
+                string strFileName;
+                if (ViewState["PP"] == null)
+                {
+                    LPPath = "LP" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+                    ViewState["PP"] = LPPath;
+                }
+                else
+                    LPPath = ViewState["PP"].ToString();
+
+
+
+                strnewFile = Server.MapPath(".") + "\\PDF Files\\" + LPPath;
+                strFileName = "/LegalRepossession/PDF Files/" + LPPath;
+                Generate_PDF_Word(strnewFile, "P", 2);
+                //Generate_PDF(strnewFile, strFileName, 2);
+
+            }
+
+            if (chkCustomer.Checked == true)
+            {
+                //string htmlText = GetHTMLText(3);
+                string strnewFile;
+                string strFileName;
+
+                if (ViewState["CP"] == null)
+                {
+                    LCPath = "LC" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+                    ViewState["CP"] = LCPath;
+                }
+                else
+                    LCPath = ViewState["CP"].ToString();
+
+                strnewFile = Server.MapPath(".") + "\\PDF Files\\" + LCPath;
+                strFileName = "/LegalRepossession/PDF Files/" + LCPath;
+                Generate_PDF_Word(strnewFile, "P", 3);
+                // Generate_PDF(strnewFile, strFileName, 3);
+
+            }
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    //To set the Word FileName and Notice generation based on user selections
+    protected void PreviewMSWord_Click()
+    {
+        try
+        {
+            if (chkMagistrate.Checked == true)
+            {
+                //string htmlText = GetHTMLText(1);
+                string strnewFile;
+                string strFileName;
+                if (ViewState["MPWord"] == null)
+                {
+                    LMPathWord = "LM" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+                    ViewState["MPWord"] = LMPathWord;
+                }
+                else
+                    LMPathWord = ViewState["MPWord"].ToString();
+
+                string strnewFileWord = Server.MapPath(".") + "\\PDF Files\\" + LMPathWord;
+                string strFileNameWord = "/LegalRepossession/PDF Files/" + LMPathWord;
+                //Generate_MSWord(strnewFileWord, strFileNameWord, 1);
+                Generate_PDF_Word(strnewFileWord, "W", 1);
+
+            }
+            if (chkPolice.Checked == true)
+            {
+                // string htmlText = GetHTMLText(2);
+                string strnewFile;
+                string strFileName;
+
+                if (ViewState["PPWord"] == null)
+                {
+                    LPPathWord = "LP" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+                    ViewState["PPWord"] = LPPathWord;
+                }
+                else
+                    LPPathWord = ViewState["PPWord"].ToString();
+
+                string strnewFileWord = Server.MapPath(".") + "\\PDF Files\\" + LPPathWord;
+                string strFileNameWord = "/LegalRepossession/PDF Files/" + LPPathWord;
+
+                //Generate_MSWord(strnewFileWord, strFileNameWord, 2);
+                Generate_PDF_Word(strnewFileWord, "W", 2);
+
+
+
+            }
+
+            if (chkCustomer.Checked == true)
+            {
+                //string htmlText = GetHTMLText(3);
+                string strnewFile;
+                string strFileName;
+                if (ViewState["CPWord"] == null)
+                {
+                    LCPathWord = "LC" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+                    ViewState["CPWord"] = LCPathWord;
+                }
+                else
+                    LCPathWord = ViewState["CPWord"].ToString();
+
+                string strnewFileWord = Server.MapPath(".") + "\\PDF Files\\" + LCPathWord;
+                string strFileNameWord = "/LegalRepossession/PDF Files/" + LCPathWord;
+
+
+                //Generate_MSWord(strnewFileWord, strFileNameWord, 3);
+                Generate_PDF_Word(strnewFileWord, "W", 3);
+
+
+
+            }
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    //To save the Details of Notice generated 
+    protected void FunProSaveRecord()
+    {
+        // LMPath = "LM.pdf";
+        //LMPath = LMPath.Replace("/", "-");
+        ObjLegalRepossessionMgtServices = new LegalAndRepossessionMgtServicesReference.LegalAndRepossessionMgtServicesClient();
+        FunPriGenerateRepossessNoticeXMLDet();
+
+        try
+        {
+            ObjS3G_LR_RepossessionNoticeDataTable = new LegalRepossessionMgtServices.S3G_LR_RepossessionNoticeDataTable();
+            ObjS3G_LR_RepossessionNoticeRow = ObjS3G_LR_RepossessionNoticeDataTable.NewS3G_LR_RepossessionNoticeRow();
+
+
+            ObjS3G_LR_RepossessionNoticeRow.Company_ID = ObjUserInfo.ProCompanyIdRW;
+            ObjS3G_LR_RepossessionNoticeRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjS3G_LR_RepossessionNoticeRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjS3G_LR_RepossessionNoticeRow.Customer_ID = Convert.ToInt32(hdnCustID.Value);
+
+            ObjS3G_LR_RepossessionNoticeRow.Company_ID = ObjUserInfo.ProCompanyIdRW;
+            ObjS3G_LR_RepossessionNoticeRow.LRN_ID = Convert.ToInt32(ddlLRNNumber.SelectedValue);
+            ObjS3G_LR_RepossessionNoticeRow.LRN_No = ddlLRNNumber.SelectedItem.Text.Substring(0, ddlLRNNumber.SelectedItem.Text.LastIndexOf("-")).Trim().ToString();
+            //ddlLRNNumber.SelectedItem .Text .ToString ();
+            string s = "";
+            if (chkMagistrate.Checked == true && chkPolice.Checked == true)
+                s = "Letter To " + LMDesc + " and " + LPDesc + LCDesc;
+            else if (chkMagistrate.Checked == true && chkCustomer.Checked == true)
+                s = "Letter To " + LMDesc + LPDesc + " and " + LCDesc;
+            else if (chkPolice.Checked == true && chkCustomer.Checked == true)
+                s = "Letter To " + LMDesc + LPDesc + " and " + LCDesc;
+            else if (chkMagistrate.Checked == true && chkPolice.Checked == true && chkCustomer.Checked == true)
+                s = "Letter To " + LMDesc + ", " + LPDesc + "and" + LCDesc;
+            else
+                s = "Letter To " + LMDesc + LPDesc + LCDesc;
+
+            ObjS3G_LR_RepossessionNoticeRow.Follow_Up_Description = s;
+            strRN_No = Convert.ToString(ViewState["strRN_No"]);
+            strRN_ID = Convert.ToString(ViewState["VS_RN_ID"]);
+
+            if (strRN_No != "")
+            {
+
+                ObjS3G_LR_RepossessionNoticeRow.RN_ID = Convert.ToInt32(strRN_ID);
+                ObjS3G_LR_RepossessionNoticeRow.RN_No = strRN_No;
+            }
+            else
+            {
+                ObjS3G_LR_RepossessionNoticeRow.RN_ID = 0;
+                ObjS3G_LR_RepossessionNoticeRow.RN_No = "";
+            }
+            ObjS3G_LR_RepossessionNoticeRow.PANum = txtPANum.Text;
+            if (txtSANum.Text == "")
+
+                ObjS3G_LR_RepossessionNoticeRow.SANum = txtPANum.Text + "DUMMY";
+            else
+                ObjS3G_LR_RepossessionNoticeRow.SANum = txtSANum.Text;
+
+            ObjS3G_LR_RepossessionNoticeRow.Repossession_Notice_Date = DateTime.Now;
+            // ObjS3G_LR_RepossessionNoticeRow.FollowUp_Detail_ID = 1;
+            ObjS3G_LR_RepossessionNoticeRow.XMLParamtRepossesNoticeDet = strbRepossessDetailsXML.ToString();
+
+            ObjS3G_LR_RepossessionNoticeRow.Created_By = ObjUserInfo.ProUserIdRW;
+            ObjS3G_LR_RepossessionNoticeRow.Modified_By = ObjUserInfo.ProUserIdRW;
+            ObjS3G_LR_RepossessionNoticeRow.Created_On = DateTime.Now;
+            ObjS3G_LR_RepossessionNoticeRow.Modified_On = DateTime.Now;
+
+            ObjS3G_LR_RepossessionNoticeDataTable.AddS3G_LR_RepossessionNoticeRow(ObjS3G_LR_RepossessionNoticeRow);
+
+            byte[] byteObjS3G_LR_RepossessionNoticeDataTable = ClsPubSerialize.Serialize(ObjS3G_LR_RepossessionNoticeDataTable, SerMode);
+            //if (strRN_ID == null || strRN_ID == "")
+            //{
+
+            // intErrCode =ObjLegalRepossessionMgtServices.FunPubCreateRepossessionNotice(SerMode, ClsPubSerialize.Serialize(ObjS3G_LR_RepossessionNoticeDataTable, SerMode));
+            intErrCode = ObjLegalRepossessionMgtServices.FunPubCreateRepossessionNotice(out strRN_No, out intRN_ID, SerMode, byteObjS3G_LR_RepossessionNoticeDataTable);
+            strRN_ID = intRN_ID.ToString();
+
+            //intErrCode = 0;
+            //}             
+
+            switch (intErrCode)
+            {
+                case 0:
+
+                    if (bPDF == true)
+                        PreviewPDF_Click();
+
+                    if (bWORD == true)
+                        PreviewMSWord_Click();
+
+                    FunPriRepossessNoticeModify(strRN_ID);
+
+                    Utility.ClearDropDownList(ddlLOB);
+                    //Utility.ClearDropDownList(ddlBranch);
+
+                    ddlBranch.Enabled = false;
+                    Utility.ClearDropDownList(ddlLRNNumber);
+
+                    btnClear.Enabled = false;
+
+                    chkMagistrate.Checked = false;
+                    chkPolice.Checked = false;
+                    chkCustomer.Checked = false;
+
+                    btnPDF.Enabled = btnMSword.Enabled = false;
+
+                    Utility.FunShowAlertMsg(this.Page, "Repossession Notice generated and details saved successfully.");
+
+                    break;
+                case 1:
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs._1, strRedirectPage);
+                    return;
+                    break;
+                case 2:
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs._2, strRedirectPage);
+                    return;
+                    break;
+                case 50:
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs._50, strRedirectPage);
+                    return;
+                    break;
+                default:
+                    Utility.FunShowAlertMsg(this.Page, "Due to data problem unable to generate Notice");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            //if (ObjLegalRepossessionMgtServices != null)
+            ObjLegalRepossessionMgtServices.Close();
+        }
+
+
+    }
+
+    //To generate xml for storing Police and Magistrate Address details and Letter details
+    private void FunPriGenerateRepossessNoticeXMLDet()
+    {
+        try
+        {
+            //string X = "";
+            int MG_uid = 0;
+            DateTime? MG_dt = new DateTime();
+            MG_dt = null;
+
+            int PL_uid = 0;
+            DateTime? PL_dt = new DateTime();
+            PL_dt = null;
+
+            int CB_uid = 0;
+            DateTime? CB_dt = new DateTime();
+            CB_dt = null;
+            string LC_BFPath = "";
+
+            int CA_uid = 0;
+            DateTime? CA_dt = new DateTime();
+            CA_dt = null;
+
+            strRN_ID = Convert.ToString(ViewState["VS_RN_ID"]);
+
+            if (strRN_ID == "")
+            {
+                if (chkMagistrate.Checked == true)
+                {
+                    LMDesc = "Magistrate";
+                    if (bPDF == true)
+                    {
+                        LMPath = "LM" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+
+                        //MG_uid = ObjUserInfo.ProUserIdRW;
+
+                    }
+                    else
+                        LMPath = "";
+                    if (bWORD == true)
+                    {
+                        LMPathWord = "LM" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+
+                    }
+                    else
+                        LMPathWord = "";
+
+                    MG_uid = ObjUserInfo.ProUserIdRW;
+
+                    MG_dt = DateTime.Now;
+                }
+                else
+                {
+                    LMDesc = "";
+                    LMPath = "";
+                    LMPathWord = "";
+                    MG_uid = 0;
+                    MG_dt = null;
+                }
+
+                if (chkPolice.Checked == true)
+                {
+                    LPDesc = "Police";
+
+                    if (bPDF == true)
+                    {
+                        LPPath = "LP" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+
+                        //MG_uid = ObjUserInfo.ProUserIdRW;
+                    }
+                    else
+                        LPPath = "";
+                    if (bWORD == true)
+                    {
+                        LPPathWord = "LP" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+                    }
+                    else
+                        LPPathWord = "";
+
+
+                    PL_uid = ObjUserInfo.ProUserIdRW;
+                    PL_dt = DateTime.Now;
+                }
+                else
+                {
+                    LPDesc = "";
+                    LPPath = "";
+                    LPPathWord = "";
+                    PL_uid = 0;
+                    PL_dt = null;
+                }
+
+                if (chkCustomer.Checked == true)
+                {
+                    LCDesc = "Customer";
+
+                    if (bPDF == true)
+                    {
+                        LCPath = "LC" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+                        //MG_uid = ObjUserInfo.ProUserIdRW;
+                    }
+                    else
+                        LCPath = "";
+                    if (bWORD == true)
+                    {
+                        LCPathWord = "LC" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+                    }
+                    else
+                        LCPathWord = "";
+                    CA_uid = ObjUserInfo.ProUserIdRW;
+                    CA_dt = DateTime.Now;
+                }
+                else
+                {
+                    LCDesc = "";
+                    LCPath = "";
+                    LCPathWord = "";
+                    CA_uid = 0;
+                    CA_dt = null;
+                }
+
+            }
+            // FOR MODIFY
+            else
+            {
+                DataTable dtXMLvalues = null;
+                if (ViewState["dtRepossessNoticeDetails"] != null)
+                {
+                    dtXMLvalues = (DataTable)ViewState["dtRepossessNoticeDetails"];
+                }
+                //LMPath = ViewState["MP"].ToString();
+                //LMPathWord = ViewState["MPWord"].ToString();
+                LMPath = dtXMLvalues.Rows[0]["Letter_To_Magistrate_Path_Pdf"].ToString();
+                LMPathWord = dtXMLvalues.Rows[0]["Letter_To_Magistrate_Path_Doc"].ToString();
+
+                if (chkMagistrate.Checked == true)
+                {
+                    LMDesc = "Magistrate";
+                    //LMPath = ViewState["MP"].ToString();
+                    //LMPathWord = ViewState["MPWord"].ToString();
+                    if (bPDF == true)
+                    {
+                        if (LMPath == null || LMPath == "")
+                            LMPath = "LM" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+                    }
+                    else
+                        // LMPath = ViewState["MP"].ToString();
+                        LMPath = dtXMLvalues.Rows[0]["Letter_To_Magistrate_Path_Pdf"].ToString();
+                    if (bWORD == true)
+                    {
+                        if (LMPathWord == null || LMPathWord == "")
+                            LMPathWord = "LM" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+                    }
+                    else
+                        //LMPathWord = ViewState["MPWord"].ToString();
+                        LMPathWord = dtXMLvalues.Rows[0]["Letter_To_Magistrate_Path_Doc"].ToString();
+
+                    MG_uid = ObjUserInfo.ProUserIdRW;
+                    MG_dt = DateTime.Now;
+                }
+                else
+                {
+                    //LMPath = ViewState["MP"].ToString();
+                    //LMPathWord = ViewState["MPWord"].ToString();
+                    LMDesc = "";
+                    LMPath = dtXMLvalues.Rows[0]["Letter_To_Magistrate_Path_Pdf"].ToString();
+                    LMPathWord = dtXMLvalues.Rows[0]["Letter_To_Magistrate_Path_Doc"].ToString();
+
+                    MG_uid = Convert.ToInt32(dtXMLvalues.Rows[0]["Letter_To_Magistrate_By"]);
+
+                    //if (Convert.ToDateTime(dtXMLvalues.Rows[0]["Letter_To_Magistrate_Date"])!=null)
+                    MG_dt = Convert.ToDateTime(dtXMLvalues.Rows[0]["Letter_To_Magistrate_Date"]);
+                    // else
+                    //  MG_dt = null;
+
+                }
+
+                //===================//
+                // LPPath = ViewState["PP"].ToString();
+                //LPPathWord = ViewState["PPWord"].ToString();
+
+                LPPath = dtXMLvalues.Rows[0]["Letter_To_Police_Path_Pdf"].ToString();
+                LPPathWord = dtXMLvalues.Rows[0]["Letter_To_Police_Path_Doc"].ToString();
+
+                if (chkPolice.Checked == true)
+                {
+                    LPDesc = "Police";
+                    //LMPath = ViewState["MP"].ToString();
+                    //LMPathWord = ViewState["MPWord"].ToString();
+                    if (bPDF == true)
+                    {
+                        if (LPPath == null || LPPath == "")
+                            LPPath = "LP" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+                    }
+                    else
+                        // LPPath = ViewState["PP"].ToString();
+                        LPPath = dtXMLvalues.Rows[0]["Letter_To_Police_Path_Pdf"].ToString();
+                    if (bWORD == true)
+                    {
+                        if (LPPathWord == null || LPPathWord == "")
+                            LPPathWord = "LP" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+                    }
+                    else
+                        //LPPathWord = ViewState["PPWord"].ToString();
+                        LPPathWord = dtXMLvalues.Rows[0]["Letter_To_Police_Path_Doc"].ToString();
+                    PL_uid = ObjUserInfo.ProUserIdRW;
+                    PL_dt = DateTime.Now;
+
+                }
+                else
+                {
+                    //LPPath = ViewState["PP"].ToString();
+                    //LPPathWord = ViewState["PPWord"].ToString();
+                    LPDesc = "";
+                    LPPath = dtXMLvalues.Rows[0]["Letter_To_Police_Path_Pdf"].ToString();
+                    LPPathWord = dtXMLvalues.Rows[0]["Letter_To_Police_Path_Doc"].ToString();
+
+                    PL_uid = Convert.ToInt32(dtXMLvalues.Rows[0]["Letter_To_Police_By"]);
+                    PL_dt = Convert.ToDateTime(dtXMLvalues.Rows[0]["Letter_To_Police_Date"]);
+                }
+
+                //===================//
+                //LCPath = ViewState["CP"].ToString();
+                //LCPathWord = ViewState["CPWord"].ToString();
+                LCPath = dtXMLvalues.Rows[0]["Letter_To_Customer_AF_Path_Pdf"].ToString();
+                LCPathWord = dtXMLvalues.Rows[0]["Letter_To_Customer_AF_Path_Doc"].ToString();
+                if (chkCustomer.Checked == true)
+                {
+                    LCDesc = "Customer";
+                    //LMPath = ViewState["MP"].ToString();
+                    //LMPathWord = ViewState["MPWord"].ToString();
+                    if (bPDF == true)
+                    {
+                        if (LCPath == null || LCPath == "")
+                            LCPath = "LC" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".pdf";
+                    }
+                    else
+                        //LCPath = ViewState["CP"].ToString();
+                        LCPath = dtXMLvalues.Rows[0]["Letter_To_Customer_AF_Path_Pdf"].ToString();
+
+                    if (bWORD == true)
+                    {
+                        if (LCPathWord == null || LCPathWord == "")
+                            LCPathWord = "LC" + hdnCustID.Value + S3GCustomerAddress1.CustomerName + DateTime.Now.ToString().Replace("/", "-").Replace(":", "-").Replace(" ", " ") + ".doc";
+                    }
+                    else
+                        //LCPathWord = ViewState["CPWord"].ToString();
+                        LCPathWord = dtXMLvalues.Rows[0]["Letter_To_Customer_AF_Path_Doc"].ToString();
+
+                    CA_uid = ObjUserInfo.ProUserIdRW;
+                    CA_dt = DateTime.Now;
+                }
+                else
+                {
+                    //LCPath = ViewState["CP"].ToString();
+                    // LCPathWord = ViewState["CPWord"].ToString();
+                    LCDesc = "";
+                    LCPath = dtXMLvalues.Rows[0]["Letter_To_Customer_AF_Path_Pdf"].ToString();
+                    LCPathWord = dtXMLvalues.Rows[0]["Letter_To_Customer_AF_Path_Doc"].ToString();
+                    CA_uid = Convert.ToInt32(dtXMLvalues.Rows[0]["Letter_To_Customer_AF_By"]);
+                    CA_dt = Convert.ToDateTime(dtXMLvalues.Rows[0]["Letter_To_Customer_AF_Date"]);
+                }
+
+            }
+
+
+
+
+            ViewState["MP"] = LMPath;
+            ViewState["MPWord"] = LMPathWord;
+            ViewState["PP"] = LPPath;
+            ViewState["PPWord"] = LPPathWord;
+            ViewState["CP"] = LCPath;
+            ViewState["CPWord"] = LCPathWord;
+
+
+            strbRepossessDetailsXML.Append("<Root>");
+            int i = 0;
+
+            strbRepossessDetailsXML.Append("<Details ");
+            strbRepossessDetailsXML.Append(" Letter_To_Customer_BF_Path_Pdf1 = '" + LC_BFPath + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Customer_BF_Path_Doc1 = '" + LC_BFPath + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Customer_BF_Date1 = '" + CB_dt + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Customer_BF_By1 = '" + CB_uid + "'");
+
+            strbRepossessDetailsXML.Append(" Letter_To_Customer_AF_Path_Pdf1 = '" + LCPath + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Customer_AF_Path_Doc1 = '" + LCPathWord + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Customer_AF_Date1 = '" + CA_dt + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Customer_AF_By1 = '" + CA_uid + "'");
+
+            strbRepossessDetailsXML.Append(" Letter_To_Magistrate_Path_Pdf1 = '" + LMPath + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Magistrate_Path_Doc1 = '" + LMPathWord + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Magistrate_Date1 = '" + MG_dt + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Magistrate_By1 = '" + MG_uid + "'");
+
+            strbRepossessDetailsXML.Append(" Letter_To_Police_Path_Pdf1 = '" + LPPath + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Police_Path_Doc1 = '" + LPPathWord + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Police_Date1 = '" + PL_dt + "'");
+            strbRepossessDetailsXML.Append(" Letter_To_Police_By1 = '" + PL_uid + "'");
+
+
+            strbRepossessDetailsXML.Append(" Police_Address1 = '" + txtPoliceAddr.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Name_Of_PoliceStation1 = '" + txtPoliceStation.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Police_Place1 = '" + txtPolicePlace.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Police_City1 = '" + txtPoliceCity.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Police_District1 = '" + txtPoliceDistrict.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Police_State1 = '" + txtPoliceState.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Police_Pin1 = '" + txtPolicePin.Text.Trim() + "'");
+
+
+            strbRepossessDetailsXML.Append(" Court_Address1 = '" + txtMagistaddr.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Name_Of_Court1 = '" + txtMagistCourt.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Court_Place1 = '" + txtMagistPlace.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Court_City1 = '" + txtMagistCity.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Court_District1 = '" + txtMagistDistrict.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Court_State1 = '" + txtMagistDistrict.Text.Trim() + "'");
+            strbRepossessDetailsXML.Append(" Court_Pin1 = '" + txtMagistPin.Text.Trim() + "'");
+
+            strbRepossessDetailsXML.Append(" />");
+
+            strbRepossessDetailsXML.Append("</Root>");
+            //strXMLRepossessDetails = strbRepossessDetailsXML.ToString();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    //For getting data to display in Modify Mode
+    private void FunPriRepossessNoticeModify(string RN_ID)
+    {
+        try
+        {
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            Procparam.Add("@RN_ID", strRN_ID.ToString());
+            DataTable dtRepossessNoticeDetails = Utility.GetDefaultData(SPNames.S3g_LR_GetRepossessNoticeDetails, Procparam);
+            //DataSet dsRepossessNoticeDetails = Utility.GetDataset("S3g_LR_GetRepossessNoticeDetails", Procparam);
+            ddlLOB.SelectedValue = dtRepossessNoticeDetails.Rows[0]["LOB_ID"].ToString();
+            ddlBranch.SelectedValue = dtRepossessNoticeDetails.Rows[0]["Location_Code"].ToString();
+            ddlBranch.SelectedText = dtRepossessNoticeDetails.Rows[0]["Location_Name"].ToString();
+            FunPriLoadLRNNumber();
+            ddlLRNNumber.SelectedValue = dtRepossessNoticeDetails.Rows[0]["LRN_ID"].ToString();
+            if (ddlLRNNumber.SelectedValue != "0")
+            {
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+                Procparam.Add("@LRN_ID", ddlLRNNumber.SelectedValue.ToString());
+                DataSet Dst = Utility.GetDataset(SPNames.S3G_LR_GetLRNNumDetails, Procparam);
+                DataTable dtLRNNumDetails = Dst.Tables[0];
+                DataTable dtGuarDetails = Dst.Tables[1];
+                //DataTable dtLRNNumDetails = Utility.GetDefaultData("S3G_LR_GetLRNNumDetails", Procparam);
+                if (dtLRNNumDetails.Rows.Count < 1)
+                {
+
+                }
+                else
+                {
+                    txtPANum.Text = dtLRNNumDetails.Rows[0]["PANum"].ToString();
+                    txtSANum.Text = dtLRNNumDetails.Rows[0]["SANum"].ToString();
+                    //txtCustName.Text = dtLRNNumDetails.Rows[0]["Customer_Name"].ToString();
+                    // txtCustAddr.Text = dtLRNNumDetails.Rows[0]["Comm_Address1"].ToString();
+                    txtAccDate.Text = DateTime.Parse(dtLRNNumDetails.Rows[0]["Created_Date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                    txtAmtFin.Text = dtLRNNumDetails.Rows[0]["Finance_Amount"].ToString();
+                    txtTenure.Text = dtLRNNumDetails.Rows[0]["Tenure"].ToString();
+                    hdnCustID.Value = dtLRNNumDetails.Rows[0]["Customer_ID"].ToString();
+                    S3GCustomerAddress1.SetCustomerDetails(dtLRNNumDetails.Rows[0], true);
+                }
+
+                if (dtGuarDetails.Rows.Count < 1)
+                {
+                    lblGuarDetails.Visible = true;
+                    lblGuarDetails.Font.Size = 12;
+                    gvGuarDetails.DataSource = null;
+                    gvGuarDetails.DataBind();
+
+
+                }
+                else
+                {
+                    lblGuarDetails.Visible = false;
+                    gvGuarDetails.DataSource = dtGuarDetails;
+                    gvGuarDetails.DataBind();
+                }
+                pnlCustDetails.Visible = true;
+                pnlGuarDetails.Visible = true;
+
+
+
+
+                //Procparam = new Dictionary<string, string>();
+                //Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+                //Procparam.Add("@LRN_ID", ddlLRNNumber.SelectedValue.ToString());
+                //DataSet Dst = Utility.GetDataset("S3G_LR_GetLRNNumDetails", Procparam);
+                //DataTable dtLRNNumDetails = Dst.Tables[0];
+                //DataTable dtGuarDetails = Dst.Tables[1];
+            }
+            //Get the PDF Path for Modify Mode
+            LMPath = dtRepossessNoticeDetails.Rows[0]["Letter_To_Magistrate_Path_Pdf"].ToString();
+            //if (LMPath != "null" || LMPath !="")
+            if (LMPath != "")
+            {
+
+                ViewState["MP"] = LMPath;
+                //chkMagistrate.Checked = true;
+                hl_magistrate.Visible = true;
+                // hl_police.NavigateUrl = @"../LegalRepossession/PDF Files/LP4Senthil Kumar.pdf";
+                //changes//
+                //hl_magistrate.NavigateUrl = @"../LegalRepossession/PDF Files/" + LMPath;
+                string pt = @"../LegalRepossession/PDF Files/" + LMPath; ;
+                hl_magistrate.Attributes.Add("onclick", "window.open('" + pt + "', 'newwindow','width=600,height=600, scrollbars,resizable');");
+                //changes//
+
+                //lnkViewMagist.Visible = true;
+            }
+            else
+            {
+                chkMagistrate.Checked = false;
+                //lnkViewMagist.Visible = false;
+            }
+
+            //Get the MSWord Path for Modify Mode
+            LMPathWord = dtRepossessNoticeDetails.Rows[0]["Letter_To_Magistrate_Path_Doc"].ToString();
+            // if (LMPathWord != "null" || LMPathWord!="")
+            if (LMPathWord != "")
+            {
+
+                ViewState["MPWord"] = LMPathWord;
+                //chkMagistrate.Checked = true;
+                hl_magistrate_word.Visible = true;
+                //changed//
+                //hl_magistrate_word.NavigateUrl = @"../LegalRepossession/PDF Files/" + LMPathWord;
+                string ptw = @"../LegalRepossession/PDF Files/" + LMPathWord; ;
+                hl_magistrate_word.Attributes.Add("onclick", "window.open('" + ptw + "', 'newwindow','width=600,height=600, scrollbars,resizable');");
+                //changes//
+                //lnkViewMagist.Visible = true;
+            }
+            else
+            {
+                chkMagistrate.Checked = false;
+                //lnkViewMagist.Visible = false;
+            }
+
+            //Get the PDF Path for Modify Mode
+            LPPath = dtRepossessNoticeDetails.Rows[0]["Letter_To_Police_Path_Pdf"].ToString();
+            //if (LPPath != "null" || LPPath != "")
+            if (LPPath != "")
+            {
+
+                ViewState["PP"] = LPPath;
+                // chkPolice.Checked = true;
+                //lnkViewPolice.Visible = true;
+                hl_police.Visible = true;
+                //changes//
+                //hl_police.NavigateUrl = @"../LegalRepossession/PDF Files/" + LPPath;
+                string ptpol = @"../LegalRepossession/PDF Files/" + LPPath; ;
+                hl_police.Attributes.Add("onclick", "window.open('" + ptpol + "', 'newwindow','width=600,height=600, scrollbars,resizable');");
+                //changes//
+            }
+            else
+            {
+                chkPolice.Checked = false;
+                //lnkViewPolice.Visible = false;
+            }
+
+
+            //Get the MSWord Path for Modify Mode
+
+            LPPathWord = dtRepossessNoticeDetails.Rows[0]["Letter_To_Police_Path_Doc"].ToString();
+            //if (LPPathWord != "null" || LPPathWord !="")
+            if (LPPathWord != "")
+            {
+
+                ViewState["PPWord"] = LPPathWord;
+                //chkPolice.Checked = true;
+                hl_police_word.Visible = true;
+                //changes//
+                // hl_police_word.NavigateUrl = @"../LegalRepossession/PDF Files/" + LPPathWord;
+                string ptpolw = @"../LegalRepossession/PDF Files/" + LPPathWord; ;
+                hl_police_word.Attributes.Add("onclick", "window.open('" + ptpolw + "', 'newwindow','width=600,height=600, scrollbars,resizable');");
+                //changes//
+                //lnkViewPolice.Visible = true;
+
+            }
+            else
+            {
+                chkPolice.Checked = false;
+                // lnkViewPolice.Visible = false;
+            }
+
+
+
+
+            //Get the PDF Path for Modify Mode
+            LCPath = dtRepossessNoticeDetails.Rows[0]["Letter_To_Customer_AF_Path_Pdf"].ToString();
+            //if (LCPath != "null" || LCPath != "")
+            if (LCPath != "")
+            {
+
+                ViewState["CP"] = LCPath;
+                //chkCustomer.Checked = true;
+                hl_customer.Visible = true;
+                //changes//
+                //hl_customer.NavigateUrl = @"../LegalRepossession/PDF Files/" + LCPath;
+                string ptcust = @"../LegalRepossession/PDF Files/" + LCPath; ;
+                hl_customer.Attributes.Add("onclick", "window.open('" + ptcust + "', 'newwindow','width=600,height=600, scrollbars,resizable');");
+                //changes//
+
+            }
+            else
+            {
+                chkCustomer.Checked = false;
+            }
+
+            //Get the MSWord Path for Modify Mode
+
+            LCPathWord = dtRepossessNoticeDetails.Rows[0]["Letter_To_Customer_AF_Path_Doc"].ToString();
+            //if (LCPathWord != "null" || LCPathWord !="")
+            if (LCPathWord != "")
+            {
+
+                ViewState["CPWord"] = LCPathWord;
+                //chkCustomer.Checked = true;
+                hl_customer_word.Visible = true;
+                //changes//
+                //hl_customer_word.NavigateUrl = @"../LegalRepossession/PDF Files/" + LCPathWord;
+                string ptcustw = @"../LegalRepossession/PDF Files/" + LCPathWord; ;
+                hl_customer_word.Attributes.Add("onclick", "window.open('" + ptcustw + "', 'newwindow','width=600,height=600, scrollbars,resizable');");
+                //changes//
+            }
+            else
+            {
+                chkCustomer.Checked = false;
+            }
+
+
+
+
+            ViewState["strRN_No"] = dtRepossessNoticeDetails.Rows[0]["RN_No"].ToString();
+            strRN_No = dtRepossessNoticeDetails.Rows[0]["RN_No"].ToString();
+
+            ViewState["VS_RN_ID"] = RN_ID;
+
+            txtMagistaddr.Text = dtRepossessNoticeDetails.Rows[0]["Court_Address"].ToString();
+            txtMagistCourt.Text = dtRepossessNoticeDetails.Rows[0]["Name_Of_Court"].ToString();
+            txtMagistPlace.Text = dtRepossessNoticeDetails.Rows[0]["Court_Place"].ToString();
+            txtMagistCity.Text = dtRepossessNoticeDetails.Rows[0]["Court_City"].ToString();
+            txtMagistDistrict.Text = dtRepossessNoticeDetails.Rows[0]["Court_District"].ToString();
+            txtMagistState.Text = dtRepossessNoticeDetails.Rows[0]["Court_State"].ToString();
+            txtMagistPin.Text = dtRepossessNoticeDetails.Rows[0]["Court_Pin"].ToString();
+
+            txtPoliceAddr.Text = dtRepossessNoticeDetails.Rows[0]["Police_Address"].ToString();
+            txtPoliceStation.Text = dtRepossessNoticeDetails.Rows[0]["Name_Of_PoliceStation"].ToString();
+            txtPolicePlace.Text = dtRepossessNoticeDetails.Rows[0]["Police_Place"].ToString();
+            txtPoliceCity.Text = dtRepossessNoticeDetails.Rows[0]["Police_City"].ToString();
+            txtPoliceDistrict.Text = dtRepossessNoticeDetails.Rows[0]["Police_District"].ToString();
+            txtPoliceState.Text = dtRepossessNoticeDetails.Rows[0]["Police_State"].ToString();
+            txtPolicePin.Text = dtRepossessNoticeDetails.Rows[0]["Police_Pin"].ToString();
+
+            ViewState["dtRepossessNoticeDetails"] = dtRepossessNoticeDetails;
+
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+
+    //For verifying whether Court address details are Filled completely
+    private bool IsCheckMagistrateAddress()
+    {
+        if (txtMagistaddr.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+
+        if (txtMagistCourt.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtMagistPlace.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtMagistCity.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtMagistDistrict.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtMagistState.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtMagistPin.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    //For verifying whether Policestation address details are Filled completely
+    private bool IsCheckPoliceAddress()
+    {
+        if (txtPoliceAddr.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+
+        if (txtPoliceStation.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtPolicePlace.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtPoliceCity.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtPoliceDistrict.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtPoliceState.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        if (txtPolicePin.Text.Trim() == string.Empty)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    //For Defining the table to get address details of Court/Policestation
+    private DataTable FunPriGetLetterDetailsDataTable()
+    {
+        try
+        {
+            DataRow drEmptyRow;
+
+            dtLetterDetails = new DataTable();
+
+            dtLetterDetails.Columns.Add("RN_No");
+            dtLetterDetails.Columns.Add("Date");
+            dtLetterDetails.Columns.Add("MgAddressee");
+            dtLetterDetails.Columns.Add("MgName");
+            dtLetterDetails.Columns.Add("MgPlace");
+            dtLetterDetails.Columns.Add("MgCity");
+            dtLetterDetails.Columns.Add("MgDistrict");
+            dtLetterDetails.Columns.Add("MgState");
+            dtLetterDetails.Columns.Add("MgPin");
+
+            dtLetterDetails.Columns.Add("ACCNo");
+            dtLetterDetails.Columns.Add("CustName");
+            dtLetterDetails.Columns.Add("CustAddress");
+            dtLetterDetails.Columns.Add("ACCDate");
+            dtLetterDetails.Columns.Add("FinCompany");
+            dtLetterDetails.Columns.Add("RepossDate");
+            dtLetterDetails.Columns.Add("OutAmt");
+            dtLetterDetails.Columns.Add("FUBranch");
+
+            ViewState["dt_LetterDetails"] = dtLetterDetails;
+
+
+        }
+        catch (Exception ex)
+        {
+            cvRepossessionNotice.ErrorMessage = "Due to Data Problem,Unable toget the data";
+            cvRepossessionNotice.IsValid = false;
+        }
+        return dtLetterDetails;
+
+    }
+
+    //private void FunPriInsertLetterDetailsDataTable()
+    private void FunPriInsertLetterDetailsDataTable(int val)
+    {
+        objS3GAdminServicesClient = new S3GAdminServicesReference.S3GAdminServicesClient();
+        try
+        {
+            DataRow drLetterRow;
+            dtLetterDetails = FunPriGetLetterDetailsDataTable();
+
+            if (dtLetterDetails.Rows.Count < 1)
+            {
+                drLetterRow = dtLetterDetails.NewRow();
+                //drLetterRow["c1"] = "lkl";
+                //drLetterRow["c2"] = DateTime.Now.ToString();
+
+                drLetterRow["RN_No"] = strRN_No;
+                drLetterRow["Date"] = DateTime.Now.ToString(strDateFormat);
+                if (val == 1)
+                    drLetterRow["MgAddressee"] = txtMagistaddr.Text.Trim();
+                else if (val == 2)
+                    drLetterRow["MgAddressee"] = txtPoliceAddr.Text.Trim();
+
+                if (val == 1)
+                    drLetterRow["MgName"] = txtMagistCourt.Text.Trim();
+                else if (val == 2)
+                    drLetterRow["MgName"] = txtPoliceState.Text.Trim();
+
+                if (val == 1)
+                    drLetterRow["MgPlace"] = txtMagistPlace.Text.Trim();
+                else if (val == 2)
+                    drLetterRow["MgPlace"] = txtPolicePlace.Text.Trim();
+
+                if (val == 1)
+                    drLetterRow["MgCity"] = txtMagistCity.Text.Trim();
+                else if (val == 2)
+                    drLetterRow["MgCity"] = txtPoliceCity.Text.Trim();
+
+                if (val == 1)
+                    drLetterRow["MgDistrict"] = txtMagistDistrict.Text.Trim();
+                else if (val == 2)
+                    drLetterRow["MgDistrict"] = txtPoliceDistrict.Text.Trim();
+
+                if (val == 1)
+                    drLetterRow["MgState"] = txtMagistState.Text.Trim();
+                else if (val == 2)
+                    drLetterRow["MgState"] = txtPoliceState.Text.Trim();
+
+                if (val == 1)
+                    drLetterRow["MgPin"] = txtMagistPin.Text.Trim();
+
+                else if (val == 2)
+                    drLetterRow["MgPin"] = txtPolicePin.Text.Trim();
+
+
+                // drLetterRow["MgName"] = txtMagistCourt.Text;
+                //drLetterRow["MgPlace"] = txtMagistPlace.Text;
+                //drLetterRow["MgCity"] = txtMagistCity.Text;
+                //drLetterRow["MgDistrict"] = txtMagistDistrict.Text;
+                //drLetterRow["MgState"] = txtMagistState.Text;
+                //drLetterRow["MgPin"] = txtMagistPin.Text;
+                //if(txtSANum .Text =="")
+                //    drLetterRow["ACCNo"] = txtPANum.Text;
+                //else
+                //    drLetterRow["ACCNo"] = txtPANum.Text + "Sub Account Number :" + txtSANum .Text;
+                drLetterRow["ACCNo"] = txtPANum.Text.Trim();
+                drLetterRow["CustName"] = S3GCustomerAddress1.CustomerName;
+                drLetterRow["CustAddress"] = S3GCustomerAddress1.CustomerAddress;
+                drLetterRow["ACCDate"] = txtAccDate.Text.Trim();
+                drLetterRow["FinCompany"] = ObjUserInfo.ProCompanyNameRW.ToString();
+                drLetterRow["RepossDate"] = txtAccDate.Text.Trim();
+
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+                Procparam.Add("@User_ID", Convert.ToString(intUserID));
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+                Procparam.Add("@Location_ID", ddlBranch.SelectedValue.ToString());
+                Procparam.Add("@PANum", txtPANum.Text);
+                if (txtSANum.Text == "")
+                    Procparam.Add("@SANum", txtPANum.Text + "DUMMY");
+                else
+                    Procparam.Add("@SANum", txtSANum.Text);
+
+                drLetterRow["OutAmt"] = objS3GAdminServicesClient.FunGetScalarValue(SPNames.S3G_LR_NoticeOutAmt, Procparam).ToString();  //txtAmtFin.Text.Trim();
+
+                drLetterRow["FUBranch"] = ddlBranch.SelectedText.ToString();
+
+                dtLetterDetails.Rows.Add(drLetterRow);
+            }
+
+            ViewState["dt_LetterDetails"] = dtLetterDetails;
+
+
+        }
+        catch (Exception ex)
+        {
+            cvRepossessionNotice.ErrorMessage = "Due to Data Problem,Unable to process";
+            cvRepossessionNotice.IsValid = false;
+        }
+        finally
+        {
+            objS3GAdminServicesClient.Close();
+        }
+    }
+
+    //For validations of Letter to option and Court/Police station Address details
+    private bool FunPriChkLetterToValidations()
+    {
+        try
+        {
+            if (chkMagistrate.Checked == false && chkPolice.Checked == false && chkCustomer.Checked == false)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select atleast one Letter to option");
+                return false;
+            }
+
+            if (chkMagistrate.Checked == true)
+            {
+                if (!IsCheckMagistrateAddress())
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Fill all Court Address details.");
+                    return false;
+                }
+            }
+
+            if (chkPolice.Checked == true)
+            {
+                if (!IsCheckPoliceAddress())
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Fill all PoliceStation Address details.");
+                    return false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvRepossessionNotice.ErrorMessage = "Due to Data Problem,Unable to verify";
+            cvRepossessionNotice.IsValid = false;
+        }
+        return true;
+    }
+
+    //To Generate Letter with the help of Reports
+    protected void Generate_PDF_Word(string strnewFile, string option, int val)
+    {
+        try
+        {
+            DataSet Dst = null;
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            Procparam.Add("@PANum", txtPANum.Text);
+            if (txtSANum.Text == "")
+                Procparam.Add("@SANum", txtPANum.Text + "DUMMY");
+            else
+                Procparam.Add("@SANum", txtSANum.Text);
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+
+
+            if (val == 3)
+                Procparam.Add("@LRN_ID", ddlLRNNumber.SelectedValue.ToString());
+
+            Dst = Utility.GetDataset(SPNames.S3G_LR_GetAssetDetails, Procparam);
+
+            DataTable dt = Dst.Tables[0];
+            DataTable dtcompany = Dst.Tables[1];
+
+
+            FunPriInsertLetterDetailsDataTable(val);
+            //Dst.Tables.Add(dtLetterDetails);
+            ReportDocument rptd = new ReportDocument();
+
+
+            // TextObject rptlblSANum = (TextObject)rptd.ReportDefinition.Sections["Section3"].ReportObjects["rptlblSANum"];
+
+
+            //}
+            //AmountIn.Text = Session["AmountIn"].ToString();
+            //if (txtSANum.Text == "")
+            //{
+            //    rptlblSANum.Dispose();
+            //    rptSANum.Dispose = true;
+            //}
+            //else
+            //{
+            // rptlblSANum.Dispose =false ;
+            // rptSANum.Text =txtSANum.Text ;
+            //}
+
+            if (val == 1 || val == 2)
+                rptd.Load(Server.MapPath("Magistrate_Police.rpt"));
+            else if (val == 3)
+                rptd.Load(Server.MapPath("CustomerLetter.rpt"));
+            //rptd.Load(Server.MapPath("GuarantorLetter.rpt"));
+
+            TextObject rptSANum = (TextObject)rptd.ReportDefinition.Sections["Section3"].ReportObjects["rptSANum"];
+
+            if (txtSANum.Text == "")
+                rptSANum.Text = "------";
+            else
+                rptSANum.Text = txtSANum.Text;
+
+            rptd.SetDataSource(dtLetterDetails);
+
+
+            rptd.Subreports["CompanyHeader.rpt"].SetDataSource(dtcompany);
+
+            if (val == 1 || val == 2)
+                rptd.Subreports["CrystalReport3.rpt"].SetDataSource(dt);
+            else if (val == 3)
+                rptd.Subreports["RepossedAssets.rpt"].SetDataSource(dt);
+
+            if (option == "P")
+                rptd.ExportToDisk(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat, strnewFile);
+            else if (option == "W")
+                rptd.ExportToDisk(CrystalDecisions.Shared.ExportFormatType.WordForWindows, strnewFile);
+
+        }
+        catch (Exception ex)
+        {
+
+            //cvRepossessionNotice.ErrorMessage = "Notice is still opened. close the document to regenerate";
+            //cvRepossessionNotice.IsValid = false;
+            throw ex;
+        }
+    }
+
+    #endregion
+
+    #region [UserRights]
+
+    private void FunPriDisableControls(int intModeID)
+    {
+        objS3GAdminServicesClient = new S3GAdminServicesReference.S3GAdminServicesClient();
+        try
+        {
+
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    {
+
+                        lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+
+                        if (!bCreate)
+                        {
+                            // btnSave.Enabled = false;
+                        }
+
+                        if (ddlLRNNumber.SelectedItem.Text == "--Select--")
+                        {
+                            pnlCustDetails.Visible = false;
+                            pnlGuarDetails.Visible = false;
+                        } chkCustomer.Enabled = false;
+                        //ddlLOB.Focus();
+                        break;
+                    }
+                case 1: // Modify Mode
+                    {
+
+                        lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                        if (!bModify)
+                        {
+                            //btnSave.Enabled = false;
+                        }
+
+                        Utility.ClearDropDownList(ddlLOB);
+                        //Utility.ClearDropDownList(ddlBranch);
+                        Utility.ClearDropDownList(ddlLRNNumber);
+
+                        pnlCustDetails.Visible = true;
+                        pnlGuarDetails.Visible = true;
+                        btnClear.Enabled = false;
+                        //                    objS3GAdminServicesClient = new S3GAdminServicesReference.S3GAdminServicesClient();
+
+                        Procparam = new Dictionary<string, string>();
+                        Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+                        Procparam.Add("@LRN_ID", ddlLRNNumber.SelectedValue.ToString());
+
+                        ViewState["RepossessionDate"] = objS3GAdminServicesClient.FunGetScalarValue(SPNames.S3G_LR_GetRepossessionDate, Procparam);
+                        //chkCustomer.Enabled = false;
+                        if (Convert.ToString(ViewState["RepossessionDate"]) == "")
+                            chkCustomer.Enabled = false;
+                        else
+                            chkCustomer.Enabled = true;
+
+                        //if (objS3GAdminServicesClient != null)
+                        //    objS3GAdminServicesClient.Close();
+
+                        break;
+                    }
+                case -1:// Query Mode
+                    {
+                        lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                        if (!bQuery)
+                        {
+                            // Response.Redirect(strRedirectPage,false);
+                        }
+                        Utility.ClearDropDownList(ddlLOB);
+                        //Utility.ClearDropDownList(ddlBranch);
+                        Utility.ClearDropDownList(ddlLRNNumber);
+                        pnlCustDetails.Visible = true;
+                        pnlGuarDetails.Visible = true;
+                        txtMagistaddr.ReadOnly = txtMagistCity.ReadOnly = txtMagistCourt.ReadOnly = txtMagistDistrict.ReadOnly = txtMagistPin.ReadOnly = txtMagistPlace.ReadOnly = txtMagistState.ReadOnly = true;
+                        txtPoliceAddr.ReadOnly = txtPoliceCity.ReadOnly = txtPoliceDistrict.ReadOnly = txtPolicePin.ReadOnly = txtPolicePlace.ReadOnly = txtPoliceState.ReadOnly = txtPoliceStation.ReadOnly = true;
+                        chkCustomer.Enabled = chkPolice.Enabled = chkMagistrate.Enabled = false;
+                        btnClear.Enabled = btnPDF.Enabled = btnMSword.Enabled = false;
+                        break;
+                    }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        finally
+        {
+            objS3GAdminServicesClient.Close();
+        }
+    }
+
+    #endregion [UserRights]
+
+    #region Events
+
+    #region Dropdown Events
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadBranch();
+            //ddlBranch.SelectedIndex = 0;
+            ddlLRNNumber.Items.Clear();
+            ddlLRNNumber.Items.Add("--Select--");
+            txtAccDate.Text = txtAmtFin.Text = txtPANum.Text = txtSANum.Text = txtTenure.Text = "";
+
+            S3GCustomerAddress1.ClearCustomerDetails();
+            pnlCustDetails.Visible = false;
+
+            gvGuarDetails.DataSource = null;
+            gvGuarDetails.DataBind();
+            pnlGuarDetails.Visible = false;
+
+            FunPriLoadLRNNumber();
+        }
+        catch (Exception ex)
+        {
+            cvRepossessionNotice.ErrorMessage = ex.ToString();
+            cvRepossessionNotice.IsValid = false;
+        }
+    }
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+
+            ddlLRNNumber.Items.Clear();
+            ddlLRNNumber.Items.Add("--Select--");
+            txtAccDate.Text = txtAmtFin.Text = txtPANum.Text = txtSANum.Text = txtTenure.Text = "";
+
+            S3GCustomerAddress1.ClearCustomerDetails();
+            pnlCustDetails.Visible = false;
+
+            gvGuarDetails.DataSource = null;
+            gvGuarDetails.DataBind();
+            pnlGuarDetails.Visible = false;
+
+            FunPriLoadLRNNumber();
+
+        }
+        catch (Exception ex)
+        {
+            cvRepossessionNotice.ErrorMessage = ex.ToString();
+            cvRepossessionNotice.IsValid = false;
+        }
+    }
+    protected void ddlLRNNumber_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProLoadCGDetails();
+
+        }
+        catch (Exception ex)
+        {
+            cvRepossessionNotice.ErrorMessage = ex.ToString();
+            cvRepossessionNotice.IsValid = false;
+        }
+
+    }
+    #endregion
+
+    #region Button Events
+    //cancel
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+
+    //clear
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearPage();
+
+        }
+        catch (Exception ex)
+        {
+            cvRepossessionNotice.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_Clear + this.Page.Header.Title;
+            cvRepossessionNotice.IsValid = false;
+        }
+    }
+
+    //button click Event for generation of notices in PDF Format
+    protected void btnPDF_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            bPDF = true;
+
+            bool res = FunPriChkLetterToValidations();
+            if (!res)
+                return;
+            res = FunProChkAssetIdentification();
+            if (!res)
+                return;
+
+            FunProSaveRecord();
+
+            bPDF = false;
+        }
+        catch (Exception ex)
+        {
+
+            cvRepossessionNotice.ErrorMessage = "Unable to Save/Generate the document. Close the document if opened";
+            //Resources.ValidationMsgs.S3G_ErrMsg_Save + this.Page.Header.Title;
+            cvRepossessionNotice.IsValid = false;
+        }
+        //finally 
+        //{
+        //    objS3GAdminServicesClient.Close();
+        //}
+
+    }
+
+    //button click Event for generation of notices in PDF Format
+    protected void btnMSword_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            bWORD = true;
+
+            bool res = FunPriChkLetterToValidations();
+            if (!res)
+                return;
+            res = FunProChkAssetIdentification();
+            if (!res)
+                return;
+
+            FunProSaveRecord();
+            //PreviewMSWord_Click(sender, e);
+
+            bWORD = false;
+        }
+        catch (Exception ex)
+        {
+
+            cvRepossessionNotice.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_Save + this.Page.Header.Title;
+            cvRepossessionNotice.IsValid = false;
+        }
+
+    }
+
+    //To open the Statement of Accounts screen 
+    protected void btnViewAccount_Click(object sender, EventArgs e)
+    {
+        string s = "";
+        if (txtSANum.Text == "")
+            s = "../LegalRepossession/S3GLRViewAccount.aspx?qsPANum=" + txtPANum.Text + "&qsSANum=" + txtPANum.Text + "DUMMY";
+
+        else
+            s = "../LegalRepossession/S3GLRViewAccount.aspx?qsPANum=" + txtPANum.Text + "&qsSANum=" + txtSANum.Text;
+
+        //  s = "../LegalRepossession/S3GLRViewAccount.aspx?qsPANum=2011-2012/PRIME/576&qsSANum=2011-2012/PRIME/576DUMMY";
+
+        string strScipt = "window.open('" + s + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "SOA", strScipt, true);
+
+    }
+
+
+    #endregion
+
+    //For adding attributes based on existance of letters 
+    protected void chk(object sender, EventArgs e)
+    {
+        if (hl_magistrate.Visible == true)
+            btnPDF.Attributes.Add("OnClientClick", "return fn_IsLetterExists();");
+        else if (hl_magistrate_word.Visible == true)
+            btnPDF.Attributes.Add("OnClientClick", "return fn_IsLetterExists();");
+        else
+            btnPDF.Attributes.Remove("onClientClick");
+
+    }
+
+    #endregion
+
+    #region For generating Letter based on html(Not reffered Currently)
+
+    private string GetHTMLText(int val)
+    {
+        string customer = "";
+        int i = 0;
+        int j = 0;
+        string s = "";
+        // string s =  "<table>";
+        string r = "";
+        try
+        {
+
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", ObjUserInfo.ProCompanyIdRW.ToString());
+            Procparam.Add("@PANum", txtPANum.Text);
+            if (txtSANum.Text == "")
+                Procparam.Add("@SANum", txtPANum.Text + "DUMMY");
+            else
+                Procparam.Add("@SANum", txtSANum.Text);
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue.ToString());
+            // DataTable DTAssetDetails = Utility.GetDefaultData("S3G_LR_GetAssetDetails", Procparam);
+            DataSet Dst = Utility.GetDataset(SPNames.S3G_LR_GetAssetDetails, Procparam);
+            while (i < Dst.Tables[0].Rows.Count)
+            {
+                // s = s + "<tr><td style=width :auto>" + Dst.Tables[0].Rows[0]["Asset Class Make Type Model"].ToString() + "</td><td>" + Dst.Tables[0].Rows[0]["REGN_NUMBER"].ToString() + "</td></tr>";
+                //s = s + Dst.Tables[0].Rows[0]["Asset Class Make Type Model"].ToString()+ "<br></br>";
+
+                //r = r + Dst.Tables[0].Rows[0]["REGN_NUMBER"].ToString() + "<br></br>";       
+
+                s = s + "<tr><td>" + Dst.Tables[0].Rows[i]["Asset Class Make Type Model"].ToString() + "</td> <td>" + Dst.Tables[0].Rows[i]["REGN_NUMBER"].ToString() + "</td></tr>";
+                i++;
+            }
+
+            string xmlfile = "";
+            if (bPDF == true)
+                xmlfile = Server.MapPath(".") + "\\XML Format\\LetterPDF.xml";
+            if (bWORD == true)
+                xmlfile = Server.MapPath(".") + "\\XML Format\\LetterWord.xml";
+            XmlDocument xml = new XmlDocument();
+            xml.Load(xmlfile);
+            if (val == 1)
+            //if (chkMagistrate.Checked == true)
+            {
+                XmlNode node = xml.SelectSingleNode("//Root/Magistrate");
+
+                customer = node.InnerXml;
+                //xml = null;
+
+
+
+                customer = customer.Replace("RN_No", strRN_No);
+                customer = customer.Replace("INPUT", DateTime.Now.ToString());
+                customer = customer.Replace("Addressee1", txtMagistaddr.Text);
+                customer = customer.Replace("Names1", txtMagistCourt.Text);
+                customer = customer.Replace("Place1", txtMagistPlace.Text);
+                customer = customer.Replace("city1", txtMagistCity.Text);
+                customer = customer.Replace("District1", txtMagistDistrict.Text);
+                customer = customer.Replace("state1", txtMagistState.Text);
+                customer = customer.Replace("PinCode1", txtMagistPin.Text);
+
+
+                customer = customer.Replace("AssetCode1", s);
+                customer = customer.Replace("RegNo1", r);
+                string strAccNo = "";
+                if (txtSANum.Text == "")
+                    strAccNo = txtPANum.Text;
+                else
+                    strAccNo = txtSANum.Text;
+                customer = customer.Replace("AccNo1", strAccNo);
+                customer = customer.Replace("CustName1", S3GCustomerAddress1.CustomerName);
+                customer = customer.Replace("CustAdd1", S3GCustomerAddress1.CustomerAddress);
+                customer = customer.Replace("CustAdd2", S3GCustomerAddress1.Mobile);
+                customer = customer.Replace("AccDate1", txtAccDate.Text.ToString());
+                customer = customer.Replace("NameFinComp1", ObjUserInfo.ProCompanyNameRW.ToString());
+
+
+            }
+            else if (val == 2)
+            //if ( chkPolice .Checked == true)
+            {
+                XmlNode node = xml.SelectSingleNode("//Root/Magistrate");
+
+                customer = node.InnerXml;
+                //xml = null;
+
+                customer = customer.Replace("RN_No", strRN_No);
+                customer = customer.Replace("INPUT", DateTime.Now.ToString());
+                customer = customer.Replace("Addressee1", txtPoliceAddr.Text);
+                customer = customer.Replace("Names1", txtPoliceStation.Text);
+                customer = customer.Replace("Place1", txtPolicePlace.Text);
+                customer = customer.Replace("city1", txtPoliceCity.Text);
+                customer = customer.Replace("District1", txtPoliceDistrict.Text);
+                customer = customer.Replace("state1", txtPoliceState.Text);
+                customer = customer.Replace("PinCode1", txtPolicePin.Text);
+
+
+                customer = customer.Replace("AssetCode1", s);
+                customer = customer.Replace("RegNo1", r);
+                string strAccNo = "";
+                if (txtSANum.Text == "")
+                    strAccNo = txtPANum.Text;
+                else
+                    strAccNo = txtSANum.Text;
+                customer = customer.Replace("AccNo1", strAccNo);
+                customer = customer.Replace("CustName1", S3GCustomerAddress1.CustomerName);
+                customer = customer.Replace("CustAdd1", S3GCustomerAddress1.CustomerAddress);
+                customer = customer.Replace("CustAdd2", S3GCustomerAddress1.Mobile);
+                customer = customer.Replace("AccDate1", txtAccDate.Text.ToString());
+                customer = customer.Replace("NameFinComp1", ObjUserInfo.ProCompanyNameRW.ToString());
+
+            }
+            else if (val == 3)
+            //if ( chkCustomer.Checked = true)
+            {
+                XmlNode node = xml.SelectSingleNode("//Root/CustomerAF");
+
+                customer = node.InnerXml;
+                //xml = null;
+
+                customer = customer.Replace("RN_No", strRN_No);
+                customer = customer.Replace("INPUT", DateTime.Now.ToString());
+                //customer = customer.Replace("Addressee1", txtPoliceAddr.Text);
+                //customer = customer.Replace("Name1", txtPoliceStation.Text);
+                //customer = customer.Replace("Place1", txtPolicePlace.Text);
+                //customer = customer.Replace("city1", txtPoliceCity.Text);
+                //customer = customer.Replace("District1", txtPoliceDistrict.Text);
+                //customer = customer.Replace("state1", txtPoliceState.Text);
+                //customer = customer.Replace("PinCode1", txtPolicePin.Text);
+
+
+                customer = customer.Replace("AssetCode1", s);
+                customer = customer.Replace("RegNo1", r);
+                string strAccNo = "";
+                if (txtSANum.Text == "")
+                    strAccNo = txtPANum.Text;
+                else
+                    strAccNo = txtSANum.Text;
+                customer = customer.Replace("AccNo1", strAccNo);
+                customer = customer.Replace("CustName1", S3GCustomerAddress1.CustomerName);
+                customer = customer.Replace("CustAdd1", S3GCustomerAddress1.CustomerAddress);
+                //customer = customer.Replace("CustAdd2", S3GCustomerAddress1.Mobile);
+                //string ad=txtAccDate.Text.ToString ();
+                customer = customer.Replace("AccDate1", txtAccDate.Text.ToString());
+                if (strRN_ID != "")
+                    customer = customer.Replace("RepDate1", DateTime.Now.ToString());
+                customer = customer.Replace("OutAmt1", txtAmtFin.Text);
+
+                customer = customer.Replace("NameFinComp1", ObjUserInfo.ProCompanyNameRW.ToString());
+
+                //customer = customer.Replace("Followup1", ddlBranch.SelectedItem.Text.ToString());
+            }
+            xml = null;
+
+        }
+
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+        return customer;
+
+    }
+
+    //For Generating PDF file from XML files and HTML 
+    private void Generate_PDF(string strnewFile, string strFileName, int val)
+    {
+
+        string htmlText = GetHTMLText(val);
+
+        Document doc = new Document();
+        PdfWriter writer = PdfWriter.GetInstance(doc, new FileStream(strnewFile, FileMode.Create));
+        doc.AddCreator("Sundaram Infotech Solutions");
+        doc.AddTitle("New PDF Document");
+        doc.Open();
+        List<IElement> htmlarraylist = iTextSharp.text.html.simpleparser.HTMLWorker.ParseToList(new StringReader(htmlText), null);
+        for (int k = 0; k < htmlarraylist.Count; k++)
+        { doc.Add((IElement)htmlarraylist[k]); }
+        doc.AddAuthor("S3G Team");
+        doc.Close();
+        //System.Diagnostics.Process.Start(strnewFile);
+        //ViewState["MP"] = LMPath;
+        //lnkViewMagist.Visible = true;
+        //string strScipt = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + strFileName + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+        //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+
+    }
+
+    //For Generating Word file from XML files and HTML
+    private void Generate_MSWord(string strnewFileWord, string strFileNameWord, int val)
+    {
+        //string strFileName1 = "/LegalRepossession/PDF Files/" + "Letter To Magistrate.doc";
+        string htmlTextWord = GetHTMLText(val);
+        //string path = (Server.MapPath(".") + "\\PDF Files\\Letter To Magistrate.doc");
+        if (File.Exists(strnewFileWord))
+        {
+            File.Delete(strnewFileWord);
+        }
+        using (FileStream fs = File.Create(strnewFileWord))
+        {
+            Byte[] info = new UTF8Encoding(true).GetBytes(htmlTextWord.ToString());
+            fs.Write(info, 0, info.Length);
+        }
+        using (StreamReader sr = File.OpenText(strnewFileWord))
+        {
+            string s = "";
+            while ((s = sr.ReadLine()) != null)
+            {
+                Console.WriteLine(s);
+            }
+        }
+
+        //string strScipt = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + strFileNameWord + "', 'newwindow','toolbar=no,location=no,menubar=no,width=950,height=600,resizable=yes,scrollbars=yes,top=50,left=50');";
+        //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+    }
+
+    protected void b1_Click(object sender, EventArgs e)
+    {
+
+    }
+
+    protected void b2_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            bPDF = true;
+
+            bool res = FunPriChkLetterToValidations();
+            if (!res)
+                return;
+            FunProSaveRecord();
+
+            bPDF = false;
+        }
+        catch (Exception ex)
+        {
+
+            cvRepossessionNotice.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_Save + this.Page.Header.Title;
+            cvRepossessionNotice.IsValid = false;
+        }
+
+    }
+
+    protected void Show(string path, HyperLink H_Link)
+    {
+        H_Link.Visible = true;
+        H_Link.NavigateUrl = @"../LegalRepossession/PDF Files/" + path;
+    }
+
+    #endregion
+}

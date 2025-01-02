@@ -1,0 +1,1248 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : Challan Rule Creation
+/// Created By                : Irsathameen .K
+/// Created Date              : 13-OCT-2010
+/// Purpose                   : To create Chanllan Rule Generation
+/// Last Updated By           : Chandra Selkar BS
+/// Last Updated Date         : 19-Sep-2013
+/// Reason                    : SQL performance
+
+/// <Program Summary>
+
+#region NameSpaces
+
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Globalization;
+using System.ServiceModel;
+using Resources;
+using S3GBusEntity;
+using S3GBusEntity.Collection;
+using System.Text;
+#endregion
+
+public partial class Collection_S3GClnChallanRuleCreation : ApplyThemeForProject
+{
+    #region Variable declaration
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient ObjChallanRuleClient;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChallanRuleDetailsDataTable ObjS3G_CLN_ChallanRuleDataTable = null;
+    SerializationMode SerMode = SerializationMode.Binary;
+
+    public static Collection_S3GClnChallanRuleCreation obj_Page;
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    //Code end
+
+    int intchallanID, intErrCode, intUserID, intCompanyID = 0;
+    static string strPageName = "Challan Rule Creation";
+    DataTable dt = new DataTable();
+    DataTable dtEdit = new DataTable();
+
+    Dictionary<string, string> dictParam = null;
+    StringBuilder strbDraweebankDet = new StringBuilder();
+    string StrXMLBank, strChallanNo;
+    StringBuilder StrXMLDeletedBank = new StringBuilder();
+    string strRedirectPage = "../Collection/S3GClnTransLander.aspx?Code=CCR";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnChallanRuleCreation.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnTransLander.aspx?Code=CCR';";
+    const string strvalidationName = "CLN_CCR";
+
+    #endregion
+
+    #region Methods
+
+    #region Local Methods
+
+    private void FunPriGetChallanRuleDetails_QueryMode()
+    {
+        try
+        {
+            DataSet DS = new DataSet();
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@challanRule_ID", Convert.ToString(intchallanID));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetChallanRuleDetails, dictParam);
+
+            // Table 1 Drawee Bank Name
+
+            System.Web.UI.WebControls.ListItem LIB = new System.Web.UI.WebControls.ListItem(DS.Tables[0].Rows[0]["LOBName"].ToString(), DS.Tables[0].Rows[0]["LOB_ID"].ToString());
+            ddlLOB.Items.Add(LIB);
+
+            
+
+            ddlBranch.SelectedText = DS.Tables[0].Rows[0]["LocationName"].ToString();
+            ddlBranch.SelectedValue = DS.Tables[0].Rows[0]["Location_ID"].ToString();
+
+            System.Web.UI.WebControls.ListItem LID = new System.Web.UI.WebControls.ListItem(DS.Tables[0].Rows[0]["Deposit_bank_Name"].ToString(), DS.Tables[0].Rows[0]["Deposit_bank_Code"].ToString());
+            ddlDepositBankCodes.Items.Add(LID);
+
+
+            if (DS.Tables[1].Rows.Count > 0)
+            {
+                GRVDraweeBankName.DataSource = DS.Tables[1];
+                GRVDraweeBankName.DataBind();
+                ViewState["currenttable"] = DS.Tables[1];
+            }
+
+            // Table 0[ LOB,Branch,Deposit Branch]
+            if (DS.Tables[0].Rows.Count > 0)
+            {
+                // Disable Save Button in Modify mode if LOB or Branch or Deposit Bank values is deactive
+                if (strMode == "M")
+                {
+                    if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != "0")
+                        ddlLOB.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+                    //ddlBranch.SelectedValue= Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+                    //Code commented by saran as per the UAT Observation dated on 13-Dec-2011 start.
+                    //if (ddlLOB.SelectedValue == "0")
+                    //    Utility.FunShowAlertMsg(this.Page, "The LOB : " + Convert.ToString(DS.Tables[0].Rows[0]["LOBName"]) + " is in deactive");
+
+                    //ddlLOB_SelectedIndexChanged(this, EventArgs.Empty);
+                    //Code commented by saran as per the UAT Observation dated on 13-Dec-2011 end.
+                    ddlBranch.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+                    if (ddlBranch.SelectedValue == "0")
+                        Utility.FunShowAlertMsg(this.Page, "The Location : " + Convert.ToString(DS.Tables[0].Rows[0]["LocationName"]) + " is in deactive");
+
+                    FunPriLoadDepositBankname();
+                    ddlDepositBankCodes.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Deposit_Bank_Code"]);
+                    if (ddlDepositBankCodes.SelectedValue == "0")
+                        Utility.FunShowAlertMsg(this.Page, "The Deposit Bank Name : " + Convert.ToString(DS.Tables[0].Rows[0]["Deposit_Bank_Name"]) + " is in deactive");
+
+                    if (ddlBranch.SelectedValue == "0" || ddlDepositBankCodes.SelectedValue == "0")
+                    {
+                        btnSave.Enabled = false;
+                        if (GRVDraweeBankName.Rows.Count > 0)
+                            GRVDraweeBankName.FooterRow.Visible = GRVDraweeBankName.Columns[2].Visible = false;
+                        chkActive.Enabled = false;
+                    }
+                }
+                //Code commented by saran as per the UAT Observation dated on 13-Dec-2011 start.
+                //Code uncommented and modified by Kuppu for Bug Fixing -ID-6293 on May-25-2012 - Starts here
+                if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != "0")
+                {
+                    ddlLOB.Items[0].Text = Convert.ToString(DS.Tables[0].Rows[0]["LOBName"]);
+                    ddlLOB.Items[0].Value = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+                }
+                else
+                {
+                    ddlLOB.Items[0].Text = "All";
+                    ddlLOB.Items[0].Value = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+                }
+                //-kuppu--ends here
+                 //ddlLOB_SelectedIndexChanged(this, EventArgs.Empty);
+                //Code commented by saran as per the UAT Observation dated on 13-Dec-2011 end.
+
+                if (DS.Tables[0].Rows[0]["Deposit_Bank_Code"].ToString() != string.Empty)
+                {
+                    ddlDepositBankCodes.Items[0].Text = Convert.ToString(DS.Tables[0].Rows[0]["Deposit_Bank_Name"]);
+                    ddlDepositBankCodes.Items[0].Value = Convert.ToString(DS.Tables[0].Rows[0]["Deposit_Bank_Code"]);
+                }
+                if (DS.Tables[0].Rows[0]["Location_ID"].ToString() != string.Empty)
+                {
+                    ddlBranch.SelectedText = Convert.ToString(DS.Tables[0].Rows[0]["LocationName"]);
+                    ddlBranch.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+                }
+                if (DS.Tables[0].Rows[0]["Is_Active"].ToString() == "True")
+                    chkActive.Checked = true;
+                else
+                    chkActive.Checked = false;
+                if (DS.Tables[0].Rows[0]["ACCT_NUMBER"].ToString() != string.Empty)
+                {
+                    lblAcNo.Visible = true;
+                    lblAcctno.Text = DS.Tables[0].Rows[0]["ACCT_NUMBER"].ToString();
+                }
+                else
+                {
+                    lblAcNo.Visible = false;
+                    lblAcctno.Text = "";
+                }
+            }
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+    private void FunPriGetChallanRuleDetails()
+    {
+        try
+        {
+            DataSet DS = new DataSet();
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@challanRule_ID", Convert.ToString(intchallanID));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetChallanRuleDetails, dictParam);
+
+            // Table 1 Drawee Bank Name
+            if (DS.Tables[1].Rows.Count > 0)
+            {
+                GRVDraweeBankName.DataSource = DS.Tables[1];
+                GRVDraweeBankName.DataBind();
+                ViewState["currenttable"] = DS.Tables[1];
+            }
+
+            // Table 0[ LOB,Branch,Deposit Branch]
+            if (DS.Tables[0].Rows.Count > 0)
+            {
+                // Disable Save Button in Modify mode if LOB or Branch or Deposit Bank values is deactive
+                if (strMode == "M")
+                {
+                    if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != "0")
+                        ddlLOB.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+                    //ddlBranch.SelectedValue= Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+                    //Code commented by saran as per the UAT Observation dated on 13-Dec-2011 start.
+                    //if (ddlLOB.SelectedValue == "0")
+                    //    Utility.FunShowAlertMsg(this.Page, "The LOB : " + Convert.ToString(DS.Tables[0].Rows[0]["LOBName"]) + " is in deactive");
+
+                    //ddlLOB_SelectedIndexChanged(this, EventArgs.Empty);
+                    //Code commented by saran as per the UAT Observation dated on 13-Dec-2011 end.
+                    ddlBranch.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+                    if (ddlBranch.SelectedValue == "0")
+                        Utility.FunShowAlertMsg(this.Page, "The Location : " + Convert.ToString(DS.Tables[0].Rows[0]["LocationName"]) + " is in deactive");
+
+                    FunPriLoadDepositBankname();
+                    ddlDepositBankCodes.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Deposit_Bank_Code"]);
+                    if (ddlDepositBankCodes.SelectedValue == "0")
+                        Utility.FunShowAlertMsg(this.Page, "The Deposit Bank Name : " + Convert.ToString(DS.Tables[0].Rows[0]["Deposit_Bank_Name"]) + " is in deactive");
+
+                    if (ddlBranch.SelectedValue == "0" || ddlDepositBankCodes.SelectedValue == "0")
+                    {
+                        btnSave.Enabled = false;
+                        if (GRVDraweeBankName.Rows.Count > 0)
+                            GRVDraweeBankName.FooterRow.Visible = GRVDraweeBankName.Columns[2].Visible = false;
+                        chkActive.Enabled = false;
+                    }
+                }
+                //Code commented by saran as per the UAT Observation dated on 13-Dec-2011 start.
+                //Code uncommented and modified by Kuppu for Bug Fixing -ID-6293 on May-25-2012 - Starts here
+                if (DS.Tables[0].Rows[0]["LOB_ID"].ToString() != "0")
+                {
+                    ddlLOB.Items[0].Text = Convert.ToString(DS.Tables[0].Rows[0]["LOBName"]);
+                    ddlLOB.Items[0].Value = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+                }
+                else
+                {
+                    ddlLOB.Items[0].Text = "All";
+                    ddlLOB.Items[0].Value = Convert.ToString(DS.Tables[0].Rows[0]["LOB_ID"]);
+                }
+                //-kuppu--ends here
+                //ddlLOB_SelectedIndexChanged(this, EventArgs.Empty);
+                //Code commented by saran as per the UAT Observation dated on 13-Dec-2011 end.
+
+                if (DS.Tables[0].Rows[0]["Deposit_Bank_Code"].ToString() != string.Empty)
+                {
+                    ddlDepositBankCodes.Items[0].Text = Convert.ToString(DS.Tables[0].Rows[0]["Deposit_Bank_Name"]);
+                    ddlDepositBankCodes.Items[0].Value = Convert.ToString(DS.Tables[0].Rows[0]["Deposit_Bank_Code"]);
+                }
+                if (DS.Tables[0].Rows[0]["Location_ID"].ToString() != string.Empty)
+                {
+                    ddlBranch.SelectedText = Convert.ToString(DS.Tables[0].Rows[0]["LocationName"]);
+                    ddlBranch.SelectedValue = Convert.ToString(DS.Tables[0].Rows[0]["Location_ID"]);
+                }
+                if (DS.Tables[0].Rows[0]["Is_Active"].ToString() == "True")
+                    chkActive.Checked = true;
+                else
+                    chkActive.Checked = false;
+                if (DS.Tables[0].Rows[0]["ACCT_NUMBER"].ToString() != string.Empty)
+                {
+                    lblAcNo.Visible = true;
+                    lblAcctno.Text = DS.Tables[0].Rows[0]["ACCT_NUMBER"].ToString();
+                }
+                else
+                {
+                    lblAcNo.Visible = false;
+                    lblAcctno.Text = "";
+                }
+            }
+
+        }
+        catch (Exception objException)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+    private void FunPriBindLOB()
+    {
+        try
+        {
+            
+            // LOB
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            
+            if (strMode != "Q" && strMode != "M")
+            {
+                dictParam.Add("@Is_Active", "1");
+            }
+
+            dictParam.Add("@Program_ID", "105");
+            dictParam.Add("@User_ID", intUserID.ToString());
+            ddlLOB.BindDataTable(SPNames.LOBMaster, dictParam, true, "All", new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            ddlLOB.AddItemToolTip();
+
+            ////Branch
+            //dictParam = new Dictionary<string, string>();
+            //dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            //dictParam.Add("@Is_Active", "1");
+            //dictParam.Add("@User_ID", intUserID.ToString());
+            //dictParam.Add("@Program_ID", "105");
+            //if(ddlLOB .SelectedIndex > 0)
+            //    dictParam.Add("@LOB_ID", Convert .ToInt32 (ddlLOB.SelectedValue));
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, dictParam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+
+
+
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriBindBranch()
+    {
+        try
+        {
+
+            ////Branch
+            //dictParam = new Dictionary<string, string>();
+            //dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            //dictParam.Add("@Is_Active", "1");
+            //dictParam.Add("@User_ID", intUserID.ToString());
+            //dictParam.Add("@Program_ID", "105");
+            //if (Convert.ToInt32(ddlLOB.SelectedValue) > 0)
+            //    dictParam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, dictParam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+            //ddlBranch.AddItemToolTip();
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    btnSave.Enabled = chkActive.Enabled = false;
+                    break;
+                case -1:// Query Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    if (ddlLOB.Items.Count != 0)
+                    { ddlLOB.ClearDropDownList(); }
+                    ddlBranch.Enabled = false;
+                    if (ddlDepositBankCodes.Items.Count != 0)
+                    { ddlDepositBankCodes.ClearDropDownList(); }
+                    chkActive.Enabled = btnSave.Enabled = btnClear.Enabled = false;
+                    if (GRVDraweeBankName.Rows.Count > 0)
+                        GRVDraweeBankName.FooterRow.Visible = GRVDraweeBankName.Columns[2].Visible = false;
+                    btnGo.Visible = false;
+                    break;
+                case 1:// Modify Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    if (ddlLOB.Items.Count != 0)
+                    { ddlLOB.ClearDropDownList(); }
+                    ddlBranch.Enabled = false;
+                    if (ddlDepositBankCodes.Items.Count != 0)
+                    { ddlDepositBankCodes.ClearDropDownList(); }
+                    btnGo.Visible = btnClear.Enabled = false;
+                    break;
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriClearPage()
+    {
+        try
+        {
+            if (ddlLOB.Items.Count > 1)
+                ddlLOB.SelectedIndex = 0;
+            ddlBranch.Clear();
+            if (ddlDepositBankCodes.Items.Count > 1)
+                ddlDepositBankCodes.SelectedIndex = 0;
+            GRVDraweeBankName.DataSource = null;
+            GRVDraweeBankName.DataBind();
+            btnGo.Enabled = true;
+            btnSave.Enabled = false;
+            ViewState["currenttable"] = null;
+            lblAcNo.Visible = false;
+            lblAcctno.Text = "";
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriSaveChallanRules()
+    {
+        ObjChallanRuleClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        try
+        {
+            /*DataSet DS = new DataSet();
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            if (ddlLOB.SelectedIndex > 0)
+            {
+                dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            }
+            dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParam.Add("@Deposit_Bank_Code", Convert.ToString(ddlDepositBankCodes.SelectedValue));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetExistingDraweeBank, dictParam);
+            if (DS.Tables[0].Rows.Count > 0)
+            {
+                if (Convert.ToInt32(DS.Tables[0].Rows[0]["Status"]) > 0)
+                {
+                    if (strMode == "M" && chkActive.Checked)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "This combination records already in active");
+                        chkActive.Checked = false;
+                        btnSave.Enabled = false;
+                        return;
+                    }
+                    else if (string.IsNullOrEmpty(strMode))
+                    {
+                        if (Convert.ToInt32(DS.Tables[0].Rows[0]["Status"]) == 1)
+                        {
+                            Utility.FunShowAlertMsg(this.Page, "Record(s) already exists in selected combination");
+                        }
+                        else
+                        {
+                            Utility.FunShowAlertMsg(this.Page, "Record(s) already exists in LOB Level");
+                        }
+                        btnSave.Enabled = false;
+                        btnGo.Enabled = true;
+                        return;
+                    }
+                }
+            }*/
+        
+
+            if (GRVDraweeBankName.Rows.Count == 0 || !GRVDraweeBankName.Rows[0].Visible)
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 1);
+                return;
+            }
+
+            // ---- Validation --------------------------------
+            //if (dictParam != null)
+            //    dictParam.Clear();
+            //else
+            //    dictParam = new Dictionary<string, string>();
+            //DataSet DS = new DataSet();
+            //FunPriGenerateDraweeBankNameXMLDetails(1);
+            //dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            //dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            //dictParam.Add("@Branch_ID", Convert.ToString(ddlBranch.SelectedValue));
+            //if (!string.IsNullOrEmpty(StrXMLBank))
+            //{
+            //    dictParam.Add("@XMLDraweeBank", Convert.ToString(StrXMLBank));
+            //    dictParam.Add("@Flag", Convert.ToString("2"));
+
+            //    DS = Utility.GetDataset(SPNames.S3G_CLN_DupCheckDepositBank, dictParam);
+            //    if (DS.Tables.Count > 0)
+            //    {
+            //        Utility.FunShowAlertMsg(this.Page, " The Drawee Bank(s) " + DS.Tables[0].Rows[0]["Drawee_Bank_Name"].ToString() + " already Exists");
+            //        return;
+            //    }
+            //}
+            //--------------------------------------------------------------------------
+
+            strChallanNo = "";
+            ObjS3G_CLN_ChallanRuleDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChallanRuleDetailsDataTable();
+            S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ChallanRuleDetailsRow ObjChallanRuleRow;
+            ObjChallanRuleRow = ObjS3G_CLN_ChallanRuleDataTable.NewS3G_CLN_ChallanRuleDetailsRow();
+            ObjChallanRuleRow.Company_ID = intCompanyID;
+            ObjChallanRuleRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+            ObjChallanRuleRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+            ObjChallanRuleRow.Is_Active = chkActive.Checked;
+            ObjChallanRuleRow.Created_By = intUserID;
+            ObjChallanRuleRow.Deposit_Bank_Code = ddlDepositBankCodes.SelectedValue;
+            FunPriGenerateDraweeBankNameXMLDetails(2);
+            ObjChallanRuleRow.XMLDraweeBank = StrXMLBank;
+            //FunPriGenerateDeletedDraweeBankNameXMLDetails();            
+            //ObjChallanRuleRow.XMLDeletedDraweeBank = Convert.ToString(StrXMLDeletedBank);
+            //if (Convert.ToInt32(ViewState["IdValue"]) > 0)
+            //{ intchallanID = Convert.ToInt32(ViewState["IdValue"]);    }    
+            ObjChallanRuleRow.ChallabRule_ID = intchallanID;
+            ObjS3G_CLN_ChallanRuleDataTable.AddS3G_CLN_ChallanRuleDetailsRow(ObjChallanRuleRow);
+
+            DataTable dt = (DataTable)ViewState["currenttable"];
+            dt.AcceptChanges();
+            ViewState["currenttable"] = (DataTable)dt;
+            intErrCode = ObjChallanRuleClient.FunPubCreateChallanRuleDetails(out strChallanNo, SerMode, ClsPubSerialize.Serialize(ObjS3G_CLN_ChallanRuleDataTable, SerMode));
+            if (intErrCode == 0)
+            {
+                //To avoid double save click
+                btnSave.Enabled = false;
+                //End here
+
+                if (intchallanID > 0)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Challan Rule " + ValidationMsgs.S3G_ValMsg_Update);
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strRedirectPageView, true);
+                    return;
+                }
+                else
+                {
+                    strAlert = "Challan Rules " + Resources.ValidationMsgs.S3G_ValMsg_Save + strChallanNo;
+                    strAlert += @"\n" + Resources.ValidationMsgs.S3G_ValMsg_Next + " Challan Rule(s)?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPageView = "";
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                    lblErrorMessage.Text = string.Empty;
+                    return;
+                }
+            }
+            else if (intErrCode == 3)
+            {
+                //Utility.FunShowValidationMsg(this.Page, "ALL_Lob already exists and vice versa",3);
+                //return;
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Combination already exists');", true);
+                return;
+            }
+            else if (intErrCode == 4)
+            {
+                //Utility.FunShowValidationMsg(this.Page, strvalidationName, 2);
+                //return;
+                //strAlert = strAlert.Replace("__ALERT__", "Invalid URL");
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Combination already exists.Cannot create for ALL LOB');", true);
+                return;
+            }
+            else if (intErrCode == 5)
+            {
+                //Utility.FunShowValidationMsg(this.Page, strvalidationName, 2);
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Combination already exists');", true);
+                return;
+                //return;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (ObjChallanRuleClient != null)
+                ObjChallanRuleClient.Close();
+        }
+    }
+
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            UserInfo ObjUserInfo = new UserInfo();
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            S3GSession ObjS3GSession = new S3GSession();
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                if (fromTicket != null)
+                { intchallanID = Convert.ToInt32(fromTicket.Name); }
+                else
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Invalid URL");
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                }
+                strMode = Request.QueryString["qsMode"];
+            }
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end  
+            if (!IsPostBack)
+            {
+
+                if (strMode == "C" || strMode == "")
+                {
+                    FunPriBindLOB();
+                    FunPriBindBranch();
+                    FunPriLoadDepositBankname();
+                }
+               
+                //User Authorization            
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if ((intchallanID > 0) && (strMode == "M"))// Modify
+                {
+                    FunPriGetChallanRuleDetails_QueryMode();
+                    FunPriDisableControls(1);
+                }
+                else if ((intchallanID > 0) && (strMode == "Q")) // Query 
+                {
+                    FunPriGetChallanRuleDetails_QueryMode();
+                    FunPriDisableControls(-1);
+                }
+                else  //Create Mode
+                { FunPriDisableControls(0); }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriLoadPage_Old()
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            UserInfo ObjUserInfo = new UserInfo();
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            S3GSession ObjS3GSession = new S3GSession();
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                if (fromTicket != null)
+                { intchallanID = Convert.ToInt32(fromTicket.Name); }
+                else
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Invalid URL");
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                }
+                strMode = Request.QueryString["qsMode"];
+            }
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end  
+            if (!IsPostBack)
+            {
+                FunPriBindLOB();
+                if (strMode != "C")
+                {
+                    FunPriBindBranch();
+                }
+                FunPriLoadDepositBankname();
+                //User Authorization            
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if ((intchallanID > 0) && (strMode == "M"))// Modify
+                {
+                    FunPriGetChallanRuleDetails();
+                    FunPriDisableControls(1);
+                }
+                else if ((intchallanID > 0) && (strMode == "Q")) // Query 
+                {
+                    FunPriGetChallanRuleDetails();
+                    FunPriDisableControls(-1);
+                }
+                else  //Create Mode
+                { FunPriDisableControls(0); }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    private void FunPrisetinitialRow()
+    {
+        try
+        {
+            DataSet DS = new DataSet();
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            if (Convert.ToInt32(ddlLOB.SelectedValue) > 0)
+                dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParam.Add("@Deposit_Bank_Code", Convert.ToString(ddlDepositBankCodes.SelectedValue));
+            DS = Utility.GetDataset(SPNames.S3G_CLN_GetExistingDraweeBank, dictParam);
+            if (DS.Tables[0].Rows.Count > 0)
+                if (Convert.ToInt32(DS.Tables[0].Rows[0]["Status"]) > 0)
+                {
+                    if (strMode == "M" && chkActive.Checked)
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Combination already exists");
+                        chkActive.Checked = false;
+                        //btnSave.Enabled = false;
+                        return;
+                    }
+                    else if (string.IsNullOrEmpty(strMode))
+                    {
+                        int intErrCode = Convert.ToInt32(DS.Tables[0].Rows[0]["Status"]);
+                        if (intErrCode == 3)
+                        {
+                            //Utility.FunShowValidationMsg(this.Page, strvalidationName, 2);
+                            //return;
+                            Utility.FunShowAlertMsg(this, "Combination already exists");
+                            return;
+                        }
+                        else if (intErrCode == 4)
+                        {
+                            //Utility.FunShowValidationMsg(this.Page, strvalidationName, 2);
+                            //return;
+                            //strAlert = strAlert.Replace("__ALERT__", "Invalid URL");
+                            Utility.FunShowAlertMsg(this, "Combination already exists.Cannot create for ALL lob");
+                            return;
+                        }
+                        else if (intErrCode == 5)
+                        {
+                            //Utility.FunShowValidationMsg(this.Page, strvalidationName, 2);
+                            Utility.FunShowAlertMsg(this, "Combination already exists");
+                            return;
+                            //return;
+                        }
+                        //if (Convert.ToInt32(DS.Tables[0].Rows[0]["Status"]) == 1)
+                        //{
+                        //    Utility.FunShowAlertMsg(this.Page, "Record(s) already exists in selected combination");
+                        //}
+                        //else
+                        //{
+                        //    Utility.FunShowAlertMsg(this.Page, "Record(s) already exists in LOB Level");
+                        //}
+                        btnSave.Enabled = false;
+                        btnGo.Enabled = true;
+                        return;
+                    }
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(strMode))
+                    {
+                        FunPrisetRow();
+                        btnSave.Enabled = true;
+                        btnGo.Enabled = false;
+                    }
+                }
+            //////////if (DS.Tables.Count == 0)
+            //////////{
+            //////////    FunPrisetRow();
+            //////////    //ViewState["IdValue"] = 0;
+            //////////}
+            //////////else if (DS.Tables[0].Rows.Count > 0)
+            //////////{                 
+            //////////    GRVDraweeBankName.DataSource = DS.Tables[0];
+            //////////    GRVDraweeBankName.DataBind();
+            //////////    ViewState["currenttable"] = DS.Tables[0];                 
+            //////////    GRVDraweeBankName.Columns[2].Visible = true;                 
+            //////////    GRVDraweeBankName.FooterRow.Visible = true;
+            //////////    //if (DS.Tables[1].Rows.Count > 0)
+            //////////    //{
+            //////////    //    ViewState["IdValue"]=Convert.ToInt32(DS.Tables[1].Rows[0]["ID"]);                      
+            //////////    //}                 
+            //////////}
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPrisetRow()
+    {
+        try
+        {
+            DataTable dt = new DataTable();
+            DataRow dr;
+            //dt.Columns.Add("DraweeBank");
+            dt.Columns.Add("DRAWEEBANK");
+            dr = dt.NewRow();
+            dr["DRAWEEBANK"] = string.Empty;
+            dt.Rows.Add(dr);
+            if (ViewState["currenttable"] != null)
+            {
+                dt.Merge((DataTable)ViewState["currenttable"]);
+            }
+            ViewState["currenttable"] = dt;
+            GRVDraweeBankName.DataSource = dt;
+            GRVDraweeBankName.DataBind();
+            GRVDraweeBankName.Rows[0].Visible = false;
+            GRVDraweeBankName.FooterRow.Visible = GRVDraweeBankName.Columns[2].Visible = true;
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriGenerateDraweeBankNameXMLDetails(int Flag)
+    {
+        try
+        {
+            //StrXMLBank = GRVDraweeBankName.FunPubFormXml(); 
+            dt = (DataTable)ViewState["currenttable"];
+            //DataTable dtFinal = dt.Copy().GetChanges(DataRowState.Added);
+            //DataTable dtFinal = dt.Copy().GetChanges(DataRowState.Modified);
+            if (Flag == 2)
+            {
+                if (dt != null)
+                    StrXMLBank = dt.FunPubFormXml();
+            }
+            else if (strMode == "M")
+            {
+                DataTable dtModified = dt.Copy().GetChanges(DataRowState.Modified);
+                DataTable dtAdded = dt.Copy().GetChanges(DataRowState.Added);
+                DataTable dtFinal = null;
+
+                if (dtModified != null)
+                    dtFinal = dtModified.Copy();
+                if (dtAdded != null)
+                    dtFinal = dtAdded.Copy();
+                //                 dtFinal.AcceptChanges();
+
+                if (dtFinal != null)
+                    StrXMLBank = dtFinal.FunPubFormXml();
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriGenerateDeletedDraweeBankNameXMLDetails()
+    {
+        try
+        {
+            //StrXMLBank = GRVDraweeBankName.FunPubFormXml(); 
+            dt = (DataTable)ViewState["currenttable"];
+            DataTable dtTemp = dt.Copy().GetChanges(DataRowState.Deleted);
+            if (dtTemp != null)
+            {
+                DataTable dtFinal = new DataTable();
+                DataRow dtrRow;
+                StrXMLDeletedBank.Append("<Root>");
+
+                for (int i = 0; i < dtTemp.Rows.Count; i++)
+                {
+                    dtrRow = dtTemp.Rows[i];
+                    string bankName = dtrRow[0, DataRowVersion.Original].ToString();
+                    StrXMLDeletedBank.Append(" <Details ");
+                    StrXMLDeletedBank.Append("DRAWEEBANK" + "='" + bankName + "' ");
+                    StrXMLDeletedBank.Append(" /> ");
+                }
+
+                StrXMLDeletedBank.Append("</Root>");
+                dt.AcceptChanges();
+                ViewState["currenttable"] = (DataTable)dt;
+                //StrXMLDeletedBank = dtFinal.FunPubFormXml();
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriGridviewDraweeBankNameRowCommand(GridViewCommandEventArgs e)
+    {
+        try
+        {
+            DataRow dr;
+            if (e.CommandName == "AddNew")
+            {
+                TextBox txtDraweeBankNameF = (TextBox)GRVDraweeBankName.FooterRow.FindControl("txtDraweeBankNameF");
+                if (txtDraweeBankNameF.Text.Trim() == string.Empty)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 3);
+                    txtDraweeBankNameF.Text = string.Empty;
+                    txtDraweeBankNameF.Focus();
+                    return;
+                }
+                DataSet DS = new DataSet();
+                dictParam = new Dictionary<string, string>();
+                dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                if (Convert.ToInt32(ddlLOB.SelectedValue) > 0)
+                    dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+                dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+                dictParam.Add("@DraweeBankname", Convert.ToString(txtDraweeBankNameF.Text.Trim().ToUpper()));
+                dictParam.Add("@DepositBankname", Convert.ToString(ddlDepositBankCodes.SelectedValue));
+                dictParam.Add("@Flag", Convert.ToString("1"));
+
+                DS = Utility.GetDataset(SPNames.S3G_CLN_DupCheckDepositBank, dictParam);
+                if (DS.Tables.Count > 0)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 4);
+                    txtDraweeBankNameF.Focus();
+                    return;
+                }
+                dt = (DataTable)ViewState["currenttable"];
+
+                // Checking for Drawee Bank name already existing
+                if (dt.Select("DraweeBank='" + txtDraweeBankNameF.Text.Trim().ToUpper() + "'").Length > 0)
+                {
+                    Utility.FunShowValidationMsg(this.Page, strvalidationName, 5);
+                    txtDraweeBankNameF.Focus();
+                    return;
+                }
+                if (dt.Rows.Count > 0)
+                {
+                    if (dt.Rows[0]["DraweeBank"].ToString() == string.Empty)
+                    { dt.Rows[0].Delete(); }
+                }
+                dr = dt.NewRow();
+                dr["DraweeBank"] = txtDraweeBankNameF.Text.Trim().ToUpper();
+                dt.Rows.Add(dr);
+                GRVDraweeBankName.DataSource = dt;
+                GRVDraweeBankName.DataBind();
+                ViewState["currenttable"] = dt;
+                GRVDraweeBankName.FooterRow.FindControl("txtDraweeBankNameF").Focus();
+
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriGridviewDraweeBankNameRowDeleting(GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            DataTable dtDelete;
+            dtDelete = (DataTable)ViewState["currenttable"];
+            Label lblBank = (Label)(GRVDraweeBankName.Rows[e.RowIndex].FindControl("lblDraweeBankName"));
+            DataRow[] dtrRows = dtDelete.Select("DraweeBank='" + lblBank.Text.Trim().ToUpper() + "'");
+            if (dtrRows.Length > 0)
+                //dtDelete.Rows[dtDelete.Rows.IndexOf(dtrRows[0])].Delete();
+                dtDelete.Rows.RemoveAt(e.RowIndex);
+            GRVDraweeBankName.DataSource = dtDelete;
+            GRVDraweeBankName.DataBind();
+            ViewState["currenttable"] = dtDelete;
+            if (GRVDraweeBankName.Rows.Count == 0)
+            {
+                FunPrisetRow();
+            }
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            throw objException;
+        }
+    }
+
+    private void FunPriShowGoButton()
+    {
+        if (!btnGo.Enabled)
+        {
+            btnGo.Enabled = true;
+            btnSave.Enabled = false;
+            ViewState["currenttable"] = ViewState["IdValue"] = null;
+            GRVDraweeBankName.DataSource = null;
+            GRVDraweeBankName.DataBind();
+        }
+    }
+    private void FunPriLoadDepositBankname()
+    {
+        // Debosit Bank Code
+        dictParam = new Dictionary<string, string>();
+        dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        //dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+        dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+        ddlDepositBankCodes.BindDataTable(SPNames.S3G_CLN_GetBankNames, dictParam, new string[] { "BankMaster_Details_ID", "BankNames" });
+        ddlDepositBankCodes.AddItemToolTip();
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Events
+
+    #region Page Events
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        obj_Page = this;
+        try
+        { FunPriLoadPage(); }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVChallanRule.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_10 + " challan rule details";
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region Button Events
+
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        { FunPriSaveChallanRules(); }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVChallanRule.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_9;
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        { FunPriClearPage(); }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVChallanRule.ErrorMessage = Resources.ValidationMsgs.CLNBUK_23;
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPrisetinitialRow();
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVChallanRule.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_8;
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    protected void chkActive_CheckedChanged(object sender, EventArgs e)
+    {
+        FunPrisetinitialRow();
+    }
+
+    #endregion
+
+    #region Gridview Events
+
+    protected void GRVDraweeBankName_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        try
+        {
+            FunPriGridviewDraweeBankNameRowCommand(e);
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVChallanRule.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_7;
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    protected void GRVDraweeBankName_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            FunPriGridviewDraweeBankNameRowDeleting(e);
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVChallanRule.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_6;
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    protected void GRVDraweeBankName_RowEditing(object sender, GridViewEditEventArgs e)
+    {
+        try
+        {
+            GRVDraweeBankName.EditIndex = e.NewEditIndex;
+            dtEdit = (DataTable)ViewState["currenttable"];
+            DataRow drEditRow = dtEdit.Rows[e.NewEditIndex];
+            GRVDraweeBankName.DataSource = dtEdit;
+            GRVDraweeBankName.DataBind();
+            Label lblDraweeBankName = (Label)GRVDraweeBankName.Rows[e.NewEditIndex].FindControl("lblDraweeBankName");
+            TextBox txtDraweeBankNameEdit = (TextBox)GRVDraweeBankName.Rows[e.NewEditIndex].FindControl("txtDraweeBankNameEdit");
+            ViewState["Bankname"] = lblDraweeBankName.Text.Trim().ToUpper();
+            txtDraweeBankNameEdit.Visible = true;
+            txtDraweeBankNameEdit.Focus();
+            lblDraweeBankName.Visible = false;
+            txtDraweeBankNameEdit.Text = lblDraweeBankName.Text;
+            GRVDraweeBankName.ShowFooter = false;
+            GRVDraweeBankName.FooterRow.Visible = false;
+            //GRVDraweeBankName.Columns[GRVDraweeBankName.Columns.Count - 1].Visible = false;
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    protected void GRVDraweeBankName_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+    {
+        try
+        {
+            GRVDraweeBankName.EditIndex = -1;
+            GRVDraweeBankName.ShowFooter = true;
+            dtEdit = (DataTable)ViewState["currenttable"];
+            GRVDraweeBankName.DataSource = dtEdit;
+            GRVDraweeBankName.DataBind();
+            GRVDraweeBankName.Columns[GRVDraweeBankName.Columns.Count - 1].Visible = true;
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    protected void GRVDraweeBankName_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+        try
+        {
+
+            dtEdit = (DataTable)ViewState["currenttable"];
+            GridViewRow GRVDraweeBankNameRow = GRVDraweeBankName.Rows[e.RowIndex];
+            TextBox txtDraweeBankNameEdit = (TextBox)GRVDraweeBankNameRow.FindControl("txtDraweeBankNameEdit");
+            if (txtDraweeBankNameEdit.Text == string.Empty)
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 3);
+                txtDraweeBankNameEdit.Focus();
+                return;
+            }
+            // Checking for Drawee Bank name already existing
+            if (dtEdit.Select("DraweeBank='" + txtDraweeBankNameEdit.Text.Trim().ToUpper() + "'").Length > 0 && Convert.ToString(ViewState["Bankname"]).ToUpper() != txtDraweeBankNameEdit.Text.Trim().ToUpper())
+            {
+                Utility.FunShowValidationMsg(this.Page, strvalidationName, 5);
+                txtDraweeBankNameEdit.Focus();
+                return;
+            }
+            DataRow drow = dtEdit.Rows[e.RowIndex];
+            drow.BeginEdit();
+            drow["DraweeBank"] = txtDraweeBankNameEdit.Text;
+            drow.EndEdit();
+            ViewState["currenttable"] = dtEdit;
+            GRVDraweeBankName.EditIndex = -1;
+            GRVDraweeBankName.ShowFooter = true;
+            dtEdit = (DataTable)ViewState["currenttable"];
+            GRVDraweeBankName.DataSource = dtEdit;
+            GRVDraweeBankName.DataBind();
+            GRVDraweeBankName.Columns[GRVDraweeBankName.Columns.Count - 1].Visible = true;
+        }
+        catch (Exception objException)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(objException, strPageName);
+            CVChallanRule.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region DropDonEvents
+    protected void ddlDepositBankCodes_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriShowGoButton();
+        dictParam = new Dictionary<string, string>();
+        dictParam.Add("@Option", "1");
+        if (ddlDepositBankCodes.SelectedIndex > 0)
+            dictParam.Add("@BankMaster_Details_ID", ddlDepositBankCodes.SelectedValue);
+        DataTable dt = Utility.GetDefaultData("S3G_CLN_GetBankNames", dictParam);
+        if (dt.Rows.Count > 0)
+        {
+            lblAcctno.Text = dt.Rows[0]["ACCT_NUMBER"].ToString();
+            lblAcNo.Visible = true;
+        }
+        else
+        {
+            lblAcctno.Text = "";
+            lblAcNo.Visible = false;
+        }
+    }
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        ddlBranch.Clear();
+        if (ddlDepositBankCodes.Items.Count > 1)
+            ddlDepositBankCodes.SelectedIndex = 0;
+        GRVDraweeBankName.DataSource = null;
+        GRVDraweeBankName.DataBind();
+        btnGo.Enabled = true;
+        btnSave.Enabled = false;
+        ViewState["currenttable"] = null;
+        lblAcctno.Text = "";
+
+        FunPriBindBranch();
+        FunPriShowGoButton();
+    }
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        FunPriLoadDepositBankname();
+        FunPriShowGoButton();
+    }
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "105");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+    #endregion
+
+    #endregion
+}

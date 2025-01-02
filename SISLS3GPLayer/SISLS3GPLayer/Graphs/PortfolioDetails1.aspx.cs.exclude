@@ -1,0 +1,52 @@
+﻿using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Text;
+using org.jfree.data.time;
+using System.Data.SqlClient;
+
+public partial class PortfolioDetails1 :ApplyThemeForProject
+{
+    public SqlConnection SqlConn;
+    public SqlCommand SqlComnd;
+    public SqlDataAdapter SqlDaAdp;
+    public DataSet DSQuery;
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        SqlConn = new SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["s3gconnectionstring"].ConnectionString);
+
+        string category = Request.Params["category"];
+        string series = Request.Params["series"];
+        string item = Request.Params["item"];
+        string pieIndex = Request.Params["pieIndex"];
+
+        StringBuilder sb = new StringBuilder();
+        if (category != null)
+            sb.Append("Category='").Append(category).Append("' ");
+        if (series != null)
+            sb.Append("Series='").Append(series).Append("' ");
+        if (item != null)
+            sb.Append("Item='").Append(item).Append("' ");
+        if (pieIndex != null)
+            sb.Append("Pie Index='").Append(pieIndex).Append("' ");
+        RequestResult.Text = sb.ToString() + "was Clicked.";
+    }
+
+    protected new void Page_PreInit(object sender, EventArgs e)
+    {
+
+        this.Page.MasterPageFile = "~/Common/MasterPage.master";
+        UserInfo ObjUserInfo = new UserInfo();
+        this.Page.Theme = ObjUserInfo.ProUserThemeRW;
+
+    }
+}

@@ -1,0 +1,243 @@
+<%@ Page Title="" Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master"
+    AutoEventWireup="true" CodeFile="S3G_TA_SchemeMaster_View.aspx.cs" Inherits="TradeAdvance_S3G_TA_SchemeMaster_View" %>
+
+<%@ Register TagPrefix="uc1" TagName="PageNavigator" Src="~/UserControls/PageNavigator.ascx" %>
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel2" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="" ID="lblHeading" CssClass="styleInfoLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:GridView runat="server" ID="grvSchemeMasterView" AutoGenerateColumns="false"
+                            HeaderStyle-CssClass="styleGridHeader" OnDataBound="grvSchemeMasterView_DataBound"
+                            OnRowDataBound="grvSchemeMasterView_RowDataBound" OnRowCommand="grvSchemeMasterView_RowCommand"
+                            Height="145px">
+                            <Columns>
+                                <asp:TemplateField ItemStyle-HorizontalAlign="Center">
+                                    <HeaderStyle CssClass="styleGridHeader" />
+                                    <HeaderTemplate>
+                                        <asp:Label ID="lblQuery" runat="server" Text="Query"></asp:Label>
+                                    </HeaderTemplate>
+                                    <ItemTemplate>
+                                        <asp:ImageButton ID="imgbtnQuery" ImageUrl="~/Images/spacer.gif" CssClass="styleGridQuery"
+                                            CommandArgument='<%# Bind("ID") %>' CommandName="Query" runat="server" />
+                                    </ItemTemplate>
+                                    <ItemStyle HorizontalAlign="Center" Width="10%" />
+                                </asp:TemplateField>
+                                <asp:TemplateField ItemStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader"
+                                    HeaderStyle-Width="10%">
+                                    <HeaderTemplate>
+                                        <asp:Label ID="lblEdit" runat="server" Text="Modify"></asp:Label>
+                                    </HeaderTemplate>
+                                    <ItemTemplate>
+                                        <asp:ImageButton ID="imgbtnEdit" CssClass="styleGridEdit" ImageUrl="~/Images/spacer.gif"
+                                            CommandArgument='<%# Bind("ID") %>' CommandName="modify" runat="server" />
+                                    </ItemTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" Width="10%" />
+                                    <ItemStyle HorizontalAlign="Center" Width="10%" />
+                                </asp:TemplateField>
+                                <%--  <asp:TemplateField HeaderText="Level" SortExpression="Level" HeaderStyle-CssClass="styleGridHeader"
+                                    HeaderStyle-Width="30%">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblLevel" runat="server" Text='<%# Bind("Level") %>'></asp:Label>
+                                    </ItemTemplate>
+                                   <HeaderTemplate>
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr align="center">
+                                                <td>
+                                                    <asp:LinkButton ID="lnkbtnLevel" OnClick="FunProSortingColumn" ToolTip="Sort By Level"
+                                                        runat="server" Text="Level" CssClass="styleGridHeaderLinkBtn"></asp:LinkButton>
+                                                    <asp:ImageButton ID="imgbtnLevel" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                </td>
+                                            </tr>
+                                            <tr align="left">
+                                                <td>
+                                                    <asp:TextBox AutoCompleteType="None" ID="txtHeaderLevel" runat="server"
+                                                        AutoPostBack="true" CssClass="styleSearchBox" OnTextChanged="FunProHeaderSearch"></asp:TextBox>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </HeaderTemplate>
+                                </asp:TemplateField>--%>
+                                <asp:TemplateField HeaderText="Line of Business" SortExpression="LOB_Name" HeaderStyle-CssClass="styleGridHeader"
+                                    HeaderStyle-Width="15%" HeaderStyle-HorizontalAlign="Center">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblRoleCode" runat="server" Text='<%# Bind("LOB_Name") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderTemplate>
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td>
+                                                    <asp:LinkButton ID="lnkbtnSort1" OnClick="FunProSortingColumn" ToolTip="Sort By Line of Business"
+                                                        runat="server" Text="Line of Business" CssClass="styleGridHeaderLinkBtn"></asp:LinkButton>
+                                                    <asp:ImageButton ID="imgbtnSort1" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch1" runat="server" AutoPostBack="true"
+                                                        CssClass="styleSearchBox" OnTextChanged="FunProHeaderSearch"></asp:TextBox>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </HeaderTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" Width="15%" />
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText="Location" HeaderStyle-CssClass="styleGridHeader" HeaderStyle-Width="30%">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblBranch" runat="server" Text='<%# Bind("Product_Code") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderTemplate>
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td>
+                                                    <asp:LinkButton ID="lnkbtnSort2" OnClick="FunProSortingColumn" ToolTip="Sort By Branch"
+                                                        runat="server" Text="Scheme code" CssClass="styleGridHeaderLinkBtn"></asp:LinkButton>
+                                                    <asp:ImageButton ID="imgbtnSort2" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch2" runat="server" AutoPostBack="true"
+                                                        CssClass="styleSearchBox" OnTextChanged="FunProHeaderSearch"></asp:TextBox>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </HeaderTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" Width="30%" />
+                                </asp:TemplateField>
+                                <%--<asp:TemplateField HeaderText="Program Code" SortExpression="Program_Name" HeaderStyle-CssClass="styleGridHeader"
+                                    HeaderStyle-Width="30%">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblProgramCode" runat="server" Text='<%# Bind("Program_Name") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderTemplate>
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr align="center">
+                                                <td>
+                                                    <asp:LinkButton ID="lnkbtnProgramCode" runat="server" ToolTip="Sort By Program Name"
+                                                        OnClick="FunProSortingColumn" Text="Program Name" CssClass="styleGridHeaderLinkBtn"></asp:LinkButton>
+                                                    <asp:ImageButton ID="imgbtnProgramCode" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                </td>
+                                            </tr>
+                                            <tr align="left">
+                                                <td>
+                                                    <asp:TextBox AutoCompleteType="None" ID="txtHeaderProgramCode" runat="server" AutoPostBack="true"
+                                                        CssClass="styleSearchBox" OnTextChanged="FunProHeaderSearch"></asp:TextBox>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </HeaderTemplate>
+                                </asp:TemplateField>--%>
+                                <%-- <asp:TemplateField Visible="false">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblUserID" Visible="false" runat="server" Text='<%# Bind("Created_By")%>'></asp:Label>
+                                        <asp:Label ID="lblUserLevelID" Visible="false" runat="server" Text='<%# Bind("User_Level_ID")%>'></asp:Label>
+                                    </ItemTemplate>
+                                </asp:TemplateField>--%>
+                                <asp:TemplateField HeaderText="Scheme Type" HeaderStyle-CssClass="styleGridHeader"
+                                    HeaderStyle-Width="30%">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblBranch1" Text='<%# Bind("Product_Desc") %>' runat="server"></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderTemplate>
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td>
+                                                    <asp:LinkButton ID="lnkbtnSort3" OnClick="FunProSortingColumn" ToolTip="Sort By Branch"
+                                                        runat="server" Text="Scheme Name " CssClass="styleGridHeaderLinkBtn"></asp:LinkButton>
+                                                    <asp:ImageButton ID="imgbtnSort3" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch3" runat="server" AutoPostBack="true"
+                                                        CssClass="styleSearchBox" OnTextChanged="FunProHeaderSearch"></asp:TextBox>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </HeaderTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" Width="30%" />
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText="Amount Financed" HeaderStyle-CssClass="styleGridHeader"
+                                    HeaderStyle-Width="30%">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblBranch2" Text='<%# Bind("Product_Type") %>' runat="server"></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderTemplate>
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td>
+                                                    <asp:LinkButton ID="lnkbtnSort4" OnClick="FunProSortingColumn" ToolTip="Sort By Branch"
+                                                        runat="server" Text="Scheme type" CssClass="styleGridHeaderLinkBtn"></asp:LinkButton>
+                                                    <asp:ImageButton ID="imgbtnSort4" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch4" runat="server" AutoPostBack="true"
+                                                        CssClass="styleSearchBox" OnTextChanged="FunProHeaderSearch"></asp:TextBox>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </HeaderTemplate>
+                                    <HeaderStyle CssClass="styleGridHeader" Width="30%" />
+                                </asp:TemplateField>
+                                <%-- <asp:TemplateField HeaderText="Active">
+                                    <ItemTemplate>
+                                        <asp:CheckBox Enabled="false" runat="server" ID="chkActive" />
+                                        <asp:Label ID="lblActive" Visible="false" runat="server" Text='<%#Eval("Is_Active")%>'></asp:Label>
+                                    </ItemTemplate>
+                                    <ItemStyle HorizontalAlign="Center" />
+                                    <HeaderStyle HorizontalAlign="Center" />
+                                </asp:TemplateField>--%>
+                                <asp:TemplateField HeaderText="Active" ItemStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader">
+                                    <ItemTemplate>
+                                        <asp:CheckBox ID="CbxActive" Enabled="false" runat="server" Checked='<%#DataBinder.Eval(Container.DataItem, "Is_Active").ToString().ToUpper() == "TRUE"%>' />
+                                    </ItemTemplate>
+                                    <ItemStyle HorizontalAlign="Center" />
+                                </asp:TemplateField>
+                            </Columns>
+                            <HeaderStyle CssClass="styleGridHeader" />
+                        </asp:GridView>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" valign="top">
+                        <uc1:PageNavigator ID="ucCustomPaging" runat="server"></uc1:PageNavigator>
+                    </td>
+                </tr>
+                <tr class="styleButtonArea">
+                    <td style="padding-top: 5px; padding-left: 5px;" align="Center">
+                        <span runat="server" id="lblErrorMessage" class="styleMandatoryLabel"></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-top: 5px; padding-left: 5px;" align="Center">
+                        <asp:Button ID="btnCreate" OnClick="btnCreate_Click" CssClass="styleSubmitButton"
+                            Text="Create" runat="server"></asp:Button>
+                        <asp:Button ID="btnShow" OnClick="btnShow_Click" CssClass="styleSubmitButton" Text="Show All"
+                            runat="server"></asp:Button>
+                    </td>
+                </tr>
+            </table>
+            <input type="hidden" id="hdnSortDirection" runat="server" />
+            <input type="hidden" id="hdnSortExpression" runat="server" />
+            <input type="hidden" id="hdnSearch" runat="server" />
+            <input type="hidden" id="hdnOrderBy" runat="server" />
+        </ContentTemplate>
+    </asp:UpdatePanel>
+</asp:Content>

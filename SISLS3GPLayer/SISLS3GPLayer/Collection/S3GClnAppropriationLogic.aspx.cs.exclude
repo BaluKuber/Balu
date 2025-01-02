@@ -1,0 +1,1122 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : Appropriation Logic
+/// Created By                : VijayaKumar
+/// Created Date              : 06-Oct-2010
+/// Purpose                   : 
+/// Last Updated By           : Chandra Sekhar BS
+/// Last Updated Date         : 18-Sep-2013
+/// Reason                    : SQL Performance
+
+/// <Program Summary>
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using S3GBusEntity;
+using System.IO;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+#endregion
+
+public partial class Collection_S3GClnAppropriationLogic : ApplyThemeForProject
+{
+    #region Common Variable declaration
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> Procparam = null;
+    string strApprLogicID = "0";
+    int intErrCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    StringBuilder strApprLogicBuilder = new StringBuilder();
+
+    DataTable dtAppropriationLogic = null;
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objAppLogic_Client;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_AppropriationLogicDataTable objS3G_CLN_AppLogicDataTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_AppropriationLogicRow objS3G_CLN_AppLogicDataRow = null;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3GClnAppropriationLogic_View.aspx";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GclnAppropriationLogic.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnAppropriationLogic_View.aspx';";
+    //string strcode = "";
+    static string strPageName = "AppropriationLogic Master";
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+    #endregion
+
+    #region Methods
+
+    #region Load Page
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strApprLogicID = fromTicket.Name;
+            }
+
+            if (!IsPostBack)
+            {
+                if (Request.QueryString["qsMode"] == null) {
+                    FunPriLoadType();
+                    FunPriLoadLineOfBusiness();
+                }
+                
+                FunPriInsertAppropriationLogicDataTable("", "", "-1");
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunPriAppropriationForModification_QueryMode(strApprLogicID);
+                    FunPriDisableControls(-1);
+                }
+                else if (Request.QueryString["qsMode"] == "M")
+                {
+                    FunPriLoadType();
+                    FunPriAppropriationForModification_QueryMode(strApprLogicID);
+                    FunPriDisableControls(1);
+                    //ddlLOB.Focus();
+
+
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+
+
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+
+    }
+    #endregion
+
+    #region Save
+    private void FunPriSaveRecord()
+    {
+        objAppLogic_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        try
+        {
+            string strAPPNumber = "";
+            dtAppropriationLogic = (DataTable)ViewState["DT_AppropriationLogicDetails"];
+            if (dtAppropriationLogic.Rows.Count == 1)
+            {
+                if (dtAppropriationLogic.Rows[0]["Serial_Number"].ToString() == "0")
+                {
+                    //Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.S3G_ErrMsg_GridEmpty);
+                    Utility.FunShowAlertMsg(this.Page, "Fill the Appropriation Logic details in Grid");
+                    return;
+                }
+            }
+
+
+            if (gvAppropriationLogic.EditIndex != -1)
+            {
+                //Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLN_ApprLogic_LOBLevel, strRedirectPageView);
+                Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLN_ApprLogic_GridUpdate);
+                //gvAppropriationLogic.EditIndex = -1;
+                return;
+            }
+
+            if (Convert.ToDecimal(dtAppropriationLogic.Compute("sum(Percentage)", "Percentage<>0")) != 100 && (!chkTotalDue.Checked))
+            {
+                Utility.FunShowAlertMsg(this.Page, "Total Percentage should be 100");
+                return;
+            }
+
+            if (Page.IsValid)
+            {
+                LoadXMLValues();
+
+                objS3G_CLN_AppLogicDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_AppropriationLogicDataTable();
+                objS3G_CLN_AppLogicDataRow = objS3G_CLN_AppLogicDataTable.NewS3G_CLN_AppropriationLogicRow();
+
+                objS3G_CLN_AppLogicDataRow.Company_ID = intCompanyID;
+                objS3G_CLN_AppLogicDataRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                objS3G_CLN_AppLogicDataRow.Appropriation_ID = Convert.ToInt32(strApprLogicID);
+                objS3G_CLN_AppLogicDataRow.Modified_By = intUserID;
+                objS3G_CLN_AppLogicDataRow.Modified_On = DateTime.Now;
+                objS3G_CLN_AppLogicDataRow.Created_By = intUserID;
+                objS3G_CLN_AppLogicDataRow.Created_On = DateTime.Now;
+                objS3G_CLN_AppLogicDataRow.Txn_ID = 1;
+                objS3G_CLN_AppLogicDataRow.XMLDetails = strApprLogicBuilder.ToString();
+                if (chkActive.Checked) objS3G_CLN_AppLogicDataRow.Is_Active = "1";
+                else objS3G_CLN_AppLogicDataRow.Is_Active = "0";
+                objS3G_CLN_AppLogicDataRow.Appropriation_HorizVert = Convert.ToInt32(ddlType.SelectedValue);
+                objS3G_CLN_AppLogicDataTable.AddS3G_CLN_AppropriationLogicRow(objS3G_CLN_AppLogicDataRow);
+               
+                //Added by Vinodh.N
+
+                if (chkTotalDue.Checked) objS3G_CLN_AppLogicDataRow.Is_FullDue = 1;
+                else objS3G_CLN_AppLogicDataRow.Is_FullDue = 0;
+
+                //Added by Vinodh.N
+                //if (strApprLogicID != null)
+                //{
+
+                //}
+                intErrCode = objAppLogic_Client.FunPubCreateAppropriationLogic(out strAPPNumber, ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_AppLogicDataTable, ObjSerMode));
+                if (intErrCode == 0)
+                {
+                    //To avoid double save click
+                    btnSave.Enabled = false;
+                    //End here
+                     
+                    if (strApprLogicID == "0")
+                    {
+                        // Utility.FunShowAlertMsg(this.Page, "Appropriation Logic " + Resources.ValidationMsgs.S3G_ValMsg_Save, strRedirectPageView);
+                        ////strApprLogicID = strAPPNumber;
+
+                        ////strAlert = "Appropriation Logic " + Resources.ValidationMsgs.S3G_ValMsg_Save + strApprLogicID;
+                        ////strAlert += @"\n" + Resources.ValidationMsgs.S3G_ValMsg_Next + "Appropriation Logic ?";
+                        ////strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                        ////strRedirectPageView = "";
+                        ////ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                        //  lblErrorMessage.Text = string.Empty;
+                        //return;
+
+                        // strChallanID = strChallanNumber;
+                        //if (strChallanID == "")
+                        //{
+                        //strAlert = "Appropriation Logic Details Added successfully";
+                        //strAlert += @"\n\nWould you like to add one more record?";l
+                        strAlert = "Appropriation Logic " + Resources.ValidationMsgs.S3G_ValMsg_Save;
+                        strAlert += @"\n" + Resources.ValidationMsgs.S3G_ValMsg_Next;
+                        strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                        strRedirectPageView = string.Empty;
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                        //}
+
+                    }
+                    else
+                    {
+                        Utility.FunShowAlertMsg(this.Page, "Appropriation Logic " + Resources.ValidationMsgs.S3G_ValMsg_Update);
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strRedirectPageView, true);
+                        //  return;
+                    }
+                }
+                else if (intErrCode == 1)
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.S3G_ValMsg_DocumentNoControl);
+                    return;
+
+                }
+
+                else if (intErrCode == 2)
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLN_ApprLogic_CompanyLevel);
+                    return;
+                }
+                else if (intErrCode == 3)
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLN_ApprLogic_LOBLevel);
+                    return;
+                }
+
+                //  ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+            }
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (objAppLogic_Client != null)
+                objAppLogic_Client.Close();
+        }
+    }
+    #endregion
+
+    #region Modify
+    private void FunPriAppropriationForModification(string strApproID)
+    {
+        try
+        {
+            DataTable dtTable = new DataTable();
+            objAppLogic_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            byte[] bytesAppLogicDetails = objAppLogic_Client.FunAppropriationLogicForModification(strApproID, intCompanyID);
+            dtTable = (DataTable)ClsPubSerialize.DeSerialize(bytesAppLogicDetails, SerializationMode.Binary, typeof(DataTable));
+
+            ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+            ddlType.SelectedValue = dtTable.Rows[0]["Appropriation_HorizVert"].ToString();
+            chkActive.Checked = Convert.ToBoolean(dtTable.Rows[0]["Is_Active"]);
+
+            gvAppropriationLogic.DataSource = dtTable;
+            gvAppropriationLogic.DataBind();
+            DataTable dt = new DataTable();
+
+            dt.Columns.Add("Serial_Number");
+            dt.Columns.Add("CashFlow_Flag_ID");
+            dt.Columns.Add("CashFlowFlag_Desc");
+            dt.Columns.Add("Percentage", System.Type.GetType("System.Decimal"));
+
+            foreach (GridViewRow rec in gvAppropriationLogic.Rows)
+            {
+
+                Label lblLookupcode = rec.FindControl("lblLookupCode") as Label;
+                Label lblSerialNo = rec.FindControl("lblSerialNo") as Label;
+                Label lblReceiptType = rec.FindControl("lblReceiptType") as Label;
+                Label lblPercent = rec.FindControl("lblPercent") as Label;
+
+                DataRow drEmptyRow;
+                drEmptyRow = dt.NewRow();
+                drEmptyRow["Serial_Number"] = lblSerialNo.Text;
+                drEmptyRow["CashFlow_Flag_ID"] = lblLookupcode.Text;
+                drEmptyRow["CashFlowFlag_Desc"] = lblReceiptType.Text;
+                if (lblPercent.Text.Trim() != "")
+                    drEmptyRow["Percentage"] = Convert.ToDecimal(lblPercent.Text);
+                else
+                    drEmptyRow["Percentage"] = 0;
+                dt.Rows.Add(drEmptyRow);
+            }
+
+            ViewState["DT_AppropriationLogicDetails"] = dt;
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (objAppLogic_Client != null)
+                objAppLogic_Client.Close();
+        }
+    }
+    private void FunPriAppropriationForModification_QueryMode(string strApproID)
+    {
+        try
+        {
+            DataTable dtTable = new DataTable();
+            //objAppLogic_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+            //byte[] bytesAppLogicDetails = objAppLogic_Client.FunAppropriationLogicForModification(strApproID, intCompanyID);
+            //dtTable = (DataTable)ClsPubSerialize.DeSerialize(bytesAppLogicDetails, SerializationMode.Binary, typeof(DataTable));
+
+            Dictionary<String,String> ParamDict = new Dictionary<String,String>();
+            ParamDict.Clear();
+            ParamDict.Add("@AppropriationID",strApproID);
+            ParamDict.Add("@Company_ID",intCompanyID.ToString());
+
+            dtTable = Utility.GetDefaultData("S3G_CLN_GetAppropriationLogic", ParamDict);
+
+
+            if (dtTable.Rows[0]["LOB_ID"].ToString() != "" || dtTable.Rows[0]["LOB_ID"].ToString() != "0") {
+                ListItem LIB = new ListItem(dtTable.Rows[0]["LOB_Name"].ToString(), dtTable.Rows[0]["LOB_ID"].ToString());
+                ddlLOB.Items.Add(LIB);
+            }else{
+                ListItem LIB = new ListItem("--ALL--", "0");
+                ddlLOB.Items.Add(LIB);
+            }
+            ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+
+            if (Request.QueryString["qsMode"] == "Q") {
+                ListItem LITyp = new ListItem(dtTable.Rows[0]["Appropriation_HorizVert_Desc"].ToString(), dtTable.Rows[0]["Appropriation_HorizVert"].ToString());
+                ddlType.Items.Add(LITyp);
+            }
+            
+            ddlType.SelectedValue = dtTable.Rows[0]["Appropriation_HorizVert"].ToString();
+            chkActive.Checked = Convert.ToBoolean(dtTable.Rows[0]["Is_Active"]);
+
+            chkTotalDue.Checked = Convert.ToBoolean(dtTable.Rows[0]["FullDue"]);
+
+            gvAppropriationLogic.DataSource = dtTable;
+            gvAppropriationLogic.DataBind();
+            DataTable dt = new DataTable();
+
+            dt.Columns.Add("Serial_Number");
+            dt.Columns.Add("CashFlow_Flag_ID");
+            dt.Columns.Add("CashFlowFlag_Desc");
+            dt.Columns.Add("Percentage", System.Type.GetType("System.Decimal"));
+
+            foreach (GridViewRow rec in gvAppropriationLogic.Rows)
+            {
+
+                Label lblLookupcode = rec.FindControl("lblLookupCode") as Label;
+                Label lblSerialNo = rec.FindControl("lblSerialNo") as Label;
+                Label lblReceiptType = rec.FindControl("lblReceiptType") as Label;
+                Label lblPercent = rec.FindControl("lblPercent") as Label;
+
+                DataRow drEmptyRow;
+                drEmptyRow = dt.NewRow();
+                drEmptyRow["Serial_Number"] = lblSerialNo.Text;
+                drEmptyRow["CashFlow_Flag_ID"] = lblLookupcode.Text;
+                drEmptyRow["CashFlowFlag_Desc"] = lblReceiptType.Text;
+                if (lblPercent.Text.Trim() != "")
+                    drEmptyRow["Percentage"] = Convert.ToDecimal(lblPercent.Text);
+                else
+                    drEmptyRow["Percentage"] = 0;
+                dt.Rows.Add(drEmptyRow);
+            }
+
+            ViewState["DT_AppropriationLogicDetails"] = dt;
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (objAppLogic_Client != null)
+                objAppLogic_Client.Close();
+        }
+    }
+    #endregion
+
+    #region To Load LOB List
+    private void FunPriLoadLineOfBusiness()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            Procparam.Add("@FilterOption", "'HP','LN','TE','OL','FL','TL'");
+            Procparam.Add("@Program_ID", "97");
+            if (strApprLogicID == "0") Procparam.Add("@Is_Active", "1");
+            ddlLOB.BindMemoDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+
+    private void FunPriLoadType()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@option", "0");
+            ddlType.BindDataTable(Utility.GetDefaultData(SPNames.S3G_CLN_GetAppLogicReceiptTypes, Procparam));
+        }
+
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    //#region To Load Receipt Type Values
+    //private void FunPriLoadReceiptType()
+    //{
+    //    try
+    //    {
+    //        if (Procparam != null)
+    //            Procparam.Clear();
+    //        else
+    //            Procparam = new Dictionary<string, string>();
+
+    //        Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+    //        Procparam.Add("@LookupType_Code", Convert.ToString("38"));
+    //        //gvAppropriationLogic.DataSource = Utility.GetDefaultData(SPNames.S3G_CLN_GetAppLogicReceiptTypes, Procparam);
+    //        //gvAppropriationLogic.DataBind();
+    //    }
+
+    //    catch (Exception ex)
+    //    {
+    //          ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+    //        throw ex;
+    //    }
+    //}
+    //#endregion
+
+    #region "User Authorization"
+    ////This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                if (!bCreate)
+                {
+                    btnSave.Enabled = false;
+                }
+                chkActive.Checked = true;
+                chkActive.Enabled = false;
+                ddlLOB.Focus();
+                break;
+
+            case 1: // Modify Mode
+
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                btnClear.Enabled = false;
+                chkActive.Enabled = true;
+                if (!bModify)
+                {
+
+                }
+                Utility.ClearDropDownList(ddlLOB);
+                //Utility.ClearDropDownList(ddlType);
+                chkActive.Focus();
+                break;
+
+            case -1:// Query Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+
+                btnSave.Enabled = btnClear.Enabled = chkActive.Enabled = false;
+                if (!bQuery)
+                {
+                    Response.Redirect(strRedirectPage,false);
+                }
+                Utility.ClearDropDownList(ddlLOB);
+                Utility.ClearDropDownList(ddlType);
+                //ddlLOB.Enabled = ddlType.Enabled =  false;
+                //Utility.ClearDropDownList(ddlLOB);
+                //Utility.ClearDropDownList(ddlType);
+                //pnlAppropriationLogic.Width = 250;
+                gvAppropriationLogic.Columns[3].Visible = false;
+                gvAppropriationLogic.ShowFooter = false;
+                gvAppropriationLogic.FooterRow.Visible = false;
+
+                chkTotalDue.Enabled = false; // Added By Vinodh
+                break;
+        }
+    }
+    ////Code end
+    #endregion
+
+    #region "AppropriationLogic stored in XML format"
+    /// <summary>
+    /// Storing the Values of the grid as XML documnet for bulk insert in the Data base
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+
+    private void LoadXMLValues()
+    {
+        try
+        {
+            //  Grid sent as XMl     
+            strApprLogicBuilder.Append("<Root>");
+            int i = 0;
+            foreach (GridViewRow grvRow in gvAppropriationLogic.Rows)
+            {
+                // string strSqNo = grvRow.Cells[1].Text.Replace("&nbsp;", "");
+                Label lblSerialNo = (Label)grvRow.FindControl("lblSerialNo");
+                Label lblDueNo = (Label)grvRow.FindControl("lblLookupcode");
+                Label lblPercent = (Label)grvRow.FindControl("lblPercent");
+                //  Label lblDueTypeNo = (Label)grvRow.FindControl("lblLookupTypeNo");
+                //TextBox txtPercent = (TextBox)grvRow.FindControl("txtPercent");
+                strApprLogicBuilder.Append("<Details  RowNo='" + i.ToString() + "' Company_ID ='" + Convert.ToString(intCompanyID) + "' Appropriation_ID='" + strApprLogicID + "'   ");
+                strApprLogicBuilder.Append(" Sequence_Number='" + lblSerialNo.Text + "' Due_Type='" + lblDueNo.Text + "' Percentage='" + lblPercent.Text + "'  /> ");
+
+            }
+            strApprLogicBuilder.Append("</Root>");
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region [AppropriationLogic Details DataTable]
+
+    private DataTable FunPriGetAppropriationLogicDataTable()
+    {
+        try
+        {
+            DataRow drEmptyRow;
+            if (ViewState["DT_AppropriationLogicDetails"] == null)
+            {
+                dtAppropriationLogic = new DataTable();
+                dtAppropriationLogic.Columns.Add("Serial_Number");
+                dtAppropriationLogic.Columns.Add("CashFlow_Flag_ID");
+                dtAppropriationLogic.Columns.Add("CashFlowFlag_Desc");
+                dtAppropriationLogic.Columns.Add("Percentage", System.Type.GetType("System.Decimal"));
+                ViewState["DT_AppropriationLogicDetails"] = dtAppropriationLogic;
+            }
+            dtAppropriationLogic = (DataTable)ViewState["DT_AppropriationLogicDetails"];
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = "Due to Data Problem,Unable toget the data";
+            cvAppropriationLogic.IsValid = false;
+        }
+        return dtAppropriationLogic;
+
+    }
+
+    private void FunPriInsertAppropriationLogicDataTable(string strLookupcode, string strReceiptType, string strPercent)
+    {
+        try
+        {
+            DataRow drEmptyRow;
+            dtAppropriationLogic = FunPriGetAppropriationLogicDataTable();
+            if (dtAppropriationLogic.Rows.Count < 1)
+            {
+                drEmptyRow = dtAppropriationLogic.NewRow();
+                drEmptyRow["Serial_Number"] = "0";
+                drEmptyRow["CashFlowFlag_Desc"] = "0";
+                drEmptyRow["Percentage"] = 0;
+                dtAppropriationLogic.Rows.Add(drEmptyRow);
+            }
+            else
+            {
+                drEmptyRow = dtAppropriationLogic.NewRow();
+                drEmptyRow["Serial_Number"] = Convert.ToInt32(dtAppropriationLogic.Rows[dtAppropriationLogic.Rows.Count - 1]["Serial_Number"]) + 1;
+                drEmptyRow["CashFlow_Flag_ID"] = strLookupcode;
+                drEmptyRow["CashFlowFlag_Desc"] = strReceiptType;
+                if (strPercent != "")
+                    drEmptyRow["Percentage"] = Convert.ToDecimal(strPercent);
+                else
+                    drEmptyRow["Percentage"] = 0;
+                dtAppropriationLogic.Rows.Add(drEmptyRow);
+            }
+            if (dtAppropriationLogic.Rows.Count > 1)
+            {
+                if (dtAppropriationLogic.Rows[0]["Serial_Number"].Equals("0"))
+                {
+                    dtAppropriationLogic.Rows[0].Delete();
+                }
+            }
+            ViewState["DT_AppropriationLogicDetails"] = dtAppropriationLogic;
+
+            FunPriFillGrid();
+            FunPubBindAppropriationLogicDetails(dtAppropriationLogic);
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = "Due to Data Problem,Unable to Processing";
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+
+    private void FunPriFillGrid()
+    {
+        try
+        {
+
+            DataTable dtAppLogic = (DataTable)ViewState["DT_AppropriationLogicDetails"];
+            gvAppropriationLogic.DataSource = dtAppLogic;
+            gvAppropriationLogic.DataBind();
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_BindGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+
+    private void FunPubBindAppropriationLogicDetails(DataTable dtWorkflow)
+    {
+        try
+        {
+
+            gvAppropriationLogic.DataSource = dtWorkflow;
+            gvAppropriationLogic.DataBind();
+            if (dtWorkflow.Rows.Count > 0 && Convert.ToString(dtWorkflow.Rows[0]["Serial_Number"]) == "0")
+            {
+                gvAppropriationLogic.Rows[0].Visible = false;
+            }
+            gvAppropriationLogic.Visible = true;
+            //gvAppropriationLogic .HeaderRow
+
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_BindGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #region [AppropriationLogic setting Footer Control]
+    private void FunPriSetFooterControl()
+    {
+        try
+        {
+            if (gvAppropriationLogic.FooterRow != null)
+            {
+                ((DropDownList)gvAppropriationLogic.FooterRow.FindControl("ddlLookupcode")).Style.Add("text-align", "right");
+                ((DropDownList)gvAppropriationLogic.FooterRow.FindControl("ddlReceiptType")).Style.Add("text-align", "right");
+                ((TextBox)gvAppropriationLogic.FooterRow.FindControl("txtPercent")).Style.Add("text-align", "right");
+
+            }
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = "Unable to set footer controls";
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region [Update datain the grid]
+    private void FunPriUpdateDataTable(int intSeriel_Num, string hdnSlno, string strLookupcode, string strPercent, string strReceiptType)   // update view state DT_DebtCollectorDetails
+    {
+        try
+        {
+            DataTable dtApprDetails = (DataTable)ViewState["DT_AppropriationLogicDetails"];
+            //if (Convert.ToString(dtApprDetails.Rows[Convert.ToInt32(strSeriel_Num) - 1]["Serial_Number"]) == strSeriel_Num)
+            //{
+
+
+
+            //    dtApprDetails.Rows[Convert.ToInt32(strSeriel_Num) - 1]["CashFlow_Flag_ID"] = strLookupcode;
+            //    dtApprDetails.Rows[Convert.ToInt32(strSeriel_Num) - 1]["CashFlowFlag_Desc"] = strReceiptType;
+            //    if (strPercent != "")
+            //        dtApprDetails.Rows[Convert.ToInt32(strSeriel_Num) - 1]["Percentage"] = Convert.ToDecimal(strPercent);
+            //    else
+            //        dtApprDetails.Rows[Convert.ToInt32(strSeriel_Num) - 1]["Percentage"] = 0;
+
+            //    dtApprDetails.AcceptChanges();
+            //    ViewState["DT_AppropriationLogicDetails"] = dtApprDetails;
+            //}
+
+            if (Convert.ToString(dtApprDetails.Rows[intSeriel_Num]["Serial_Number"]) == hdnSlno)
+            {
+
+                dtApprDetails.Rows[intSeriel_Num]["CashFlow_Flag_ID"] = strLookupcode;
+                dtApprDetails.Rows[intSeriel_Num]["CashFlowFlag_Desc"] = strReceiptType;
+                if (strPercent != "")
+                    dtApprDetails.Rows[intSeriel_Num]["Percentage"] = Convert.ToDecimal(strPercent);
+                else
+                    dtApprDetails.Rows[intSeriel_Num]["Percentage"] = 0;
+
+                dtApprDetails.AcceptChanges();
+                ViewState["DT_AppropriationLogicDetails"] = dtApprDetails;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_BindGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region To clear the Data in the Page
+    private void FunPriClearPage()
+    {
+        ddlLOB.SelectedValue = "0";
+        ddlType.SelectedValue = "0";
+        ddlLOB.Focus();
+        ViewState["DT_AppropriationLogicDetails"] = null;
+        dtAppropriationLogic = FunPriGetAppropriationLogicDataTable();
+
+
+        if (dtAppropriationLogic.Rows.Count == 0)
+        {
+            FunPriInsertAppropriationLogicDataTable("", "", "-1");
+
+
+        }
+        chkTotalDue.Checked = false;// Added By Vinodh
+
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Events
+
+    #region Page Load Event
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_PageLoad + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region  Button Events
+    //save
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriSaveRecord();
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_InsertUpdate + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+
+        }
+    }
+    //cancel
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+    //clear
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriClearPage();
+        }
+        catch (Exception ex)
+        {
+
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_Clear + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region grid events
+
+    protected void gvAppropriationLogic_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.Footer)
+            {
+                if (gvAppropriationLogic.FooterRow != null && Request.QueryString["qsMode"] != "Q")
+                { 
+                
+                DropDownList ddlReceiptType = e.Row.FindControl("ddlReceiptType") as DropDownList;
+                TextBox txtPercent = e.Row.FindControl("txtPercent") as TextBox;
+                txtPercent.Style.Add("text-align", "right");
+
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                Procparam.Add("@option", "1");
+                //Procparam.Add("@LookupType_Code", Convert.ToString("38"));
+                ddlReceiptType.BindDataTable(Utility.GetDefaultData(SPNames.S3G_CLN_GetAppLogicReceiptTypes, Procparam));
+                }
+            }
+
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                LinkButton lnkEdit = e.Row.FindControl("lnkEdit") as LinkButton;
+                LinkButton lnkRemove = e.Row.FindControl("lnkRemove") as LinkButton;
+
+                if (strMode == "Q")
+                {
+                    lnkEdit.Enabled = false;
+                    lnkRemove.Enabled = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_BindGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+
+
+    protected void gvAppropriationLogic_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        try
+        {
+            string strLookupcode, strReceiptType, strPercent;
+            decimal dper = 0.00m;
+
+            if (e.CommandName == "Add")
+            {
+                if (gvAppropriationLogic.EditIndex != -1)
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLN_ApprLogic_GridUpdate);
+                    //Utility.FunShowAlertMsg(this.Page, "Please update changes in Apropriation Logic Details.");
+                    //gvAppropriationLogic.EditIndex = -1;
+                    return;
+                } //gvAppropriationLogic.EditIndex = -1;
+                DropDownList ddlReceiptType = gvAppropriationLogic.FooterRow.FindControl("ddlReceiptType") as DropDownList;
+                //DropDownList ddlLookupcode = gvAppropriationLogic.FooterRow.FindControl("ddlLookupcode") as DropDownList;
+                TextBox txtpercent = gvAppropriationLogic.FooterRow.FindControl("txtPercent") as TextBox;
+                
+                // strReceiptType = ddlReceiptType.SelectedItem.Text.ToString();
+                strReceiptType = ddlReceiptType.Items.FindByValue(ddlReceiptType.SelectedValue).Text;
+                strLookupcode = ddlReceiptType.SelectedValue;
+                strPercent = txtpercent.Text;
+
+                if (ViewState["DT_AppropriationLogicDetails"] != null)
+                {
+                    
+                    DataTable dtTemp = (DataTable)ViewState["DT_AppropriationLogicDetails"];
+                    object test = dtTemp.Compute("sum(Percentage)", "Percentage <> 0");
+                    if (test.ToString() != string.Empty)
+                    {
+                        dper = Convert.ToDecimal(test) + Convert.ToDecimal(strPercent);
+                    }
+                    else
+                    {
+                        dper = (strPercent == "") ? 0 : Convert.ToDecimal(strPercent);
+                    }
+                }
+
+                if (strReceiptType.Trim().Equals("--Select--"))
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.S3g_ValMsg_ReceipType);
+                    return;
+                }
+                if (strPercent.Trim().Equals(""))
+                {
+                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLN_ApprLogic_Percent);
+                    txtpercent.Focus();
+                    return;
+                }
+                else if (Convert.ToDecimal(strPercent) > 100)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Percentage should not exceed 100");
+                    txtpercent.Focus();
+                    return;
+                }
+                else if (Convert.ToDecimal(strPercent) <= 0)
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Percentage should be greater than 0");
+                    txtpercent.Focus();
+                    return;
+                }
+                else if (dper > 100 && (!chkTotalDue.Checked))
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Total Percentage should be 100");
+                    txtpercent.Focus();
+                    return;
+                }
+                else
+                {
+                    bool boolExist = false;
+                    foreach (GridViewRow rec in gvAppropriationLogic.Rows)
+                    {
+                        Label lblLookupcode = rec.FindControl("lblLookupCode") as Label;
+                        if (strLookupcode.Trim().Equals(lblLookupcode.Text.Trim()))
+                        {
+
+                            Utility.FunShowAlertMsg(this.Page, "Receipt Type Already Exists. Select Different Value");
+                            boolExist = true;
+                            return;
+
+                        }
+
+                    }
+                    if (boolExist == false) FunPriInsertAppropriationLogicDataTable(strLookupcode, strReceiptType, strPercent);
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            //   ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_AddGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+
+    protected void gvAppropriationLogic_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            dtAppropriationLogic = FunPriGetAppropriationLogicDataTable();
+            dtAppropriationLogic.Rows.RemoveAt(e.RowIndex);
+
+            ViewState["DT_AppropriationLogicDetails"] = dtAppropriationLogic;
+
+            dtAppropriationLogic = FunPriGetAppropriationLogicDataTable();
+            if (dtAppropriationLogic.Rows.Count == 0)
+            {
+                FunPriInsertAppropriationLogicDataTable("", "", "-1");
+            }
+            else
+            {
+                FunPubBindAppropriationLogicDetails(dtAppropriationLogic);
+            }
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_DeleteGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+            //  ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+
+
+    }
+
+    protected void gvAppropriationLogic_RowEditing(object sender, GridViewEditEventArgs e)
+    {
+        try
+        {
+
+            gvAppropriationLogic.EditIndex = e.NewEditIndex;
+            FunPriFillGrid();
+            ((TextBox)gvAppropriationLogic.Rows[e.NewEditIndex].FindControl("txtPercent")).Style.Add("text-align", "right");
+            ((DropDownList)gvAppropriationLogic.Rows[e.NewEditIndex].FindControl("ddlReceiptTypeEdit")).Style.Add("text-align", "right");
+            DropDownList ddlReceiptType = gvAppropriationLogic.Rows[e.NewEditIndex].FindControl("ddlReceiptTypeEdit") as DropDownList;
+            HiddenField hdnLookupcode = (HiddenField)gvAppropriationLogic.Rows[e.NewEditIndex].FindControl("hdnLookupcode");
+            ddlReceiptType.BindDataTable(Utility.GetDefaultData(SPNames.S3G_CLN_GetAppLogicReceiptTypes, Procparam));
+            ddlReceiptType.SelectedValue = hdnLookupcode.Value;// lblLookupCode.Text;
+            gvAppropriationLogic.FooterRow.Visible = false;
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_EditGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+
+    protected void gvAppropriationLogic_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+        try
+        {
+
+            Label lblSerialNo = (Label)gvAppropriationLogic.Rows[e.RowIndex].FindControl("lblSerialNo");
+            HiddenField hdnSlno = (HiddenField)gvAppropriationLogic.Rows[e.RowIndex].FindControl("hdnSlno");
+            //Label lblLookupcode = (Label)gvAppropriationLogic.Rows[e.RowIndex].FindControl("lblLookupCode");
+            TextBox txtpercent = (TextBox)gvAppropriationLogic.Rows[e.RowIndex].FindControl("txtPercent");
+            DropDownList ddlReceiptTypeEdit = (DropDownList)gvAppropriationLogic.Rows[e.RowIndex].FindControl("ddlReceiptTypeEdit");
+
+            if (ddlReceiptTypeEdit.Items.Count == 0) ddlReceiptTypeEdit.BindDataTable(Utility.GetDefaultData(SPNames.S3G_CLN_GetAppLogicReceiptTypes, Procparam));
+            DataRow[] drlist = ((DataTable)ViewState["DT_AppropriationLogicDetails"]).Select("Serial_Number=" + lblSerialNo.Text.Trim());
+            decimal decExistPercentage = 0;
+            if (drlist != null && drlist.Length > 0)
+                decExistPercentage = Convert.ToDecimal(drlist[0][3]);
+            string strReceipt = ddlReceiptTypeEdit.Items.FindByValue(ddlReceiptTypeEdit.SelectedValue).Text;
+            string strLook = ddlReceiptTypeEdit.SelectedValue;
+
+            if (strReceipt.Trim().Equals("--Select--"))
+            {
+                Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.S3g_ValMsg_ReceipType);
+                return;
+            }
+            if (txtpercent.Text.Trim().Equals(""))
+            {
+                Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLN_ApprLogic_Percent);
+                return;
+            }
+            else if (Convert.ToDecimal(txtpercent.Text.Trim()) <= 0)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Percentage should be greater than 0");
+                txtpercent.Focus();
+                return;
+            }
+            else if (Convert.ToDecimal(txtpercent.Text.Trim()) > 100)
+            {
+                Utility.FunShowAlertMsg(this.Page, "Percentage should not exceed 100");
+                txtpercent.Focus();
+                return;
+            }
+            else if ((Convert.ToDecimal(((DataTable)ViewState["DT_AppropriationLogicDetails"]).Compute("sum(Percentage)", "Percentage<>0")) + Convert.ToDecimal(txtpercent.Text.Trim()) - decExistPercentage) > 100 && (!chkTotalDue.Checked))
+            {
+                Utility.FunShowAlertMsg(this.Page, "Total Percentage should be 100");
+                txtpercent.Focus();
+                return;
+            }
+            bool boolExist = false;
+            foreach (GridViewRow rec in gvAppropriationLogic.Rows)
+            {
+                Label lblLookupcode = rec.FindControl("lblLookupCode") as Label;
+                if ((rec.RowState == DataControlRowState.Normal || rec.RowState == DataControlRowState.Alternate) && strLook.Trim().Equals(lblLookupcode.Text.Trim()))
+                {
+
+                    Utility.FunShowAlertMsg(this.Page, "Receipt Type Already Exists. Select Different Value");
+                    boolExist = true;
+                    return;
+                }
+
+            }
+            gvAppropriationLogic.EditIndex = -1;
+
+
+            if (boolExist == false)
+                FunPriUpdateDataTable(e.RowIndex, hdnSlno.Value, strLook, txtpercent.Text, strReceipt);
+
+            FunPriFillGrid();
+            gvAppropriationLogic.FooterRow.Visible = true;
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_UpdateGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+
+    protected void gvAppropriationLogic_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+    {
+        try
+        {
+            gvAppropriationLogic.EditIndex = -1;
+            FunPriFillGrid();
+            gvAppropriationLogic.FooterRow.Visible = true;
+        }
+        catch (Exception ex)
+        {
+            cvAppropriationLogic.ErrorMessage = Resources.ValidationMsgs.S3G_ErrMsg_CancelEditGrid + this.Page.Header.Title;
+            cvAppropriationLogic.IsValid = false;
+        }
+    }
+
+    #endregion
+
+    #endregion
+
+
+}

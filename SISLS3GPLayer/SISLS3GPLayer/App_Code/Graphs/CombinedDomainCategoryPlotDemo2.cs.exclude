@@ -1,0 +1,38 @@
+namespace Ujihara.Demo
+{
+    using org.jfree.chart;
+    using org.jfree.chart.plot;
+    using org.jfree.data.category;
+    using org.jfree.chart.renderer.category;
+    using org.jfree.chart.axis;
+
+
+    public class CombinedDomainCategoryPlotDemo2 : ChartCreator
+    {
+        public override JFreeChart CreateChart()
+        {
+            CategoryItemRenderer[] renderers = new CategoryItemRenderer[] {
+            new LineAndShapeRenderer(),
+            new BarRenderer(),
+            new AreaRenderer(),
+            new CategoryStepRenderer(),
+            new LevelRenderer(),
+        };
+
+            CategoryDataset[] datasets = new CategoryDataset[renderers.Length];
+            for (int i = 0; i < datasets.Length; i++)
+                datasets[i] = DatasetCreator.createDefaultCategoryDataset(i * 2, i * 2 + 2);
+
+            CombinedDomainCategoryPlot plot = new CombinedDomainCategoryPlot(new CategoryAxis("Category"));
+            plot.setOrientation(PlotOrientation.HORIZONTAL);
+            plot.setGap(20);
+            for (int i = 0; i < datasets.Length; i++)
+            {
+                NumberAxis axis = new NumberAxis("USD");
+                CategoryPlot subplot = new CategoryPlot(datasets[i], null, axis, renderers[i]);
+                plot.add(subplot);
+            }
+            return new JFreeChart(Name, plot);
+        }
+    }
+}

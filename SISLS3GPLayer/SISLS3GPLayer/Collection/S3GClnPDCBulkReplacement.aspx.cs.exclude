@@ -1,0 +1,1681 @@
+﻿/// Screen Name			: PDC Bulk Replacement
+/// Created By			: Palani Kumar.A
+/// Created Date		: 27-Sep-2013
+/// Purpose	            : For PDC Bulk Replacement
+/// Reason              : CHange Request
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Globalization;
+using System.ServiceModel;
+using Resources;
+using S3GBusEntity;
+using S3GBusEntity.Collection;
+using System.Text;
+
+public partial class Collection_S3GClnPDCBulkReplacement : ApplyThemeForProject
+{
+    #region Variable Declaration
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient ObjPDCEntryClient;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCModuleDetailsDataTable ObjS3G_CLN_PDCModuleDataTable = null;
+    SerializationMode SerMode = SerializationMode.Binary;
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+    StringBuilder strChallanBuilder = new StringBuilder();
+    StringBuilder strChallanBuilder_RID = new StringBuilder();
+    ArrayList strexclude;
+    ArrayList strexclude_ID;
+    DataTable dtList = new DataTable();
+    static Collection_S3GClnPDCBulkReplacement obj_Page;
+    decimal deAmount;
+
+    int intCompanyID, intUserID, i, intErrCode = 0, intGPSPrefix = 0, intGPSSuffix = 0;
+    long endno;
+
+    DataTable dt = new DataTable();
+    Dictionary<string, string> dictParam = null;
+    StringBuilder strbDraweebankDet = new StringBuilder();
+    UserInfo ObjUserInfo = new UserInfo();
+    S3GSession ObjS3GSession = new S3GSession();
+
+    string strPDCID = "";
+    static string strPageName = "PDC Bulk Replacement";
+    string StrXMLPDC, strPDCNo, strchequeNo, s, strexistingdate;
+    string strRedirectPage = "../Collection/S3GClnPDCBulkReplacement.aspx";
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strDateFormat = string.Empty;
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnPDCBulkReplacement.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3GClnPDCBulkReplacement.aspx';";
+    PagingValues ObjPaging = new PagingValues();
+    string strReceipt = Resources.ValidationMsgs.CLN_CHN_1;
+
+
+    #endregion
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriLoadPage();
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_10 + " PDC Bulk Replacement details";
+            CVPDCEntry.IsValid = false;
+        }
+    }
+
+    private void FunPriLoadPage()
+    {
+        try
+        {
+            //this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            //intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            //intUserID = ObjUserInfo.ProUserIdRW;
+            //strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //// Get Prefix and suffix values from Session
+            //intGPSPrefix = ObjS3GSession.ProGpsPrefixRW;
+            //intGPSSuffix = ObjS3GSession.ProGpsSuffixRW;           
+            ////User Authorization
+            //bCreate = ObjUserInfo.ProCreateRW;
+            ////bModify = ObjUserInfo.ProModifyRW;
+            ////bQuery = ObjUserInfo.ProViewRW;
+            ////Code end  
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            intUserID = ObjUserInfo.ProUserIdRW;
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            // Get Prefix and suffix values from Session
+            intGPSPrefix = ObjS3GSession.ProGpsPrefixRW;
+            intGPSSuffix = ObjS3GSession.ProGpsSuffixRW;
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            obj_Page = this;
+            if (!IsPostBack)
+            {
+                FunPriBindBranchLOB();
+                ////User Authorization            
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                FunPriDisableControls(0);
+            }
+            ucCustomerCodeLov.strBranchID = "";
+
+            if (ddlLOB.SelectedValue.ToString() != "0")
+            {
+                ucCustomerCodeLov.strLOBID = ddlLOB.SelectedValue.ToString();
+            }
+            else
+            {
+                ucCustomerCodeLov.strLOBID = "-1";
+            }
+            ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+
+            TextBox txt = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+            if (PageMode == PageModes.Create)
+            {
+                txt.Attributes.Add("onfocus", "fnLoadCustomer()");
+            }
+            txt.ToolTip = "Customer Code";
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriBindBranchLOB()
+    {
+        try
+        {
+            // LOB
+
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@Is_Active", "1");
+            dictParam.Add("@User_ID", intUserID.ToString());
+            dictParam.Add("@Program_ID", "106");
+            dictParam.Add("@FilterOption", "'FL','HP','LN','OL','TE','TL'");
+            ddlLOB.BindDataTable(SPNames.LOBMaster, dictParam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            RFVLOB.ErrorMessage = Resources.ValidationMsgs.S3G_ValMsg_LOB;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    public void FunPubFillBranch()
+    {
+        //Branch
+        dictParam = new Dictionary<string, string>();
+        dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+        dictParam.Add("@Is_Active", "1");
+        dictParam.Add("@User_ID", intUserID.ToString());
+        dictParam.Add("@Program_ID", "106");
+        dictParam.Add("@Lob_Id", Convert.ToString(ddlLOB.SelectedValue));
+        //ddlBranch.BindDataTable(SPNames.BranchMaster_LIST, dictParam, new string[] { "Location_ID", "Location_Code", "Location_Name" });
+        //ddlBranch.SelectedIndex = 0;
+        //RFVBranch.ErrorMessage = Resources.ValidationMsgs.S3G_ValMsg_Branch;
+    }
+    protected void LoadPrimeAccNo(string strCustomer_ID)
+    {
+        try
+        {
+            // Load Prime Account Number
+            dictParam = new Dictionary<string, string>();
+            dictParam.Clear();
+            dictParam.Add("@Type", "1");
+            dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParam.Add("@Is_Activated", "1");
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@Customer_ID", strCustomer_ID);
+            ddlPAN.Items.Clear();
+            ddlPAN.BindDataTable("S3G_CLN_GetMLASLA_PDC", dictParam, new string[] { "PANum", "PANum" });
+            if (ddlPAN.Items.Count == 2)
+            {
+                ddlPAN.SelectedIndex = 1;
+                ddlPAN_SelectedIndexChanged(this, new EventArgs());
+            }
+            RFVMLA.ErrorMessage = Resources.ValidationMsgs.CLNPDC_13;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    protected void LoadSubAccNo()
+    {
+        try
+        {
+            // Load Sub Account Number
+            dictParam = new Dictionary<string, string>();
+            dictParam.Clear();
+            dictParam.Add("@Type", "2");
+            dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            //dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParam.Add("@PANum", Convert.ToString(ddlPAN.SelectedValue));
+            dictParam.Add("@Is_Activated", "1");
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            ddlSAN.BindDataTable("S3G_CLN_GetMLASLA_PDC", dictParam, new string[] { "SANum", "SANum" });
+            if (ddlSAN.Items.Count == 2)
+            {
+                ddlSAN.SelectedIndex = 1;
+                ddlSAN_SelectedIndexChanged(this, new EventArgs());
+            }
+            RFVSLA.ErrorMessage = Resources.ValidationMsgs.CLNPDC_14;
+            if (ddlPAN.SelectedIndex > 0 && ddlSAN.Items.Count > 1) //Changed Sub account is not mandatory when it is only MLA. By Rao Feb 1st 2012
+                RFVSLA.Visible = true;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                    btnSave.Enabled = false;
+                    ddlLOB.Focus();
+                    break;
+                //case -1:// Query Mode
+                //    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                //    FunPriClearDropDown();
+                //    //imgPostingDate.Enabled = 
+                //    btnClear.Enabled = btnSave.Enabled = btnGo.Enabled = false;
+                //    ucCustomerCodeLov.ButtonEnabled = false;
+                //    break;
+                //case 1:// Modify Mode
+                //    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                //    FunPriClearDropDown();
+                //    btnGo.Enabled = btnClear.Enabled = false;
+                //    ucCustomerCodeLov.ButtonEnabled = false;
+                //    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriClearDropDown()
+    {
+        if (ddlLOB.Items.Count > 0)
+            ddlLOB.ClearDropDownList();
+        //if (ddlBranch.Items.Count > 0)
+        //    ddlBranch.ClearDropDownList();
+        ddlBranch.Clear();
+        if (ddlSAN.Items.Count > 0)
+            ddlSAN.ClearDropDownList();
+    }
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //FunPriClearcontrols();
+            if (ddlPAN.Items.Count > 0)
+            {
+                ddlPAN.SelectedIndex = 0;
+                ddlPAN.ClearDropDownList();
+            }
+            if (ddlSAN.Items.Count > 0)
+            {
+                ddlSAN.SelectedIndex = 0;
+                ddlSAN.ClearDropDownList();
+            }
+            
+            //if (ddlBranch.Items.Count > 0)
+            //    ddlBranch.SelectedIndex = 0;
+            ////LoadPrimeAccNo();
+            //ddlBranch.Items.Clear();
+            ddlBranch.Clear();
+            //if (ddlLOB.SelectedIndex > 0)
+            //{
+            //    FunPubFillBranch();
+            //}
+            //FunPriGetBankNames();
+            CustomerDetails1.ClearCustomerDetails();
+            ucCustomerCodeLov.FunPubClearControlValue();
+            txtCustomerName.Text = "";
+            //ddlDraweeBank.AddItemToolTip();
+
+            ddlBranch.ErrorMessage = Resources.ValidationMsgs.S3G_ValMsg_Branch;
+        }
+
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_1;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlBranch_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //FunPriClearcontrols();
+            if (ddlPAN.Items.Count > 0)
+            {
+                ddlPAN.SelectedIndex = 0;
+                ddlPAN.ClearDropDownList();
+            }
+            if (ddlSAN.Items.Count > 0)
+            {
+                ddlSAN.SelectedIndex = 0;
+                ddlSAN.ClearDropDownList();
+            }
+
+            ucCustomerCodeLov.FunPubClearControlValue();
+            //LoadPrimeAccNo();
+            //FunPriGetBankNames();
+            CustomerDetails1.ClearCustomerDetails();
+            ViewState["CustomerID"] = null;
+            txtCustomerName.Text = "";
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_1;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlPAN_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            RFVSLA.Visible = false;
+            btnGo.Enabled = true;
+            LoadSubAccNo();
+            if (ddlPAN.SelectedValue == "0")
+            {
+                pnlGRDSeqYes.Visible = false;
+                btnSave.Enabled = false;
+            }
+            //Changed By Thangam M on 14/Ma            
+            if (ddlPAN.SelectedIndex > 0 && ddlSAN.Items.Count == 1)
+            {
+                ddlSAN.Enabled = false;
+                pnlGRDSeqYes.Visible = false;
+                btnSave.Enabled = false;
+            }
+            else
+            {
+                ddlSAN.Enabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_2;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void ddlSAN_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            //txtFromInstallmentNo.Text = hdnFromInstallmentNo.Value = string.Empty;
+            if (ddlSAN.SelectedIndex > 0)
+            {
+                //FunPubSetStartinstallmentNo();
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_2;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    protected void btnGo_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriGeneratePDCDetails();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_3;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    private void FunPriGeneratePDCDetails()
+    {
+        try
+        {
+            DataSet DS = new DataSet();
+            dictParam = new Dictionary<string, string>();
+            dictParam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            dictParam.Add("@LOB_ID", Convert.ToString(ddlLOB.SelectedValue));
+            dictParam.Add("@Location_ID", Convert.ToString(ddlBranch.SelectedValue));
+            dictParam.Add("@PANUM", Convert.ToString(ddlPAN.SelectedValue));
+
+            // ---------- Begin ------------Sub Account Number
+            if (ddlSAN.Items.Count == 0)
+                s = Convert.ToString(ddlPAN.SelectedItem.Text + "DUMMY");
+            else
+            {
+                if (ddlSAN.SelectedIndex == 0)
+                    s = Convert.ToString(ddlPAN.SelectedItem.Text + "DUMMY");
+                else
+                    s = Convert.ToString(ddlSAN.SelectedValue);
+            }
+            dictParam.Add("@SANUM", Convert.ToString(s));
+            dictParam.Add("@InststartNo", Convert.ToString("1"));
+            DS = Utility.GetDataset("S3G_CLN_GetPDCBulkRepDetails", dictParam);
+
+            if (DS.Tables[0].Rows.Count > 0)
+            {
+                GRVPDCDetails.DataSource = DS.Tables[0];
+                GRVPDCDetails.DataBind();
+                pnlGRDSeqYes.Visible = true;
+                ViewState["currenttable"] = DS.Tables[0];
+                UpPDCDetails.Update();
+                btnSave.Enabled = true;
+            }
+            else
+            {
+                pnlGRDSeqYes.Visible = false;
+                btnSave.Enabled = false;
+                Utility.FunShowAlertMsg(this.Page, "No Records found in " + ddlPAN.SelectedItem.Text.ToString() + " Account Number..");
+                return;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void LoadXMLValues()
+    {
+        //  Grid sent as XMl     
+        deAmount = 0;
+        try
+        {
+
+            strexclude = (ArrayList)ViewState["exclude"];
+            if (strexclude != null && strexclude.Count > 0)
+            {
+                for (int i = 0; i < strexclude.Count; i++)
+                    if (i != (strexclude.Count - 1))
+                        strChallanBuilder.Append("'" + strexclude[i].ToString() + "',");
+                    else
+                        strChallanBuilder.Append("'" + strexclude[i].ToString() + "'");
+            }
+            //else
+            //    strChallanBuilder.Append("0");  //Hide by Tamilselvan for validation on 11/05/2011
+            strexclude_ID = (ArrayList)ViewState["exclude_ID"];
+            if (strexclude_ID != null && strexclude_ID.Count > 0)
+            {
+                for (int i = 0; i < strexclude_ID.Count; i++)
+                    if (i != (strexclude_ID.Count - 1))
+                        strChallanBuilder_RID.Append(strexclude_ID[i].ToString() + ",");
+                    else
+                        strChallanBuilder_RID.Append(strexclude_ID[i].ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    #region protected void chkAll_CheckedChanged(object sender, EventArgs e)
+
+    protected void chkAll_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            CheckBox chk = (CheckBox)GRVPDCDetails.HeaderRow.FindControl("chkAll");
+            strexclude = (ArrayList)ViewState["exclude"];
+            strexclude_ID = (ArrayList)ViewState["exclude_ID"];
+            if (chk.Checked)
+            {
+                for (int i = 0; i < GRVPDCDetails.Rows.Count; i++)
+                {
+                    Label lblPDC_Details_ID = (Label)GRVPDCDetails.Rows[i].FindControl("lblPDC_Details_ID");
+                    Label lblInstrumentno = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstrumentno");
+                    CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[i].FindControl("chkExclude");
+                    // To get Instrument number
+                    chkrow.Checked = true;
+                    if (lblInstrumentno.Text.Trim() != string.Empty)
+                    {
+                        if (strexclude == null)
+                            strexclude = new ArrayList();
+                        if (!string.IsNullOrEmpty(lblInstrumentno.Text.Trim()))
+                            strexclude.Add(lblInstrumentno.Text.Trim());
+                        // ViewState["exclude"] = strexclude;
+                    }
+                    // To Get Receipt id for Multiple selection
+                    if (strexclude_ID == null)
+                        strexclude_ID = new ArrayList();
+                    if (!string.IsNullOrEmpty(lblPDC_Details_ID.Text.Trim()))
+                        strexclude_ID.Add(lblPDC_Details_ID.Text.Trim());
+
+                }
+            }
+            else
+        //    {
+        //        for (int i = 0; i < GRVPDCDetails.Rows.Count; i++)
+        //        {
+        //            Label lblPDC_Details_ID = (Label)GRVPDCDetails.Rows[i].FindControl("lblPDC_Details_ID");
+        //            Label lblInstrumentno = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstrumentno");
+        //            Label lblInstallmentNo = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstallmentNo");
+
+        //            //Label lblReceiptID = (Label)GRVPDCDetails.Rows[i].FindControl("lblReceiptID");
+        //            CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[i].FindControl("chkExclude");
+        //            TextBox txtInstrumentNoNew1 = (TextBox)GRVPDCDetails.Rows[i].FindControl("txtInstrumentNoNew");
+        //            TextBox txtInstrumentDateNew1 = (TextBox)GRVPDCDetails.Rows[i].FindControl("txtInstrumentDateNew");
+        //            chkrow.Checked = false;
+        //            //lblerrormessage.Text = string.Empty;
+
+        //            //If already exists instument number and receipt, remove the id here 
+        //            if (lblInstrumentno.Text.Trim() != string.Empty)
+        //            {
+        //                if (strexclude.Contains(lblInstrumentno.Text.Trim()))
+        //                {
+        //                    strexclude.Remove(lblInstrumentno.Text.Trim());
+        //                    if (txtInstrumentNoNew1.Text.ToString() != string.Empty)
+        //                    {
+        //                        txtInstrumentNoNew1.Text = string.Empty;
+        //                    }
+        //                    if (txtInstrumentDateNew1.Text.ToString() != string.Empty)
+        //                    {
+        //                        txtInstrumentDateNew1.Text = string.Empty;
+        //                    }
+        //                }
+        //            }
+        //            if (strexclude_ID.Contains(lblPDC_Details_ID.Text.Trim()))
+        //            {
+        //                strexclude_ID.Remove(lblPDC_Details_ID.Text.Trim());
+        //                if (txtInstrumentNoNew1.Text.ToString() != string.Empty)
+        //                {
+        //                    txtInstrumentNoNew1.Text = string.Empty;
+        //                }
+        //                if (txtInstrumentDateNew1.Text.ToString() != string.Empty)
+        //                {
+        //                    txtInstrumentDateNew1.Text = string.Empty;
+        //                }
+        //            }
+        //        }
+        //    }
+        //    ViewState["exclude"] = strexclude;
+        //    ViewState["exclude_ID"] = strexclude_ID;
+        //}
+        //catch (Exception ex)
+        //{
+        //    ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        //}
+            {
+                for (int i = 0; i < GRVPDCDetails.Rows.Count; i++)
+                {
+                    Label lblPDC_Details_ID = (Label)GRVPDCDetails.Rows[i].FindControl("lblPDC_Details_ID");
+                    Label lblInstrumentno = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstrumentno");
+                    Label lblInstallmentNo = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstallmentNo");
+
+                    //Label lblReceiptID = (Label)GRVPDCDetails.Rows[i].FindControl("lblReceiptID");
+                    CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[i].FindControl("chkExclude");
+                    TextBox txtInstrumentNoNew1 = (TextBox)GRVPDCDetails.Rows[i].FindControl("txtInstrumentNoNew");
+                    TextBox txtInstrumentDateNew1 = (TextBox)GRVPDCDetails.Rows[i].FindControl("txtInstrumentDateNew");
+                    txtInstrumentDateNew1.Attributes.Add("onblur", "fnDoDate(this,'" + txtInstrumentDateNew1.ClientID + "','" + strDateFormat + "',false,  false);");
+                    chkrow.Checked = false;
+                    //lblerrormessage.Text = string.Empty;
+
+                    //If already exists instument number and receipt, remove the id here 
+                    if (lblInstrumentno.Text.Trim() != string.Empty)
+                    {
+                        if (strexclude.Contains(lblInstrumentno.Text.Trim()))
+                        {
+                            strexclude.Remove(lblInstrumentno.Text.Trim());
+                            if (txtInstrumentNoNew1.Text.ToString() != string.Empty)
+                            {
+                                txtInstrumentNoNew1.Text = string.Empty;
+                            }
+                            if (txtInstrumentDateNew1.Text.ToString() != string.Empty)
+                            {
+                                txtInstrumentDateNew1.Text = string.Empty;
+                            }
+                        }
+                    }
+                    if (strexclude_ID.Contains(lblPDC_Details_ID.Text.Trim()))
+                    {
+                        strexclude_ID.Remove(lblPDC_Details_ID.Text.Trim());
+                        if (txtInstrumentNoNew1.Text.ToString() != string.Empty)
+                        {
+                            txtInstrumentNoNew1.Text = string.Empty;
+                        }
+                        if (txtInstrumentDateNew1.Text.ToString() != string.Empty)
+                        {
+                            txtInstrumentDateNew1.Text = string.Empty;
+                        }
+                    }
+
+                }
+            }
+            ViewState["exclude"] = strexclude;
+            ViewState["exclude_ID"] = strexclude_ID;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+    #endregion
+    #region Check box events
+    protected void chkExclude_CheckedChanged(object sender, EventArgs e)
+    {
+        //try
+        //{
+        //    strexclude = (ArrayList)ViewState["exclude"];
+        //    strexclude_ID = (ArrayList)ViewState["exclude_ID"];
+        //    string strFieldAtt = ((CheckBox)sender).ClientID;
+        //    string strVal = strFieldAtt.Substring(strFieldAtt.LastIndexOf("GRVPDCDetails_")).Replace("GRVPDCDetails_ctl", "");
+        //    int gRowIndex = Convert.ToInt32(strVal.Substring(0, strVal.LastIndexOf("_")));
+        //    gRowIndex = gRowIndex - 2;
+        //    //string strRefno = ((Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblReceiptno")).Text;
+        //    string strRef_ID = ((Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblPDC_Details_ID")).Text;
+        //    Label lblInstrumentno = (Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblInstrumentno");
+        //    Label lblInstallmentNo = (Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblInstallmentNo");
+        //    Label lblinstrumentdate = (Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblinstrumentdate");
+        //    Label lbldraweebank = (Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblDraweeBankG");
+        //    TextBox txtInstrumentNoNew1 = (TextBox)GRVPDCDetails.Rows[gRowIndex].FindControl("txtInstrumentNoNew");
+        //    TextBox txtInstrumentDateNew1 = (TextBox)GRVPDCDetails.Rows[gRowIndex].FindControl("txtInstrumentDateNew");
+        //    int totalrowcount = 0;
+
+        //    if (((CheckBox)sender).Checked)
+        //    {
+        //        for (int i = 0; i < GRVPDCDetails.Rows.Count; i++)
+        //        {
+        //            Label lblOtherInstallmentNo = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstallmentNo");
+        //            Label lblOtherInstrumentno = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstrumentno");
+        //            Label lblOtherinstrumentdate = (Label)GRVPDCDetails.Rows[i].FindControl("lblinstrumentdate");
+        //            Label lblOtherdraweebank = (Label)GRVPDCDetails.Rows[i].FindControl("lblDraweeBankG");
+        //            CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[i].FindControl("chkExclude");
+        //            Label lblPDC_Details_ID = (Label)GRVPDCDetails.Rows[i].FindControl("lblPDC_Details_ID");
+        //            if (lblInstrumentno.Text.Trim() != string.Empty)
+        //            {
+        //                if (lblOtherInstrumentno.Text.Trim().ToUpper() == lblInstrumentno.Text.Trim().ToUpper() && lblinstrumentdate.Text.Trim().ToUpper() == lblOtherinstrumentdate.Text.Trim().ToUpper() && lbldraweebank.Text.Trim().ToUpper() == lblOtherdraweebank.Text.Trim().ToUpper())
+        //                {
+        //                    chkrow.Checked = true;
+
+        //                    if (strexclude_ID == null)
+        //                        strexclude_ID = new ArrayList();
+        //                    if (!string.IsNullOrEmpty(lblPDC_Details_ID.Text.Trim()))
+        //                        strexclude_ID.Add(lblPDC_Details_ID.Text.Trim());
+        //                    //ViewState["exclude_ID"] = strexclude_ID;
+        //                }
+        //                else
+        //                {
+        //                    if (!chkrow.Checked)
+        //                    {
+        //                        chkrow.Checked = false;
+        //                    }
+        //                }
+        //            }
+        //            else
+        //            {
+        //                if (strexclude_ID == null)
+        //                    strexclude_ID = new ArrayList();
+
+        //                if (chkrow.Checked)
+        //                {
+        //                    if (strexclude_ID != null)
+        //                    {
+        //                        if (strexclude_ID.Contains(lblPDC_Details_ID.Text.Trim()))
+        //                        {
+        //                            strexclude_ID.Remove(lblPDC_Details_ID.Text.Trim());
+        //                            if (txtInstrumentNoNew1.Text.ToString() != string.Empty)
+        //                            {
+        //                                txtInstrumentNoNew1.Text = string.Empty;
+        //                            }
+        //                            if (txtInstrumentDateNew1.Text.ToString() != string.Empty)
+        //                            {
+        //                                txtInstrumentDateNew1.Text = string.Empty;
+        //                            }
+        //                        }
+        //                    }
+        //                    strexclude_ID.Add(lblPDC_Details_ID.Text.Trim());
+        //                }
+        //                //ViewState["exclude_ID"] = strexclude_ID;
+        //            }
+        //        }
+        //        if (lblInstrumentno.Text.Trim() != string.Empty && lblinstrumentdate.Text.Trim() != string.Empty && lbldraweebank.Text.Trim() != string.Empty)
+        //        {
+        //            if (strexclude == null)
+        //                strexclude = new ArrayList();
+        //            if (!string.IsNullOrEmpty(lblInstrumentno.Text.Trim()) && !string.IsNullOrEmpty(lblinstrumentdate.Text.Trim()) && !string.IsNullOrEmpty(lbldraweebank.Text.Trim()))
+        //                strexclude.Add(lblInstrumentno.Text.Trim() + "@" + lblinstrumentdate.Text.Trim() + "@" + lbldraweebank.Text.Trim());
+        //            FunPubFormDataTable(lblInstrumentno.Text.Trim(), lblinstrumentdate.Text.Trim(), lbldraweebank.Text.Trim());
+        //        }
+        //        else
+        //        {
+        //            if (strexclude == null)
+        //                strexclude = new ArrayList();
+        //            if (!string.IsNullOrEmpty(lblInstrumentno.Text.Trim()))
+        //                strexclude.Add(lblInstrumentno.Text.Trim());
+        //        }
+        //        //To Tick Select All Check Box.
+
+        //        for (int rowcount = 0; rowcount < GRVPDCDetails.Rows.Count; rowcount++)
+        //        {
+        //            CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[rowcount].FindControl("chkExclude");
+        //            if (chkrow.Checked)
+        //            {
+        //                totalrowcount = totalrowcount + 1;
+        //            }
+        //        }
+        //        if (totalrowcount == GRVPDCDetails.Rows.Count)
+        //        {
+        //            CheckBox chkHeaderrow = (CheckBox)GRVPDCDetails.HeaderRow.FindControl("chkAll");
+        //            chkHeaderrow.Checked = true;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        CheckBox chkHeaderrow = (CheckBox)GRVPDCDetails.HeaderRow.FindControl("chkAll");
+        //        chkHeaderrow.Checked = false;
+        //        for (int i = 0; i < GRVPDCDetails.Rows.Count; i++)
+        //        {
+        //            TextBox txtInstrumentNoNew = (TextBox)GRVPDCDetails.Rows[i].FindControl("txtInstrumentNoNew");
+        //            TextBox txtInstrumentDateNew = (TextBox)GRVPDCDetails.Rows[i].FindControl("txtInstrumentDateNew");
+        //            Label lblOtherInstallmentNo = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstallmentNo");
+        //            Label lblOtherInstrumentno = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstrumentno");
+        //            CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[i].FindControl("chkExclude");
+        //            Label lblPDC_Details_ID = (Label)GRVPDCDetails.Rows[i].FindControl("lblPDC_Details_ID");
+        //            Label lblOtherinstrumentdate = (Label)GRVPDCDetails.Rows[i].FindControl("lblinstrumentdate");
+        //            Label lblOtherdraweebank = (Label)GRVPDCDetails.Rows[i].FindControl("lblDraweeBankG");
+        //            if (lblOtherInstallmentNo.Text.Trim() != string.Empty)
+        //            {
+        //                if (lblOtherInstrumentno.Text.Trim().ToUpper() == lblInstrumentno.Text.Trim().ToUpper() && lblinstrumentdate.Text.Trim().ToUpper() == lblOtherinstrumentdate.Text.Trim().ToUpper() && lblOtherdraweebank.Text.Trim().ToUpper() == lbldraweebank.Text.Trim().ToUpper())
+        //                {
+        //                    chkrow.Checked = false;
+
+        //                    if (strexclude_ID != null)
+        //                    {
+        //                        if (strexclude_ID.Contains(lblPDC_Details_ID.Text.Trim()))
+        //                        {
+        //                            strexclude_ID.Remove(lblPDC_Details_ID.Text.Trim());
+        //                            if (txtInstrumentNoNew.Text.ToString() != string.Empty)
+        //                            {
+        //                                txtInstrumentNoNew.Text = string.Empty;
+        //                            }
+        //                            if (txtInstrumentDateNew.Text.ToString() != string.Empty)
+        //                            {
+        //                                txtInstrumentDateNew.Text = string.Empty;
+        //                            }
+
+        //                        }
+        //                    }
+        //                }
+        //            }
+        //            else
+        //            {
+        //                if (strexclude_ID.Contains(lblPDC_Details_ID.Text.Trim()))
+        //                {
+        //                    strexclude_ID.Remove(lblPDC_Details_ID.Text.Trim());
+        //                    if (txtInstrumentNoNew.Text.ToString() != string.Empty)
+        //                    {
+        //                        txtInstrumentNoNew.Text = string.Empty;
+        //                    }
+        //                    if (txtInstrumentDateNew.Text.ToString() != string.Empty)
+        //                    {
+        //                        txtInstrumentDateNew.Text = string.Empty;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //        if (lblInstrumentno.Text.Trim() != string.Empty)
+        //        {
+        //            if (strexclude.Contains(lblInstrumentno.Text.Trim() + "@" + lblinstrumentdate.Text.Trim() + "@" + lbldraweebank.Text.Trim()))
+        //            {
+        //                DataRow[] drr = ((DataTable)ViewState["gridRowValues"]).Select("InstrumentNo='" + lblInstrumentno.Text.Trim() + "' AND IntrumentDate='" + lblinstrumentdate.Text.Trim() + "' AND DraweeBank='" + lbldraweebank.Text.Trim() + "'");
+        //                foreach (DataRow dr in drr)
+        //                {
+        //                    dr.Delete();
+        //                }
+
+        //                strexclude.Remove(lblInstrumentno.Text.Trim() + "@" + lblinstrumentdate.Text.Trim() + "@" + lbldraweebank.Text.Trim());
+        //            }
+        //        }
+        //    }
+        //    //
+        //    ViewState["exclude_ID"] = strexclude_ID;
+        //    ViewState["exclude"] = strexclude;
+        //}
+        //catch (Exception ex)
+        //{
+        //    ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        //    throw ex;
+        //}
+        try
+        {
+            strexclude = (ArrayList)ViewState["exclude"];
+            strexclude_ID = (ArrayList)ViewState["exclude_ID"];
+            string strFieldAtt = ((CheckBox)sender).ClientID;
+            string strVal = strFieldAtt.Substring(strFieldAtt.LastIndexOf("GRVPDCDetails_")).Replace("GRVPDCDetails_ctl", "");
+            int gRowIndex = Convert.ToInt32(strVal.Substring(0, strVal.LastIndexOf("_")));
+            gRowIndex = gRowIndex - 2;
+            //string strRefno = ((Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblReceiptno")).Text;
+            string strRef_ID = ((Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblPDC_Details_ID")).Text;
+            Label lblInstrumentno = (Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblInstrumentno");
+            Label lblInstallmentNo = (Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblInstallmentNo");
+            Label lblinstrumentdate = (Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblinstrumentdate");
+            Label lbldraweebank = (Label)GRVPDCDetails.Rows[gRowIndex].FindControl("lblDraweeBankG");
+            TextBox txtInstrumentNoNew1 = (TextBox)GRVPDCDetails.Rows[gRowIndex].FindControl("txtInstrumentNoNew");
+            TextBox txtInstrumentDateNew1 = (TextBox)GRVPDCDetails.Rows[gRowIndex].FindControl("txtInstrumentDateNew");
+            txtInstrumentDateNew1.Attributes.Add("onblur", "fnDoDate(this,'" + txtInstrumentDateNew1.ClientID + "','" + strDateFormat + "',false,  false);");
+
+            int totalrowcount = 0;
+            if (((CheckBox)sender).Checked)
+            {
+                for (int i = 0; i < GRVPDCDetails.Rows.Count; i++)
+                {
+                    Label lblOtherInstallmentNo = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstallmentNo");
+                    Label lblOtherInstrumentno = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstrumentno");
+                    Label lblOtherinstrumentdate = (Label)GRVPDCDetails.Rows[i].FindControl("lblinstrumentdate");
+                    Label lblOtherdraweebank = (Label)GRVPDCDetails.Rows[i].FindControl("lblDraweeBankG");
+                    CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[i].FindControl("chkExclude");
+                    Label lblPDC_Details_ID = (Label)GRVPDCDetails.Rows[i].FindControl("lblPDC_Details_ID");
+                    if (lblInstrumentno.Text.Trim() != string.Empty)
+                    {
+                        if (lblOtherInstrumentno.Text.Trim().ToUpper() == lblInstrumentno.Text.Trim().ToUpper() && lblinstrumentdate.Text.Trim().ToUpper() == lblOtherinstrumentdate.Text.Trim().ToUpper() && lbldraweebank.Text.Trim().ToUpper() == lblOtherdraweebank.Text.Trim().ToUpper())
+                        {
+                            chkrow.Checked = true;
+
+                            if (strexclude_ID == null)
+                                strexclude_ID = new ArrayList();
+                            if (!string.IsNullOrEmpty(lblPDC_Details_ID.Text.Trim()))
+                                strexclude_ID.Add(lblPDC_Details_ID.Text.Trim());
+                            //ViewState["exclude_ID"] = strexclude_ID;
+                        }
+                        else
+                        {
+                            if (!chkrow.Checked)
+                            {
+                                chkrow.Checked = false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (strexclude_ID == null)
+                            strexclude_ID = new ArrayList();
+
+                        if (chkrow.Checked)
+                        {
+                            if (strexclude_ID != null)
+                            {
+                                if (strexclude_ID.Contains(lblPDC_Details_ID.Text.Trim()))
+                                {
+                                    strexclude_ID.Remove(lblPDC_Details_ID.Text.Trim());
+                                    if (txtInstrumentNoNew1.Text.ToString() != string.Empty)
+                                    {
+                                        txtInstrumentNoNew1.Text = string.Empty;
+                                    }
+                                    if (txtInstrumentDateNew1.Text.ToString() != string.Empty)
+                                    {
+                                        txtInstrumentDateNew1.Text = string.Empty;
+                                    }
+                                }
+                            }
+                            strexclude_ID.Add(lblPDC_Details_ID.Text.Trim());
+                        }
+                        //ViewState["exclude_ID"] = strexclude_ID;
+                    }
+                }
+                if (lblInstrumentno.Text.Trim() != string.Empty && lblinstrumentdate.Text.Trim() != string.Empty && lbldraweebank.Text.Trim() != string.Empty)
+                {
+                    if (strexclude == null)
+                        strexclude = new ArrayList();
+                    if (!string.IsNullOrEmpty(lblInstrumentno.Text.Trim()) && !string.IsNullOrEmpty(lblinstrumentdate.Text.Trim()) && !string.IsNullOrEmpty(lbldraweebank.Text.Trim()))
+                        strexclude.Add(lblInstrumentno.Text.Trim() + "@" + lblinstrumentdate.Text.Trim() + "@" + lbldraweebank.Text.Trim());
+                    FunPubFormDataTable(lblInstrumentno.Text.Trim(), lblinstrumentdate.Text.Trim(), lbldraweebank.Text.Trim());
+                }
+                else
+                {
+                    if (strexclude == null)
+                        strexclude = new ArrayList();
+                    if (!string.IsNullOrEmpty(lblInstrumentno.Text.Trim()))
+                        strexclude.Add(lblInstrumentno.Text.Trim());
+                }
+                //To Tick Select All Check Box.
+
+                for (int rowcount = 0; rowcount < GRVPDCDetails.Rows.Count; rowcount++)
+                {
+                    CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[rowcount].FindControl("chkExclude");
+                    if (chkrow.Checked)
+                    {
+                        totalrowcount = totalrowcount + 1;
+                    }
+                }
+                if (totalrowcount == GRVPDCDetails.Rows.Count)
+                {
+                    CheckBox chkHeaderrow = (CheckBox)GRVPDCDetails.HeaderRow.FindControl("chkAll");
+                    chkHeaderrow.Checked = true;
+                }
+            }
+            else
+            {
+                CheckBox chkHeaderrow = (CheckBox)GRVPDCDetails.HeaderRow.FindControl("chkAll");
+                chkHeaderrow.Checked = false;
+                for (int i = 0; i < GRVPDCDetails.Rows.Count; i++)
+                {
+                    //txtInstrumentNoNew
+                    TextBox txtInstrumentNoNew = (TextBox)GRVPDCDetails.Rows[i].FindControl("txtInstrumentNoNew");
+                    TextBox txtInstrumentDateNew = (TextBox)GRVPDCDetails.Rows[i].FindControl("txtInstrumentDateNew");
+                    Label lblOtherInstallmentNo = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstallmentNo");
+                    Label lblOtherInstrumentno = (Label)GRVPDCDetails.Rows[i].FindControl("lblInstrumentno");
+                    CheckBox chkrow = (CheckBox)GRVPDCDetails.Rows[i].FindControl("chkExclude");
+                    Label lblPDC_Details_ID = (Label)GRVPDCDetails.Rows[i].FindControl("lblPDC_Details_ID");
+                    Label lblOtherinstrumentdate = (Label)GRVPDCDetails.Rows[i].FindControl("lblinstrumentdate");
+                    Label lblOtherdraweebank = (Label)GRVPDCDetails.Rows[i].FindControl("lblDraweeBankG");
+                    if (lblOtherInstallmentNo.Text.Trim() != string.Empty)
+                    {
+                        if (lblOtherInstrumentno.Text.Trim().ToUpper() == lblInstrumentno.Text.Trim().ToUpper() && lblinstrumentdate.Text.Trim().ToUpper() == lblOtherinstrumentdate.Text.Trim().ToUpper() && lblOtherdraweebank.Text.Trim().ToUpper() == lbldraweebank.Text.Trim().ToUpper())
+                        {
+                            chkrow.Checked = false;
+
+                            if (strexclude_ID != null)
+                            {
+                                if (strexclude_ID.Contains(lblPDC_Details_ID.Text.Trim()))
+                                {
+                                    strexclude_ID.Remove(lblPDC_Details_ID.Text.Trim());
+                                    if (txtInstrumentNoNew.Text.ToString() != string.Empty)
+                                    {
+                                        txtInstrumentNoNew.Text = string.Empty;
+                                    }
+                                    if (txtInstrumentDateNew.Text.ToString() != string.Empty)
+                                    {
+                                        txtInstrumentDateNew.Text = string.Empty;
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (strexclude_ID.Contains(lblPDC_Details_ID.Text.Trim()))
+                        {
+                            strexclude_ID.Remove(lblPDC_Details_ID.Text.Trim());
+                            if (txtInstrumentNoNew.Text.ToString() != string.Empty)
+                            {
+                                txtInstrumentNoNew.Text = string.Empty;
+                            }
+                            if (txtInstrumentDateNew.Text.ToString() != string.Empty)
+                            {
+                                txtInstrumentDateNew.Text = string.Empty;
+                            }
+                        }
+                    }
+                }
+                if (lblInstrumentno.Text.Trim() != string.Empty)
+                {
+                    if (strexclude.Contains(lblInstrumentno.Text.Trim() + "@" + lblinstrumentdate.Text.Trim() + "@" + lbldraweebank.Text.Trim()))
+                    {
+                        DataRow[] drr = ((DataTable)ViewState["gridRowValues"]).Select("InstrumentNo='" + lblInstrumentno.Text.Trim() + "' AND IntrumentDate='" + lblinstrumentdate.Text.Trim() + "' AND DraweeBank='" + lbldraweebank.Text.Trim() + "'");
+                        foreach (DataRow dr in drr)
+                        {
+                            dr.Delete();
+                        }
+
+                        strexclude.Remove(lblInstrumentno.Text.Trim() + "@" + lblinstrumentdate.Text.Trim() + "@" + lbldraweebank.Text.Trim());
+                    }
+                }
+            }
+            //
+            ViewState["exclude_ID"] = strexclude_ID;
+            ViewState["exclude"] = strexclude;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+    #endregion
+    public void FunPubFormDataTable(string strInstrumentno, string IntrumentDate, string DraweeBank)
+    {
+        if (((DataTable)(ViewState["gridRowValues"])) != null)
+        {
+            if (((DataTable)(ViewState["gridRowValues"])).Rows.Count > 0)
+            {
+                DataRow dr = ((DataTable)(ViewState["gridRowValues"])).NewRow();
+                dr["InstrumentNo"] = strInstrumentno;
+                dr["IntrumentDate"] = IntrumentDate;
+                dr["DraweeBank"] = DraweeBank;
+                ((DataTable)(ViewState["gridRowValues"])).Rows.Add(dr);
+                ViewState["gridRowValues"] = ((DataTable)(ViewState["gridRowValues"]));
+            }
+            else
+            {
+                DataTable dt = new DataTable();
+                dt.Columns.Add("InstrumentNo");
+                dt.Columns.Add("IntrumentDate");
+                dt.Columns.Add("DraweeBank");
+                ViewState["ChallanrowValues"] = dt;
+                DataRow dr = dt.NewRow();
+                dr["InstrumentNo"] = strInstrumentno;
+                dr["IntrumentDate"] = IntrumentDate;
+                dr["DraweeBank"] = DraweeBank;
+                dt.Rows.Add(dr);
+                ViewState["gridRowValues"] = dt;
+            }
+        }
+        else
+        {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("InstrumentNo");
+            dt.Columns.Add("IntrumentDate");
+            dt.Columns.Add("DraweeBank");
+            ViewState["ChallanrowValues"] = dt;
+            DataRow dr = dt.NewRow();
+            dr["InstrumentNo"] = strInstrumentno;
+            dr["IntrumentDate"] = IntrumentDate;
+            dr["DraweeBank"] = DraweeBank;
+            dt.Rows.Add(dr);
+            ViewState["gridRowValues"] = dt;
+        }
+    }
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPriSavePDCEntry();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_4;
+            CVPDCEntry.IsValid = false;
+        }
+    }
+    private void FunPriSavePDCEntry()
+    {
+        try
+        {
+            strexclude = (ArrayList)ViewState["exclude"];
+            strexclude_ID = (ArrayList)ViewState["exclude_ID"];
+            if (strexclude == null && strexclude_ID == null)
+            {
+                //CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLN_CHN_2.ToString();
+                //CVPDCEntry.IsValid = false;               
+                //return;
+                Utility.FunShowAlertMsg(this.Page, "Atleast Select one row then Proceed...");
+                return;
+            }
+            if (strexclude_ID != null)
+            {
+                if (strexclude_ID.Count == 0)
+                {
+                    //CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLN_CHN_2.ToString();
+                    //CVPDCEntry.IsValid = false;
+                    Utility.FunShowAlertMsg(this.Page, "Atleast Select one row then Proceed...");
+                    return;
+                }
+            }
+            int checkCount = 0;
+            for (int row = 0; row < GRVPDCDetails.Rows.Count; row++)
+            {
+                CheckBox chkPrint = (CheckBox)GRVPDCDetails.Rows[row].FindControl("chkExclude");
+                chkPrint.Visible = true;
+                if (chkPrint.Checked)
+                {
+                    checkCount = +1;
+                    break;
+                }
+            }
+            if (checkCount > 0)
+            {
+                strPDCNo = "";
+                strchequeNo = "";
+                strexistingdate = "";
+                if (GRVPDCDetails.Rows.Count == 0)
+                {
+                    //ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('There is no receipt available for Challan generation');", true);
+                    //Utility.FunShowValidationMsg(this.Page, strValid, 1);
+                    CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLN_CCR_10 + " PDC Bulk Replacement details";
+                    CVPDCEntry.IsValid = false;
+                    return;
+                }
+                else
+                {
+                    if (PageMode == PageModes.Create)
+                    {
+                        i = 1;
+                        foreach (GridViewRow grvData in GRVPDCDetails.Rows)
+                        {
+                            CheckBox chkPrint = (CheckBox)grvData.FindControl("chkExclude");
+                            TextBox txtInstrumentDate = (TextBox)grvData.FindControl("txtInstrumentDate");
+                            TextBox txtInstrumentNo = (TextBox)grvData.FindControl("txtInstrumentNo");
+                            TextBox txtInstrumentNoNew = (TextBox)grvData.FindControl("txtInstrumentNoNew");
+                            TextBox txtInstrumentDateNew = (TextBox)grvData.FindControl("txtInstrumentDateNew");
+                            if (chkPrint.Checked)
+                            {
+                                if (txtInstrumentNoNew.Text == string.Empty)
+                                {
+                                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDCBULK_01);
+                                    txtInstrumentNoNew.Focus();
+                                    return;
+                                }
+                                if (txtInstrumentDateNew.Text == string.Empty)
+                                {
+                                    Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDCBULK_02);
+                                    txtInstrumentDateNew.Focus();
+                                    return;
+                                }
+                                if (Utility.CompareDates(txtInstrumentDate.Text, txtInstrumentDateNew.Text) == 0)
+                                {
+                                    Utility.FunShowAlertMsg(this.Page, "New Instrument date " + txtInstrumentDate.Text + " cannot be duplicated");
+                                    txtInstrumentDateNew.Focus();
+                                    return;
+                                }
+                                if (Convert.ToInt64(txtInstrumentNo.Text.Trim()) == Convert.ToInt64(txtInstrumentNoNew.Text.Trim()))
+                                {
+                                    Utility.FunShowAlertMsg(this.Page, "New Instrument number " + txtInstrumentNoNew.Text + " cannot be duplicated");
+                                    txtInstrumentNoNew.Focus();
+                                    return;
+                                }
+
+                            }
+
+                            for (int j = i; j < GRVPDCDetails.Rows.Count; j++)
+                            {
+                                CheckBox chkPrint1 = (CheckBox)GRVPDCDetails.Rows[j].FindControl("chkExclude");
+                                TextBox txtInstrumentNoNew1 = (TextBox)GRVPDCDetails.Rows[j].FindControl("txtInstrumentNoNew");
+                                TextBox txtInstrumentDateNew1 = (TextBox)GRVPDCDetails.Rows[j].FindControl("txtInstrumentDateNew");
+
+                                if (chkPrint1.Checked == true)
+                                {
+                                    if (txtInstrumentNoNew1.Text == string.Empty)
+                                    {
+                                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDCBULK_01);
+                                        txtInstrumentNoNew.Focus();
+                                        return;
+                                    }
+                                    if (txtInstrumentDateNew1.Text == string.Empty)
+                                    {
+                                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDCBULK_02);
+                                        txtInstrumentDateNew.Focus();
+                                        return;
+                                    }
+
+                                    if (Convert.ToInt64(txtInstrumentNo.Text.Trim()) == Convert.ToInt64(txtInstrumentNoNew1.Text.Trim()))
+                                    {
+                                        Utility.FunShowAlertMsg(this.Page, "Instrument number " + txtInstrumentNoNew1.Text + " cannot be duplicated");
+                                        txtInstrumentNoNew.Focus();
+                                        return;
+                                    }
+
+                                    if (Utility.CompareDates(txtInstrumentDate.Text, txtInstrumentDateNew1.Text) == 0)
+                                    {
+                                        Utility.FunShowAlertMsg(this.Page, "Instrument date " + txtInstrumentDate.Text + " cannot be duplicated");
+                                        txtInstrumentDateNew.Focus();
+                                        return;
+                                    }
+
+                                }
+                            }
+                            i++;
+                        }
+                    }
+                    if (Page.IsValid)
+                    {
+                        LoadXMLValues();
+                        ObjS3G_CLN_PDCModuleDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCModuleDetailsDataTable();
+                        S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCModuleDetailsRow ObjPDCModuleRow;
+                        ObjPDCModuleRow = ObjS3G_CLN_PDCModuleDataTable.NewS3G_CLN_PDCModuleDetailsRow();
+                        ObjPDCModuleRow.Company_ID = intCompanyID;
+                        ObjPDCModuleRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                        ObjPDCModuleRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+                        ObjPDCModuleRow.Customer_ID = Convert.ToInt32(hidcuscode.Value);
+                        ObjPDCModuleRow.PANum = Convert.ToString(ddlPAN.SelectedValue);
+                        if (ddlSAN.Items.Count == 0)
+                            ObjPDCModuleRow.SANum = Convert.ToString(ddlPAN.SelectedItem.Text + "DUMMY");
+                        else
+                            if (ddlSAN.SelectedIndex == 0)
+                                ObjPDCModuleRow.SANum = Convert.ToString(ddlPAN.SelectedItem.Text + "DUMMY");
+                            else
+                                ObjPDCModuleRow.SANum = Convert.ToString(ddlSAN.SelectedItem.Text);
+
+                        ObjPDCModuleRow.PDC_Entry_NO = "1";
+                        ObjPDCModuleRow.No_Of_PDC = Convert.ToInt32(1);
+                        ObjPDCModuleRow.PDC_Collection_Date = Utility.StringToDate(DateTime.Now.ToString());
+                        ObjPDCModuleRow.PDC_Entry_Date = Utility.StringToDate(DateTime.Now.ToString());
+                        //if (ddlDraweeBank.SelectedIndex != 0)
+                        ObjPDCModuleRow.Drawee_Bank_Name = Convert.ToString("");
+                        ObjPDCModuleRow.Instrument_Type = 42;
+                        ObjPDCModuleRow.InstrumentSequence = Convert.ToInt32(1);
+                        ObjPDCModuleRow.Instrument_Type_Code = Convert.ToInt32(1);
+
+                        ObjPDCModuleRow.Created_By = intUserID;
+                        FunPriGenerateXMLPDC();
+                        ObjPDCModuleRow.XMLPDCEntry = StrXMLPDC;
+
+
+                        ObjS3G_CLN_PDCModuleDataTable.AddS3G_CLN_PDCModuleDetailsRow(ObjPDCModuleRow);
+                        ObjPDCEntryClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+                        intErrCode = ObjPDCEntryClient.FunPubCreatePDCBulkModuleDetails(out strPDCNo, out strchequeNo, out strexistingdate, SerMode, ClsPubSerialize.Serialize(ObjS3G_CLN_PDCModuleDataTable, SerMode));
+
+                        if (intErrCode == 0)
+                        {
+                            btnSave.Enabled = false;
+                            strAlert = "PDC Bulk Replacement done successfully";
+                            strAlert += @"\n\nWould you like to do one more PDC Bulk Replacement?";
+                            strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageAdd + "}";
+                            strRedirectPage = "";
+                            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+                            lblErrorMessage.Text = string.Empty;
+                            return;
+                        }
+                        else if (intErrCode == 2)
+                        {
+                            Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs._1);
+                            return;
+                        }
+                        else if (intErrCode == 3)
+                        {
+                            Utility.FunShowAlertMsg(this.Page, strchequeNo);
+                            return;
+                        }
+                        else if (intErrCode == 4)
+                        {
+                            strAlert = " PDC Bulk Replacement Updated successfully ";
+                            strAlert = "alert('" + strAlert + "');";
+                            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                            return;
+                        }
+                        else if (intErrCode == 5)
+                        {
+                            strAlert = " PDC Bulk Replacement Updated successfully ";
+                            strAlert = "alert('" + strAlert + "');";
+                            ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                            return;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(this.Page, "Atleast select the one row, then proceed..");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+        finally
+        {
+            if (ObjPDCEntryClient != null)
+                ObjPDCEntryClient.Close();
+        }
+    }
+    //private void FunPriSavePDCEntry()
+    //{
+    //    try
+    //    {
+    //        strexclude = (ArrayList)ViewState["exclude"];
+    //        strexclude_ID = (ArrayList)ViewState["exclude_ID"];
+    //        if (strexclude == null && strexclude_ID == null)
+    //        {
+    //            //CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLN_CHN_2.ToString();
+    //            //CVPDCEntry.IsValid = false;               
+    //            //return;
+    //            Utility.FunShowAlertMsg(this.Page, "Atleast Select one row then Proceed...");
+    //            return;
+    //        }
+    //        if (strexclude_ID != null)
+    //        {
+    //            if (strexclude_ID.Count == 0)
+    //            {
+    //                //CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLN_CHN_2.ToString();
+    //                //CVPDCEntry.IsValid = false;
+    //                Utility.FunShowAlertMsg(this.Page, "Atleast Select one row then Proceed...");
+    //                return;
+    //            }
+    //        }
+    //        int checkCount = 0;
+    //        for (int row = 0; row < GRVPDCDetails.Rows.Count; row++)
+    //        {
+    //            CheckBox chkPrint = (CheckBox)GRVPDCDetails.Rows[row].FindControl("chkExclude");
+    //            chkPrint.Visible = true;
+    //            if (chkPrint.Checked)
+    //            {
+    //                checkCount = +1;
+    //                break;
+    //            }
+    //        }
+    //        if (checkCount > 0)
+    //        {
+    //            strPDCNo = "";
+    //            strchequeNo = "";
+    //            strexistingdate = "";
+    //            if (GRVPDCDetails.Rows.Count == 0)
+    //            {                   
+    //                CVPDCEntry.ErrorMessage ="No Grid rows in PDC Bulk Replacement details";
+    //                CVPDCEntry.IsValid = false;
+    //                return;
+    //            }
+    //            else
+    //            {
+    //                if (PageMode == PageModes.Create)
+    //                {
+    //                    i = 1;
+    //                    foreach (GridViewRow grvData in GRVPDCDetails.Rows)
+    //                    {
+    //                        CheckBox chkPrint = (CheckBox)grvData.FindControl("chkExclude");
+    //                        TextBox txtInstrumentDate = (TextBox)grvData.FindControl("txtInstrumentDate");
+    //                        TextBox txtInstrumentNo = (TextBox)grvData.FindControl("txtInstrumentNo");
+    //                        TextBox txtInstrumentNoNew = (TextBox)grvData.FindControl("txtInstrumentNoNew");
+    //                        TextBox txtInstrumentDateNew = (TextBox)grvData.FindControl("txtInstrumentDateNew");
+    //                        if (chkPrint.Checked)
+    //                        {
+    //                            if (txtInstrumentNoNew.Text == string.Empty)
+    //                            {
+    //                                Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDCBULK_01);
+    //                                txtInstrumentNoNew.Focus();
+    //                                return;
+    //                            }
+    //                            if (txtInstrumentDateNew.Text == string.Empty)
+    //                            {
+    //                                Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs.CLNPDCBULK_02);
+    //                                txtInstrumentDateNew.Focus();
+    //                                return;
+    //                            }
+    //                            if (Utility.CompareDates(txtInstrumentDate.Text, txtInstrumentDateNew.Text) == 0)
+    //                            {
+    //                                Utility.FunShowAlertMsg(this.Page, "New Instrument date " + txtInstrumentDate.Text + " cannot be duplicated");
+    //                                txtInstrumentDateNew.Focus();
+    //                                return;
+    //                            }
+    //                            if (Convert.ToInt64(txtInstrumentNo.Text.Trim()) == Convert.ToInt64(txtInstrumentNoNew.Text.Trim()))
+    //                            {
+    //                                Utility.FunShowAlertMsg(this.Page, "New Instrument number " + txtInstrumentNoNew.Text + " cannot be duplicated");
+    //                                txtInstrumentNoNew.Focus();
+    //                                return;
+    //                            }
+
+    //                        }
+
+    //                        for (int j = i; j < GRVPDCDetails.Rows.Count; j++)
+    //                        {
+    //                            CheckBox chkPrint1 = (CheckBox)GRVPDCDetails.Rows[j].FindControl("chkExclude");
+    //                            TextBox txtInstrumentNoNew1 = (TextBox)GRVPDCDetails.Rows[j].FindControl("txtInstrumentNoNew");
+    //                            TextBox txtInstrumentDateNew1 = (TextBox)GRVPDCDetails.Rows[j].FindControl("txtInstrumentDateNew");
+
+    //                            if (chkPrint1.Checked == true)
+    //                            {
+
+    //                                if (Convert.ToInt64(txtInstrumentNo.Text.Trim()) == Convert.ToInt64(txtInstrumentNoNew1.Text.Trim()))
+    //                                {
+    //                                    Utility.FunShowAlertMsg(this.Page, "Instrument number " + txtInstrumentNoNew1.Text + " cannot be duplicated");
+    //                                    txtInstrumentNoNew.Focus();
+    //                                    return;
+    //                                }
+    //                                if (Convert.ToInt64(txtInstrumentNoNew.Text.Trim()) == Convert.ToInt64(txtInstrumentNoNew1.Text.Trim()))
+    //                                {
+    //                                    Utility.FunShowAlertMsg(this.Page, "New Instrument number " + txtInstrumentNoNew1.Text + " cannot be duplicated");
+    //                                    txtInstrumentNoNew.Focus();
+    //                                    return;
+    //                                }
+
+    //                                if (Utility.CompareDates(txtInstrumentDate.Text, txtInstrumentDateNew1.Text) == 0)
+    //                                {
+    //                                    Utility.FunShowAlertMsg(this.Page, "Instrument date " + txtInstrumentDate.Text + " cannot be duplicated");
+    //                                    txtInstrumentDateNew.Focus();
+    //                                    return;
+    //                                }
+
+    //                                if (Utility.CompareDates(txtInstrumentDateNew.Text, txtInstrumentDateNew1.Text) == 0)
+    //                                {
+    //                                    Utility.FunShowAlertMsg(this.Page, "New Instrument date " + txtInstrumentDateNew.Text + " cannot be duplicated");
+    //                                    txtInstrumentDateNew.Focus();
+    //                                    return;
+    //                                }
+    //                            }
+    //                        }
+    //                        i++;
+    //                    }
+    //                }
+    //                if (Page.IsValid)
+    //                {
+    //                    LoadXMLValues();
+    //                    ObjS3G_CLN_PDCModuleDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCModuleDetailsDataTable();
+    //                    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_PDCModuleDetailsRow ObjPDCModuleRow;
+    //                    ObjPDCModuleRow = ObjS3G_CLN_PDCModuleDataTable.NewS3G_CLN_PDCModuleDetailsRow();
+    //                    ObjPDCModuleRow.Company_ID = intCompanyID;
+    //                    ObjPDCModuleRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+    //                    ObjPDCModuleRow.Branch_ID = Convert.ToInt32(ddlBranch.SelectedValue);
+    //                    ObjPDCModuleRow.Customer_ID = Convert.ToInt32(hidcuscode.Value);
+    //                    ObjPDCModuleRow.PANum = Convert.ToString(ddlPAN.SelectedValue);
+    //                    if (ddlSAN.Items.Count == 0)
+    //                        ObjPDCModuleRow.SANum = Convert.ToString(ddlPAN.SelectedItem.Text + "DUMMY");
+    //                    else
+    //                        if (ddlSAN.SelectedIndex == 0)
+    //                            ObjPDCModuleRow.SANum = Convert.ToString(ddlPAN.SelectedItem.Text + "DUMMY");
+    //                        else
+    //                            ObjPDCModuleRow.SANum = Convert.ToString(ddlSAN.SelectedItem.Text);                       
+    //                    ObjPDCModuleRow.PDC_Entry_NO = "1";
+    //                    ObjPDCModuleRow.No_Of_PDC = Convert.ToInt32(1);
+    //                    ObjPDCModuleRow.PDC_Collection_Date = Utility.StringToDate(DateTime.Now.ToString());
+    //                    ObjPDCModuleRow.PDC_Entry_Date = Utility.StringToDate(DateTime.Now.ToString());
+    //                    //if (ddlDraweeBank.SelectedIndex != 0)
+    //                    ObjPDCModuleRow.Drawee_Bank_Name = Convert.ToString("");
+    //                    ObjPDCModuleRow.Instrument_Type = 42;
+    //                    ObjPDCModuleRow.InstrumentSequence = Convert.ToInt32(1);
+    //                    ObjPDCModuleRow.Instrument_Type_Code = Convert.ToInt32(1);
+
+    //                    ObjPDCModuleRow.Created_By = intUserID;
+    //                    FunPriGenerateXMLPDC();
+    //                    ObjPDCModuleRow.XMLPDCEntry = StrXMLPDC;
+
+
+    //                    ObjS3G_CLN_PDCModuleDataTable.AddS3G_CLN_PDCModuleDetailsRow(ObjPDCModuleRow);
+    //                    ObjPDCEntryClient = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+    //                    intErrCode = ObjPDCEntryClient.FunPubCreatePDCBulkModuleDetails(out strPDCNo, out strchequeNo, out strexistingdate, SerMode, ClsPubSerialize.Serialize(ObjS3G_CLN_PDCModuleDataTable, SerMode));
+
+    //                    if (intErrCode == 0)
+    //                    {
+    //                        btnSave.Enabled = false;  
+    //                        strAlert = "PDC Bulk Replacement done successfully";
+    //                        strAlert += @"\n\nWould you like to do one more PDC Bulk Replacement?";
+    //                        strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageAdd + "}";
+    //                        strRedirectPage = "";
+    //                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert, true);
+    //                        lblErrorMessage.Text = string.Empty;
+    //                        return;
+    //                    }
+    //                    else if (intErrCode == 2)
+    //                    {
+    //                        Utility.FunShowAlertMsg(this.Page, Resources.ValidationMsgs._1);
+    //                        return;
+    //                    }
+    //                    else if (intErrCode == 3)
+    //                    {                           
+    //                        Utility.FunShowAlertMsg(this.Page, strchequeNo);
+    //                        return;
+    //                    }
+    //                    else if (intErrCode == 4)
+    //                    {
+    //                        strAlert = " PDC Bulk Replacement Updated successfully ";                          
+    //                        strAlert = "alert('" + strAlert + "');";
+    //                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+    //                        return;
+    //                    }
+    //                    else if (intErrCode == 5)
+    //                    {
+    //                        strAlert = " PDC Bulk Replacement Updated successfully ";                           
+    //                        strAlert = "alert('" + strAlert + "');";
+    //                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+    //                        return;
+    //                    }
+    //                }
+    //            }
+    //        }
+    //        else
+    //        {
+    //            Utility.FunShowAlertMsg(this.Page, "Atleast select the one row, then proceed..");
+    //            return;
+    //        }
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+    //        throw ex;
+    //    }
+    //    finally
+    //    {
+    //        if (ObjPDCEntryClient != null)
+    //            ObjPDCEntryClient.Close();
+    //    }
+
+    //}
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        Response.Redirect(strRedirectPage,false);
+    }
+    protected void btnLoadCustomer_OnClick(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField hdnCustomerId = (HiddenField)ucCustomerCodeLov.FindControl("hdnID");
+            if (hdnCustomerId != null && hdnCustomerId.Value != "")
+            {
+                if (ViewState["CustomerID"] == null || ViewState["CustomerID"].ToString() != hdnCustomerId.Value)
+                {
+                    FunPriClearcontrols();
+                    CustomerDetails1.ClearCustomerDetails();
+                    //txtCustomerName.Text = "";
+                    CustomerDetails1.SetCustomerDetails(Convert.ToInt32(hdnCustomerId.Value), true);
+                    txtCustomerName.Text = CustomerDetails1.CustomerName.ToString();
+                    LoadPrimeAccNo(hdnCustomerId.Value);
+                    ViewState["CustomerID"] = hidcuscode.Value = hdnCustomerId.Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to display Customer Details");
+        }
+    }
+    #region Gridview Events
+
+    protected void GRVPDCDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            FunPriGridviewPDCdatabound(e);
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            CVPDCEntry.ErrorMessage = Resources.ValidationMsgs.CLNPDC_5;
+            CVPDCEntry.IsValid = false;
+        }
+    }  
+
+    #endregion
+    private void FunPriGridviewPDCdatabound(GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                //Label lblSANUM = (Label)e.Row.FindControl("lblSANUM");
+                //Label lblInstallmentDate = (Label)e.Row.FindControl("lblInstallmentDate");
+                //TextBox txtothercharges = (TextBox)e.Row.FindControl("txtothercharges");
+                //TextBox txtInstrumentDate = (TextBox)e.Row.FindControl("txtInstrumentDate");
+                //TextBox txtInstrumentNo = (TextBox)e.Row.FindControl("txtInstrumentNo");
+                //TextBox txtAmount = (TextBox)e.Row.FindControl("txtAmount");
+                //Label lblStatus = (Label)e.Row.FindControl("lblStatus");
+                //Label lblStatus1 = (Label)e.Row.FindControl("lblStatus1");
+                //Label lblDraweeBankG = (Label)e.Row.FindControl("lblDraweeBankG");
+                //TextBox txttotal = (TextBox)e.Row.FindControl("txttotal");
+                //TextBox txtInstrumentNoNew = (TextBox)e.Row.FindControl("txtInstrumentNoNew");
+                //TextBox txtInstrumentDateNew = (TextBox)e.Row.FindControl("txtInstrumentDateNew");
+
+                //TextBox txtInsurance = (TextBox)e.Row.FindControl("txtInsurance");
+                //TextBox txtTax = (TextBox)e.Row.FindControl("txtTax");
+
+                //txttotal.Text = Convert.ToString(Convert.ToDecimal(txtAmount.Text) + Convert.ToDecimal(txtInsurance.Text) + Convert.ToDecimal(txtothercharges.Text) + Convert.ToDecimal(txtTax.Text));
+                //txttotal.Text = Convert.ToDecimal(txttotal.Text.ToString()).ToString(Utility.SetSuffix());
+                //txttotal.Style.Add("text-align", "right");
+                //txttotal.ToolTip = txttotal.Text;
+
+                Label lblSANUM = (Label)e.Row.FindControl("lblSANUM");
+                Label lblInstallmentDate = (Label)e.Row.FindControl("lblInstallmentDate");
+                TextBox txtothercharges = (TextBox)e.Row.FindControl("txtothercharges");
+                TextBox txtInstrumentDate = (TextBox)e.Row.FindControl("txtInstrumentDate");
+                TextBox txtInstrumentNo = (TextBox)e.Row.FindControl("txtInstrumentNo");
+                TextBox txtAmount = (TextBox)e.Row.FindControl("txtAmount");
+                Label lblStatus = (Label)e.Row.FindControl("lblStatus");
+                Label lblStatus1 = (Label)e.Row.FindControl("lblStatus1");
+                Label lblDraweeBankG = (Label)e.Row.FindControl("lblDraweeBankG");
+                TextBox txttotal = (TextBox)e.Row.FindControl("txttotal");
+                TextBox txtInstrumentNoNew = (TextBox)e.Row.FindControl("txtInstrumentNoNew");
+                TextBox txtInstrumentDateNew = (TextBox)e.Row.FindControl("txtInstrumentDateNew");
+
+                TextBox txtInsurance = (TextBox)e.Row.FindControl("txtInsurance");
+                TextBox txtTax = (TextBox)e.Row.FindControl("txtTax");
+                txtInstrumentDateNew.Attributes.Add("onblur", "fnDoDate(this,'" + txtInstrumentDateNew.ClientID + "','" + strDateFormat + "',false,  false);");
+                txttotal.Text = Convert.ToString(Convert.ToDecimal(txtAmount.Text) + Convert.ToDecimal(txtInsurance.Text) + Convert.ToDecimal(txtothercharges.Text) + Convert.ToDecimal(txtTax.Text));
+                txttotal.Text = Convert.ToDecimal(txttotal.Text.ToString()).ToString(Utility.SetSuffix());
+                txttotal.Style.Add("text-align", "right");
+                txttotal.ToolTip = txttotal.Text;
+
+                if (lblSANUM.Text.Contains("DUMMY") == true)                     // Avoid Dummy number in Sub A/c
+                    lblSANUM.Text = "";
+                else
+                    lblSANUM.Text = lblSANUM.Text;
+
+                if (lblInstallmentDate.Text.Trim() != string.Empty)              // Convert to gloable data format
+                {
+                    DateTime Date = Utility.StringToDate(lblInstallmentDate.Text);
+                    lblInstallmentDate.Text = Date.ToString(strDateFormat);
+                }
+                if (txtInstrumentDate.Text.Trim() != string.Empty)                // Convert to gloable data format
+                {
+                    DateTime Date = Utility.StringToDate(txtInstrumentDate.Text);
+                    txtInstrumentDate.Text = Date.ToString(strDateFormat);
+                }                
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriGenerateXMLPDC()
+    {
+        try
+        {
+            if (GRVPDCDetails.Rows.Count > 0)
+            {
+                StrXMLPDC = GRVPDCDetails.FunPubFormXml(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    private void FunPriClearcontrols()
+    {
+        try
+        {
+            //CustomerDetails1.ClearCustomerDetails();
+            btnSave.Enabled = false;
+            lblErrorMessage.Text = "";
+            GRVPDCDetails.DataSource = null;
+            GRVPDCDetails.DataBind();
+            UpPDCDetails.Update();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetBranchList(String prefixText, int count)
+    {
+        Dictionary<string, string> Procparam;
+        Procparam = new Dictionary<string, string>();
+        List<String> suggetions = new List<String>();
+        DataTable dtCommon = new DataTable();
+        DataSet Ds = new DataSet();
+        UserInfo ufo = new UserInfo();
+        Procparam.Clear();
+        Procparam.Add("@Company_ID", ufo.ProCompanyIdRW.ToString());
+        Procparam.Add("@Type", "GEN");
+        Procparam.Add("@User_ID", ufo.ProUserIdRW.ToString());
+        Procparam.Add("@Program_Id", "100");
+        Procparam.Add("@Lob_Id", obj_Page.ddlLOB.SelectedValue);
+        Procparam.Add("@Is_Active", "1");
+        Procparam.Add("@PrefixText", prefixText);
+        suggetions = Utility.GetSuggestions(Utility.GetDefaultData(SPNames.S3G_SA_GET_BRANCHLIST, Procparam));
+
+        return suggetions.ToArray();
+    }
+}

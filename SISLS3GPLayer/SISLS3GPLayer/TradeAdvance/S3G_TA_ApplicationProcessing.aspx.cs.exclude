@@ -1,0 +1,1330 @@
+﻿#region Page Header
+
+/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name			: Trade Advance
+/// Screen Name			: Application Processing
+/// Created By			: Thangam M
+/// Start Date		    : 23-Nov-2011
+/// End Date		    : 
+/// Purpose	            : To get Application Details [Trade Advance]
+/// Modified By         : 
+/// Modified Date       : 
+
+#endregion
+
+#region Namespaces
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using S3GBusEntity;
+using System.Collections;
+using System.Text;
+using System.Configuration;
+using System.Web.Security;
+using System.Data;
+using S3GBusEntity.TradeAdvance;
+
+#endregion
+
+public partial class TradeAdvance_S3G_TA_ApplicationProcessing : ApplyThemeForProject
+{
+    #region Initialization
+
+    /// <summary>
+    /// Variable Declaration and object initialization
+    /// </summary>
+
+    int intCompanyId = 0;
+    int intUserId = 0;
+    string strAppProc_ID = "0";
+    static string strPageName = "Application Processing";
+    int intErrorCode = 0;
+    Dictionary<string, string> Procparam;
+
+    UserInfo ObjUserInfo;
+
+    StringBuilder strbAppProcess = new StringBuilder();
+    S3GSession ObjS3GSession = new S3GSession();
+
+    TradeAdvanceMgtServicesReference.TradeAdvanceMgtServicesClient objTACliant;
+    TradeAdvanceMgtServices.S3G_TA_AppProcessDataTable objApplicationDataTable = null;
+    TradeAdvanceMgtServices.S3G_TA_AppProcessRow objApplicationDataRow = null;
+
+    public string strDateFormat;
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPageView = "window.location.href='../TradeAdvance/S3G_TA_TransLander.aspx?Code=APPT';";
+    string strRedirectPageAdd = "window.location.href='../TradeAdvance/S3G_TA_ApplicationProcessing.aspx?qsMode=C';";
+    string strRedirectPage = "~/TradeAdvance/S3G_TA_TransLander.aspx?Code=APPT";
+
+    //User Authorization
+
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    bool bClearList = false;
+
+    //Code end
+
+    #endregion
+
+    #region Page Load
+
+    /// <summary>
+    /// This event is handled for load the page
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            ObjUserInfo = new UserInfo();
+            intCompanyId = ObjUserInfo.ProCompanyIdRW;
+            intUserId = ObjUserInfo.ProUserIdRW;
+
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            //lblErrorMessage.InnerText = "";
+            bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+            //Code end
+
+            if (Request.QueryString["qsMode"] != null)
+                strMode = Request.QueryString["qsMode"];
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString.Get("qsViewId"));
+                if (fromTicket != null)
+                {
+                    strAppProc_ID = fromTicket.Name;
+                }
+                else
+                {
+                    throw new ApplicationException("Invalid Application Process Details");
+                }
+            }
+
+            if (PageMode == PageModes.Create)
+            {
+                ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+                TextBox txt = (TextBox)ucCustomerCodeLov.FindControl("txtName");
+                txt.Attributes.Add("onfocus", "fnLoadCustomer()");
+                txt.ToolTip = "Dealer Code";
+            }
+
+            if (strMode != "Q")
+            {
+                txtValidityPeriod.Attributes.Add("onblur", "fnDoDate(this,'" + txtValidityPeriod.ClientID + "','" + strDateFormat + "',false,  true);");
+            }
+            CalendarExtender2.Format = strDateFormat;
+            if (!IsPostBack)
+            {
+                FunProLoadLOB();
+                FunProInitializeGird();
+                FunProLoadFacilityType();
+                FunProLoadAssetClass();
+                FunProLoadScheme();
+                FunProInitializeApprovalGrid();
+
+                tcApplicationProcess.ActiveTabIndex = 0;
+
+                if (ObjUserInfo.ProUserLevelIdRW < 3)
+                {
+                    tcApplicationProcess.Tabs[2].Visible = false;
+                }
+
+                if (Request.QueryString["qsMode"] == "Q")
+                {
+                    FunPriDisableControls(-1);
+                }
+                else if (Request.QueryString["qsMode"] == "M")
+                {
+                    FunPriDisableControls(1);
+                }
+                else
+                {
+                    FunPriDisableControls(0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    #endregion
+
+    #region Page Events
+
+    protected void rdSelect_CheckedChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            btnModify.Visible = true;
+            btnAdd.Visible = false;
+            btnFClear.Enabled = false;
+
+            int intRowIndex = Utility.FunPubGetGridRowID("grvFundDetails", ((RadioButton)sender).ClientID);
+            DataTable dtFund = (DataTable)ViewState["grvFund"];
+
+            FunProResetRdButton(intRowIndex);
+
+            DataRow drFund = dtFund.Rows[intRowIndex];
+
+            lblSlNum.Text = drFund["SlNo"].ToString();
+            txtTrancheNumber.Text = drFund["Tranche_Ref_No"].ToString();
+            if (drFund["LOB_ID"] != null && !string.IsNullOrEmpty(drFund["LOB_ID"].ToString()))
+            {
+                ListItem lstItm = new ListItem(drFund["LOB"].ToString(), drFund["LOB_ID"].ToString());
+                if (ddlLOB.Items.FindByValue(drFund["LOB_ID"].ToString()) == null)
+                {
+                    ddlLOB.Items.Add(lstItm);
+                }
+                ddlLOB.SelectedValue = drFund["LOB_ID"].ToString();
+            }
+            else
+            {
+                ddlLOB.SelectedValue = "0";
+            }
+            FunProLoadScheme();
+            ddlScheme.SelectedValue = drFund["Product_ID"].ToString();
+            ddlFacilityType.SelectedValue = drFund["Facility_Type_ID"].ToString();
+            if (drFund["Asset_Class_ID"] != null && !string.IsNullOrEmpty(drFund["Asset_Class_ID"].ToString()))
+            {
+                ddlAssetClass.SelectedValue = drFund["Asset_Class_ID"].ToString();
+                FunProLoadAssetMake();
+            }
+            else
+            {
+                ddlAssetClass.SelectedValue = "0";
+            }
+
+            if (drFund["Asset_Make_ID"] != null && !string.IsNullOrEmpty(drFund["Asset_Make_ID"].ToString()))
+            {
+                ddlAssetMake.SelectedValue = drFund["Asset_Make_ID"].ToString();
+            }
+            txtRequestAmount.Text = drFund["Request_Amount"].ToString();
+            txtValidityPeriod.Text = drFund["Validity_Period"].ToString();
+            txtApprovedAmout.Text = drFund["Approved_Amount"].ToString();
+            txtDisbursed.Text = drFund["Disbursed_Amount"].ToString();
+            txtResetAmount.Text = drFund["Reset_Amount"].ToString();
+            txtUtilized.Text = drFund["Utilized_Amount"].ToString();
+
+            FunProToggleButtons(false);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void ddlAssetClass_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProLoadAssetMake();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProLoadScheme();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void btnAdd_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if ((Convert.ToDecimal(txtRequestAmount.Text) > Convert.ToDecimal(txtFinanceAmount.Text))
+                || (!string.IsNullOrEmpty(txtTotalReqAmount.Text) &&
+                    ((Convert.ToDecimal(txtRequestAmount.Text) + Convert.ToDecimal(txtTotalReqAmount.Text)) > Convert.ToDecimal(txtFinanceAmount.Text))))
+            {
+                Utility.FunShowAlertMsg(this, "Sum of Request amounts cannot exceed the Finance amount");
+                txtRequestAmount.Focus();
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(txtApprovedAmout.Text) && (Convert.ToDecimal(txtRequestAmount.Text) < Convert.ToDecimal(txtApprovedAmout.Text)))
+            {
+                Utility.FunShowAlertMsg(this, "Approved amount cannot exceed the Request amount");
+                txtApprovedAmout.Focus();
+                return;
+            }
+
+            DataTable dtFund = (DataTable)ViewState["grvFund"];
+
+            DataRow drFund = dtFund.NewRow();
+
+            drFund["SlNo"] = (dtFund.Rows.Count + 1).ToString();
+            drFund["Tranche_ID"] = "0";
+            drFund["Mode"] = "0";
+            drFund["Tranche_Ref_No"] = txtTrancheNumber.Text;
+            if (ddlLOB.SelectedValue != "0")
+            {
+                drFund["LOB_ID"] = ddlLOB.SelectedValue;
+                drFund["LOB"] = ddlLOB.SelectedItem.Text;
+            }
+            drFund["Product_ID"] = ddlScheme.SelectedValue;
+            drFund["Product"] = ddlScheme.SelectedItem.Text;
+            drFund["Facility_Type_ID"] = ddlFacilityType.SelectedValue;
+            drFund["Facility_Type"] = ddlFacilityType.SelectedItem.Text;
+            if (ddlAssetClass.SelectedValue != "0")
+            {
+                drFund["Asset_Class_ID"] = ddlAssetClass.SelectedValue;
+                drFund["Asset_Class"] = ddlAssetClass.SelectedItem.Text;
+            }
+            if (ddlAssetMake.Items.Count > 0 && ddlAssetMake.SelectedValue != "0")
+            {
+                drFund["Asset_Make_ID"] = ddlAssetMake.SelectedValue;
+                drFund["Asset_Make"] = ddlAssetMake.SelectedItem.Text;
+            }
+            drFund["Request_Amount"] = txtRequestAmount.Text;
+            drFund["Validity_Period"] = txtValidityPeriod.Text;
+            drFund["Approved_Amount"] = txtApprovedAmout.Text;
+            drFund["Disbursed_Amount"] = txtDisbursed.Text;
+            drFund["Reset_Amount"] = txtResetAmount.Text;
+            drFund["Utilized_Amount"] = txtUtilized.Text;
+
+            dtFund.Rows.Add(drFund);
+
+            FunProSetGridSource(dtFund, false);
+
+            FunProClearFundDetails();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void btnModify_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            DataTable dtFund = (DataTable)ViewState["grvFund"];
+
+            DataRow drFund = dtFund.Rows[Convert.ToInt32(lblSlNum.Text) - 1];
+
+            #region Amount Validation
+
+            if (!string.IsNullOrEmpty(txtTotalReqAmount.Text))
+            {
+                txtTotalReqAmount.Text = (Convert.ToDecimal(txtTotalReqAmount.Text) - Convert.ToDecimal(drFund["Request_Amount"].ToString())).ToString();
+            }
+
+            if (!string.IsNullOrEmpty(txtTotalApprovedAmount.Text) && drFund["Approved_Amount"] != null && !string.IsNullOrEmpty(drFund["Approved_Amount"].ToString()))
+            {
+                txtTotalApprovedAmount.Text = (Convert.ToDecimal(txtTotalApprovedAmount.Text) - Convert.ToDecimal(drFund["Approved_Amount"].ToString())).ToString();
+            }
+
+            if ((Convert.ToDecimal(txtRequestAmount.Text) > Convert.ToDecimal(txtFinanceAmount.Text))
+               || (!string.IsNullOrEmpty(txtTotalReqAmount.Text) &&
+                   ((Convert.ToDecimal(txtRequestAmount.Text) + Convert.ToDecimal(txtTotalReqAmount.Text)) > Convert.ToDecimal(txtFinanceAmount.Text))))
+            {
+                Utility.FunShowAlertMsg(this, "Sum of Request amounts cannot exceed the Finance amount");
+                txtRequestAmount.Focus();
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(txtApprovedAmout.Text) && (Convert.ToDecimal(txtRequestAmount.Text) < Convert.ToDecimal(txtApprovedAmout.Text)))
+            {
+                Utility.FunShowAlertMsg(this, "Approved amount cannot exceed the Request amount");
+                txtApprovedAmout.Focus();
+                return;
+            }
+
+            #endregion
+
+            if (ddlLOB.SelectedValue != "0")
+            {
+                drFund["LOB_ID"] = ddlLOB.SelectedValue;
+                drFund["LOB"] = ddlLOB.SelectedItem.Text;
+            }
+            else
+            {
+                drFund["LOB_ID"] = null;
+                drFund["LOB"] = null;
+            }
+            drFund["Product_ID"] = ddlScheme.SelectedValue;
+            drFund["Product"] = ddlScheme.SelectedItem.Text;
+            drFund["Facility_Type_ID"] = ddlFacilityType.SelectedValue;
+            drFund["Facility_Type"] = ddlFacilityType.SelectedItem.Text;
+            if (ddlAssetClass.SelectedValue != "0")
+            {
+                drFund["Asset_Class_ID"] = ddlAssetClass.SelectedValue;
+                drFund["Asset_Class"] = ddlAssetClass.SelectedItem.Text;
+            }
+            else
+            {
+                drFund["Asset_Class_ID"] = null;
+                drFund["Asset_Class"] = null;
+            }
+            if (ddlAssetMake.Items.Count > 0 && ddlAssetMake.SelectedValue != "0")
+            {
+                drFund["Asset_Make_ID"] = ddlAssetMake.SelectedValue;
+                drFund["Asset_Make"] = ddlAssetMake.SelectedItem.Text;
+            }
+            else
+            {
+                drFund["Asset_Make_ID"] = null;
+                drFund["Asset_Make"] = null;
+            }
+            drFund["Request_Amount"] = txtRequestAmount.Text;
+            drFund["Validity_Period"] = txtValidityPeriod.Text;
+            drFund["Approved_Amount"] = txtApprovedAmout.Text;
+            drFund["Disbursed_Amount"] = txtDisbursed.Text;
+            drFund["Reset_Amount"] = txtResetAmount.Text;
+            drFund["Utilized_Amount"] = txtUtilized.Text;
+
+            drFund.EndEdit();
+
+            FunProSetGridSource(dtFund, false);
+
+            FunProToggleButtons(true);
+
+            FunProClearFundDetails();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+
+    }
+
+    protected void btnFClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunProClearFundDetails();
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void btnCreateCustomer_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            HiddenField HdnId = ucCustomerCodeLov.FindControl("hdnID") as HiddenField;
+            if (HdnId != null)
+            {
+                ViewState["hdnEntityID"] = HdnId.Value;
+                FunProLoadEntityDetails(HdnId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void btnFCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            DataTable dtFund = (DataTable)ViewState["grvFund"];
+            FunProSetGridSource(dtFund, false);
+            FunProClearFundDetails();
+            FunProToggleButtons(true);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void grvFundDetails_RowDeleting(object sender, GridViewDeleteEventArgs e)
+    {
+        try
+        {
+            DataTable dtFund = (DataTable)ViewState["grvFund"];
+            dtFund.Rows[e.RowIndex].Delete();
+
+            for (int i = 0; i <= dtFund.Rows.Count - 1; i++)
+            {
+                dtFund.Rows[i]["SlNo"] = (i + 1).ToString();
+            }
+
+            if (dtFund.Rows.Count > 0)
+            {
+                FunProSetGridSource(dtFund, false);
+            }
+            else
+            {
+                FunProInitializeGird();
+            }
+
+            FunProClearFundDetails();
+            FunProToggleButtons(true);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void grvApprovalDetails_RowDataBound(object sender, System.Web.UI.WebControls.GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                grvApprovalDetails.Columns[3].Visible = true;
+                TextBox txtRemarks = (TextBox)e.Row.FindControl("txtRemarks");
+                DropDownList ddlAction = (DropDownList)e.Row.FindControl("ddlstatus");
+                Label lblStatus_ID = (Label)e.Row.FindControl("lblStatus_ID");
+                TextBox txtPassword = (TextBox)e.Row.FindControl("txtPassword");
+                Label lblApproval_ID = (Label)e.Row.FindControl("lblApproval_ID");
+                Button btnApprove = (Button)e.Row.FindControl("btnApprove");
+
+                Procparam = new Dictionary<string, string>();
+                DataSet dSet = Utility.GetDataset(SPNames.S3G_LOANAD_GetApprovalCommonDetail, Procparam);
+                ddlAction.BindDataTable(dSet.Tables[1], "Lookup_Code", "Lookup_Description");
+                ddlAction.SelectedValue = lblStatus_ID.Text;
+                Label lbldate = (Label)e.Row.FindControl("lblApprovalDate");
+                if (lbldate.Text.Trim() != string.Empty)
+                {
+                    DateTime Date = Convert.ToDateTime(lbldate.Text);
+                    lbldate.Text = Date.ToString(strDateFormat);
+                }
+
+                if (lblStatus_ID.Text != "0")
+                {
+                    ddlAction.ClearDropDownList();
+                    //txtPassword.ReadOnly = true;
+                    txtRemarks.ReadOnly = true;
+                }
+
+                if (lblStatus_ID.Text != "0" && lblApproval_ID.Text != "0")
+                {
+                    btnApprove.Text = btnApprove.ToolTip = "Revoke";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        objTACliant = new TradeAdvanceMgtServicesReference.TradeAdvanceMgtServicesClient();
+        try
+        {
+            objApplicationDataTable = new TradeAdvanceMgtServices.S3G_TA_AppProcessDataTable();
+            objApplicationDataRow = objApplicationDataTable.NewS3G_TA_AppProcessRow();
+
+            objApplicationDataRow.Application_ID = Convert.ToInt32(strAppProc_ID);
+            objApplicationDataRow.Company_ID = intCompanyId;
+            objApplicationDataRow.Entity_ID = Convert.ToInt32(txtEntity_ID.Text);
+            objApplicationDataRow.Application_Date = Utility.StringToDate(txtApplicationDate.Text);
+            objApplicationDataRow.Finance_Amount = Convert.ToDecimal(txtFinanceAmount.Text);
+            objApplicationDataRow.Created_By = ObjUserInfo.ProUserIdRW;
+            objApplicationDataRow.Created_On = DateTime.Now;
+            if (strMode == "C" || ViewState["ModifyFund"] != null)
+            {
+                objApplicationDataRow.XMLReqDtls = ((DataTable)ViewState["grvFund"]).FunPubFormXml();
+            }
+            if (ViewState["grvApproval"] != null && ((DataTable)ViewState["grvApproval"]).Rows.Count > 0)
+            {
+                objApplicationDataRow.XMLApprovalDtls = ((DataTable)ViewState["grvApproval"]).FunPubFormXml();
+            }
+
+            if (objApplicationDataRow.IsXMLReqDtlsNull() && objApplicationDataRow.IsXMLApprovalDtlsNull())
+            {
+                btnSave.Enabled = false;
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('No details modified to save');" + strRedirectPageView, true);
+                return;
+            }
+
+            objApplicationDataTable.AddS3G_TA_AppProcessRow(objApplicationDataRow);
+
+            int intErrorCode = 0;
+            string strApplicationNumber = "";
+
+            if (strMode == "C")
+            {
+                intErrorCode = objTACliant.FunPubCreateApplicationProcess(out strApplicationNumber, SerializationMode.Binary, ClsPubSerialize.Serialize(objApplicationDataTable, SerializationMode.Binary));
+            }
+            else
+            {
+                intErrorCode = objTACliant.FunPubApproveApplicationProcess(SerializationMode.Binary, ClsPubSerialize.Serialize(objApplicationDataTable, SerializationMode.Binary));
+            }
+
+            if (intErrorCode == 0)
+            {
+                btnSave.Enabled = false;
+                if (strMode == "C")
+                {
+                    strAlert = "Application Processing added successfully";
+                    strAlert += @"\n\nApplication Number - " + strApplicationNumber;
+                    strAlert += @"\n\nWould you like to add one more Application?";
+                    strAlert = "if(confirm('" + strAlert + "')){" + strRedirectPageAdd + "}else {" + strRedirectPageView + "}";
+                    strRedirectPageView = "";
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                }
+                else
+                {
+                    if (ViewState["ModifyFund"] != null && ((DataTable)ViewState["grvApproval"]).Rows.Count == 0)
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Application Processing details updated successfully');" + strRedirectPageView, true);
+                        return;
+                    }
+
+                    if (ViewState["ModifyFund"] == null || ((DataTable)ViewState["grvApproval"]).Rows.Count > 0)
+                    {
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Application Processing Approval updated successfully');" + strRedirectPageView, true);
+                    }
+                }
+            }
+            else if (intErrorCode == -1)
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Document sequence number not defined for Application');", true);
+                return;
+            }
+            else if (intErrorCode == -2)
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Document sequence number exceeded for Application');", true);
+                return;
+            }
+            else if (intErrorCode == -3)
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Document sequence number not defined for Tranche Ref Number');", true);
+                return;
+            }
+            else if (intErrorCode == -4)
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Document sequence number exceeded for Tranche Ref Number');", true);
+                return;
+            }
+            else
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('Error in saving information');", true);
+            }
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void grvFundDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+    {
+        try
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                Label lblMode = (Label)e.Row.FindControl("lblMode");
+                LinkButton btnRemove = (LinkButton)e.Row.FindControl("btnRemove");
+                if (lblMode.Text == "1")
+                {
+                    btnRemove.Enabled = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void btnApprove_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            S3GAdminServicesReference.S3GAdminServicesClient ObjS3GAdminServices = new S3GAdminServicesReference.S3GAdminServicesClient();
+            TextBox txtPassword = (TextBox)grvApprovalDetails.Rows[0].FindControl("txtPassword");
+            TextBox txtRemarks = (TextBox)grvApprovalDetails.Rows[0].FindControl("txtRemarks");
+            DropDownList ddlstatus = (DropDownList)grvApprovalDetails.Rows[0].FindControl("ddlstatus");
+            Label lblApproval_ID = (Label)grvApprovalDetails.Rows[0].FindControl("lblApproval_ID");
+            if (ObjS3GAdminServices.FunPubPasswordValidation(intUserId, txtPassword.Text.Trim()) > 0)
+            {
+                ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Password does not match');", true);
+                return;
+            }
+
+            DataTable dtApproval = (DataTable)ViewState["grvApproval"];
+
+            if (dtApproval.Rows.Count == 0)
+            {
+                DataRow drApproval = dtApproval.NewRow();
+
+                drApproval["Task_Approval_Serialvalue"] = "1";
+                drApproval["Approval_ID"] = lblApproval_ID.Text;
+                drApproval["User_Name"] = ObjUserInfo.ProUserNameRW;
+                drApproval["Status_ID"] = ddlstatus.SelectedValue;
+                drApproval["Task_StatusDate"] = DateTime.Today.ToString(strDateFormat);
+                drApproval["Remarks"] = txtRemarks.Text;
+                drApproval["Task_ApprovalUserID"] = intUserId.ToString();
+
+                dtApproval.Rows.Add(drApproval);
+
+                grvApprovalDetails.DataSource = dtApproval;
+                grvApprovalDetails.DataBind();
+
+                ViewState["grvApproval"] = dtApproval;
+            }
+
+            FunProToogleApprovalButtons(false);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+
+    }
+
+    protected void btnAppCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Label lblApproval_ID = (Label)grvApprovalDetails.Rows[0].FindControl("lblApproval_ID");
+
+            if (lblApproval_ID.Text == "0")
+            {
+                FunProInitializeApprovalGrid();
+            }
+            else
+            {
+                grvApprovalDetails.DataSource = (DataTable)ViewState["grvApproval"];
+                grvApprovalDetails.DataBind();
+            }
+
+            FunProToogleApprovalButtons(true);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void btnCalcel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect(strRedirectPage,false);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    #endregion
+
+    #region Page Methods
+
+    protected void FunPriDisableControls(int intModeID)
+    {
+        try
+        {
+            switch (intModeID)
+            {
+                case 0: // Create Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+
+                    if (!bCreate)
+                    {
+                        btnSave.Enabled = false;
+                    }
+
+                    txtApplicationDate.Text = DateTime.Today.ToString(strDateFormat);
+                    txtStatus.Text = "Pending";
+
+                    tcApplicationProcess.Tabs[2].Visible = false;
+
+                    if (ObjUserInfo.ProUserLevelIdRW < 3)
+                    {
+                        txtApprovedAmout.CssClass = "styleRoundedExtender";
+                        txtApprovedAmout.ReadOnly = true;
+                    }
+
+                    break;
+
+                case 1: // Modify Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                    FunProLoadApplicationDetails();
+                    btnClear.Enabled = false;
+
+                    Label lblApproval_ID = (Label)grvApprovalDetails.Rows[0].FindControl("lblApproval_ID");
+                    Label lblApprovarID = (Label)grvApprovalDetails.Rows[0].FindControl("lblApprovarID");
+
+                    txtFinanceAmount.ReadOnly = true;
+                    ucCustomerCodeLov.ButtonEnabled = false;
+
+                    if (lblApproval_ID.Text != "0")
+                    {
+                        FunProDisableControls();
+                    }
+
+                    if (lblApprovarID.Text == intUserId.ToString())
+                    {
+                        grvApprovalDetails.Columns[3].Visible = grvApprovalDetails.Columns[6].Visible = true;
+                        btnSave.Enabled = true;
+                    }
+
+                    if (!bModify)
+                    {
+                        btnSave.Enabled = false;
+                    }
+
+                    break;
+
+                case -1:// Query Mode
+
+                    lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                    FunProLoadApplicationDetails();
+
+                    FunProDisableControls();
+
+                    Label lblApproval_ID1 = (Label)grvApprovalDetails.Rows[0].FindControl("lblApproval_ID");
+                    if (lblApproval_ID1.Text == "0")
+                    {
+                        tcApplicationProcess.Tabs[2].Visible = false;
+                    }
+
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw new ApplicationException("Unable to set the controls");
+        }
+    }
+
+    protected void FunProDisableControls()
+    {
+        try
+        {
+            txtFinanceAmount.ReadOnly = txtValidityPeriod.ReadOnly = txtRequestAmount.ReadOnly = txtApprovedAmout.ReadOnly = true;
+            ucCustomerCodeLov.ButtonEnabled = false;
+            trFundReqButtons.Visible = false;
+
+            ddlLOB.Enabled = ddlScheme.Enabled = ddlFacilityType.Enabled =
+                ddlFacilityType.Enabled = ddlAssetClass.Enabled = ddlAssetMake.Enabled =
+                CalendarExtender2.Enabled = false;
+
+            grvApprovalDetails.Columns[3].Visible = grvApprovalDetails.Columns[6].Visible = false;
+
+            btnSave.Enabled = btnClear.Enabled = false;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProInitializeGird()
+    {
+        try
+        {
+            DataTable dtFund = new DataTable();
+
+            dtFund.Columns.Add("SlNo");
+            dtFund.Columns.Add("Tranche_ID");
+            dtFund.Columns.Add("Mode");
+            dtFund.Columns.Add("Tranche_Ref_No");
+            dtFund.Columns.Add("LOB_ID");
+            dtFund.Columns.Add("LOB");
+            dtFund.Columns.Add("Product_ID");
+            dtFund.Columns.Add("Product");
+            dtFund.Columns.Add("Facility_Type_ID");
+            dtFund.Columns.Add("Facility_Type");
+            dtFund.Columns.Add("Asset_Class_ID");
+            dtFund.Columns.Add("Asset_Class");
+            dtFund.Columns.Add("Asset_Make_ID");
+            dtFund.Columns.Add("Asset_Make");
+            dtFund.Columns.Add("Request_Amount");
+            dtFund.Columns.Add("Validity_Period");
+            dtFund.Columns.Add("Approved_Amount");
+            dtFund.Columns.Add("Disbursed_Amount");
+            dtFund.Columns.Add("Reset_Amount");
+            dtFund.Columns.Add("Utilized_Amount");
+
+            DataRow drow = dtFund.NewRow();
+            dtFund.Rows.Add(drow);
+
+            txtFundEntry.Text = string.Empty;
+
+            FunProSetGridSource(dtFund, true);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+
+    }
+
+    protected void FunProSetGridSource(DataTable dtFund, bool blInitialize)
+    {
+        try
+        {
+            grvFundDetails.DataSource = dtFund;
+            grvFundDetails.DataBind();
+
+            if (blInitialize)
+            {
+                dtFund.Rows.RemoveAt(0);
+                grvFundDetails.Rows[0].Visible = false;
+                ViewState["grvFund"] = dtFund;
+                txtFundEntry.Text = "";
+            }
+            else
+            {
+                ViewState["grvFund"] = dtFund;
+                txtFundEntry.Text = "1";
+                ViewState["ModifyFund"] = "1";
+            }
+
+            FunProCalculateSum(dtFund);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProLoadLOB()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+            Procparam.Add("@User_Id", Convert.ToString(intUserId));
+            Procparam.Add("@Program_Id", "225");
+            if (PageMode == PageModes.Create)
+            {
+                Procparam.Add("@Is_Active", "1");
+            }
+            ddlLOB.BindDataTable(SPNames.LOBMaster, Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProLoadFacilityType()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Option", "1");
+            Procparam.Add("@Param1", "Facility_Type");
+
+            ddlFacilityType.BindDataTable("S3G_ORG_GetGlobalLookUp", Procparam, new string[] { "Lookup_ID", "Name" });
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProLoadAssetClass()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+            ddlAssetClass.BindDataTable("S3G_TA_GetAssetClassMake", Procparam, new string[] { "CLASS_ID", "Category_Description" }); //"Category_Code",
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProLoadAssetMake()
+    {
+        try
+        {
+            if (ddlAssetClass.SelectedValue != "0")
+            {
+                Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+                Procparam.Add("@Class_ID", ddlAssetClass.SelectedValue);
+                ddlAssetMake.BindDataTable("S3G_TA_GetAssetClassMake", Procparam, new string[] { "MAKE_ID", "Category_Description" });
+            }
+            else
+            {
+                ddlAssetMake.Items.Clear();
+            }
+
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProLoadScheme()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyId));
+            if (ddlLOB.SelectedValue != "0")
+            {
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            }
+            if (PageMode == PageModes.Create)
+            {
+                Procparam.Add("@Is_Active", "1");
+            }
+            ddlScheme.BindDataTable("S3G_TA_GetApplicationSceme", Procparam, new string[] { "Product_ID", "Product_Desc" });
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProResetRdButton(int intRowIndex)
+    {
+        try
+        {
+            for (int i = 0; i <= grvFundDetails.Rows.Count - 1; i++)
+            {
+                if (i != intRowIndex)
+                {
+                    RadioButton rdSelect = grvFundDetails.Rows[i].FindControl("rdSelect") as RadioButton;
+                    rdSelect.Checked = false;
+                    grvFundDetails.Rows[i].CssClass = "";
+                }
+                else
+                {
+                    grvFundDetails.Rows[i].CssClass = "styleRoundedExtender";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProToggleButtons(bool blIsAdd)
+    {
+        try
+        {
+            btnFClear.Enabled = blIsAdd;
+            btnAdd.Visible = blIsAdd;
+            btnModify.Visible = !blIsAdd;
+            btnFCancel.Visible = !blIsAdd;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProClearFundDetails()
+    {
+        try
+        {
+            ddlLOB.SelectedValue =
+            ddlFacilityType.SelectedValue =
+            ddlAssetClass.SelectedValue = "0";
+            FunProLoadScheme();
+            ddlAssetMake.Items.Clear();
+
+            txtTrancheNumber.Text =
+            lblSlNum.Text =
+            txtRequestAmount.Text =
+            txtValidityPeriod.Text =
+            txtApprovedAmout.Text =
+            txtDisbursed.Text =
+            txtResetAmount.Text =
+            txtUtilized.Text = string.Empty;
+
+            FunProToggleButtons(true);
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProLoadEntityDetails(string strEntityID)
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyId.ToString());
+            Procparam.Add("@Entity_ID", strEntityID);
+
+            DataSet Dset = Utility.GetDataset("S3G_TA_GetEntityDetails", Procparam);
+
+            DataTable dt = Dset.Tables[0];
+            if (dt.Rows.Count > 0)
+            {
+                S3GCustomerAddress1.SetCustomerDetails(dt.Rows[0], true);
+                txtEntity_ID.Text = dt.Rows[0]["Customer_ID"].ToString();
+
+                ucCustomerCodeLov.strControlID = ucCustomerCodeLov.ClientID;
+                TextBox txtName = ucCustomerCodeLov.FindControl("txtName") as TextBox;
+                txtName.Text = dt.Rows[0]["Customer_Code"].ToString();
+            }
+
+            ViewState["EntityView"] = Dset.Tables[1];
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProCalculateSum(DataTable dtFund)
+    {
+        try
+        {
+            decimal dcTotalReq, dcTotalApproved;
+            dcTotalReq = dcTotalApproved = 0;
+
+            for (int i = 0; i <= dtFund.Rows.Count - 1; i++)
+            {
+                dcTotalReq = dcTotalReq + Convert.ToDecimal(dtFund.Rows[i]["Request_Amount"].ToString());
+
+                if (dtFund.Rows[i]["Approved_Amount"] != null && !string.IsNullOrEmpty(dtFund.Rows[i]["Approved_Amount"].ToString()))
+                {
+                    dcTotalApproved = dcTotalApproved + Convert.ToDecimal(dtFund.Rows[i]["Approved_Amount"].ToString());
+                }
+            }
+
+            if (dcTotalReq > 0)
+            {
+                txtTotalReqAmount.Text = txtAPPReqAmount.Text = dcTotalReq.ToString();
+            }
+            else
+            {
+                txtTotalReqAmount.Text = txtAPPReqAmount.Text = string.Empty;
+            }
+
+            if (dcTotalApproved > 0)
+            {
+                txtTotalApprovedAmount.Text = txtAppTotalAppAmount.Text = dcTotalApproved.ToString();
+            }
+            else
+            {
+                txtTotalApprovedAmount.Text = txtAppTotalAppAmount.Text = string.Empty;
+            }
+
+            txtAppFinanceAmount.Text = txtFinanceAmount.Text;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProInitializeApprovalGrid()
+    {
+        try
+        {
+            DataTable dtApproval = new DataTable();
+
+            dtApproval.Columns.Add("Task_Approval_Serialvalue");
+            dtApproval.Columns.Add("Approval_ID");
+            dtApproval.Columns.Add("User_Name");
+            dtApproval.Columns.Add("Status_ID");
+            dtApproval.Columns.Add("Task_StatusDate");
+            dtApproval.Columns.Add("Remarks");
+            dtApproval.Columns.Add("Task_ApprovalUserID");
+
+            DataRow dRow = dtApproval.NewRow();
+            dRow["Task_Approval_Serialvalue"] = "1";
+            dRow["Approval_ID"] = "0";
+            dRow["Status_ID"] = "0";
+            dRow["User_Name"] = ObjUserInfo.ProUserNameRW;
+            dRow["Task_StatusDate"] = DateTime.Today.ToString(strDateFormat);
+            dRow["Task_ApprovalUserID"] = "0";
+
+            dtApproval.Rows.Add(dRow);
+
+            grvApprovalDetails.DataSource = dtApproval;
+            grvApprovalDetails.DataBind();
+
+            dtApproval.Rows[0].Delete();
+            ViewState["grvApproval"] = dtApproval;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProLoadApplicationDetails()
+    {
+        try
+        {
+            Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Application_ID", strAppProc_ID);
+            DataSet dsDetails = Utility.GetDataset("S3G_TA_GetApplicationDetails", Procparam);
+
+            if (dsDetails != null && dsDetails.Tables[0].Rows.Count > 0)
+            {
+                txtApplicationNumber.Text = dsDetails.Tables[0].Rows[0]["Application_Number"].ToString();
+                txtApplicationDate.Text = dsDetails.Tables[0].Rows[0]["Application_Date"].ToString();
+                txtFinanceAmount.Text = dsDetails.Tables[0].Rows[0]["Finance_Amount"].ToString();
+                txtStatus.Text = dsDetails.Tables[0].Rows[0]["Status"].ToString();
+                txtEntity_ID.Text = dsDetails.Tables[0].Rows[0]["Entity_ID"].ToString();
+                FunProLoadEntityDetails(txtEntity_ID.Text);
+
+                FunProSetGridSource(dsDetails.Tables[1], false);
+
+                ViewState.Remove("ModifyFund");
+
+                if (dsDetails.Tables[2].Rows.Count > 0)
+                {
+                    grvApprovalDetails.DataSource = dsDetails.Tables[2];
+                    grvApprovalDetails.DataBind();
+
+                    dsDetails.Tables[2].Rows[0].Delete();
+                    dsDetails.Tables[2].AcceptChanges();
+                    ViewState["grvApproval"] = dsDetails.Tables[2];
+
+                    FunProToogleApprovalButtons(true);
+                }
+                else
+                {
+                    FunProInitializeApprovalGrid();
+                }
+
+            }
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    protected void FunProToogleApprovalButtons(bool blVisible)
+    {
+        try
+        {
+            Button btnApprove = (Button)grvApprovalDetails.Rows[0].FindControl("btnApprove");
+            Button btnAppCancel = (Button)grvApprovalDetails.Rows[0].FindControl("btnAppCancel");
+
+            btnApprove.Visible = blVisible;
+            btnAppCancel.Visible = !blVisible;
+
+            grvApprovalDetails.Columns[3].Visible = blVisible;
+        }
+        catch (Exception ex)
+        {
+              ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+        }
+    }
+
+    #endregion
+
+    protected void btnCreditScore_Click(object sender, EventArgs e)
+    {
+        string strCredit_ID = FunProGetEntityViewDetails(0);
+        string strScipt = "";
+        if (strCredit_ID != "0")
+        {
+            FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(strCredit_ID, false, 0);
+            strScipt = "window.open('../TradeAdvance/S3G_TA_CreditGuideTransaction_Add.aspx?qsViewId=" + FormsAuthentication.Encrypt(Ticket) + "&Popup=Y&qsMode=Q', 'newwindow','toolbar=no,location=no,menubar=no,width=900,height=600,resizable=no,scrollbars=yes,top=50,left=50');";
+        }
+        else
+        {
+            strScipt = "alert('Credit Guide Transation not yet processed')";
+        }
+
+        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+    }
+
+    protected void btnPRD_Click(object sender, EventArgs e)
+    {
+        string strPRDT_ID = FunProGetEntityViewDetails(1);
+        string strScipt = "";
+        if (strPRDT_ID != "0")
+        {
+            FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(strPRDT_ID, false, 0);
+
+            strScipt = "window.open('../TradeAdvance/S3G_TA_PDDTMaster_Add.aspx?qsViewId=" + FormsAuthentication.Encrypt(Ticket) + "&Popup=Y&qsMode=Q', 'newwindow','toolbar=no,location=no,menubar=no,width=900,height=600,resizable=no,scrollbars=yes,top=50,left=50');";
+        }
+        else
+        {
+            strScipt = "alert('Pre Disbursement Transation not yet processed')";
+        }
+
+        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+    }
+
+    protected void btnCollateral_Click(object sender, EventArgs e)
+    {
+        string strCollateral_ID = FunProGetEntityViewDetails(2);
+        string strScipt = "";
+        if (strCollateral_ID != "0")
+        {
+            FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(strCollateral_ID, false, 0);
+
+            strScipt = "window.open('../TradeAdvance/S3G_TA_CollateralCapture_Add.aspx?qsViewId=" + FormsAuthentication.Encrypt(Ticket) + "&Popup=Y&qsMode=Q', 'newwindow','toolbar=no,location=no,menubar=no,width=900,height=600,resizable=no,scrollbars=yes,top=50,left=50');";
+        }
+        else
+        {
+            strScipt = "alert('Collateral Capture not yet processed')";
+        }
+
+        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strScipt, true);
+    }
+
+    protected string FunProGetEntityViewDetails(int intIndex)
+    {
+        string strRetValue = "0";
+        DataTable dtEntityView = (DataTable)ViewState["EntityView"];
+
+        if (dtEntityView != null && dtEntityView.Rows.Count > 0)
+        {
+            strRetValue = dtEntityView.Rows[0][intIndex].ToString();
+        }
+
+        return strRetValue;
+    }
+
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        txtFinanceAmount.Text = txtEntity_ID.Text = string.Empty;
+        ucCustomerCodeLov.FunPubClearControlValue();
+        S3GCustomerAddress1.ClearCustomerDetails();
+        FunProInitializeGird();
+        tcApplicationProcess.ActiveTabIndex = 0;
+        FunProClearFundDetails();
+    }
+}

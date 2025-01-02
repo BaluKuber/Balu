@@ -1,0 +1,1535 @@
+﻿/// © 2010 SUNDARAM INFOTECH SOLUTIONS P LTD . All rights reserved
+/// 
+/// <Program Summary>
+/// Module Name               : Collection 
+/// Screen Name               : ECS Flat File Generation
+/// Created By                : Vijaya Kumar
+/// Created Date              : 20-Oct-2010
+/// Purpose                   : 
+/// Last Updated By           : 
+/// Last Updated Date         : 
+/// Reason                    :
+
+/// <Program Summary>
+
+#region NameSpaces
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.ServiceModel;
+using System.Web.Security;
+using System.Web.UI;
+using System.IO;
+using S3GBusEntity;
+using System.Configuration;
+using S3GBusEntity.Collection;
+using System.Globalization;
+using System.Web.Services;
+using System.Text;
+using System.Web.UI.WebControls;
+using System.Linq;
+#endregion
+
+public partial class Collection_S3GClnECSFlatFileGeneration : ApplyThemeForProject
+{
+    #region Common Variable declaration
+    int intCompanyID, intUserID = 0;
+    Dictionary<string, string> Procparam = null;
+    string strECSNo = "";
+    int intErrCode = 0;
+    UserInfo ObjUserInfo = new UserInfo();
+    SerializationMode ObjSerMode = SerializationMode.Binary;
+    string _DateFormat = "dd/MM/yyyy";
+    string strDateFormat = string.Empty;
+    StringBuilder strECSBuilder = new StringBuilder();
+    StringBuilder strECSBuilderhdr = new StringBuilder();
+    static string strPageName = "ECS Flat File Generation";
+    public string strProgram_ID = "112";
+
+    ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient objEcs_Client;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSDataTable objS3G_CLN_EcsDataTable = null;
+    S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSRow objS3G_CLN_EcsDataRow = null;
+
+    string strKey = "Insert";
+    string strAlert = "alert('__ALERT__');";
+    string strRedirectPage = "~/Collection/S3gCLNTransLander.aspx?Code=CEF";
+    string strRedirectPageAdd = "window.location.href='../Collection/S3GClnECSFlatFileGeneration.aspx';";
+    string strRedirectPageView = "window.location.href='../Collection/S3gCLNTransLander.aspx?Code=CEF';";
+
+    //User Authorization
+    string strMode = string.Empty;
+    bool bCreate = false;
+    bool bClearList = false;
+    bool bModify = false;
+    bool bQuery = false;
+    bool bDelete = false;
+    bool bMakerChecker = false;
+    //Code end
+    DataTable dtECSSpool = new DataTable();
+    DataSet dsHdrDtl = new DataSet();
+    #endregion
+
+    #region Page Load Event
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        S3GSession ObjS3GSession = null;
+        try
+        {
+            this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
+            FunPubSetIndex(1);
+            //Date Format
+            ObjS3GSession = new S3GSession();
+            strDateFormat = ObjS3GSession.ProDateFormatRW;
+            _DateFormat = ObjS3GSession.ProDateFormatRW;
+            //End
+            //User Authorization
+            bCreate = ObjUserInfo.ProCreateRW;
+            bModify = ObjUserInfo.ProModifyRW;
+            bQuery = ObjUserInfo.ProViewRW;
+            //Code end
+
+            if (intCompanyID == 0)
+                intCompanyID = ObjUserInfo.ProCompanyIdRW;
+            if (intUserID == 0)
+                intUserID = ObjUserInfo.ProUserIdRW;
+
+            if (Request.QueryString["qsMode"] != null)
+                strMode = Request.QueryString["qsMode"];
+
+            if (Request.QueryString["qsViewId"] != null)
+            {
+                FormsAuthenticationTicket fromTicket = FormsAuthentication.Decrypt(Request.QueryString["qsViewId"]);
+                strECSNo = fromTicket.Name;
+            }
+
+            if (!IsPostBack)
+            {
+                if (strMode == "C")
+                    FunPriDisableControls(0);
+                else if (strMode == "M")
+                    FunPriDisableControls(1);
+                else
+                    FunPriDisableControls(-1);
+
+            }
+        }
+        catch (Exception ex)
+        {
+            cvECSFFG.ErrorMessage = " Unable to Load the ECS Flat File generation";
+            //ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+        }
+        finally
+        {
+            ObjS3GSession = null;
+        }
+    }
+    #endregion
+
+    #region Methods
+
+    #region To populate ECS No Values
+    private void FunPriLoadECSNo()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@Option", "1");
+            Procparam.Add("@User_Id", intUserID.ToString());
+            Procparam.Add("@Program_Id", strProgram_ID);
+
+            ddlECSNo.BindDataTable("S3G_CLN_GetECSFlatFileGeneration", Procparam, new string[] { "ECS_NO", "ECS_NO" });
+
+            if (ddlLOB.SelectedValue == "All" || ddlLOB.SelectedValue == "0")
+                ViewState["dtECSno"] = ddlECSNo.DataSource as DataTable;
+        }
+        catch (Exception ex)
+        {
+            //ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To populate LOB List Values
+    private void FunPriLoadLOBList()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@User_ID", Convert.ToString(intUserID));
+            Procparam.Add("@Is_Active", "1");
+            Procparam.Add("@Program_Id", strProgram_ID);
+            //ddlLOB.BindDataTable("S3G_CLN_GetECS_LOB", Procparam, new string[] { "LOB_ID", "LOB_Code", "LOB_Name" });
+            //Chnaged by Thangam.M on 03/May/2012
+            ddlLOB.BindDataTable("S3G_CLN_GetECS_LOB", Procparam, new string[] { "LOB_ID", "LOB_Name" });
+            //End here
+        }
+        catch (Exception ex)
+        {
+            //ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region To populate Bank Code
+    private void FunPriLoadBankCode()
+    {
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", intCompanyID.ToString());
+            Procparam.Add("@FlatGen", "1");
+            ddlBankCode.BindDataTable("S3G_CLN_GetBankCode", Procparam, new string[] { "Bank_id", "Bank" });
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+
+    #region "User Authorization"
+    ////This is used to implement User Authorization
+    private void FunPriDisableControls(int intModeID)
+    {
+        switch (intModeID)
+        {
+            case 0: // Create Mode
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Create);
+                FunPriLoadLOBList();
+                //FunPriLoadECSNo();
+                //FunPriLoadBankCode();
+                btnReGenerate.Enabled = false;
+                bClearList = Convert.ToBoolean(ConfigurationManager.AppSettings.Get("ClearListValues"));
+                break;
+            case 1:
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.Modify);
+                btnReGenerate.Enabled = true;
+                btnClear.Enabled = btnGeneration.Enabled = false;
+                FunECSProcessForModification(strECSNo);
+                FunPriLoadBankCode();
+                break;
+            case -1://Query  
+                lblHeading.Text = FunPubGetPageTitles(enumPageTitle.View);
+                btnClear.Enabled = btnGeneration.Enabled = btnReGenerate.Enabled = false;
+                FunECSProcessForModification(strECSNo);
+                //FunPriLoadBankCode();
+                ddlBankCode.Enabled = false;
+                break;
+        }
+
+    }
+    ////Code end
+    #endregion
+    #region Edit For ECS Process
+    private void FunECSProcessForModification(string strEcsNo)
+    {
+        try
+        {
+            DataTable dtTable = new DataTable();
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@Option", "7");
+            Procparam.Add("@User_Id", intUserID.ToString());
+            Procparam.Add("@ECS_No", strEcsNo);
+            Procparam.Add("@Program_Id", strProgram_ID);
+
+            dtTable = Utility.GetDefaultData("S3G_CLN_GetECSFlatFileGeneration", Procparam);// true, "--All Customers--", new string[] { "Customer_ID", "Customer_Code", "Customer_Name" });
+
+            if (dtTable != null && dtTable.Rows.Count > 0)
+            {
+                if (dtTable.Rows[0]["Location_ID"].ToString() == "" || dtTable.Rows[0]["Location_ID"].ToString() == "All" || dtTable.Rows[0]["Location_ID"].ToString() == "0")
+                {
+                    txtBranch.Text = "--All--";
+                    hdnLocationID.Value = "0";
+                }
+                else
+                {
+                    txtBranch.Text = dtTable.Rows[0]["Location_Name"].ToString();
+                    hdnLocationID.Value = dtTable.Rows[0]["Location_ID"].ToString();
+                }
+
+                if (dtTable.Rows[0]["LOB_ID"].ToString() == "All" || dtTable.Rows[0]["LOB_ID"].ToString() == "" || dtTable.Rows[0]["LOB_ID"].ToString() == "0")
+                {
+                    ListItem Libr = new ListItem("--All--", "0");
+                    ddlLOB.Items.Add(Libr);
+                    ddlLOB.SelectedValue = "0";
+                }
+                else
+                {
+                    ListItem Libr = new ListItem(dtTable.Rows[0]["LOB_Name"].ToString(), dtTable.Rows[0]["LOB_ID"].ToString());
+                    ddlLOB.Items.Add(Libr);
+                    ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                }
+
+                ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                if (dtTable.Rows[0]["ECS_NO"].ToString() != "")
+                {
+                    ListItem Libr = new ListItem(dtTable.Rows[0]["ECS_NO"].ToString(), dtTable.Rows[0]["ECS_NO"].ToString());
+                    ddlECSNo.Items.Add(Libr);
+                    ddlECSNo.SelectedValue = dtTable.Rows[0]["ECS_NO"].ToString();
+                }
+                else
+                {
+                    ListItem Libr = new ListItem("--All--", "0");
+                    ddlECSNo.Items.Add(Libr);
+                    ddlECSNo.SelectedValue = "0";
+                }
+                txtFBDate.Text = dtTable.Rows[0]["FixedBillDate"].ToString();
+                txtFilePath.Text = dtTable.Rows[0]["FILE_PATH"].ToString();
+
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                Procparam.Add("@ECS_No", Convert.ToString(ddlECSNo.SelectedValue));
+                Procparam.Add("@Option", "3");
+                Procparam.Add("@User_Id", intUserID.ToString());
+                Procparam.Add("@Program_Id", strProgram_ID);
+                if (strMode == "C")
+                {
+                    if (hidBrachCode.Value != "")
+                        Procparam.Add("@Location_Id", hidBrachCode.Value);
+                }
+                else
+                {
+                    if (hdnLocationID.Value != "")
+                        Procparam.Add("@Location_Id", hdnLocationID.Value);
+                }
+
+                grvECS.DataSource = Utility.GetDefaultData("S3G_CLN_GetECSFlatFileGeneration", Procparam);
+                grvECS.DataBind();
+            }
+            else
+            {
+                btnReGenerate.Enabled = false;
+                Utility.FunShowAlertMsg(this.Page, "No Records Found..");
+                return;
+            }
+            if (grvECS.Rows.Count > 0) pnlGrid.Style.Add("display", "inline");
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            throw ex;
+        }
+    }
+    #endregion
+    #endregion
+
+    // #region Events
+
+    //Cancel
+    protected void btnCancel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect(strRedirectPage, false);
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+        }
+
+    }
+
+    // #region "Flat File Generation Event"
+
+    protected void btnReGenerate_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ddlBankCode.SelectedValue == "0")
+            {
+                Utility.FunShowAlertMsg(this.Page, "Select Bank Name");
+                return;
+            }
+            if (string.IsNullOrEmpty(txtFilePath.Text))
+            {
+                Utility.FunShowAlertMsg(this.Page, "File path is not defined in Document path setup");
+                return;
+            }
+            if (!string.IsNullOrEmpty(txtFilePath.Text))
+            {
+                if (Directory.Exists(txtFilePath.Text))
+                {
+                    if (ViewState["dtECSSpool"] != null)
+                    {
+                        dtECSSpool = (DataTable)ViewState["dtECSSpool"];
+                    }
+
+                    if (dtECSSpool.Rows.Count > 0)
+                    {
+                        DataTable dtHeader = new DataTable();
+                        DataTable dtDetails = new DataTable();
+
+                        #region "Fetching Accounts"
+
+                        if (Procparam != null)
+                            Procparam.Clear();
+                        else
+                            Procparam = new Dictionary<string, string>();
+
+                        Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                        Procparam.Add("@ECS_No", Convert.ToString(ddlECSNo.SelectedValue));
+                        Procparam.Add("@Option", "1");
+                        Procparam.Add("@Bank_Det_Id", ddlBankCode.SelectedValue);
+                        dsHdrDtl = Utility.GetDataset("S3G_CLN_ECS_HdrDtls", Procparam);
+
+                        if (dsHdrDtl.Tables.Count > 0)
+                        {
+                            DataTable dthdr = dsHdrDtl.Tables[0].Copy();
+                            DataTable dtdtl = dsHdrDtl.Tables[1].Copy();
+
+                            DataRow[] drHeader = dtECSSpool.Select("Header_Detail='H'");
+                            DataRow[] drDetails = dtECSSpool.Select("Header_Detail='D'");
+                            // #region "Header Part"
+                            if (drHeader.Length > 0)
+                            {
+                                if (dthdr.Rows.Count > 0)//Header Part
+                                {
+
+                                    int intFrom = 1, intECSLen = 0;
+                                    string strFieldType = string.Empty;
+
+                                    foreach (DataRow drhhdr in drHeader)
+                                    {
+                                        intECSLen = Convert.ToInt32(drhhdr["ECS_Length"].ToString());
+                                        string strvalue = string.Empty;
+                                        switch (drhhdr["Field_Name"].ToString())
+                                        {
+                                            case "1":// ECS Transaction Code
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["ECS_Trans_Code"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["ECS_Trans_Code"].ToString();
+                                                break;
+                                            case "2":// User Number
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["User_Number"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["User_Number"].ToString();
+                                                break;
+                                            case "3":// User Name
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["User_Name"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["User_Name"].ToString();
+                                                break;
+                                            case "4":// User Debit Reference
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["User_Debit_Ref"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["User_Debit_Ref"].ToString();
+                                                break;
+                                            case "5":// ECS Tape Input No
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["ECS_Tape_Input_No"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["ECS_Tape_Input_No"].ToString();
+                                                break;
+                                            case "6":// Sponsor Bank Branch Sort Code
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["Sponsor_Bank_Sort_Code"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["Sponsor_Bank_Sort_Code"].ToString();
+                                                break;
+                                            case "7":// User's Bank Account No
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["Users_Bank_Account_No"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["Users_Bank_Account_No"].ToString();
+                                                break;
+                                            case "8":// Ledger Folio Number
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["Ledger_Folio_Number"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["Ledger_Folio_Number"].ToString();
+                                                break;
+                                            case "9":// User-defined limit for individual debit items
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["Limit_ind_debit_items"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["Limit_ind_debit_items"].ToString();
+                                                break;
+                                            case "10":// Total Amount (Balancing Debit amount)
+                                                decimal decTot_Amount = 0;
+                                                if (dtdtl.Rows.Count > 0)
+                                                {
+                                                    try
+                                                    {
+                                                        decTot_Amount = (decimal)dtdtl.Compute("sum(INSTALLMENT_AMOUNT)", "INSTALLMENT_AMOUNT > 0");
+                                                    }
+                                                    catch (Exception ex) { }
+                                                }
+                                                strvalue = decTot_Amount.ToString();
+                                                break;
+                                            case "11":// Settlement date 
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["Settlement_date"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["Settlement_date"].ToString();
+                                                break;
+                                            case "12":// Filler
+                                                if (!string.IsNullOrEmpty(dthdr.Rows[0]["Filler1"].ToString()))
+                                                    strvalue = dthdr.Rows[0]["Filler1"].ToString();
+                                                break;
+
+                                        }
+                                        if (intFrom != Convert.ToInt32(drhhdr["ECS_From_Position"].ToString()))
+                                        {
+                                            for (int j = intFrom; j < Convert.ToInt32(drhhdr["ECS_From_Position"].ToString()); j++)
+                                            {
+                                                strECSBuilderhdr.Append(" ");
+                                            }
+                                        }
+                                        intFrom = Convert.ToInt32(drhhdr["ECS_To_Position"].ToString()) + 1;
+                                        //intTo = Convert.ToInt32(dt.Rows[i]["ECS_To"].ToString());                            
+
+                                        if (strvalue.Length >= intECSLen)
+                                            strECSBuilderhdr.Append(strvalue.Substring(0, intECSLen));
+                                        else
+                                        {
+                                            strECSBuilderhdr.Append(strvalue);
+                                            for (int j = 0; j < intECSLen - strvalue.Length; j++)
+                                            {
+                                                strECSBuilderhdr.Append(" ");
+                                            }
+                                        }
+                                    }
+
+                                }
+                            }
+                            // #endregion
+
+                            //#region "Details Part"
+
+                            if (drDetails.Length > 0)
+                            {
+                                if (dtdtl.Rows.Count > 0)//Details Part
+                                {
+
+                                    foreach (DataRow drECSRecs in dtdtl.Rows)
+                                    {
+                                        strECSBuilder.Append(Environment.NewLine);
+                                        int intFrom = 1, intECSLen = 0;
+                                        string strFieldType = string.Empty;
+
+                                        foreach (DataRow drSpool in drDetails)
+                                        {
+                                            intECSLen = Convert.ToInt32(drSpool["ECS_Length"].ToString());
+                                            string strvalue = string.Empty;
+                                            switch (drSpool["Field_Name"].ToString())
+                                            {
+                                                case "13":// ECS Transaction Code
+                                                    if (!string.IsNullOrEmpty(drECSRecs["ECS_Trans_Code"].ToString()))
+                                                        strvalue = drECSRecs["ECS_Trans_Code"].ToString();
+                                                    break;
+                                                case "14"://  Destination Sort Code
+                                                    if (!string.IsNullOrEmpty(drECSRecs["Dest_Sort_Code"].ToString()))
+                                                        strvalue = drECSRecs["Dest_Sort_Code"].ToString();
+                                                    break;
+                                                case "15"://  Destination Account 
+                                                    if (!string.IsNullOrEmpty(drECSRecs["Destination_Account"].ToString()))
+                                                        strvalue = drECSRecs["Destination_Account"].ToString();
+                                                    break;
+                                                case "16"://  Ledger Folio Number
+                                                    if (!string.IsNullOrEmpty(drECSRecs["Ledger_Folio_Number"].ToString()))
+                                                        strvalue = drECSRecs["Ledger_Folio_Number"].ToString();
+                                                    break;
+                                                case "17"://  Destination Account No
+                                                    if (!string.IsNullOrEmpty(drECSRecs["Destination_Account_No"].ToString()))
+                                                        strvalue = drECSRecs["Destination_Account_No"].ToString();
+                                                    break;
+                                                case "18":// Destination Account Holder's Name
+                                                    if (!string.IsNullOrEmpty(drECSRecs["Account_Holder"].ToString()))
+                                                        strvalue = drECSRecs["Account_Holder"].ToString();
+                                                    break;
+                                                case "19":// Sponsor Bank-Branch Sort Code
+                                                    if (!string.IsNullOrEmpty(drECSRecs["Sponsor_Bank_Sort_Code"].ToString()))
+                                                        strvalue = drECSRecs["Sponsor_Bank_Sort_Code"].ToString();
+                                                    break;
+                                                case "20"://  User Number
+                                                    if (!string.IsNullOrEmpty(drECSRecs["User_Number"].ToString()))
+                                                        strvalue = drECSRecs["User_Number"].ToString();
+                                                    break;
+                                                case "21"://  User Name 
+                                                    if (!string.IsNullOrEmpty(drECSRecs["User_Name"].ToString()))
+                                                        strvalue = drECSRecs["User_Name"].ToString();
+                                                    break;
+                                                case "22"://  User Debit Reference No
+                                                    if (!string.IsNullOrEmpty(drECSRecs["User_Debit_Ref"].ToString()))
+                                                        strvalue = drECSRecs["User_Debit_Ref"].ToString();
+                                                    break;
+                                                case "23"://  Amount
+                                                    if (!string.IsNullOrEmpty(drECSRecs["INSTALLMENT_AMOUNT"].ToString()))
+                                                        strvalue = drECSRecs["INSTALLMENT_AMOUNT"].ToString();
+                                                    break;
+                                                case "24":// Filler
+                                                    if (!string.IsNullOrEmpty(drECSRecs["Filler1"].ToString()))
+                                                        strvalue = drECSRecs["Filler1"].ToString();
+                                                    break;
+
+                                            }
+                                            if (intFrom != Convert.ToInt32(drSpool["ECS_From_Position"].ToString()))
+                                            {
+                                                for (int j = intFrom; j < Convert.ToInt32(drSpool["ECS_From_Position"].ToString()); j++)
+                                                {
+                                                    strECSBuilder.Append(" ");
+                                                }
+                                            }
+                                            intFrom = Convert.ToInt32(drSpool["ECS_To_Position"].ToString()) + 1;
+                                            //intTo = Convert.ToInt32(dt.Rows[i]["ECS_To"].ToString());                            
+
+                                            if (strvalue.Length >= intECSLen)
+                                                strECSBuilder.Append(strvalue.Substring(0, intECSLen));
+                                            else
+                                            {
+                                                strECSBuilder.Append(strvalue);
+                                                for (int j = 0; j < intECSLen - strvalue.Length; j++)
+                                                {
+                                                    strECSBuilder.Append(" ");
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            //#endregion
+                        }
+                    }
+                    //#region "Flat File Creation"
+
+                    string path = txtFilePath.Text + "\\" + ddlECSNo.SelectedValue.Replace("/", "-") + ".txt";
+                    try
+                    {
+                        if (File.Exists(path))
+                        {
+                            File.Delete(path);
+                        }
+                        using (FileStream fs = File.Create(path))
+                        {
+                            Byte[] infohdr = new UTF8Encoding(true).GetBytes(strECSBuilderhdr.ToString() + strECSBuilder.ToString());
+                            fs.Write(infohdr, 0, infohdr.Length);
+
+                        }
+                        using (StreamReader sr = File.OpenText(path))
+                        {
+                            string s = "";
+                            while ((s = sr.ReadLine()) != null)
+                            {
+                                Console.WriteLine(s);
+                            }
+                        }
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('ECS Flat file Re-generated successfully');" + strRedirectPageView, true);
+                    }
+                    catch (Exception Ex)
+                    {
+                        ClsPubCommErrorLogDB.CustomErrorRoutine(Ex, strPageName);
+                        Console.WriteLine(Ex.ToString());
+                    }
+
+
+                    //#endregion
+                }
+            }
+            else
+            {
+                Utility.FunShowAlertMsg(this.Page, "File path is not defined in Document path setup");
+                return;
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+    protected void btnGeneration_Click(object sender, EventArgs e)
+    {
+        if (txtFilePath.Text.Trim() == "")
+        {
+            Utility.FunShowAlertMsg(this.Page, "File path is not defined in Document path setup");
+            return;
+        }
+
+        objEcs_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+        DataTable dt = null;
+        DataSet DS = null;
+
+        if (Page.IsValid)
+        {
+            if (!string.IsNullOrEmpty(txtFilePath.Text.Trim()))
+            {
+                string[] strScan = txtFilePath.Text.Trim().Split('\\');
+                var matchQuery = from word in strScan
+                                 where word == ""
+                                 select word;
+
+                // Count the matches.
+                int wordCount = matchQuery.Count();
+
+                if (wordCount >= 2 || txtFilePath.Text.Trim().Contains('/'))
+                {
+                    Utility.FunShowAlertMsg(this.Page, "Invalid File path");
+                    return;
+                }
+            }
+
+            if (Directory.Exists(txtFilePath.Text))
+            {
+
+                if (ViewState["dtECSSpool"] != null)
+                {
+                    dtECSSpool = (DataTable)ViewState["dtECSSpool"];
+                }
+
+                if (dtECSSpool.Rows.Count > 0)
+                {
+                    DataTable dtHeader = new DataTable();
+                    DataTable dtDetails = new DataTable();
+
+                    #region "Fetching Accounts"
+
+                    if (Procparam != null)
+                        Procparam.Clear();
+                    else
+                        Procparam = new Dictionary<string, string>();
+
+                    Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                    Procparam.Add("@ECS_No", Convert.ToString(ddlECSNo.SelectedValue));
+                    Procparam.Add("@Option", "1");
+                    Procparam.Add("@Bank_Det_Id", ddlBankCode.SelectedValue);
+                    dsHdrDtl = Utility.GetDataset("S3G_CLN_ECS_HdrDtls", Procparam);
+
+                    if (dsHdrDtl.Tables.Count > 0)
+                    {
+                        DataTable dthdr = dsHdrDtl.Tables[0].Copy();
+                        DataTable dtdtl = dsHdrDtl.Tables[1].Copy();
+
+                        DataRow[] drHeader = dtECSSpool.Select("Header_Detail='H'");
+                        DataRow[] drDetails = dtECSSpool.Select("Header_Detail='D'");
+                        #region "Header Part"
+                        if (drHeader.Length > 0)
+                        {
+                            if (dthdr.Rows.Count > 0)//Header Part
+                            {
+
+                                int intFrom = 1, intECSLen = 0;
+                                string strFieldType = string.Empty;
+
+                                foreach (DataRow drhhdr in drHeader)
+                                {
+                                    intECSLen = Convert.ToInt32(drhhdr["ECS_Length"].ToString());
+                                    string strvalue = string.Empty;
+                                    switch (drhhdr["Field_Name"].ToString())
+                                    {
+                                        case "1":// ECS Transaction Code
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["ECS_Trans_Code"].ToString()))
+                                                strvalue = dthdr.Rows[0]["ECS_Trans_Code"].ToString();
+                                            break;
+                                        case "2":// User Number
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["User_Number"].ToString()))
+                                                strvalue = dthdr.Rows[0]["User_Number"].ToString();
+                                            break;
+                                        case "3":// User Name
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["User_Name"].ToString()))
+                                                strvalue = dthdr.Rows[0]["User_Name"].ToString();
+                                            break;
+                                        case "4":// User Debit Reference
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["User_Debit_Ref"].ToString()))
+                                                strvalue = dthdr.Rows[0]["User_Debit_Ref"].ToString();
+                                            break;
+                                        case "5":// ECS Tape Input No
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["ECS_Tape_Input_No"].ToString()))
+                                                strvalue = dthdr.Rows[0]["ECS_Tape_Input_No"].ToString();
+                                            break;
+                                        case "6":// Sponsor Bank Branch Sort Code
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["Sponsor_Bank_Sort_Code"].ToString()))
+                                                strvalue = dthdr.Rows[0]["Sponsor_Bank_Sort_Code"].ToString();
+                                            break;
+                                        case "7":// User's Bank Account No
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["Users_Bank_Account_No"].ToString()))
+                                                strvalue = dthdr.Rows[0]["Users_Bank_Account_No"].ToString();
+                                            break;
+                                        case "8":// Ledger Folio Number
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["Ledger_Folio_Number"].ToString()))
+                                                strvalue = dthdr.Rows[0]["Ledger_Folio_Number"].ToString();
+                                            break;
+                                        case "9":// User-defined limit for individual debit items
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["Limit_ind_debit_items"].ToString()))
+                                                strvalue = dthdr.Rows[0]["Limit_ind_debit_items"].ToString();
+                                            break;
+                                        case "10":// Total Amount (Balancing Debit amount)
+                                            decimal decTot_Amount = 0;
+                                            if (dtdtl.Rows.Count > 0)
+                                            {
+                                                try
+                                                {
+                                                    decTot_Amount = (decimal)dtdtl.Compute("sum(INSTALLMENT_AMOUNT)", "INSTALLMENT_AMOUNT > 0");
+                                                }
+                                                catch (Exception ex) { }
+                                            }
+                                            strvalue = decTot_Amount.ToString();
+                                            break;
+                                        case "11":// Settlement date 
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["Settlement_date"].ToString()))
+                                                strvalue = dthdr.Rows[0]["Settlement_date"].ToString();
+                                            break;
+                                        case "12":// Filler
+                                            if (!string.IsNullOrEmpty(dthdr.Rows[0]["Filler1"].ToString()))
+                                                strvalue = dthdr.Rows[0]["Filler1"].ToString();
+                                            break;
+
+                                    }
+                                    if (intFrom != Convert.ToInt32(drhhdr["ECS_From_Position"].ToString()))
+                                    {
+                                        for (int j = intFrom; j < Convert.ToInt32(drhhdr["ECS_From_Position"].ToString()); j++)
+                                        {
+                                            strECSBuilderhdr.Append(" ");
+                                        }
+                                    }
+                                    intFrom = Convert.ToInt32(drhhdr["ECS_To_Position"].ToString()) + 1;
+                                    //intTo = Convert.ToInt32(dt.Rows[i]["ECS_To"].ToString());                            
+
+                                    if (strvalue.Length >= intECSLen)
+                                        strECSBuilderhdr.Append(strvalue.Substring(0, intECSLen));
+                                    else
+                                    {
+                                        strECSBuilderhdr.Append(strvalue);
+                                        for (int j = 0; j < intECSLen - strvalue.Length; j++)
+                                        {
+                                            strECSBuilderhdr.Append(" ");
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                        #endregion
+
+                        #region "Details Part"
+
+                        if (drDetails.Length > 0)
+                        {
+                            if (dtdtl.Rows.Count > 0)//Details Part
+                            {
+
+                                foreach (DataRow drECSRecs in dtdtl.Rows)
+                                {
+                                    strECSBuilder.Append(Environment.NewLine);
+                                    int intFrom = 1, intECSLen = 0;
+                                    string strFieldType = string.Empty;
+
+                                    foreach (DataRow drSpool in drDetails)
+                                    {
+                                        intECSLen = Convert.ToInt32(drSpool["ECS_Length"].ToString());
+                                        string strvalue = string.Empty;
+                                        switch (drSpool["Field_Name"].ToString())
+                                        {
+                                            case "13":// ECS Transaction Code
+                                                if (!string.IsNullOrEmpty(drECSRecs["ECS_Trans_Code"].ToString()))
+                                                    strvalue = drECSRecs["ECS_Trans_Code"].ToString();
+                                                break;
+                                            case "14"://  Destination Sort Code
+                                                if (!string.IsNullOrEmpty(drECSRecs["Dest_Sort_Code"].ToString()))
+                                                    strvalue = drECSRecs["Dest_Sort_Code"].ToString();
+                                                break;
+                                            case "15"://  Destination Account 
+                                                if (!string.IsNullOrEmpty(drECSRecs["Destination_Account"].ToString()))
+                                                    strvalue = drECSRecs["Destination_Account"].ToString();
+                                                break;
+                                            case "16"://  Ledger Folio Number
+                                                if (!string.IsNullOrEmpty(drECSRecs["Ledger_Folio_Number"].ToString()))
+                                                    strvalue = drECSRecs["Ledger_Folio_Number"].ToString();
+                                                break;
+                                            case "17"://  Destination Account No
+                                                if (!string.IsNullOrEmpty(drECSRecs["Destination_Account_No"].ToString()))
+                                                    strvalue = drECSRecs["Destination_Account_No"].ToString();
+                                                break;
+                                            case "18":// Destination Account Holder's Name
+                                                if (!string.IsNullOrEmpty(drECSRecs["Account_Holder"].ToString()))
+                                                    strvalue = drECSRecs["Account_Holder"].ToString();
+                                                break;
+                                            case "19":// Sponsor Bank-Branch Sort Code
+                                                if (!string.IsNullOrEmpty(drECSRecs["Sponsor_Bank_Sort_Code"].ToString()))
+                                                    strvalue = drECSRecs["Sponsor_Bank_Sort_Code"].ToString();
+                                                break;
+                                            case "20"://  User Number
+                                                if (!string.IsNullOrEmpty(drECSRecs["User_Number"].ToString()))
+                                                    strvalue = drECSRecs["User_Number"].ToString();
+                                                break;
+                                            case "21"://  User Name 
+                                                if (!string.IsNullOrEmpty(drECSRecs["User_Name"].ToString()))
+                                                    strvalue = drECSRecs["User_Name"].ToString();
+                                                break;
+                                            case "22"://  User Debit Reference No
+                                                if (!string.IsNullOrEmpty(drECSRecs["User_Debit_Ref"].ToString()))
+                                                    strvalue = drECSRecs["User_Debit_Ref"].ToString();
+                                                break;
+                                            case "23"://  Amount
+                                                if (!string.IsNullOrEmpty(drECSRecs["INSTALLMENT_AMOUNT"].ToString()))
+                                                    strvalue = drECSRecs["INSTALLMENT_AMOUNT"].ToString();
+                                                break;
+                                            case "24":// Filler
+                                                if (!string.IsNullOrEmpty(drECSRecs["Filler1"].ToString()))
+                                                    strvalue = drECSRecs["Filler1"].ToString();
+                                                break;
+
+                                        }
+                                        if (intFrom != Convert.ToInt32(drSpool["ECS_From_Position"].ToString()))
+                                        {
+                                            for (int j = intFrom; j < Convert.ToInt32(drSpool["ECS_From_Position"].ToString()); j++)
+                                            {
+                                                strECSBuilder.Append(" ");
+                                            }
+                                        }
+                                        intFrom = Convert.ToInt32(drSpool["ECS_To_Position"].ToString()) + 1;
+                                        //intTo = Convert.ToInt32(dt.Rows[i]["ECS_To"].ToString());                            
+
+                                        if (strvalue.Length >= intECSLen)
+                                            strECSBuilder.Append(strvalue.Substring(0, intECSLen));
+                                        else
+                                        {
+                                            strECSBuilder.Append(strvalue);
+                                            for (int j = 0; j < intECSLen - strvalue.Length; j++)
+                                            {
+                                                strECSBuilder.Append(" ");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        #endregion
+                    }
+
+                    #endregion
+
+                    #region "Save"
+                    string strECSNumber = "";
+                    try
+                    {
+                        objS3G_CLN_EcsDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSDataTable();
+                        objS3G_CLN_EcsDataRow = objS3G_CLN_EcsDataTable.NewS3G_CLN_ECSRow();
+
+                        objS3G_CLN_EcsDataRow.Company_ID = intCompanyID;
+                        objS3G_CLN_EcsDataRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+                        if (hidBrachCode.Value != "")
+                            objS3G_CLN_EcsDataRow.Branch_ID = Convert.ToInt32(hidBrachCode.Value);
+                        else
+                            objS3G_CLN_EcsDataRow.Branch_ID = 0;
+
+                        objS3G_CLN_EcsDataRow.ECS_No = ddlECSNo.SelectedValue;
+                        objS3G_CLN_EcsDataRow.FilePath = txtFilePath.Text.Trim();
+                        objS3G_CLN_EcsDataRow.ECS_DocDate = DateTime.Now;
+                        objS3G_CLN_EcsDataRow.Fixed_Billing_date = DateTime.Now;
+                        objS3G_CLN_EcsDataRow.Authorized_By = intUserID;
+                        objS3G_CLN_EcsDataRow.Authorized_Date = DateTime.Now;
+                        objS3G_CLN_EcsDataRow.Authorization_Status = "1";
+                        objS3G_CLN_EcsDataRow.Account_Link_key = 1;
+                        objS3G_CLN_EcsDataRow.Created_By = intUserID;
+                        objS3G_CLN_EcsDataRow.Created_On = DateTime.Now;
+                        objS3G_CLN_EcsDataRow.Modified_By = intUserID;
+                        objS3G_CLN_EcsDataRow.Modified_On = DateTime.Now;
+                        objS3G_CLN_EcsDataRow.Txn_ID = 1;
+                        objS3G_CLN_EcsDataRow.XMLDetails = "";
+                        objS3G_CLN_EcsDataRow.XMLReceipt = "";
+                        objS3G_CLN_EcsDataRow.Password = ddlBankCode.SelectedValue;//Consider Password as BankCode for Journal Entry
+
+                        objS3G_CLN_EcsDataTable.AddS3G_CLN_ECSRow(objS3G_CLN_EcsDataRow);
+
+                        intErrCode = objEcs_Client.FunPubCreateECSProcess(out strECSNumber, ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_EcsDataTable, ObjSerMode));
+                        if (intErrCode == 0)
+                        {
+
+                            #region "Flat File Creation"
+
+                            string path = txtFilePath.Text + "\\" + ddlECSNo.SelectedValue.Replace("/", "-") + ".txt";
+                            if (!Directory.Exists(txtFilePath.Text))
+                            {
+                                Utility.FunShowAlertMsg(this, "Invalid File path");
+                                return;
+                            }
+                            try
+                            {
+                                if (File.Exists(path))
+                                {
+                                    File.Delete(path);
+                                }
+                                using (FileStream fs = File.Create(path))
+                                {
+                                    Byte[] infohdr = new UTF8Encoding(true).GetBytes(strECSBuilderhdr.ToString() + strECSBuilder.ToString());
+                                    fs.Write(infohdr, 0, infohdr.Length);
+                                }
+                                using (StreamReader sr = File.OpenText(path))
+                                {
+                                    string s = "";
+                                    while ((s = sr.ReadLine()) != null)
+                                    {
+                                        Console.WriteLine(s);
+                                    }
+                                }
+                                ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('ECS Flat file generate successfully');" + strRedirectPageView, true);
+                            }
+                            catch (Exception Ex)
+                            {
+                                ClsPubCommErrorLogDB.CustomErrorRoutine(Ex, strPageName);
+                                Console.WriteLine(Ex.ToString());
+                            }
+
+
+                            #endregion
+
+                        }
+                        else if ((intErrCode == 50) || (intErrCode == 51) || (intErrCode == 52) || (intErrCode == 53) || (intErrCode == 120) || (intErrCode == 54))
+                        {
+                            Utility.FunShowValidationMsg(this.Page, "", intErrCode);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+                        throw ex;
+                    }
+                    finally
+                    {
+                        objEcs_Client.Close();
+                    }
+                    #endregion
+
+
+                }
+                else
+                {
+                    Utility.FunShowAlertMsg(this, "Invalid File path");
+                    return;
+                }
+
+            }
+
+        }
+        else
+        {
+            Utility.FunShowAlertMsg(this, "Error in ECS Flat file generation");
+            return;
+        }
+
+    }
+
+
+    //protected void btnGeneration_Click(object sender, EventArgs e)
+    //{
+    //    if (txtFilePath.Text.Trim() == "")
+    //    {
+    //        Utility.FunShowAlertMsg(this.Page, "File path is not defined in Document path setup");
+    //        return;
+    //    }
+
+    //    objEcs_Client = new ClnReceiptMgtServicesReference.ClnReceiptMgtServicesClient();
+    //    DataTable dt = null;
+    //    DataSet DS = null;
+    //    DataSet dsHdrDtl = null;
+    //    if (Page.IsValid)
+    //    {
+    //        if (!string.IsNullOrEmpty(txtFilePath.Text.Trim()))
+    //        {
+    //            string[] strScan = txtFilePath.Text.Trim().Split('\\');
+    //            var matchQuery = from word in strScan
+    //                             where word == ""
+    //                             select word;
+
+    //            // Count the matches.
+    //            int wordCount = matchQuery.Count();
+
+    //            if (wordCount >= 2 || txtFilePath.Text.Trim().Contains('/'))
+    //            {
+    //                Utility.FunShowAlertMsg(this.Page, "Invalid File path");
+    //                return;
+    //            }
+    //        }
+
+    //        if (Directory.Exists(txtFilePath.Text))
+    //        {
+    //            try
+    //            {
+    //                if (Procparam != null)
+    //                    Procparam.Clear();
+    //                else
+    //                    Procparam = new Dictionary<string, string>();
+
+    //                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+    //                Procparam.Add("@ECS_No", Convert.ToString(ddlECSNo.SelectedValue));
+    //                Procparam.Add("@Option", "4");
+    //                Procparam.Add("@Bank_ID", ddlBankCode.SelectedValue);
+    //                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+    //                Procparam.Add("@User_Id", intUserID.ToString());
+    //                Procparam.Add("@Program_Id", strProgram_ID);
+    //                if (hidBrachCode.Value != "") Procparam.Add("@Location_Id", hidBrachCode.Value);
+
+    //                DS = Utility.GetDataset("S3G_CLN_GetECSFlatFileGeneration", Procparam);
+
+    //            }
+    //            catch (Exception ex)
+    //            {
+    //                ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+    //                throw ex;
+    //            }
+    //            if (DS != null && DS.Tables.Count > 0)
+    //            {
+    //                dt = DS.Tables[0];
+    //                if (DS.Tables[1] != null && DS.Tables[1].Rows.Count > 0)
+    //                {
+    //                    Utility.FunShowAlertMsg(this.Page, "ECS Flat file spool format was not generated");
+    //                    return;
+    //                }
+    //            }
+
+    //            if (dt != null && dt.Rows.Count > 0)
+    //            {
+    //                int intFrom = 0;
+
+
+    //                #region "Header Part"
+
+    //                if (Procparam != null)
+    //                    Procparam.Clear();
+    //                else
+    //                    Procparam = new Dictionary<string, string>();
+
+    //                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+    //                //Procparam.Add("@ECS_No", Convert.ToString(ddlECSNo.SelectedValue));
+    //                Procparam.Add("@Option", "1");
+    //                Procparam.Add("@Bank_Det_Id", ddlBankCode.SelectedValue);
+    //                //Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+    //                //Procparam.Add("@User_Id", intUserID.ToString());
+    //                //Procparam.Add("@Program_Id", strProgram_ID);
+    //                //if (hidBrachCode.Value != "") Procparam.Add("@Location_Id", hidBrachCode.Value);
+
+    //                dsHdrDtl = Utility.GetDataset("S3G_CLN_ECS_HdrDtls", Procparam);
+
+    //                if (dsHdrDtl.Tables[0].Rows.Count > 0)
+    //                {
+
+
+    //                }
+
+    //                #endregion
+
+    //                #region "Detail Part"
+    //                foreach (GridViewRow grvRow in grvECS.Rows)
+    //                {
+    //                    intFrom = 1;
+    //                    for (int i = 0; i < dt.Rows.Count; i++)
+    //                    {
+    //                        Label lblBranchId = (Label)grvRow.FindControl("lblBranchId");
+    //                        if (lblBranchId.Text.Trim() == dt.Rows[i]["Location_Id"].ToString())
+    //                        {
+
+    //                            int intECSLen = Convert.ToInt32(dt.Rows[i]["ECS_Length"].ToString());
+
+    //                            string strvalue = "";
+    //                            if (dt.Rows[i]["Field_Type"].ToString() == "1")//ECS No
+    //                                strvalue = ddlECSNo.SelectedValue;
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "2")//Customer Name   //Customer Acc No
+    //                                //strvalue = grvRow.Cells[5].Text.Replace("&nbsp;", "");
+    //                                strvalue = grvRow.Cells[1].Text.Replace("&nbsp;", "");
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "3")//Customer Acc Type
+    //                                strvalue = grvRow.Cells[6].Text.Replace("&nbsp;", "");
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "4")//MICR No
+    //                                strvalue = grvRow.Cells[4].Text.Replace("&nbsp;", "");
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "5")//Bank name
+    //                                strvalue = txtBankName.Text.Replace("&nbsp;", "");
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "6")//Location
+    //                            {
+    //                                //strvalue = txtBranch.Text.Replace("&nbsp;", "");
+    //                                Label lblBranchName = (Label)grvRow.FindControl("lblBranchName");
+    //                                strvalue = lblBranchName.Text.Replace("&nbsp;", "");
+    //                            }
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "7")//RTGS
+    //                                strvalue = grvRow.Cells[1].Text.Replace("&nbsp;", "");
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "8")//MLA
+    //                            {
+    //                                Label lblSANum = (Label)grvRow.FindControl("lblSANum");
+    //                                strvalue = lblSANum.Text.Replace("&nbsp;", "");
+    //                            }
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "9")//SLA
+    //                            {
+    //                                Label lblPANum = (Label)grvRow.FindControl("lblPANum");
+    //                                strvalue = lblPANum.Text.Replace("&nbsp;", "");
+    //                            }
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "10")//Due Amount
+    //                                strvalue = grvRow.Cells[3].Text.Replace("&nbsp;", "");
+    //                            else if (dt.Rows[i]["Field_Type"].ToString() == "11")//Remarks
+    //                                strvalue = grvRow.Cells[1].Text.Replace("&nbsp;", "");
+
+    //                            if (intFrom != Convert.ToInt32(dt.Rows[i]["ECS_From"].ToString()))
+    //                            {
+    //                                for (int j = intFrom; j < Convert.ToInt32(dt.Rows[i]["ECS_From"].ToString()); j++)
+    //                                {
+    //                                    strECSBuilder.Append(" ");
+    //                                }
+    //                            }
+    //                            intFrom = Convert.ToInt32(dt.Rows[i]["ECS_To"].ToString()) + 1;
+    //                            //intTo = Convert.ToInt32(dt.Rows[i]["ECS_To"].ToString());                            
+
+    //                            if (strvalue.Length >= intECSLen)
+    //                                strECSBuilder.Append(strvalue.Substring(0, intECSLen));
+    //                            else
+    //                            {
+    //                                strECSBuilder.Append(strvalue);
+    //                                for (int j = 0; j < intECSLen - strvalue.Length; j++)
+    //                                {
+    //                                    strECSBuilder.Append(" ");
+    //                                }
+    //                            }
+    //                        }
+    //                    }
+    //                    strECSBuilder.Append(" ");
+    //                }
+    //                #endregion
+
+    //                string strECSNumber = "";
+
+    //                /*try
+    //                {
+    //                    objS3G_CLN_EcsDataTable = new S3GBusEntity.Collection.ClnReceiptMgtServices.S3G_CLN_ECSDataTable();
+    //                    objS3G_CLN_EcsDataRow = objS3G_CLN_EcsDataTable.NewS3G_CLN_ECSRow();
+
+    //                    objS3G_CLN_EcsDataRow.Company_ID = intCompanyID;
+    //                    objS3G_CLN_EcsDataRow.LOB_ID = Convert.ToInt32(ddlLOB.SelectedValue);
+    //                    if (hidBrachCode.Value != "")
+    //                        objS3G_CLN_EcsDataRow.Branch_ID = Convert.ToInt32(hidBrachCode.Value);
+    //                    else
+    //                        objS3G_CLN_EcsDataRow.Branch_ID = 0;
+
+    //                    objS3G_CLN_EcsDataRow.ECS_No = ddlECSNo.SelectedValue;
+    //                    objS3G_CLN_EcsDataRow.FilePath = txtFilePath.Text.Trim();
+    //                    objS3G_CLN_EcsDataRow.ECS_DocDate = DateTime.Now;
+    //                    objS3G_CLN_EcsDataRow.Fixed_Billing_date = DateTime.Now;
+    //                    objS3G_CLN_EcsDataRow.Authorized_By = intUserID;
+    //                    objS3G_CLN_EcsDataRow.Authorized_Date = DateTime.Now;
+    //                    objS3G_CLN_EcsDataRow.Authorization_Status = "1";
+    //                    objS3G_CLN_EcsDataRow.Account_Link_key = 1;
+    //                    objS3G_CLN_EcsDataRow.Created_By = intUserID;
+    //                    objS3G_CLN_EcsDataRow.Created_On = DateTime.Now;
+    //                    objS3G_CLN_EcsDataRow.Modified_By = intUserID;
+    //                    objS3G_CLN_EcsDataRow.Modified_On = DateTime.Now;
+    //                    objS3G_CLN_EcsDataRow.Txn_ID = 1;
+    //                    objS3G_CLN_EcsDataRow.XMLDetails = "";
+    //                    objS3G_CLN_EcsDataRow.XMLReceipt = "";
+    //                    objS3G_CLN_EcsDataRow.Password = ddlBankCode.SelectedValue;//Consider Password as BankCode for Journal Entry
+
+    //                    objS3G_CLN_EcsDataTable.AddS3G_CLN_ECSRow(objS3G_CLN_EcsDataRow);
+
+    //                    intErrCode = objEcs_Client.FunPubCreateECSProcess(out strECSNumber, ObjSerMode, ClsPubSerialize.Serialize(objS3G_CLN_EcsDataTable, ObjSerMode));
+    //                    if (intErrCode == 0)
+    //                    {
+    //                        ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, "alert('ECS Flat file generate successfully');" + strRedirectPageView, true);
+    //                    }
+    //                    else if ((intErrCode == 50) || (intErrCode == 51) || (intErrCode == 52) || (intErrCode == 53) || (intErrCode == 120) || (intErrCode == 54))
+    //                    {
+    //                        Utility.FunShowValidationMsg(this.Page, "", intErrCode);
+    //                        return;
+    //                    }
+    //                }
+    //                catch (Exception ex)
+    //                {
+    //                    ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+    //                    throw ex;
+    //                }
+    //                finally
+    //                {
+    //                    objEcs_Client.Close();
+    //                }*/
+
+    //                string path = txtFilePath.Text + "\\" + ddlECSNo.SelectedValue.Replace("/", "-") + ".txt";
+    //                try
+    //                {
+    //                    if (File.Exists(path))
+    //                    {
+    //                        File.Delete(path);
+    //                    }
+    //                    using (FileStream fs = File.Create(path))
+    //                    {
+    //                        Byte[] info = new UTF8Encoding(true).GetBytes(strECSBuilder.ToString());
+    //                        fs.Write(info, 0, info.Length);
+    //                    }
+    //                    using (StreamReader sr = File.OpenText(path))
+    //                    {
+    //                        string s = "";
+    //                        while ((s = sr.ReadLine()) != null)
+    //                        {
+    //                            Console.WriteLine(s);
+    //                        }
+    //                    }
+    //                }
+    //                catch (Exception Ex)
+    //                {
+    //                    ClsPubCommErrorLogDB.CustomErrorRoutine(Ex, strPageName);
+    //                    Console.WriteLine(Ex.ToString());
+    //                }
+    //            }
+    //            else
+    //            {
+    //                Utility.FunShowAlertMsg(this, "ECS Flat file spool format was not generated");
+    //                return;
+    //            }
+    //        }
+    //        else
+    //        {
+    //            Utility.FunShowAlertMsg(this, "Invalid File path");
+    //            return;
+    //        }
+    //    }
+
+    //}
+    // #endregion
+
+    #region "Clear Button Event"
+    //protected void btnClear_Click(object sender, EventArgs e)
+    //{
+    //    try
+    //    {
+    //        ddlECSNo.DataSource = ViewState["dtECSno"] as DataTable;
+    //        ddlECSNo.DataBind();
+    //        System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+    //        ddlECSNo.Items.Insert(0, liSelect);
+
+    //        ddlBankCode.SelectedValue = "0";
+    //        ddlLOB.SelectedValue = "0";
+    //        txtBankName.Text = "";
+    //        txtBranch.Text = "";
+    //        hidBrachCode.Value = "";
+    //        txtFilePath.Text = "";
+    //        txtFBDate.Text = "";
+
+    //        grvECS.ClearGrid();
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+    //        cvECSFFG.ErrorMessage = "Unable to Clear ECS flat File Generation";
+    //        cvECSFFG.IsValid = false;
+    //    }
+    //}
+    private void FunPubClear()
+    {
+        ddlECSNo.ClearSelection();
+        ddlECSNo.ClearDropDownList();
+        //ddlECSNo.DataSource = ViewState["dtECSno"] as DataTable;
+        //ddlECSNo.DataBind();
+        //System.Web.UI.WebControls.ListItem liSelect = new System.Web.UI.WebControls.ListItem("--Select--", "0");
+        //ddlECSNo.Items.Insert(0, liSelect);
+
+        ddlBankCode.SelectedValue = "0";
+        ddlBankCode.ClearSelection();
+        ddlBankCode.ClearDropDownList();
+        ddlLOB.SelectedValue = "0";
+        txtBankName.Text =
+        txtBranch.Text =
+        hidBrachCode.Value =
+        txtFilePath.Text =
+        txtFBDate.Text = string.Empty;
+        grvECS.ClearGrid();
+    }
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            FunPubClear();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSFFG.ErrorMessage = "Unable to Clear ECS flat File Generation";
+            cvECSFFG.IsValid = false;
+        }
+    }
+    #endregion
+
+
+    #region "ECS No Selected Index Changed Event"
+    protected void ddlECSNo_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        txtBranch.Text = "";
+        txtFBDate.Text = "";
+        hidBrachCode.Value = "";
+
+        try
+        {
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@Option", "2");
+            Procparam.Add("@User_Id", intUserID.ToString());
+            Procparam.Add("@ECS_No", ddlECSNo.SelectedValue);
+            Procparam.Add("@Program_Id", strProgram_ID);
+            DataTable dtTable = Utility.GetDefaultData("S3G_CLN_GetECSFlatFileGeneration", Procparam);
+            if (dtTable != null && dtTable.Rows.Count > 0)
+            {
+                ddlLOB.SelectedValue = dtTable.Rows[0]["LOB_ID"].ToString();
+                //Utility.ClearDropDownList(ddlLOB);
+                txtBranch.Text = dtTable.Rows[0]["Location_Name"].ToString();
+                txtFBDate.Text = DateTime.Parse(dtTable.Rows[0]["Fixed_Billing_date"].ToString(), CultureInfo.CurrentCulture.DateTimeFormat).ToString(strDateFormat);
+                hidBrachCode.Value = dtTable.Rows[0]["Location_ID"].ToString();
+            }
+
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@ECS_No", Convert.ToString(ddlECSNo.SelectedValue));
+            Procparam.Add("@Option", "3");
+            Procparam.Add("@User_Id", intUserID.ToString());
+            Procparam.Add("@Program_Id", strProgram_ID);
+            if (hidBrachCode.Value != "") Procparam.Add("@Location_Id", hidBrachCode.Value);
+
+            grvECS.DataSource = Utility.GetDefaultData("S3G_CLN_GetECSFlatFileGeneration", Procparam);
+            grvECS.DataBind();
+
+            FunPriLoadBankCode();
+
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSFFG.ErrorMessage = "Error in ECS No selected value changed";
+            cvECSFFG.IsValid = false;
+        }
+    }
+    #endregion
+
+    #region "Bank Code Selected Index Changed Event"
+    protected void ddlBankCode_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        txtBankName.Text = "";
+        try
+        {
+
+            if (ddlBankCode.SelectedItem.Text.Split('-').Length > 1)
+                txtBankName.Text = ddlBankCode.SelectedItem.Text.Split('-')[1].ToString().Trim();// dt[0]["BANK_NAME"].ToString(); 
+
+
+            if (Procparam != null)
+                Procparam.Clear();
+            else
+                Procparam = new Dictionary<string, string>();
+
+            Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+            Procparam.Add("@ECS_No", Convert.ToString(ddlECSNo.SelectedValue));
+            Procparam.Add("@Option", "1");
+            Procparam.Add("@Bank_ID", ddlBankCode.SelectedValue);
+            Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+            Procparam.Add("@User_Id", intUserID.ToString());
+            Procparam.Add("@Program_Id", strProgram_ID);
+            if (strMode == "C")
+            {
+                if (hidBrachCode.Value != "")
+                    Procparam.Add("@Location_Id", hidBrachCode.Value);
+            }
+            else
+            {
+                if (hdnLocationID.Value != "")
+                    Procparam.Add("@Location_Id", hdnLocationID.Value);
+            }
+
+            dtECSSpool = Utility.GetDefaultData("S3G_CLN_ECS_Lukup", Procparam);
+
+            if (dtECSSpool.Rows.Count == 0)
+            {
+                btnGeneration.Enabled = false;
+                ViewState["dtECSSpool"] = null;
+                Utility.FunShowAlertMsg(this, "ECS spool format not defined");
+                return;
+            }
+            else
+            {
+                if (strMode == "M")
+                {
+                    btnGeneration.Enabled = false;
+                    btnReGenerate.Enabled = true;
+                }
+                if (strMode == "C")
+                {
+                    btnGeneration.Enabled = true;
+                    btnReGenerate.Enabled = false;
+                }
+                ViewState["dtECSSpool"] = dtECSSpool;
+            }
+
+
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSFFG.ErrorMessage = "Error in BankCode selected value changed";
+            cvECSFFG.IsValid = false;
+        }
+    }
+    #endregion
+
+                        #endregion
+    protected void ddlLOB_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            if (ddlLOB.SelectedIndex > 0)
+            {
+                txtBranch.Text = "";
+                txtFBDate.Text = "";
+                hidBrachCode.Value = "";
+                grvECS.ClearGrid();
+                if (Procparam != null)
+                    Procparam.Clear();
+                else
+                    Procparam = new Dictionary<string, string>();
+
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                Procparam.Add("@Option", "1");
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                Procparam.Add("@User_Id", intUserID.ToString());
+                Procparam.Add("@Program_Id", strProgram_ID);
+                ddlECSNo.BindDataTable("S3G_CLN_GetECSFlatFileGeneration", Procparam, new string[] { "ECS_NO", "ECS_NO" });
+                ddlECSNo.SelectedValue = "0";
+
+                Procparam = new Dictionary<string, string>();
+                Procparam.Add("@Company_ID", Convert.ToString(intCompanyID));
+                Procparam.Add("@LOB_ID", ddlLOB.SelectedValue);
+                Procparam.Add("@Program_Id", strProgram_ID);
+                Procparam.Add("@Is_Active", "1");
+                DataTable dtDocPath = Utility.GetDefaultData("S3G_ORG_GetDocPathforLOB", Procparam);
+
+                if (dtDocPath != null && dtDocPath.Rows.Count > 0)
+                {
+                    txtFilePath.Text = dtDocPath.Rows[0][0].ToString();
+                }
+                else
+                {
+                    txtFilePath.Text = "";
+                }
+            }
+            else
+            {
+                FunPubClear();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex, strPageName);
+            cvECSFFG.ErrorMessage = "Error in LOB selected value changed";
+            cvECSFFG.IsValid = false;
+        }
+    }
+}

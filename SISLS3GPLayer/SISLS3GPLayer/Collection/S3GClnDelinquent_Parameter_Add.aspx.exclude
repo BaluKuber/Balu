@@ -1,0 +1,424 @@
+﻿<%@ Page Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true"
+    CodeFile="S3GClnDelinquent_Parameter_Add.aspx.cs" Inherits="Collection_S3GClnDelinquent_Parameter_Add" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+        <ContentTemplate>
+            <table width="100%" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stylePageHeading">
+                        <table>
+                            <tr>
+                                <td>
+                                    <asp:Label runat="server" Text="Delinquency Parameter" ID="lblHeading" CssClass="styleDisplayLabel">
+                                    </asp:Label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign="top">
+                        <table cellpadding="0" cellspacing="0" style="width: 100%">
+                            <tr>
+                                <td colspan="3">
+                                    <asp:RequiredFieldValidator ID="RFVtxtCutOffMonth" CssClass="styleMandatoryLabel"
+                                        runat="server" ControlToValidate="txtCutOffMonth" ErrorMessage="Enter Cut Off Month"
+                                        Display="None" ValidationGroup="btnSave"></asp:RequiredFieldValidator>
+                                    <%--<asp:RangeValidator ID="RVtxtCutOffMonth" runat="server" ControlToValidate="txtCutOffMonth" MinimumValue="1"
+                                        Display="None" MaximumValue="12" ErrorMessage="Months can be between 1 and 12 only"
+                                        Type="Integer" ValidationGroup="btnSave"></asp:RangeValidator>--%>
+                                    <%--<asp:CustomValidator ID="custCheck" runat="server" Display="None" OnServerValidate="custCheck_ServerValidate"
+                                         ValidationGroup="btnSave" ></asp:CustomValidator>--%>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <asp:Panel runat="server" ID="Panel1" CssClass="stylePanel" GroupingText="Delinquency Type"
+                                        Width="99%">
+                                        <table width="100%">
+                                            <tr style="width: 100%;">
+                                                <td class="styleFieldLabel" style="width: 15%;">
+                                                    <asp:Label runat="server" Text="Delinquency Type" ID="Label1">
+                                                    </asp:Label>
+                                                </td>
+                                                <td class="styleFieldAlign" align="left" style="width: 30%;">
+                                                    <asp:RadioButtonList ID="RBLDelinquentType" runat="server" RepeatDirection="Horizontal"
+                                                        AutoPostBack="true" OnSelectedIndexChanged="RBLDelinquentType_SelectedIndexChanged">
+                                                        <%--onselectedindexchanged="RBLDelinquentType_SelectedIndexChanged" AutoPostBack="true">--%>
+                                                        <asp:ListItem Text="Statutory" Value="0" Selected="True"></asp:ListItem>
+                                                        <asp:ListItem Text="Company" Value="1"></asp:ListItem>
+                                                    </asp:RadioButtonList>
+                                                    <%-- <asp:RadioButton ID="rdoStatutory" runat="server" Text="Statutory" 
+                                                     GroupName="DelinquentType" />
+                                                <asp:RadioButton ID="rdoCompany" runat="server" Text="Company" 
+                                                     GroupName="DelinquentType" />--%>
+                                                </td>
+                                                <td class="styleFieldLabel">
+                                                    <asp:Label runat="server" Text="Line of Business" ID="lblLOB">
+                                                    </asp:Label>
+                                                </td>
+                                                <td class="styleFieldAlign" align="left">
+                                                    <asp:DropDownList ID="ddlLOB" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlLOB_SelectedIndexChanged">
+                                                    </asp:DropDownList>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                 <td class="styleFieldLabel" style="width: 15%;">
+                                                    <asp:Label runat="server" Text="Period Type" ID="Label2" CssClass="styleReqFieldLabel">
+                                                    </asp:Label>
+                                                </td>
+                                                <td class="styleFieldAlign" align="left" style="width: 30%;">
+                                                    <asp:DropDownList ID="ddlPeriodtype" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlPeriodtype_SelectedIndexChanged">
+                                                        <asp:ListItem Value="1">Month</asp:ListItem>
+                                                        <asp:ListItem Value="2">Days</asp:ListItem>
+                                                    </asp:DropDownList>
+                                                    
+                                                </td>
+                                               
+                                                <td class="styleFieldLabel">
+                                                    <asp:Label runat="server" Text="Active" ID="lblActvie">
+                                                    </asp:Label>
+                                                </td>
+                                                <td class="styleFieldAlign" align="left">
+                                                    <asp:CheckBox ID="chkIsActive" runat="server" Enabled="false" />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                 <td class="styleFieldLabel" style="width: 15%;">
+                                                    <asp:Label runat="server" Text="Cut Off Month" ID="lblCutOffMonth" CssClass="styleReqFieldLabel">
+                                                    </asp:Label>
+                                                </td>
+                                                <td class="styleFieldAlign" align="left" style="width: 30%;">
+                                                    <asp:TextBox ID="txtCutOffMonth" Style="text-align: right" runat="server" MaxLength="2"
+                                                        Width="15%" onblur="FunZerocheck(this);"></asp:TextBox>
+                                                    <cc1:FilteredTextBoxExtender ID="FTEtxtCutOffMonth" runat="server" FilterType="Numbers"
+                                                        TargetControlID="txtCutOffMonth">
+                                                    </cc1:FilteredTextBoxExtender>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    &nbsp;
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </asp:Panel>
+                                </td>
+                                <td class="styleFieldAlign">
+                                    &nbsp;
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3">
+                                    <table border="0" width="100%" align="center" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td align="center">
+                                                <asp:Panel runat="server" ID="Panel7" CssClass="stylePanel" GroupingText="Delinquency Parameter"
+                                                    Width="50%">
+                                                    <asp:GridView ShowFooter="true" runat="server" AutoGenerateColumns="false" Width="100%"
+                                                        ID="grvDelinquentParameterdetails" OnRowEditing="grvDelinquentParameterdetails_RowEditing"
+                                                        OnRowCommand="grvDelinquentParameterdetails_OnRowCommand" OnRowDeleting="grvDelinquentParameterdetails_OnRowDeleting"
+                                                        OnRowUpdating="grvDelinquentParameterdetails_RowUpdating" OnRowCancelingEdit="grvDelinquentParameterdetails_RowCancelingEdit">
+                                                        <Columns>
+                                                            <asp:TemplateField HeaderText="SI.No" Visible="false">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="txtSerial" Style="text-align: right" Text='<%# Eval("Delinquent_Parameter_ID")%>'
+                                                                        runat="server" Visible="false"></asp:Label>
+                                                                </ItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:TextBox ID="txtSerialAdd" MaxLength="7" runat="server"></asp:TextBox>
+                                                                    <cc1:FilteredTextBoxExtender ID="FTEtxtSerialAdd" runat="server" FilterType="Numbers"
+                                                                        TargetControlID="txtSerialAdd">
+                                                                    </cc1:FilteredTextBoxExtender>
+                                                                </FooterTemplate>
+                                                                <%--<HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="5%" />--%>
+                                                                <%--<ItemStyle Width="5%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="5%"/>--%>
+                                                                <%--<HeaderStyle Width="15%" />--%>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="From Month">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblMonthFrom" Style="text-align: right" Text='<%# Bind("From_Month") %>'
+                                                                        runat="server" ReadOnly="true" Width="35%"></asp:Label>
+                                                                </ItemTemplate>
+                                                                <EditItemTemplate>
+                                                                    <%-- <asp:TextBox ID="txtMonthFrom" MaxLength="3" Text='<%# Bind("From_Month") %>' runat="server" Width="50%"
+                                                                        ReadOnly="true"></asp:TextBox>
+                                                                    <cc1:FilteredTextBoxExtender ID="FTEtxtMonthFrom" runat="server" FilterType="Numbers"
+                                                                        TargetControlID="txtMonthFrom">
+                                                                    </cc1:FilteredTextBoxExtender>--%>
+                                                                    <asp:Label ID="txtMonthFrom" Style="text-align: right" Text='<%# Bind("From_Month") %>'
+                                                                        runat="server" Width="35%"></asp:Label>
+                                                                </EditItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:TextBox ID="txtMonthFromAdd" MaxLength="3" runat="server" Text="1" ReadOnly="true"
+                                                                        Width="35%" Style="text-align: right"></asp:TextBox>
+                                                                    <cc1:FilteredTextBoxExtender ID="FTEtxtMonthFromAdd" runat="server" FilterType="Numbers"
+                                                                        TargetControlID="txtMonthFromAdd">
+                                                                    </cc1:FilteredTextBoxExtender>
+                                                                    <asp:RequiredFieldValidator ID="RFVtxtMonthFromAdd" CssClass="styleMandatoryLabel"
+                                                                        runat="server" ValidationGroup="btnAdd" ControlToValidate="txtMonthFromAdd" ErrorMessage="Enter From Month value"
+                                                                        Display="None">
+                                                                    </asp:RequiredFieldValidator>
+                                                                    <%-- <asp:RangeValidator ID="RVtxtMonthFromAdd" runat="server" ControlToValidate="txtMonthFromAdd" MinimumValue="1"
+                                                Display="None" MaximumValue="12" ErrorMessage="Months can be between 1 and 12 only"
+                                                Type="Integer" ValidationGroup="btnAdd"></asp:RangeValidator>--%>
+                                                                </FooterTemplate>
+                                                                <%--<HeaderStyle Width="5%" />--%>
+                                                                <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="4%" />
+                                                                <ItemStyle Width="3%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="3%" />
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="To Month">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblMonthTo" Style="text-align: right" Text='<%# Bind("To_Month")%>'
+                                                                        MaxLength="3" runat="server" Width="45%"></asp:Label>
+                                                                </ItemTemplate>
+                                                                <EditItemTemplate>
+                                                                    <%--<asp:TextBox ID="txtMonthTo" Text='<%# Bind("To_Month")%>' MaxLength="3" runat="server"
+                                                                        OnTextChanged="txtMonthTo_OnTextChanged" AutoPostBack="true" Width="50%"></asp:TextBox>--%>
+                                                                    <asp:Label ID="txtMonthTo" Style="text-align: right" Text='<%# Bind("To_Month")%>'
+                                                                        runat="server" Width="45%"></asp:Label>
+                                                                    <%-- <cc1:FilteredTextBoxExtender ID="FTEtxtMonthTo" runat="server" FilterType="Numbers"
+                                                                        TargetControlID="txtMonthTo">
+                                                                    </cc1:FilteredTextBoxExtender>--%>
+                                                                </EditItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:TextBox ID="txtMonthToAdd" Style="text-align: right" MaxLength="3" runat="server"
+                                                                        Width="45%"></asp:TextBox>
+                                                                    <cc1:FilteredTextBoxExtender runat="server" ID="FTEtxtMonthToAdd" FilterType="Numbers"
+                                                                        TargetControlID="txtMonthToAdd">
+                                                                    </cc1:FilteredTextBoxExtender>
+                                                                    <asp:RequiredFieldValidator ID="RFVtxtMonthToAdd" CssClass="styleMandatoryLabel"
+                                                                        runat="server" ValidationGroup="btnAdd" ControlToValidate="txtMonthToAdd" ErrorMessage="Enter To Month value"
+                                                                        Display="None">
+                                                                    </asp:RequiredFieldValidator>
+                                                                    <%-- <asp:RangeValidator ID="RVtxtMonthToAdd" runat="server" ControlToValidate="txtMonthToAdd" MinimumValue="1"
+                                                Type="Integer" MaximumValue="12" ErrorMessage="Months can be between 1 and 12 only"
+                                                Display="None" ValidationGroup="btnAdd"></asp:RangeValidator>--%>
+                                                                </FooterTemplate>
+                                                                <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="3%" />
+                                                                <ItemStyle Width="3%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="3%" />
+                                                                <%--<HeaderStyle Width="20%" />--%>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Unsecured Principal %">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="lblUnsecurePrincipalPercentage" Style="text-align: right" Text='<%# Bind("Insecure_Principal") %>'
+                                                                        MaxLength="3" runat="server" Width="30%"></asp:Label>
+                                                                </ItemTemplate>
+                                                                <EditItemTemplate>
+                                                                    <asp:TextBox ID="txtUnsecurePrincipalPercentage" Style="text-align: right" Text='<%# Bind("Insecure_Principal") %>'
+                                                                        Width="35%" MaxLength="6" runat="server" onblur="FuncheckPercentage(this);"></asp:TextBox>
+                                                                    <cc1:FilteredTextBoxExtender ID="FTEtxtUnsecurePrincipalPercentage" runat="server"
+                                                                        FilterType="Numbers,Custom" ValidChars="." TargetControlID="txtUnsecurePrincipalPercentage">
+                                                                    </cc1:FilteredTextBoxExtender>
+                                                                </EditItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:TextBox ID="txtUnsecurePrincipalPercentageAdd" Style="text-align: right" MaxLength="6"
+                                                                        runat="server" Width="35%" onblur="FuncheckPercentage(this);"></asp:TextBox>
+                                                                    <cc1:FilteredTextBoxExtender ID="FTEtxtUnsecurePrincipalPercentageAdd" runat="server"
+                                                                        FilterType="Numbers,Custom" ValidChars="."  TargetControlID="txtUnsecurePrincipalPercentageAdd">
+                                                                    </cc1:FilteredTextBoxExtender>
+                                                                    <asp:RequiredFieldValidator ID="RFVtxtUnsecurePrincipalPercentageAdd" CssClass="styleMandatoryLabel"
+                                                                        runat="server" ControlToValidate="txtUnsecurePrincipalPercentageAdd" ErrorMessage="Enter Unsecured Principal %"
+                                                                        Display="None" ValidationGroup="btnAdd">
+                                                                    </asp:RequiredFieldValidator>
+                                                                    <asp:RangeValidator ID="RVtxtUnsecurePrincipalPercentageAdd" runat="server" ControlToValidate="txtUnsecurePrincipalPercentageAdd"
+                                                                        Type="Integer" MinimumValue="0" MaximumValue="100" ErrorMessage="Percenatge can be between 0 and 100 only"
+                                                                        Display="None" ValidationGroup="btnAdd"></asp:RangeValidator>
+                                                                </FooterTemplate>
+                                                                <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="5%" />
+                                                                <ItemStyle Width="2%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="2%" />
+                                                                <%--<HeaderStyle Width="20%" />--%>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Secured Principal %">
+                                                                <ItemTemplate>
+                                                                    <asp:Label ID="txtSecurePrincipalPercentage" Style="text-align: right" Text='<%# Bind("Secure_Principal") %>'
+                                                                        runat="server" Width="30%" onblur="FuncheckPercentage(this);"></asp:Label>
+                                                                </ItemTemplate>
+                                                                <EditItemTemplate>
+                                                                    <asp:TextBox ID="txtSecurePrincipalPercentage" Style="text-align: right" Text='<%# Bind("Secure_Principal") %>'
+                                                                        Width="35%" MaxLength="6" runat="server" onblur="FuncheckPercentage(this);"></asp:TextBox>
+                                                                    <cc1:FilteredTextBoxExtender ID="FTEtxtSecurePrincipalPercentage" runat="server"
+                                                                        FilterType="Numbers,Custom" ValidChars="."  TargetControlID="txtSecurePrincipalPercentage">
+                                                                    </cc1:FilteredTextBoxExtender>
+                                                                </EditItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:TextBox ID="txtSecurePrincipalPercentageAdd" Style="text-align: right" MaxLength="6"
+                                                                        runat="server" Width="35%" onblur="FuncheckPercentage(this);"></asp:TextBox>
+                                                                    <cc1:FilteredTextBoxExtender ID="FTEtxtSecurePrincipalPercentageAdd" runat="server"
+                                                                        FilterType="Numbers,Custom" ValidChars="." TargetControlID="txtSecurePrincipalPercentageAdd">
+                                                                    </cc1:FilteredTextBoxExtender>
+                                                                    <asp:RequiredFieldValidator ID="RFVtxtSecurePrincipalPercentageAdd" CssClass="styleMandatoryLabel"
+                                                                        runat="server" ControlToValidate="txtSecurePrincipalPercentageAdd" ErrorMessage="Enter Secured Principal %"
+                                                                        Display="None" ValidationGroup="btnAdd">
+                                                                    </asp:RequiredFieldValidator>
+                                                                    <asp:RangeValidator ID="RVtxtSecurePrincipalPercentageAdd" runat="server" ControlToValidate="txtSecurePrincipalPercentageAdd"
+                                                                        ValidationGroup="btnAdd" Type="Integer" Display="None" MinimumValue="0" MaximumValue="100"
+                                                                        ErrorMessage="Percenatge can be between 0 and 100 only"></asp:RangeValidator>
+                                                                </FooterTemplate>
+                                                                <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="5%" />
+                                                                <ItemStyle Width="2%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="2%" />
+                                                                <%-- <HeaderStyle Width="20%" />--%>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Interest Income">
+                                                                <ItemTemplate>
+                                                                    <asp:CheckBox ID="chkInterestIncome" Checked='<%#DataBinder.Eval(Container.DataItem, "Interest_Income").ToString().ToUpper() == "TRUE"%>' runat="server" />
+                                                                </ItemTemplate>
+                                                                <EditItemTemplate>
+                                                                    <asp:CheckBox ID="EditchkInterestIncome" Checked='<%#DataBinder.Eval(Container.DataItem, "Interest_Income").ToString().ToUpper() == "TRUE"%>'
+                                                                        runat="server" />
+                                                                </EditItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:CheckBox ID="chkInterestIncomeAdd" runat="server" />
+                                                                </FooterTemplate>
+                                                                <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="2%" />
+                                                                <ItemStyle Width="2%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="2%" />
+                                                                <%--<HeaderStyle Width="20%" />--%>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Other Income">
+                                                                <ItemTemplate>
+                                                                    <asp:CheckBox ID="chkOtherIncome" Checked='<%#DataBinder.Eval(Container.DataItem, "Other_Income").ToString().ToUpper() == "TRUE"%>' runat="server" />
+                                                                </ItemTemplate>
+                                                                <EditItemTemplate>
+                                                                    <asp:CheckBox ID="EditchkOtherIncome" Checked='<%#DataBinder.Eval(Container.DataItem, "Other_Income").ToString().ToUpper() == "TRUE"%>' runat="server" />
+                                                                </EditItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:CheckBox ID="chkOtherIncomeAdd" runat="server" />
+                                                                </FooterTemplate>
+                                                                <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="2%" />
+                                                                <ItemStyle Width="2%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="2%" />
+                                                                <%-- <HeaderStyle Width="20%" />--%>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Manual">
+                                                                <ItemTemplate>
+                                                                    <asp:CheckBox ID="chkIsManual" Checked='<%#DataBinder.Eval(Container.DataItem, "IsManual").ToString().ToUpper() == "TRUE"%>' runat="server" AutoPostBack="true"
+                                                                        OnCheckedChanged="chkIsManual_CheckedChanged" />
+                                                                </ItemTemplate>
+                                                                <EditItemTemplate>
+                                                                    <asp:Label ID="lblIsmanual" runat="server" />
+                                                                </EditItemTemplate>
+                                                                <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="2%" />
+                                                                <ItemStyle Width="2%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="2%" />
+                                                                <%-- <HeaderStyle Width="20%" />--%>
+                                                            </asp:TemplateField>
+                                                            <asp:TemplateField HeaderText="Edit">
+                                                                <%--<HeaderStyle Width="10%" />--%>
+                                                                <EditItemTemplate>
+                                                                    <asp:LinkButton ID="lnkUpdate" runat="server" Text="Update" CommandName="Update"
+                                                                        CausesValidation="false"></asp:LinkButton>
+                                                                    <asp:LinkButton ID="lnkCancel" runat="server" Text="Cancel" CommandName="Cancel"
+                                                                        CausesValidation="false"></asp:LinkButton>
+                                                                </EditItemTemplate>
+                                                                <ItemTemplate>
+                                                                    <%--  <asp:Button ID="btnRemove" runat="server" CommandName="Delete" OnClientClick="return confirm('Do you want to delete?');"
+                                                CssClass="styleSubmitButton"  Visible="false" Text="Remove" CausesValidation="false"></asp:Button>--%>
+                                                                    <asp:LinkButton ID="lnkEdit" runat="server" Text="Edit" Visible="false" CommandName="Edit"
+                                                                        CausesValidation="false"></asp:LinkButton>
+                                                                    &nbsp;
+                                                                    <asp:LinkButton ID="btnRemove" runat="server" Text="Delete" CommandName="Delete"
+                                                                        Visible="false" OnClientClick="return confirm('Do you want to delete?');"
+                                                                        CausesValidation="false"></asp:LinkButton>
+                                                                </ItemTemplate>
+                                                                <FooterTemplate>
+                                                                    <asp:LinkButton ID="btnAdd" runat="server" CommandName="Add" CssClass="styleSubmitButton"
+                                                                        Text="Add" OnClientClick="return fnCheckPageValidators('btnAdd',false)" CausesValidation="false"></asp:LinkButton></FooterTemplate>
+                                                                <HeaderStyle HorizontalAlign="Center" VerticalAlign="Middle" Width="3%" />
+                                                                <ItemStyle Width="3%" HorizontalAlign="Center" />
+                                                                <FooterStyle HorizontalAlign="Center" Width="3%" />
+                                                            </asp:TemplateField>
+                                                        </Columns>
+                                                    </asp:GridView>
+                                                </asp:Panel>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr class="styleButtonArea" style="padding-left: 4px">
+                    <td colspan="3" align="center">
+                        <asp:Button runat="server" ID="btnSave" CssClass="styleSubmitButton" Text="Save"
+                            OnClick="btnSave_Click" ValidationGroup="btnSave" OnClientClick="return fnCheckPageValidators('btnSave',false)" />
+                        &nbsp;<asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton"
+                            Text="Clear" OnClick="btnClear_Click" OnClientClick="return confirm('Do you want to Clear?');" />
+                        &nbsp;<asp:Button runat="server" ID="btnCancel" Text="Cancel" CausesValidation="false"
+                            CssClass="styleSubmitButton" OnClick="btnCancel_Click" />
+                    </td>
+                </tr>
+                <tr class="styleButtonArea">
+                    <td colspan="3">
+                        <asp:CustomValidator ID="CVDelinquentParameter" runat="server" Display="None" ValidationGroup="btnSave"></asp:CustomValidator>
+                        <%--<asp:Label ID="lblErrorMessage" runat="server" CssClass="styleMandatoryLabel"></asp:Label>--%>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <asp:ValidationSummary runat="server" ID="VSDelinquentParametergrid" HeaderText="Correct the following validation(s):"
+                            CssClass="styleSummaryStyle" ShowMessageBox="false" ValidationGroup="btnAdd"
+                            ShowSummary="true" />
+                        <asp:ValidationSummary runat="server" ID="VSDelinquentParameter" HeaderText="Correct the following validation(s):"
+                            CssClass="styleSummaryStyle" ShowMessageBox="false" ValidationGroup="btnSave"
+                            ShowSummary="true" />
+                    </td>
+                </tr>
+            </table>
+            </td> </tr> </table>
+        </ContentTemplate>
+    </asp:UpdatePanel>
+
+    <script language="javascript" type="text/javascript">
+  
+  function FunZerocheck(Obj1)
+  {
+    if(Obj1 != null)
+    {
+        if(Obj1.value != '');
+        {
+            if(Obj1.value=='0' || Obj1.value=='00')
+            {
+                alert('Cut Off Month cannot be zero');
+                Obj1.value='';
+                Obj1.focus();
+                return;
+            }
+        }
+    }
+  }
+  
+  
+  function FuncheckPercentage(Obj1)
+  {
+        if(Obj1 != null)
+        {
+            if(Obj1.value != '');
+            {
+                if(Obj1.value > 100)
+                {
+                    alert('Value cannot exceed 100%');
+                    Obj1.value='';
+                    Obj1.focus(); 
+                    return;
+                } 
+            }
+        }
+  }
+  
+    </script>
+
+</asp:Content>

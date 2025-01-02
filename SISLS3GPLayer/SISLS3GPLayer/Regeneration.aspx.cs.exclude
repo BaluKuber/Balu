@@ -1,0 +1,1011 @@
+﻿using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Text;
+using iTextSharp.text;
+using iTextSharp.text.html;
+using iTextSharp;
+using iTextSharp.text.pdf;
+using Microsoft.Practices.EnterpriseLibrary.Data;
+using System.Data;
+using Microsoft.SqlServer.Server;
+using S3GBusEntity;
+using CrystalDecisions.CrystalReports.Engine;
+using CrystalDecisions.Shared;
+using System.IO;
+using System.Collections.Generic;
+using System.Diagnostics.Eventing;
+using S3GBusEntity;
+
+public partial class Regeneration : ApplyThemeForProject
+{
+    S3GAdminServicesReference.S3GAdminServicesClient ObjS3GAdminClient;
+    string strAlert;
+    //string strRedirectHomePage = "window.location.href='./Common/HomePage.aspx';";
+    string strRedirectHomePage = "window.location.href='./Common/S3GMaster.aspx';";
+    string strRedirectLoginPage = "window.location.href='./LandingPage.aspx';";
+    string strPWDGPSRecyItrCount;
+
+    Dictionary<string, string> Procparam = null;
+
+
+    /// <summary>
+    /// PreInit Event of Page to set theme
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void Page_PreInit(object sender, EventArgs e)
+    {
+        Page.Theme = "S3GTheme_Blue";
+    }
+
+    private string FunPubDeleteTableHeader(string strtblName, string strHTML)
+    {
+        try
+        {
+            string row = "";
+            string newtr = String.Empty;
+            var startTag = "";
+            var endTag = "";
+            int startIndex = 0;
+            int endIndex = 0;
+            string strrow = "";
+            string strTable;
+
+            startTag = strtblName;
+            endTag = "</TABLE>";
+            startIndex = strHTML.LastIndexOf("<TABLE", strHTML.IndexOf(startTag) + startTag.Length);
+            endIndex = strHTML.IndexOf(endTag, startIndex) + endTag.Length;
+            strTable = strHTML.Substring(startIndex, endIndex - startIndex);
+            string strtempTable = strTable;
+
+            startTag = "<TR";
+            endTag = "</TR>";
+            startIndex = strtempTable.IndexOf(startTag);
+            endIndex = strtempTable.IndexOf(endTag, startIndex) + endTag.Length;
+            strrow = strtempTable.Substring(startIndex, endIndex - startIndex);
+            strtempTable = strtempTable.Replace(strrow, "");
+            strHTML = strHTML.Replace(strTable, strtempTable);
+
+            return strHTML;
+        }
+        catch (Exception ex)
+        {
+            // ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+
+    private string FunPubDeleteTable(string strtblName, string strHTML)
+    {
+        try
+        {
+            string newtr = String.Empty;
+            var startTag = "";
+            var endTag = "";
+            int startIndex = 0;
+            int endIndex = 0;
+            string strTable;
+
+            startTag = strtblName;
+            endTag = "</TABLE>";
+            startIndex = strHTML.LastIndexOf("<TABLE", strHTML.IndexOf(startTag) + startTag.Length);
+            endIndex = strHTML.IndexOf(endTag, startIndex) + endTag.Length;
+            strTable = strHTML.Substring(startIndex, endIndex - startIndex);
+
+            strHTML = strHTML.Replace(strTable, "");
+            return strHTML;
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            throw ex;
+        }
+    }
+
+    private string FunPubBindImages(string strImageName, string strHTML, string CompanyID)
+    {
+        try
+        {
+            string strFileName = @"D:\S3G_OPC\OPC_Service_LIVE_GST";
+
+            string strImagePath = String.Empty;
+            if (strImageName == "~CompanyLogo~")
+            {
+
+                strImagePath = strFileName + @"\TemplateImages\" + CompanyID + @"\CompanyLogo.png";
+            }
+            if (strImageName == "~InvoiceSignStamp~")
+            {
+                strImagePath = strFileName + @"\TemplateImages\" + CompanyID + @"\InvoiceSignStamp.png";
+            }
+            if (strImageName == "~POSignStamp~")
+            {
+                strImagePath = strFileName + @"\TemplateImages\" + CompanyID + @"\POSignStamp.png";
+            }
+            string ImageTag = "<img src='" + strImagePath + "' alt='Image'>";
+            if (strHTML.Contains(strImageName))
+                strHTML = strHTML.Replace(strImageName, ImageTag);
+            return strHTML;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+
+    protected void btnRegen_Click(object sender, EventArgs e)
+    {
+        Dictionary<string, string> objProcParam = new Dictionary<string, string>();
+
+        DataTable dtTran = Utility.GetDefaultData("TepTra", objProcParam);
+
+        for (int k = 0; k < dtTran.Rows.Count; k++)
+        {
+            objProcParam = new Dictionary<string, string>();
+            objProcParam.Add("@User_ID", "2");
+            objProcParam.Add("@Billing_ID", txtBillingId.Text);
+            objProcParam.Add("@Tranche_Id", dtTran.Rows[k]["Tranch_Header_ID"].ToString());
+            objProcParam.Add("@Is_Final", "1");
+
+            DataSet dSet = Utility.GetTableValues("S3G_LOANAD_Billing_PDF_ReGen", objProcParam);
+
+            try
+            {
+
+                DataSet dss = new DataSet();
+                System.Data.DataTable dt = new System.Data.DataTable();
+                Dictionary<string, string> Procparam;
+                Procparam = new Dictionary<string, string>();
+                S3GDALayer.S3GAdminServices.ClsPubS3GAdmin objS3gAdminClient = new S3GDALayer.S3GAdminServices.ClsPubS3GAdmin();
+                Procparam.Add("@Company_Id", "1");
+                Procparam.Add("@Lob_Id", "3");
+                Procparam.Add("@Template_Type_Code", "51");
+
+                dss = objS3gAdminClient.FunPubFillDataset("S3G_Get_TemplateCont", Procparam);
+
+                String strHTML = String.Empty;
+                strHTML = dss.Tables[0].Rows[0]["Template_Content"].ToString();
+                string strContent = "<META content='text/html; charset=utf-8' http-equiv='Content-Type'><TABLE><TR><TD> " + strHTML + "</TD></TR></TABLE>";
+                string strFolderNo, strBillNo, strCustomerName, strDocumentPath,
+                    strbillperiod, strnewFile, strAcocuntno, strBranchName, strtranche, strnewFile1;
+
+                DataTable DTTranche = dSet.Tables[3].DefaultView.ToTable(true, "Tranche_Name");
+
+
+                for (int i = 0; i < DTTranche.Rows.Count; i++)
+                {
+                    strHTML = "<META content='text/html; charset=utf-8' http-equiv='Content-Type'><TABLE><TR><TD> "
+                         + dss.Tables[0].Rows[0]["Template_Content"].ToString() + "</TD></TR></TABLE>";
+                    DataRow DRaCC = DTTranche.Rows[i];
+
+                    DataRow[] DRAccDtls = dSet.Tables[3].Select("Tranche_Name='" + DRaCC["Tranche_Name"].ToString() + "'");
+
+                    dt = dSet.Tables[3].Clone();
+                    if (DRAccDtls.Length > 0)
+                        dt = DRAccDtls.CopyToDataTable();
+
+                    if (dt.Rows.Count > 0)
+                    {
+                        strFolderNo = dt.Rows[0]["FolderNumber"].ToString();
+                        strBillNo = dt.Rows[0]["Bill_Number"].ToString();
+                        strCustomerName = dt.Rows[0]["CUSTOMER_NAME"].ToString();
+                        strDocumentPath = dt.Rows[0]["Document_Path"].ToString();
+                        strbillperiod = dt.Rows[0]["Bill_Period"].ToString();
+                        strnewFile = strDocumentPath + "\\BillNo-" + strFolderNo;
+                        strAcocuntno = dt.Rows[0]["Tranche_Name"].ToString();
+                        strnewFile += "\\" + "Rental";
+
+
+                        if (i == 0)
+                        {
+
+                            if (!Directory.Exists(strnewFile))
+                            {
+                                Directory.CreateDirectory(strnewFile);
+                            }
+                        }
+
+                        if (strCustomerName == "AXIS Bank Ltd.")
+                            strnewFile1 = strAcocuntno.Replace("(a)", "") + "_Covering.pdf";
+                        else
+                            strnewFile1 = strAcocuntno + "_Covering.pdf";
+
+                        FileInfo fl = new FileInfo(strnewFile);
+                        if (fl.Exists == true)
+                        {
+                            fl.Delete();
+                        }
+
+
+                        DataSet dsHeader = new DataSet();
+                        dsHeader.Tables.Add(dt);
+
+                        if (dt.Rows[0]["IS_POS"].ToString() == "1")
+                        {
+                            if (strHTML.Contains("~InvoiceTable~"))
+                                strHTML = FunPubDeleteTable("~InvoiceTable~", strHTML);
+
+                            if (strHTML.Contains("~InvoiceTable1~"))
+                            {
+                                strHTML = PDFPageSetup.FunPubBindTable("~InvoiceTable1~", strHTML, dt);
+                            }
+                        }
+                        else
+                        {
+                            if (strHTML.Contains("~InvoiceTable1~"))
+                                strHTML = FunPubDeleteTable("~InvoiceTable1~", strHTML);
+
+                            if (strHTML.Contains("~InvoiceTable~"))
+                            {
+                                strHTML = PDFPageSetup.FunPubBindTable("~InvoiceTable~", strHTML, dt);
+                            }
+                        }
+
+                        if (dt.Rows[0]["CHK_RTGS"].ToString() == "1")
+                        {
+                            if (strHTML.Contains("~RTGS_Company~"))
+                                strHTML = FunPubDeleteTable("~RTGS_Company~", strHTML);
+                            if (strHTML.Contains("~RTGS_Funder~"))
+                                strHTML = FunPubDeleteTable("~RTGS_Funder~", strHTML);
+
+                            if (strHTML.Contains("~RTGS_Both~"))
+                            {
+                                strHTML = FunPubDeleteTableHeader("~RTGS_Both~", strHTML);
+                            }
+                        }
+                        else if (dt.Rows[0]["CHK_RTGS"].ToString() == "2")
+                        {
+                            if (strHTML.Contains("~RTGS_Both~"))
+                                strHTML = FunPubDeleteTable("~RTGS_Both~", strHTML);
+                            if (strHTML.Contains("~RTGS_Funder~"))
+                                strHTML = FunPubDeleteTable("~RTGS_Funder~", strHTML);
+
+                            if (strHTML.Contains("~RTGS_Company~"))
+                            {
+                                strHTML = FunPubDeleteTableHeader("~RTGS_Company~", strHTML);
+                            }
+                        }
+                        else if (dt.Rows[0]["CHK_RTGS"].ToString() == "3")
+                        {
+                            if (strHTML.Contains("~RTGS_Company~"))
+                                strHTML = FunPubDeleteTable("~RTGS_Company~", strHTML);
+                            if (strHTML.Contains("~RTGS_Both~"))
+                                strHTML = FunPubDeleteTable("~RTGS_Both~", strHTML);
+
+                            if (strHTML.Contains("~RTGS_Funder~"))
+                            {
+                                strHTML = FunPubDeleteTableHeader("~RTGS_Funder~", strHTML);
+                            }
+                        }
+
+                        strHTML = PDFPageSetup.FunPubBindCommonVariables(strHTML, dt);
+
+                        if (strHTML.Contains("~CompanyLogo~"))
+                        {
+                            strHTML = FunPubBindImages("~CompanyLogo~", strHTML, "1");
+                        }
+                        if (strHTML.Contains("~InvoiceSignStamp~"))
+                        {
+                            strHTML = FunPubBindImages("~InvoiceSignStamp~", strHTML, "1");
+                        }
+                        if (strHTML.Contains("~OPCFooter~"))
+                        {
+                            strHTML = FunPubBindImages("~OPCFooter~", strHTML, "1");
+                        }
+
+                        FunPrintWord(strHTML, strnewFile, strnewFile1, "1");
+                    }
+
+                }
+
+                DTTranche = new DataTable();
+
+                Procparam = new Dictionary<string, string>();
+                objS3gAdminClient = new S3GDALayer.S3GAdminServices.ClsPubS3GAdmin();
+                Procparam.Add("@Company_Id", "1");
+                Procparam.Add("@Lob_Id", "3");
+                Procparam.Add("@Template_Type_Code", "53");
+
+                dss = objS3gAdminClient.FunPubFillDataset("S3G_Get_TemplateCont", Procparam);
+
+                strHTML = String.Empty;
+
+                strHTML = dss.Tables[0].Rows[0]["Template_Content"].ToString();
+                strContent = "<META content='text/html; charset=utf-8' http-equiv='Content-Type'><TABLE><TR><TD> " + strHTML + "</TD></TR></TABLE>";
+                DTTranche = dSet.Tables[4].DefaultView.ToTable(true, "Tranche_Name");
+
+                for (int i = 0; i < DTTranche.Rows.Count; i++)
+                {
+                    strHTML = "<META content='text/html; charset=utf-8' http-equiv='Content-Type'><TABLE><TR><TD> "
+                         + dss.Tables[0].Rows[0]["Template_Content"].ToString() + "</TD></TR></TABLE>";
+                    DataRow DRaCC = DTTranche.Rows[i];
+
+                    DataRow[] DRAccDtls = dSet.Tables[4].Select("Tranche_Name='" + DRaCC["Tranche_Name"].ToString() + "'");
+
+                    dt = dSet.Tables[4].Clone();
+
+                    if (DRAccDtls.Length > 0)
+                        dt = DRAccDtls.CopyToDataTable();
+                    if (dt.Rows.Count > 0)
+                    {
+                        strFolderNo = dt.Rows[0]["FolderNumber"].ToString();
+                        strBillNo = dt.Rows[0]["Bill_Number"].ToString();
+                        strCustomerName = dt.Rows[0]["CUSTOMER_NAME"].ToString();
+                        strDocumentPath = dt.Rows[0]["Document_Path"].ToString();
+                        strbillperiod = dt.Rows[0]["Bill_Period"].ToString();
+                        strnewFile = strDocumentPath + "\\BillNo-" + strFolderNo;
+                        strAcocuntno = dt.Rows[0]["Tranche_Name"].ToString();
+
+                        strnewFile += "\\" + "AMF";
+                        if (i == 0)
+                        {
+                            if (!Directory.Exists(strnewFile))
+                            {
+                                Directory.CreateDirectory(strnewFile);
+                            }
+                        }
+
+                        strnewFile1 = strAcocuntno.Replace("(b)", "") + "_Covering.pdf";
+
+                        DataSet dsHeader = new DataSet();
+                        dsHeader.Tables.Add(dt);
+
+
+                        if (dt.Rows[0]["IS_POS"].ToString() == "1")
+                        {
+                            if (strHTML.Contains("~InvoiceTable~"))
+                                strHTML = FunPubDeleteTable("~InvoiceTable~", strHTML);
+
+                            if (strHTML.Contains("~InvoiceTable1~"))
+                            {
+                                strHTML = PDFPageSetup.FunPubBindTable("~InvoiceTable1~", strHTML, dt);
+                            }
+                        }
+                        else
+                        {
+                            if (strHTML.Contains("~InvoiceTable1~"))
+                                strHTML = FunPubDeleteTable("~InvoiceTable1~", strHTML);
+
+                            if (strHTML.Contains("~InvoiceTable~"))
+                            {
+                                strHTML = PDFPageSetup.FunPubBindTable("~InvoiceTable~", strHTML, dt);
+                            }
+                        }
+
+                        strHTML = PDFPageSetup.FunPubBindCommonVariables(strHTML, dt);
+
+                        if (strHTML.Contains("~CompanyLogo~"))
+                        {
+                            strHTML = FunPubBindImages("~CompanyLogo~", strHTML, "1");
+                        }
+                        if (strHTML.Contains("~InvoiceSignStamp~"))
+                        {
+                            strHTML = FunPubBindImages("~InvoiceSignStamp~", strHTML, "1");
+                        }
+                        if (strHTML.Contains("~OPCFooter~"))
+                        {
+                            strHTML = FunPubBindImages("~OPCFooter~", strHTML, "1");
+                        }
+
+                        FileInfo fl = new FileInfo(strnewFile);
+                        if (fl.Exists == true)
+                        {
+                            fl.Delete();
+                        }
+
+                        FunPrintWord(strHTML, strnewFile, strnewFile1, "1");
+                    }
+
+                }
+
+                DataTable DTAccounts = dSet.Tables[0].DefaultView.ToTable(true, "ACCOUNT_NO");
+                Procparam = new Dictionary<string, string>();
+                objS3gAdminClient = new S3GDALayer.S3GAdminServices.ClsPubS3GAdmin();
+                Procparam.Add("@Company_Id", "1");
+                Procparam.Add("@Lob_Id", "3");
+                Procparam.Add("@Template_Type_Code", "12");
+
+                dss = objS3gAdminClient.FunPubFillDataset("S3G_Get_TemplateCont", Procparam);
+
+                strHTML = String.Empty;
+
+                strHTML = dss.Tables[0].Rows[0]["Template_Content"].ToString();
+                strContent = "<META content='text/html; charset=utf-8' http-equiv='Content-Type'><TABLE><TR><TD> " + strHTML + "</TD></TR></TABLE>";
+
+                for (int i = 0; i < DTAccounts.Rows.Count; i++)
+                {
+                    strHTML = "<META content='text/html; charset=utf-8' http-equiv='Content-Type'><TABLE><TR><TD> "
+                        + dss.Tables[0].Rows[0]["Template_Content"].ToString() + "</TD></TR></TABLE>";
+                    DataRow DRaCC = DTAccounts.Rows[i];
+
+                    DataRow[] DRAccDtls = dSet.Tables[0].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'");
+                    DataRow[] DRAccDtls1 = dSet.Tables[1].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'");
+                    DataRow[] DRAccDtlsSAC = dSet.Tables[6].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString().Replace("(a)", "") + "'");
+                    dt = dSet.Tables[0].Clone();
+                    DataTable dt1 = dSet.Tables[1].Clone();
+                    DataTable dtSAC = dSet.Tables[6].Clone();
+
+                    if (DRAccDtls.Length > 0)
+                        dt = DRAccDtls.CopyToDataTable();
+                    if (DRAccDtls1.Length > 0)
+                        dt1 = DRAccDtls1.CopyToDataTable();
+                    if (DRAccDtlsSAC.Length > 0)
+                        dtSAC = DRAccDtlsSAC.CopyToDataTable();
+
+                    if (dt.Rows.Count > 0)
+                    {
+                        strBranchName = dt.Rows[0]["Location"].ToString();
+                        strFolderNo = dt.Rows[0]["FolderNumber"].ToString();
+                        strtranche = dt.Rows[0]["tranche_name"].ToString();
+                        strBillNo = dt.Rows[0]["Bill_Number"].ToString();
+                        strCustomerName = dt.Rows[0]["CUSTOMER_NAME"].ToString();
+                        strDocumentPath = dt.Rows[0]["Document_Path"].ToString();
+                        strbillperiod = dt.Rows[0]["Bill_Period"].ToString();
+                        strnewFile = strDocumentPath + "\\BillNo-" + strFolderNo;
+                        strAcocuntno = dt.Rows[0]["ACCOUNT_NO"].ToString();
+
+
+                        strnewFile += "\\" + "Rental";
+                        if (i == 0)
+                        {
+                            if (!Directory.Exists(strnewFile))
+                            {
+                                Directory.CreateDirectory(strnewFile);
+                            }
+                        }
+
+
+                        strnewFile1 = strtranche + "_" + strAcocuntno + ".pdf";
+
+                        DataRow[] ObjIGSTDR = dt1.Select("InvTbl_IGST_Amount_Dbl > 0");
+
+                        if (ObjIGSTDR.Length > 0)
+                        {
+                            if (strHTML.Contains("~InvoiceTable~"))
+                                strHTML = FunPubDeleteTable("~InvoiceTable~", strHTML);
+
+                            if (strHTML.Contains("~InvoiceTable1~"))
+                            {
+                                strHTML = PDFPageSetup.FunPubBindTable("~InvoiceTable1~", strHTML, dt1);
+                            }
+                        }
+                        else
+                        {
+                            if (strHTML.Contains("~InvoiceTable1~"))
+                                strHTML = FunPubDeleteTable("~InvoiceTable1~", strHTML);
+
+                            if (strHTML.Contains("~InvoiceTable~"))
+                            {
+                                strHTML = PDFPageSetup.FunPubBindTable("~InvoiceTable~", strHTML, dt1);
+                            }
+                        }
+
+                        if (strHTML.Contains("~SACTable~"))
+                        {
+                            strHTML = PDFPageSetup.FunPubBindTable("~SACTable~", strHTML, dtSAC);
+                        }
+
+
+                        strHTML = PDFPageSetup.FunPubBindCommonVariables(strHTML, dt);
+
+                        if (strHTML.Contains("~CompanyLogo~"))
+                        {
+                            strHTML = FunPubBindImages("~CompanyLogo~", strHTML, "1");
+                        }
+                        if (strHTML.Contains("~InvoiceSignStamp~"))
+                        {
+                            strHTML = FunPubBindImages("~InvoiceSignStamp~", strHTML, "1");
+                        }
+                        if (strHTML.Contains("~OPCFooter~"))
+                        {
+                            strHTML = FunPubBindImages("~OPCFooter~", strHTML, "1");
+                        }
+
+                        FileInfo fl = new FileInfo(strnewFile);
+                        if (fl.Exists == true)
+                        {
+                            fl.Delete();
+                        }
+
+                        FunPrintWord(strHTML, strnewFile, strnewFile1, "0");
+                    }
+
+                }
+
+                Procparam = new Dictionary<string, string>();
+                objS3gAdminClient = new S3GDALayer.S3GAdminServices.ClsPubS3GAdmin();
+                Procparam.Add("@Company_Id", "1");
+                Procparam.Add("@Lob_Id", "3");
+                Procparam.Add("@Template_Type_Code", "52");
+
+                dss = objS3gAdminClient.FunPubFillDataset("S3G_Get_TemplateCont", Procparam);
+
+                strHTML = String.Empty;
+
+                strHTML = dss.Tables[0].Rows[0]["Template_Content"].ToString();
+                strContent = "<META content='text/html; charset=utf-8' http-equiv='Content-Type'><TABLE><TR><TD> " + strHTML + "</TD></TR></TABLE>";
+                DataTable DTAccounts_Amf = dSet.Tables[5].DefaultView.ToTable(true, "ACCOUNT_NO");
+                for (int i = 0; i < DTAccounts_Amf.Rows.Count; i++)
+                {
+                    strHTML = "<META content='text/html; charset=utf-8' http-equiv='Content-Type'><TABLE><TR><TD> "
+                         + dss.Tables[0].Rows[0]["Template_Content"].ToString() + "</TD></TR></TABLE>";
+                    DataRow DRaCC = DTAccounts_Amf.Rows[i];
+
+                    DataRow[] DRAccDtls = dSet.Tables[5].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'");
+                    DataRow[] DRAccDtls1 = dSet.Tables[2].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'");
+                    DataRow[] DRAccDtlsSAC1 = dSet.Tables[6].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString().Replace("(a)", "").Replace("(b)", "") + "'");
+                    dt = dSet.Tables[5].Clone();
+                    DataTable dt1 = dSet.Tables[2].Clone();
+                    DataTable dtSAC1 = dSet.Tables[6].Clone();
+                    if (DRAccDtls1.Length > 0)
+                    {
+                        if (DRAccDtls.Length > 0)
+                            dt = DRAccDtls.CopyToDataTable();
+                        if (DRAccDtls1.Length > 0)
+                            dt1 = DRAccDtls1.CopyToDataTable();
+                        if (DRAccDtlsSAC1.Length > 0)
+                            dtSAC1 = DRAccDtlsSAC1.CopyToDataTable();
+
+                        if (dt.Rows.Count > 0)
+                        {
+                            strBranchName = dt.Rows[0]["Location"].ToString();
+                            strFolderNo = dt.Rows[0]["FolderNumber"].ToString();
+                            strBillNo = dt.Rows[0]["Bill_Number"].ToString();
+                            strCustomerName = dt.Rows[0]["CUSTOMER_NAME"].ToString();
+                            strDocumentPath = dt.Rows[0]["Document_Path"].ToString();
+                            strbillperiod = dt.Rows[0]["Bill_Period"].ToString();
+                            strnewFile = strDocumentPath + "\\BillNo-" + strFolderNo;
+                            strAcocuntno = dt.Rows[0]["ACCOUNT_NO"].ToString();
+                            strtranche = dt.Rows[0]["tranche_name"].ToString();
+
+                            strnewFile += "\\" + "AMF";
+
+                            strnewFile1 = strtranche + "_" + strAcocuntno + ".pdf";
+                            FileInfo fl = new FileInfo(strnewFile);
+
+                            DataRow[] ObjIGSTDR = dt1.Select("AMF_IGST_Amount_Dbl > 0 ");
+
+                            if (ObjIGSTDR.Length > 0)
+                            {
+                                if (strHTML.Contains("~InvoiceTable~"))
+                                    strHTML = FunPubDeleteTable("~InvoiceTable~", strHTML);
+
+                                if (strHTML.Contains("~InvoiceTable1~"))
+                                {
+                                    strHTML = PDFPageSetup.FunPubBindTable("~InvoiceTable1~", strHTML, dt1);
+                                }
+                            }
+                            else
+                            {
+                                if (strHTML.Contains("~InvoiceTable1~"))
+                                    strHTML = FunPubDeleteTable("~InvoiceTable1~", strHTML);
+
+                                if (strHTML.Contains("~InvoiceTable~"))
+                                    strHTML = PDFPageSetup.FunPubBindTable("~InvoiceTable~", strHTML, dt1);
+                            }
+
+                            if (strHTML.Contains("~SACTable~"))
+                            {
+                                strHTML = PDFPageSetup.FunPubBindTable("~SACTable~", strHTML, dtSAC1);
+                            }
+
+                            strHTML = PDFPageSetup.FunPubBindCommonVariables(strHTML, dt);
+
+                            if (strHTML.Contains("~CompanyLogo~"))
+                            {
+                                strHTML = FunPubBindImages("~CompanyLogo~", strHTML, "1");
+                            }
+                            if (strHTML.Contains("~InvoiceSignStamp~"))
+                            {
+                                strHTML = FunPubBindImages("~InvoiceSignStamp~", strHTML, "1");
+                            }
+
+                            if (strHTML.Contains("~OPCFooter~"))
+                            {
+                                strHTML = FunPubBindImages("~OPCFooter~", strHTML, "1");
+                            }
+
+                            fl = new FileInfo(strnewFile);
+                            if (fl.Exists == true)
+                            {
+                                fl.Delete();
+                            }
+
+                            FunPrintWord(strHTML, strnewFile, strnewFile1, "0");
+                        }
+                    }
+                }
+                ScriptManager.RegisterStartupScript(this, this.GetType(), "", "alert('Invoice Generated Successfully.');", true);
+            }
+            catch (Exception ex)
+            {
+                ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+                lblErr.Text = ex.Message;
+                ScriptManager.RegisterStartupScript(this, this.GetType(), "", "alert('Error in Invoice Generation.');", true);
+                return;
+            }
+        }
+    }
+
+    private void FunPrintWord(string strHTML, string strnewfile, string strnewfile1, string strIsCov)
+    {
+        string strhtmlFile = (strnewfile + "Bill_Html" + DateTime.Now.ToString("ddMMMyyyyHHmmss") + ".html");
+        string strwordFile = string.Empty;
+        string strpdfFile = string.Empty;
+        string strpdfFileName = string.Empty;
+
+        strpdfFileName = strnewfile1;
+        strpdfFile = strnewfile + "\\" + strnewfile1;
+
+        try
+        {
+            if (File.Exists(strhtmlFile) == true)
+            {
+                File.Delete(strhtmlFile);
+            }
+            File.WriteAllText(strhtmlFile, strHTML);
+            object file = strhtmlFile;
+            object oMissing = System.Reflection.Missing.Value;
+            object readOnly = false;
+            object oFalse = false;
+
+            Microsoft.Office.Interop.Word._Application oWord = new Microsoft.Office.Interop.Word.Application();
+            Microsoft.Office.Interop.Word._Document oDoc = new Microsoft.Office.Interop.Word.Document();
+            oDoc = oWord.Documents.Add(ref oMissing, ref oMissing, ref oMissing, ref oMissing);
+
+            oDoc = oWord.Documents.Open(ref file, ref oMissing, ref readOnly, ref oMissing, ref oMissing, ref oMissing, ref oMissing
+                , ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing);
+            Microsoft.Office.Interop.Word.Range rng = null;
+            string img = string.Empty;
+
+            //if (oDoc.InlineShapes.Count >= 1)
+            //{
+            //    System.Configuration.AppSettingsReader AppReader = new System.Configuration.AppSettingsReader();
+            //    string strFileName = (string)AppReader.GetValue("ImagePath", typeof(string));// @"D:\S3G\SISLS3GPLayer\SISLS3GPLayer\Config.ini";// 
+            //    img = strFileName + @"\login\s3g_logo.png";
+            //    rng = oDoc.InlineShapes[1].Range;
+            //    rng.Delete();
+            //    rng.InlineShapes.AddPicture(img, false, true, Type.Missing);
+            //}
+
+            //if (oDoc.InlineShapes.Count == 1)
+            //{
+            //    System.Configuration.AppSettingsReader AppReader = new System.Configuration.AppSettingsReader();
+            //    string strFileName = (string)AppReader.GetValue("ImagePath", typeof(string));// @"D:\S3G\SISLS3GPLayer\SISLS3GPLayer\Config.ini";// 
+            //    img = strFileName + @"\Billsign.png";
+            //    rng = oDoc.InlineShapes[1].Range;
+            //    rng.Delete();
+            //    rng.InlineShapes.AddPicture(img, false, true, Type.Missing);
+            //}
+            object fileFormat = null;
+
+
+            fileFormat = Microsoft.Office.Interop.Word.WdSaveFormat.wdFormatPDF;
+            file = strpdfFile;
+
+            //oDoc.ActiveWindow.ActivePane.View.SeekView = Microsoft.Office.Interop.Word.WdSeekView.wdSeekCurrentPageFooter;
+            ////oDoc.ActiveWindow.Selection.TypeText(" \t ");
+            //oDoc.ActiveWindow.Selection.Paragraphs.Alignment = Microsoft.Office.Interop.Word.WdParagraphAlignment.wdAlignParagraphCenter;
+            //Object TotalPages = Microsoft.Office.Interop.Word.WdFieldType.wdFieldNumPages;
+            //Object CurrentPage = Microsoft.Office.Interop.Word.WdFieldType.wdFieldPage;
+            //oDoc.ActiveWindow.Selection.Fields.Add(oDoc.ActiveWindow.Selection.Range, ref CurrentPage, ref oMissing, ref oMissing);
+            //oDoc.ActiveWindow.Selection.TypeText(" / ");
+            //oDoc.ActiveWindow.Selection.Fields.Add(oDoc.ActiveWindow.Selection.Range, ref TotalPages, ref oMissing, ref oMissing);
+            oDoc = PDFPageSetup.SetWordProperties(oDoc);
+
+            if (strIsCov == "0")
+            {
+                string textDisc = "* This is an electronically generated invoice and does not require any signature\n";
+                oDoc.ActiveWindow.ActivePane.View.SeekView = Microsoft.Office.Interop.Word.WdSeekView.wdSeekCurrentPageFooter;
+                oDoc.ActiveWindow.Selection.Paragraphs.Alignment = Microsoft.Office.Interop.Word.WdParagraphAlignment.wdAlignParagraphLeft;
+                oDoc.ActiveWindow.Selection.Font.Size = 7;
+                oDoc.ActiveWindow.Selection.Font.Name = "Arial";
+                oDoc.ActiveWindow.Selection.TypeText(textDisc);
+            }
+
+            //string text = "\nRegd. Office: D-16, Nelson Chambers, Nelson Manickam Road, Chennai, Tamil Nadu - 600029.\nHead Office: 202, Natraj by Rustomjee, Sir M. V. Road, Western Express Highway, Andheri East, Mumbai - 400069.  ";
+            string text = "\nRegd. Office: Door No 5, ALSA Tower, No 186/187, 7th Floor, Poonamallee High Road, Kilpak, Chennai- 600010.\nHead Office: 202, Natraj by Rustomjee, Sir M. V. Road, Western Express Highway, Andheri East, Mumbai - 400069.  ";
+            oDoc.ActiveWindow.ActivePane.View.SeekView = Microsoft.Office.Interop.Word.WdSeekView.wdSeekCurrentPageFooter;
+            oDoc.ActiveWindow.Selection.Paragraphs.Alignment = Microsoft.Office.Interop.Word.WdParagraphAlignment.wdAlignParagraphCenter;
+            oDoc.ActiveWindow.Selection.Font.Size = 9;
+            oDoc.ActiveWindow.Selection.Font.Name = "Arial";
+            oDoc.ActiveWindow.Selection.TypeText(text);
+            //System.Configuration.AppSettingsReader AppReader = new System.Configuration.AppSettingsReader();
+            string strFileName = @"D:\S3G_OPC\OPC_Service_LIVE_GST"; //(string)AppReader.GetValue("ImagePath", typeof(string));
+            string footerimagepath = strFileName + @"\TemplateImages\1\OPCFooter.png";
+            oDoc.ActiveWindow.Selection.InlineShapes.AddPicture(footerimagepath, oMissing, true, oMissing);
+
+            oDoc.SaveAs(ref file, ref fileFormat, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing
+                , ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing, ref oMissing);
+            oDoc.Close(ref oFalse, ref oMissing, ref oMissing);
+            oWord.Quit(ref oMissing, ref oMissing, ref oMissing);
+            File.Delete(strhtmlFile);
+
+
+        }
+        catch (Exception objException)
+        {
+            throw objException;
+        }
+    }
+
+
+    protected void btnGo_Click(object sender, ImageClickEventArgs e)
+    {
+        string strUserLogin = "";
+        string strPassword = "";
+        int intCompanyID = 0;
+        int intUserID = 0;
+        int intUser_Level_Id = 0;
+        string strCompanyName = string.Empty;
+        string strCompanyCode = string.Empty;
+        string strUsername = string.Empty;
+        string strLocalization = string.Empty;
+        string strUserTheme = string.Empty;
+        string strAccess = string.Empty;
+        string strCountryName = string.Empty;
+        string strUserType = string.Empty;
+        string strMarqueeText = string.Empty;
+        DateTime Last_LoginDate;
+        int interrorCode;
+        int intUserStatus;
+        string strPWDIterationCount;
+
+        ObjS3GAdminClient = new S3GAdminServicesReference.S3GAdminServicesClient();
+        switch (0)
+        {
+            case 10:
+                Utility.FunShowAlertMsg(this, "Not a existing User");
+                break;
+            case 11:
+                Utility.FunShowAlertMsg(this, "Usage limit expired");
+                break;
+            case 0:
+                break;
+        }
+    }
+
+    private void FunPriReGen_Old()
+    {
+        try
+        {
+            DataSet dSet = new DataSet();
+
+            string strFolderNo, strBillNo, strCustomerName, strDocumentPath,
+                strbillperiod, strnewFile, strAcocuntno, strBranchName, strtranche;
+            ReportDocument rptd = new ReportDocument();
+            string ReportPath = "";
+            System.Configuration.AppSettingsReader AppReader = new System.Configuration.AppSettingsReader();
+            DataTable DTTranche = dSet.Tables[3].DefaultView.ToTable(true, "Tranche_Name");
+
+            ReportPath = (string)AppReader.GetValue("BillPDFPath", typeof(string));
+            ReportPath += "Rental_Invoice.RPT";
+            for (int i = 0; i < DTTranche.Rows.Count; i++)
+            {
+                DataRow DRaCC = DTTranche.Rows[i];
+
+                DataRow[] DRAccDtls = dSet.Tables[3].Select("Tranche_Name='" + DRaCC["Tranche_Name"].ToString() + "'");
+
+                DataTable dt = dSet.Tables[3].Clone();
+                if (DRAccDtls.Length > 0)
+                    dt = DRAccDtls.CopyToDataTable();
+
+                strFolderNo = dt.Rows[0]["FolderNumber"].ToString();
+                strBillNo = dt.Rows[0]["Bill_Number"].ToString();
+                strCustomerName = dt.Rows[0]["CUSTOMER_NAME"].ToString();
+                strDocumentPath = dt.Rows[0]["Document_Path"].ToString();
+                strbillperiod = dt.Rows[0]["Bill_Period"].ToString();
+                strnewFile = strDocumentPath + "\\BillNo-" + strFolderNo;
+                strAcocuntno = dt.Rows[0]["Tranche_Name"].ToString();
+                strnewFile += "\\" + "Rental";
+
+                if (i == 0)
+                {
+
+                    if (!Directory.Exists(strnewFile))
+                    {
+                        Directory.CreateDirectory(strnewFile);
+                    }
+                }
+
+                strnewFile += "\\" + strAcocuntno + "_Covering.pdf";
+                FileInfo fl = new FileInfo(strnewFile);
+                if (fl.Exists == true)
+                {
+                    fl.Delete();
+                }
+
+                rptd.Load(ReportPath);
+                rptd.SetDataSource(dt);
+                rptd.ExportToDisk(ExportFormatType.PortableDocFormat, strnewFile);
+
+            }
+
+            if (rptd != null)
+            {
+                rptd.Close();
+                rptd.Dispose();
+            }
+            ReportPath = "";
+
+            ReportPath = (string)AppReader.GetValue("BillPDFPath", typeof(string));
+            ReportPath += "Rental_AMF.RPT";
+            DTTranche = new DataTable();
+            DTTranche = dSet.Tables[4].DefaultView.ToTable(true, "Tranche_Name");
+            rptd = new ReportDocument();
+            for (int i = 0; i < DTTranche.Rows.Count; i++)
+            {
+                DataRow DRaCC = DTTranche.Rows[i];
+
+                DataRow[] DRAccDtls = dSet.Tables[4].Select("Tranche_Name='" + DRaCC["Tranche_Name"].ToString() + "'");
+
+                DataTable dt = dSet.Tables[4].Clone();
+
+                if (DRAccDtls.Length > 0)
+                    dt = DRAccDtls.CopyToDataTable();
+
+                strFolderNo = dt.Rows[0]["FolderNumber"].ToString();
+                strBillNo = dt.Rows[0]["Bill_Number"].ToString();
+                strCustomerName = dt.Rows[0]["CUSTOMER_NAME"].ToString();
+                strDocumentPath = dt.Rows[0]["Document_Path"].ToString();
+                strbillperiod = dt.Rows[0]["Bill_Period"].ToString();
+                strnewFile = strDocumentPath + "\\BillNo-" + strFolderNo;
+                strAcocuntno = dt.Rows[0]["Tranche_Name"].ToString();
+
+                strnewFile += "\\" + "AMF";
+                if (i == 0)
+                {
+                    if (!Directory.Exists(strnewFile))
+                    {
+                        Directory.CreateDirectory(strnewFile);
+                    }
+                }
+
+                strnewFile += "\\" + strAcocuntno + "_Covering.pdf";
+                FileInfo fl = new FileInfo(strnewFile);
+                if (fl.Exists == true)
+                {
+                    fl.Delete();
+                }
+
+                rptd.Load(ReportPath);
+                rptd.SetDataSource(dt);
+                rptd.ExportToDisk(ExportFormatType.PortableDocFormat, strnewFile);
+
+            }
+            if (rptd != null)
+            {
+                rptd.Close();
+                rptd.Dispose();
+            }
+            DataTable DTAccounts = dSet.Tables[0].DefaultView.ToTable(true, "ACCOUNT_NO");
+            rptd = new ReportDocument();
+            ReportPath = "";
+            ReportPath = (string)AppReader.GetValue("BillPDFPath", typeof(string));
+            ReportPath += "Billing.RPT";
+
+            for (int i = 0; i < DTAccounts.Rows.Count; i++)
+            {
+                DataRow DRaCC = DTAccounts.Rows[i];
+
+                DataRow[] DRAccDtls = dSet.Tables[0].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'");
+                DataRow[] DRAccDtls1 = dSet.Tables[1].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'");
+                DataTable dt = dSet.Tables[0].Clone();
+                DataTable dt1 = dSet.Tables[1].Clone();
+                if (DRAccDtls.Length > 0)
+                    dt = DRAccDtls.CopyToDataTable();
+                if (DRAccDtls1.Length > 0)
+                    dt1 = DRAccDtls1.CopyToDataTable();
+                strBranchName = dt.Rows[0]["Location"].ToString();
+                strFolderNo = dt.Rows[0]["FolderNumber"].ToString();
+                strtranche = dt.Rows[0]["tranche_name"].ToString();
+                strBillNo = dt.Rows[0]["Bill_Number"].ToString();
+                strCustomerName = dt.Rows[0]["CUSTOMER_NAME"].ToString();
+                strDocumentPath = dt.Rows[0]["Document_Path"].ToString();
+                strbillperiod = dt.Rows[0]["Bill_Period"].ToString();
+                strnewFile = strDocumentPath + "\\BillNo-" + strFolderNo;
+                strAcocuntno = dt.Rows[0]["ACCOUNT_NO"].ToString();
+
+                strnewFile += "\\" + "Rental";
+                if (i == 0)
+                {
+                    if (!Directory.Exists(strnewFile))
+                    {
+                        Directory.CreateDirectory(strnewFile);
+                    }
+                }
+
+                strnewFile += "\\" + strtranche + "_" + strAcocuntno + ".pdf";
+                FileInfo fl = new FileInfo(strnewFile);
+                if (fl.Exists == true)
+                {
+                    fl.Delete();
+                }
+
+                rptd.Load(ReportPath);
+                rptd.SetDataSource(dt);
+                rptd.Subreports["Subreport"].SetDataSource(dt1);
+                rptd.ExportToDisk(ExportFormatType.PortableDocFormat, strnewFile);
+
+            }
+            if (rptd != null)
+            {
+                rptd.Close();
+                rptd.Dispose();
+            }
+            rptd = new ReportDocument();
+            ReportPath = "";
+            ReportPath = (string)AppReader.GetValue("BillPDFPath", typeof(string));
+            ReportPath += "Billing_AMF.RPT";
+            DataTable DTAccounts_Amf = dSet.Tables[5].DefaultView.ToTable(true, "ACCOUNT_NO");
+            for (int i = 0; i < DTAccounts_Amf.Rows.Count; i++)
+            {
+                DataRow DRaCC = DTAccounts_Amf.Rows[i];
+                // DataRow[] DRAccDtls = dSet.Tables[0].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'", "CashFlow");
+                DataRow[] DRAccDtls = dSet.Tables[5].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'");
+                DataRow[] DRAccDtls1 = dSet.Tables[2].Select("ACCOUNT_NO='" + DRaCC["ACCOUNT_NO"].ToString() + "'");
+                DataTable dt = dSet.Tables[5].Clone();
+                DataTable dt1 = dSet.Tables[2].Clone();
+                if (DRAccDtls1.Length > 0)
+                {
+                    if (DRAccDtls.Length > 0)
+                        dt = DRAccDtls.CopyToDataTable();
+                    if (DRAccDtls1.Length > 0)
+                        dt1 = DRAccDtls1.CopyToDataTable();
+
+                    strBranchName = dt.Rows[0]["Location"].ToString();
+                    strFolderNo = dt.Rows[0]["FolderNumber"].ToString();
+                    strBillNo = dt.Rows[0]["Bill_Number"].ToString();
+                    strCustomerName = dt.Rows[0]["CUSTOMER_NAME"].ToString();
+                    strDocumentPath = dt.Rows[0]["Document_Path"].ToString();
+                    strbillperiod = dt.Rows[0]["Bill_Period"].ToString();
+                    strnewFile = strDocumentPath + "\\BillNo-" + strFolderNo;
+                    strAcocuntno = dt.Rows[0]["ACCOUNT_NO"].ToString();
+                    strtranche = dt.Rows[0]["tranche_name"].ToString();
+
+                    strnewFile += "\\" + "AMF";
+
+                    strnewFile += "\\" + strtranche + "_" + strAcocuntno + ".pdf";
+                    FileInfo fl = new FileInfo(strnewFile);
+                    if (fl.Exists == true)
+                    {
+                        fl.Delete();
+                    }
+
+                    rptd.Load(ReportPath);
+                    rptd.SetDataSource(dt);
+                    rptd.Subreports["Subreport"].SetDataSource(dt1);
+                    rptd.ExportToDisk(ExportFormatType.PortableDocFormat, strnewFile);
+
+                }
+
+            }
+            if (rptd != null)
+            {
+                rptd.Close();
+                rptd.Dispose();
+            }
+
+            ScriptManager.RegisterStartupScript(this, this.GetType(), "", "alert('Invoice Generated Successfully.');", true);
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            lblErr.Text = ex.Message;
+            ScriptManager.RegisterStartupScript(this, this.GetType(), "", "alert('Error in Invoice Generation.');", true);
+            return;
+        }
+    }
+}
