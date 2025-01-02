@@ -148,8 +148,8 @@
                                     <td class="styleFieldAlign">
                                         <asp:DropDownList ID="ddlinvoiceType" runat="server" Width="175px">
                                         </asp:DropDownList>
-                                     </td>
-                                   <td class="styleFieldLabel">
+                                    </td>
+                                    <td class="styleFieldLabel">
                                         <asp:Label ID="lblLocation" runat="server" Text="Location" ToolTip="Location" CssClass="styleDisplayLabel">
                                         </asp:Label>
                                     </td>
@@ -201,13 +201,21 @@
                                     </td>
                                     <tr>
                                         <td class="styleFieldLabel">
-                                        <asp:Label ID="Label2" runat="server" Text="Rental Group" CssClass="styleDisplayLabel" />
+                                            <asp:Label ID="Label2" runat="server" Text="Rental Group" CssClass="styleDisplayLabel" />
+                                        </td>
+                                        <td class="styleFieldAlign">
+                                            <asp:DropDownList ID="ddlRentalGroup" runat="server" Width="150px">
+                                                <asp:ListItem Value="1">HSN Wise</asp:ListItem>
+                                                <asp:ListItem Value="2">RS Wise</asp:ListItem>
+                                            </asp:DropDownList>
+                                        </td>
+                                        <td class="styleFieldLabel">
+                                        <asp:Label ID="lblTranche" runat="server" Text="Tranche Name"/>
                                     </td>
-                                    <td class="styleFieldAlign">
-                                        <asp:DropDownList ID="ddlRentalGroup" runat="server" Width="150px">
-                                            <asp:ListItem Value="1">HSN Wise</asp:ListItem>
-                                            <asp:ListItem Value="2">RS Wise</asp:ListItem>
-                                        </asp:DropDownList>
+                                    <td class="styleFieldAlign" style="width: 225px">
+                                        <uc2:Suggest ID="ddlTranche" runat="server" ServiceMethod="GetTrancheName" WatermarkText="--All--"
+                                            ErrorMessage="Enter Customer Name" IsMandatory="false"
+                                            ItemToValidate="Value" AutoPostBack="true" OnItem_Selected="ddlTranche_Item_Selected" />
                                     </td>
                                     </tr>
                                 </tr>

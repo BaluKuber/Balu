@@ -538,13 +538,13 @@ public partial class Origination_S3GOrgEntityMaster : ApplyThemeForProject
                     }
                     strbBnkDetails.Append("</Root>");
                 }
-                //else
-                //{
-                //    strAlert = strAlert.Replace("__ALERT__", "Bank details cannot be empty");
-                //    strRedirectPageView = "";
-                //    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
-                //    return;
-                //}
+                else
+                {
+                    strAlert = strAlert.Replace("__ALERT__", "Bank details cannot be empty");
+                    strRedirectPageView = "";
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), strKey, strAlert + strRedirectPageView, true);
+                    return;
+                }
             }
             //else
             //{
@@ -1405,6 +1405,14 @@ public partial class Origination_S3GOrgEntityMaster : ApplyThemeForProject
             return;
         }
 
+        if (ddlStateRegStatus.SelectedValue == "1" && txtSGSTin.Text.Trim() == "")
+        {
+            Utility.FunShowAlertMsg(this, "GSTIN is mandatory");
+            tcEntityMaster.ActiveTab = tbEntity;
+            txtCountry.Focus();
+            return;
+        }
+
         /* Swarna - related to mail dated 21st sep 2015*/
 
         if (ddlResState.Enabled && (ddlResState.SelectedValue == "0" || ddlResState.SelectedValue == "-1"))
@@ -1782,6 +1790,14 @@ public partial class Origination_S3GOrgEntityMaster : ApplyThemeForProject
         if (txtCountry.SelectedValue.Trim() == "")
         {
             Utility.FunShowAlertMsg(this, "Country is mandatory");
+            tcEntityMaster.ActiveTab = tbEntity;
+            txtCountry.Focus();
+            return;
+        }
+
+        if (ddlStateRegStatus.SelectedValue == "1" && txtSGSTin.Text.Trim() == "")
+        {
+            Utility.FunShowAlertMsg(this, "GSTIN is mandatory");
             tcEntityMaster.ActiveTab = tbEntity;
             txtCountry.Focus();
             return;

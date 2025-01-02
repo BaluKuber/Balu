@@ -171,8 +171,9 @@
                                                                     <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
                                                                     <asp:ListItem Text="Schedule Value" Value="1"></asp:ListItem>
                                                                     <asp:ListItem Text="Invoice Value" Value="2"></asp:ListItem>
+                                                                    <asp:ListItem Text="Invoice Base Value" Value="3"></asp:ListItem>
                                                                 </asp:DropDownList>
-                                                                
+
                                                             </td>
                                                         </tr>
                                                     </table>
@@ -322,25 +323,32 @@
                                                     </table>
 
                                                     <table width="100%">
-                                                        <tr style="width: 100%"><td width="43%" colspan="2"> <table width="100%"><tr>
-                                                            <td class="styleFieldLabel">
-                                                                <asp:Label ID="lblGuaranteedEOTAppl" runat="server" CssClass="styleReqFieldLabel" Text="Guaranteed EOT Appl."></asp:Label>
-                                                            </td>
-                                                            <td class="styleFieldAlign">
+                                                        <tr style="width: 100%">
+                                                            <td width="43%" colspan="2">
+                                                                <table width="100%">
+                                                                    <tr>
+                                                                        <td class="styleFieldLabel">
+                                                                            <asp:Label ID="lblGuaranteedEOTAppl" runat="server" CssClass="styleReqFieldLabel" Text="Guaranteed EOT Appl."></asp:Label>
+                                                                        </td>
+                                                                        <td class="styleFieldAlign">
 
-                                                                 <asp:RadioButtonList RepeatDirection="Horizontal" CssClass="styleDisplayLabel" runat="server" ID="rblIs_Guaranteed_EOT_Appli"
-                                                                      Width="98%"  OnSelectedIndexChanged="rblIs_Guaranteed_EOT_Appli_SelectedIndexChanged" AutoPostBack="true"  >
-                                                                    <asp:ListItem Value="1" Text="Yes"></asp:ListItem>
-                                                                    <asp:ListItem Value="0" Text="No"></asp:ListItem>
-                                                                </asp:RadioButtonList>
+                                                                            <asp:RadioButtonList RepeatDirection="Horizontal" CssClass="styleDisplayLabel" runat="server" ID="rblIs_Guaranteed_EOT_Appli"
+                                                                                Width="98%" OnSelectedIndexChanged="rblIs_Guaranteed_EOT_Appli_SelectedIndexChanged" AutoPostBack="true">
+                                                                                <asp:ListItem Value="1" Text="Yes"></asp:ListItem>
+                                                                                <asp:ListItem Value="0" Text="No"></asp:ListItem>
+                                                                            </asp:RadioButtonList>
 
-                                                                 <asp:RequiredFieldValidator ID="rfvGuaranteedEOTAppli" runat="server" Display="None"
-                                                                                ValidationGroup="Main Page" ErrorMessage="Select Guaranteed EOT Appl." 
-                                                                     ControlToValidate="rblIs_Guaranteed_EOT_Appli"
+                                                                            <asp:RequiredFieldValidator ID="rfvGuaranteedEOTAppli" runat="server" Display="None"
+                                                                                ValidationGroup="Main Page" ErrorMessage="Select Guaranteed EOT Appl."
+                                                                                ControlToValidate="rblIs_Guaranteed_EOT_Appli"
                                                                                 SetFocusOnError="False"></asp:RequiredFieldValidator>
 
-                                                            </td></tr></table></td>
-                                                            <td  class="styleFieldLabel"><asp:Label ID="lblTermSheetDate"  ToolTip="Term Sheet Date"  runat="server" CssClass="styleReqFieldLabel" Text="Term Sheet Date"></asp:Label></td>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                            </td>
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblTermSheetDate" ToolTip="Term Sheet Date" runat="server" CssClass="styleReqFieldLabel" Text="Term Sheet Date"></asp:Label></td>
                                                             <td class="styleFieldAlign">
                                                                 <asp:TextBox ID="txtTermSheetDate" runat="server" ToolTip="Term Sheet Date" Width="100px" ValidationGroup="Main Page"></asp:TextBox>
                                                                 <asp:Image ID="imgTermSheetDate" runat="server" ToolTip="Term Sheet Date" ImageUrl="~/Images/calendaer.gif" />
@@ -352,26 +360,28 @@
                                                                     Enabled="True">
                                                                 </cc1:CalendarExtender>
                                                             </td>
-                                                </tr>
-                                                        <tr style="width: 100%"><td colspan="2">
-                                                            <table>
-                                                            <td class="styleFieldLabel">
-                                                                <asp:Label ID="lblGuaranteedEOT" runat="server" Text="Guaranteed EOT Sale"></asp:Label>
-                                                            </td>
-                                                            <td class="styleFieldAlign">&nbsp;&nbsp;
+                                                        </tr>
+                                                        <tr style="width: 100%">
+                                                            <td colspan="2">
+                                                                <table>
+                                                                    <td class="styleFieldLabel">
+                                                                        <asp:Label ID="lblGuaranteedEOT" runat="server" Text="Guaranteed EOT Sale"></asp:Label>
+                                                                    </td>
+                                                                    <td class="styleFieldAlign">&nbsp;&nbsp;
                                                                 <asp:TextBox ID="txtGuaranteedEOT" ToolTip="Guaranteed EOT Sale" runat="server" Width="45px" onkeypress="return isNumberKey(event)"
                                                                     MaxLength="9"></asp:TextBox>
-                                                                <asp:Label ID="lblGuaraEOTPer" runat="server" Font-Bold="true" Font-Size="Larger" Text=" %"></asp:Label>
-                                                                <asp:CompareValidator ID="cmpGuaranteedEOT" runat="server" ControlToValidate="txtGuaranteedEOT" 
-                                                                             ErrorMessage="Guaranteed EOT Sale % cannot be greater than 100"
-                                                                             Operator="LessThanEqual" Type="Double" Display="None" ValidationGroup="Main Page"
-                                                                             ValueToCompare="100.00" />
+                                                                        <asp:Label ID="lblGuaraEOTPer" runat="server" Font-Bold="true" Font-Size="Larger" Text=" %"></asp:Label>
+                                                                        <asp:CompareValidator ID="cmpGuaranteedEOT" runat="server" ControlToValidate="txtGuaranteedEOT"
+                                                                            ErrorMessage="Guaranteed EOT Sale % cannot be greater than 100"
+                                                                            Operator="LessThanEqual" Type="Double" Display="None" ValidationGroup="Main Page"
+                                                                            ValueToCompare="100.00" />
 
-                                                                 <asp:RequiredFieldValidator ID="rfvGuaranteedEOT" runat="server" Display="None" Enabled="false"
-                                                                                ValidationGroup="Main Page" ErrorMessage="Enter Guaranteed EOT Sale (%)" 
-                                                                     ControlToValidate="txtGuaranteedEOT" SetFocusOnError="False"></asp:RequiredFieldValidator>
+                                                                        <asp:RequiredFieldValidator ID="rfvGuaranteedEOT" runat="server" Display="None" Enabled="false"
+                                                                            ValidationGroup="Main Page" ErrorMessage="Enter Guaranteed EOT Sale (%)"
+                                                                            ControlToValidate="txtGuaranteedEOT" SetFocusOnError="False"></asp:RequiredFieldValidator>
+                                                                    </td>
+                                                                </table>
                                                             </td>
-                                                            </table></td>
                                                             <td class="styleFieldLabel">
                                                                 <asp:Label ID="lblGuaranteedEOTApp" runat="server" ToolTip="Guaranteed EOT Appl. on" Text="Guaranteed EOT Appl. on"></asp:Label>
                                                             </td>
@@ -382,10 +392,10 @@
                                                                     <asp:ListItem Text="Invoice Amount" Value="2"></asp:ListItem>
                                                                     <asp:ListItem Text="Capitalized Amount" Value="3"></asp:ListItem>
                                                                 </asp:DropDownList>
-                                                                 <asp:RequiredFieldValidator ID="rfvGuaranteedEOTApp" runat="server" Display="None" Enabled="false"
-                                                                                ValidationGroup="Main Page" InitialValue="0" ErrorMessage="Select Guaranteed EOT Applicable on" 
-                                                                     ControlToValidate="ddlGuaranteedEOTApp"
-                                                                                SetFocusOnError="False"></asp:RequiredFieldValidator>
+                                                                <asp:RequiredFieldValidator ID="rfvGuaranteedEOTApp" runat="server" Display="None" Enabled="false"
+                                                                    ValidationGroup="Main Page" InitialValue="0" ErrorMessage="Select Guaranteed EOT Applicable on"
+                                                                    ControlToValidate="ddlGuaranteedEOTApp"
+                                                                    SetFocusOnError="False"></asp:RequiredFieldValidator>
                                                             </td>
                                                         </tr>
                                                     </table>
@@ -496,12 +506,12 @@
                                                                                 InitialValue="0" SetFocusOnError="False" ValidationGroup="Main Page"></asp:RequiredFieldValidator>
                                                                         </td>
                                                                     </tr>
-                                                                    <tr style="width: 100%; display:none;">
+                                                                    <tr style="width: 100%; display: none;">
                                                                         <td class="styleFieldAlign" width="45%">
                                                                             <asp:Label Visible="false" ID="Label2" ToolTip="Secondary Rental Based On" runat="server" Text="Secondary Rental Based On" CssClass="styleReqFieldLabel"></asp:Label>
                                                                         </td>
                                                                         <td width="53%">
-                                                                            <asp:DropDownList Visible="false" ID="ddlSecondaryRentalBasedOn" runat="server" ToolTip="Secondary Rental Based On" 
+                                                                            <asp:DropDownList Visible="false" ID="ddlSecondaryRentalBasedOn" runat="server" ToolTip="Secondary Rental Based On"
                                                                                 ValidationGroup="Pricing" Style="width: 92%">
                                                                                 <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
                                                                                 <asp:ListItem Text="Rental on Base Invoice Value" Value="1"></asp:ListItem>
@@ -523,7 +533,7 @@
                                                                                 ValidationGroup="Main Page" ErrorMessage="Enter the Total Facility Amount" ControlToValidate="txtTotalFacilityAmount"
                                                                                 SetFocusOnError="False"></asp:RequiredFieldValidator>
                                                                         </td>
-                                                                      </tr>
+                                                                    </tr>
 
                                                                 </table>
                                                             </asp:Panel>
@@ -534,11 +544,11 @@
                                                 </table>
                                             </td>
                                         </tr>
-                                        
+
                                         <tr>
                                             <td colspan="2"></td>
                                         </tr>
-                                      
+
                                         <tr>
                                             <td colspan="2">
                                                 <asp:Panel ID="pnlPrimaryGrid" runat="server" CssClass="stylePanel" GroupingText="Primary Grid" Width="100%">
@@ -553,7 +563,7 @@
                                                                 </ItemTemplate>
                                                             </asp:TemplateField>
                                                             <%--Asset Category--%>
-                                                            <asp:TemplateField HeaderText="Asset Category"  ItemStyle-Width="15%" FooterStyle-Width="15%">
+                                                            <asp:TemplateField HeaderText="Asset Category" ItemStyle-Width="15%" FooterStyle-Width="15%">
                                                                 <ItemTemplate>
                                                                     <asp:Label ID="lblAssetCategoryPG" ToolTip="Asset Category" runat="server" Text='<%# Bind("AssetCategory") %>'></asp:Label>
                                                                     <asp:Label ID="lblAssetCategoryIDPG" ToolTip="Asset Category" Visible="false" runat="server" Text='<%# Bind("AssetCategory_ID") %>'></asp:Label>
@@ -575,7 +585,7 @@
                                                                     <asp:Label ID="lblAssetTypeIDPG" ToolTip="Asset Type" Visible="false" runat="server" Text='<%# Bind("AssetType_ID") %>'></asp:Label>
                                                                 </ItemTemplate>
                                                                 <FooterTemplate>
-                                                                    <uc2:Suggest ID="ddlAssetTypePG" ToolTip="Asset Type" runat="server" 
+                                                                    <uc2:Suggest ID="ddlAssetTypePG" ToolTip="Asset Type" runat="server"
                                                                         ServiceMethod="GetAssetTypeList" ErrorMessage="Select a Asset Type"
                                                                         ValidationGroup="PrimaryGrid" InitialValue="-1" AutoPostBack="true"
                                                                         OnItem_Selected="ddlAssetCategoryPG_SelectedIndexChanged" />
@@ -588,7 +598,7 @@
                                                                     <asp:Label ID="lblAssetSubTypeIDPG" ToolTip="Asset Sub Type" Visible="false" runat="server" Text='<%# Bind("AssetSubType_ID") %>'></asp:Label>
                                                                 </ItemTemplate>
                                                                 <FooterTemplate>
-                                                                    <uc2:Suggest ID="ddlAssetSubTypePG" ToolTip="Asset Sub Type" runat="server" 
+                                                                    <uc2:Suggest ID="ddlAssetSubTypePG" ToolTip="Asset Sub Type" runat="server"
                                                                         ServiceMethod="GetAssetSubTypeList" ErrorMessage="Select a Asset Sub Type"
                                                                         ValidationGroup="PrimaryGrid" InitialValue="-1" AutoPostBack="true"
                                                                         OnItem_Selected="ddlAssetCategoryPG_SelectedIndexChanged" />
@@ -618,7 +628,7 @@
                                                                     <asp:Label ID="lblRentFrequencyIDPG" Visible="false" runat="server" Text='<%# Bind("RentFrequencyID") %>'></asp:Label>
                                                                 </ItemTemplate>
                                                                 <FooterTemplate>
-                                                                    <asp:DropDownList ID="ddlRentFrequencyPG" ToolTip="Rent Frequency" 
+                                                                    <asp:DropDownList ID="ddlRentFrequencyPG" ToolTip="Rent Frequency"
                                                                         AutoPostBack="true" OnSelectedIndexChanged="ddlRentFreqPG_SelectedIndexChanged" runat="server" Width="100px">
                                                                     </asp:DropDownList>
                                                                     <asp:RequiredFieldValidator ID="rfvRentFrequencyPG" ToolTip="Rent Frequency" runat="server" ControlToValidate="ddlRentFrequencyPG"
@@ -697,8 +707,8 @@
                                                                 </ItemTemplate>
                                                                 <FooterTemplate>
 
-                                                                    <asp:TextBox ID="txtRentRatePG" runat="server" ToolTip="Rent Rate" MaxLength="19" Style="text-align: right" Width="60px" 
-                                                                        onkeypress="fnAllowNumbersOnly(false,false,this)" 
+                                                                    <asp:TextBox ID="txtRentRatePG" runat="server" ToolTip="Rent Rate" MaxLength="19" Style="text-align: right" Width="60px"
+                                                                        onkeypress="fnAllowNumbersOnly(false,false,this)"
                                                                         onchange="fnValidateRentRate_Primary();">
                                                                     </asp:TextBox>
 
@@ -811,8 +821,8 @@
                                                                 </FooterTemplate>
                                                             </asp:TemplateField>
 
-                                                             <%--Asset Type--%>
-                                                            
+                                                            <%--Asset Type--%>
+
                                                             <asp:TemplateField HeaderText="Asset Type" ItemStyle-Width="20%" FooterStyle-Width="20%">
                                                                 <ItemTemplate>
                                                                     <asp:Label ID="lblAssetTypeSG" ToolTip="Asset Type" runat="server" Text='<%# Bind("AssetType") %>'></asp:Label>
@@ -826,7 +836,7 @@
                                                                 </FooterTemplate>
                                                             </asp:TemplateField>
 
-                                                             <asp:TemplateField HeaderText="Asset Sub Type" ItemStyle-Width="20%" FooterStyle-Width="20%">
+                                                            <asp:TemplateField HeaderText="Asset Sub Type" ItemStyle-Width="20%" FooterStyle-Width="20%">
                                                                 <ItemTemplate>
                                                                     <asp:Label ID="lblAssetSubTypeSG" ToolTip="Asset Sub Type" runat="server" Text='<%# Bind("AssetSubType") %>'></asp:Label>
                                                                     <asp:Label ID="lblAssetSubTypeIDSG" ToolTip="Asset Sub Type" Visible="false" runat="server" Text='<%# Bind("AssetSubType_ID") %>'></asp:Label>
@@ -862,8 +872,8 @@
                                                                     <asp:Label ID="lblRentFrequencyIDSG" Visible="false" ToolTip="Rent Frequency" runat="server" Text='<%# Bind("RentFrequencyID") %>'></asp:Label>
                                                                 </ItemTemplate>
                                                                 <FooterTemplate>
-                                                                    <asp:DropDownList ID="ddlRentFrequencySG" ToolTip="Rent Frequency" runat="server" 
-                                                                        AutoPostBack="true" OnSelectedIndexChanged="ddlRentFreqSG_SelectedIndexChanged"  Width="100px">
+                                                                    <asp:DropDownList ID="ddlRentFrequencySG" ToolTip="Rent Frequency" runat="server"
+                                                                        AutoPostBack="true" OnSelectedIndexChanged="ddlRentFreqSG_SelectedIndexChanged" Width="100px">
                                                                     </asp:DropDownList>
                                                                     <asp:RequiredFieldValidator ID="rfvRentFrequencySG" ToolTip="Rent Frequency" runat="server" ControlToValidate="ddlRentFrequencySG"
                                                                         CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Select a Rent Frequency"
@@ -965,7 +975,7 @@
                                                                     <asp:Label ID="lblFixedRentSG" runat="server" ToolTip="Fixed Rent" Text='<%# Bind("FixedRent") %>'></asp:Label>
                                                                 </ItemTemplate>
                                                                 <FooterTemplate>
-                                                                    <asp:TextBox ID="txtFixedRentSG" runat="server" ToolTip="Fixed Rent" MaxLength="17" Style="text-align: right"  Width="60px" onkeypress="fnAllowNumbersOnly(false,false,this)" onchange="fnValidateRentRate_Secondary();">
+                                                                    <asp:TextBox ID="txtFixedRentSG" runat="server" ToolTip="Fixed Rent" MaxLength="17" Style="text-align: right" Width="60px" onkeypress="fnAllowNumbersOnly(false,false,this)" onchange="fnValidateRentRate_Secondary();">
                                                                     </asp:TextBox>
 
                                                                 </FooterTemplate>
@@ -1020,121 +1030,149 @@
                                                 </asp:Panel>
                                             </td>
                                         </tr>
-
-                                          <tr>
-                                              
-                                              <td colspan="2">
-
-                                  <asp:Panel runat="server" ID="pnlRebateDet" CssClass="stylePanel" GroupingText="Rebate Details"
-                                                Width="66%">
-
-                                          <table  width="95%">	<tr>
+                                        <tr>
+                                            <td colspan="2">
+                                                <table width="90%">
+                                                    <tr>
+                                                        <td>
+                                                            <asp:Panel runat="server" ID="pnlRebateDet" CssClass="stylePanel" GroupingText="Rebate Details">
+                                                                <table>
+                                                                    <tr>
                                                                         <td class="styleFieldAlign">
                                                                             <asp:Label ID="lblRebateApp" runat="server" Text="Rebate Discount Allowed" CssClass="styleReqFieldLabel"></asp:Label>
                                                                         </td>
                                                                         <td>
 
-                                                                         <asp:RadioButtonList RepeatDirection="Horizontal" onclick="fnRebateChange(this);"
-                                                                             OnSelectedIndexChanged="rblRebateDiscountApp_SelectedIndexChanged" AutoPostBack="true" 
-                                                                             CssClass="styleDisplayLabel" runat="server" 
+                                                                            <asp:RadioButtonList RepeatDirection="Horizontal" onclick="fnRebateChange(this);"
+                                                                                OnSelectedIndexChanged="rblRebateDiscountApp_SelectedIndexChanged" AutoPostBack="true"
+                                                                                CssClass="styleDisplayLabel" runat="server"
                                                                                 ID="rblRebateDiscountApp" Width="48%">
-                                                                                    <asp:ListItem Value="1" Text="Yes"></asp:ListItem>
-                                                                                    <asp:ListItem Value="0" Text="No"></asp:ListItem>
-                                                                         </asp:RadioButtonList>
+                                                                                <asp:ListItem Value="1" Text="Yes"></asp:ListItem>
+                                                                                <asp:ListItem Value="0" Text="No"></asp:ListItem>
+                                                                            </asp:RadioButtonList>
 
                                                                             <asp:RequiredFieldValidator ID="rfvRebateDiscountApp" runat="server" Display="None"
                                                                                 ValidationGroup="Main Page" ErrorMessage="Select Rebate Discount Allowed" ControlToValidate="rblRebateDiscountApp"
                                                                                 SetFocusOnError="False"></asp:RequiredFieldValidator>
                                                                         </td>
-                                              
-                                                                            <td class="styleFieldLabel">
+
+                                                                        <td class="styleFieldLabel">
                                                                             <asp:Label ID="lblRebateNoofInstall" runat="server" Text="Rebate Allowed in installments (Nos.)"></asp:Label>
                                                                         </td>
                                                                         <td>
-                                                                             <asp:TextBox ID="txtRebateNoofInstall" runat="server" Style="text-align: right; width: 50px" MaxLength="3"
-                                                                                 onkeypress="return isNumberKey(event)"></asp:TextBox>
-                                                                            
-                                                                            <asp:RequiredFieldValidator ID="rfvRebateNoofInstall" runat="server" Display="None"  Enabled="false"
+                                                                            <asp:TextBox ID="txtRebateNoofInstall" runat="server" Style="text-align: right; width: 50px" MaxLength="3"
+                                                                                onkeypress="return isNumberKey(event)"></asp:TextBox>
+
+                                                                            <asp:RequiredFieldValidator ID="rfvRebateNoofInstall" runat="server" Display="None" Enabled="false"
                                                                                 ValidationGroup="Main Page" ErrorMessage="Enter Rebate Allowed in installments (Nos.)" ControlToValidate="txtRebateNoofInstall"
                                                                                 SetFocusOnError="False"></asp:RequiredFieldValidator>
                                                                         </td>
-                                                                      </tr>
+
+                                                                    </tr>
 
                                                                     <tr>
-                                                                       <td class="styleFieldAlign">
+                                                                        <td class="styleFieldAlign">
                                                                             <asp:Label ID="lblRebateStructured" runat="server" Text="Rebate Allowed Method" CssClass="styleReqFieldLabel"></asp:Label>
                                                                         </td>
                                                                         <td>
-                                                                    <asp:RadioButtonList RepeatDirection="Horizontal" AutoPostBack="true" runat="server"
-                                                                        OnSelectedIndexChanged="RBLRebateStructuredEI_SelectedIndexChanged" CssClass="styleDisplayLabel" ID="RBLRebateStructuredEI">
+                                                                            <asp:RadioButtonList RepeatDirection="Horizontal" AutoPostBack="true" runat="server"
+                                                                                OnSelectedIndexChanged="RBLRebateStructuredEI_SelectedIndexChanged" CssClass="styleDisplayLabel" ID="RBLRebateStructuredEI">
                                                                                 <asp:ListItem Value="1" Text="Equated"></asp:ListItem>
                                                                                 <asp:ListItem Value="2" Text="Structured"></asp:ListItem>
                                                                             </asp:RadioButtonList>
-                                                                              <asp:RequiredFieldValidator ID="rfvRebateStructuredEI" runat="server" Display="None"
+                                                                            <asp:RequiredFieldValidator ID="rfvRebateStructuredEI" runat="server" Display="None"
                                                                                 ValidationGroup="Main Page" ErrorMessage="Select Rebate Allowed Method" ControlToValidate="RBLRebateStructuredEI"
                                                                                 SetFocusOnError="False"></asp:RequiredFieldValidator>
 
-                                                                                </td>
+                                                                        </td>
                                                                         <td colspan="2"></td>
-                                                                      </tr>
-                                                                
-                                                       
-                                              <tr>
 
-                                                  <td class="styleFieldLabel">
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="styleFieldLabel">
                                                                             <asp:Label ID="lblRebateDiscountPerc" runat="server" Text="Total Rebate Allowed" CssClass="styleReqFieldLabel"></asp:Label>
                                                                         </td>
-                                                                        
                                                                         <td>
-
-                                                                             <asp:TextBox ID="txtRebateDiscountPerc" runat="server" Style="text-align: right; width: 100px" MaxLength="9"
-                                                                                 onkeypress="return isNumberKey(event)"></asp:TextBox>
+                                                                            <asp:TextBox ID="txtRebateDiscountPerc" runat="server" Style="text-align: right; width: 100px" MaxLength="9"
+                                                                                onkeypress="return isNumberKey(event)"></asp:TextBox>
                                                                             <asp:Label ID="lblPerc" runat="server" Font-Bold="true" Font-Size="Larger" Text=" %"></asp:Label>
                                                                             <asp:RequiredFieldValidator ID="rfvRebateDiscountPerc" runat="server" Display="None"
                                                                                 ValidationGroup="Main Page" ErrorMessage="Enter Total Rebate Allowed %" ControlToValidate="txtRebateDiscountPerc"
                                                                                 SetFocusOnError="False"></asp:RequiredFieldValidator>
                                                                         </td>
-                                                  <td colspan="2"></td>
+                                                                    </tr>
+                                                                </table>
 
-                                              </tr>
-
-                                                         </table>
-
-                                            </asp:Panel>
-                                        </td>
-                                   </tr>
-
-                                        <td colspan="2">
-
-                                            
-                                  <asp:Panel runat="server" ID="pnlRebateStruc" CssClass="stylePanel" GroupingText="Rebate Structure Grid"
-                                                Width="100%">
-                                   <table>
-
-                                        <tr>
-                                                            <td class="styleFieldLabel">
-                                                                            <asp:Label ID="lblRebateInput" runat="server" Text="Rebate Structure Allocation"></asp:Label>
+                                                            </asp:Panel>
+                                                        </td>
+                                                        <td>
+                                                            <asp:Panel runat="server" CssClass="stylePanel" GroupingText="Other Cash Flow Details" ID="PnlOtherCashFlow">
+                                                                <table>
+                                                                    <tr>
+                                                                        <td class="styleFieldAlign">
+                                                                            <asp:Label runat="server" CssClass="styleReqFieldLabel" Text="Stamp Duty Applicable" ID="lblStampDuty"></asp:Label>
                                                                         </td>
-                                                                        <td  class="styleFieldLabel">
-
-                                                                         <asp:DropDownList ID="ddlRebateStrucAlloc" AutoPostBack="true" OnSelectedIndexChanged="ddlRebateStrucAlloc_SelectedIndexChanged" runat="server">
+                                                                        <td>
+                                                                            <asp:DropDownList runat="server" ID="ddlStampDuty">
                                                                                 <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
-                                                                                <asp:ListItem Text="Fixed Amount" Value="1"></asp:ListItem>
-                                                                                <asp:ListItem Text="Percentage" Value="2"></asp:ListItem>
-                                                                           </asp:DropDownList>
-                                                                        <asp:RequiredFieldValidator ID="rfvRebateInput" runat="server" Display="None" Enabled="false"
-                                                                                ValidationGroup="Main Page" InitialValue="0" ErrorMessage="Select Rebate Structure Allocation" 
-                                                                                 ControlToValidate="ddlRebateStrucAlloc"
-                                                                                SetFocusOnError="False"></asp:RequiredFieldValidator>
+                                                                                <asp:ListItem Text="Yes" Value="1"></asp:ListItem>
+                                                                                <asp:ListItem Text="No" Value="2"></asp:ListItem>
+                                                                            </asp:DropDownList>
                                                                         </td>
-                                                
-                                                  </tr>
-                                       <tr><td colspan="2"></td></tr>
-                                       <tr><td colspan="2"></td></tr>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="styleFieldAlign">
+                                                                            <asp:Label runat="server" CssClass="styleReqFieldLabel" Text="Interim Applicable" ID="lblInterimDetails"></asp:Label>
+                                                                        </td>
+                                                                        <td>
+                                                                            <asp:DropDownList runat="server" ID="ddlInterimDetails">
+                                                                                <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
+                                                                                <asp:ListItem Text="Yes" Value="1"></asp:ListItem>
+                                                                                <asp:ListItem Text="No" Value="2"></asp:ListItem>
+                                                                            </asp:DropDownList>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                            </asp:Panel>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                        <td colspan="2">
+                                            <asp:Panel runat="server" ID="pnlRebateStruc" CssClass="stylePanel" GroupingText="Rebate Structure Grid"
+                                                Width="100%">
+                                                <table>
 
-                                   </table>
-                                            <asp:GridView ID="grvRebateDetGrid" runat="server" AutoGenerateColumns="False"
-                                                    OnRowDeleting="grvRebateDetGrid_OnRowDeleting"  OnRowCommand="grvRebateDetGrid_OnRowCommand"
+                                                    <tr>
+                                                        <td class="styleFieldLabel">
+                                                            <asp:Label ID="lblRebateInput" runat="server" Text="Rebate Structure Allocation"></asp:Label>
+                                                        </td>
+                                                        <td class="styleFieldLabel">
+
+                                                            <asp:DropDownList ID="ddlRebateStrucAlloc" AutoPostBack="true" OnSelectedIndexChanged="ddlRebateStrucAlloc_SelectedIndexChanged" runat="server">
+                                                                <asp:ListItem Text="--Select--" Value="0"></asp:ListItem>
+                                                                <asp:ListItem Text="Fixed Amount" Value="1"></asp:ListItem>
+                                                                <asp:ListItem Text="Percentage" Value="2"></asp:ListItem>
+                                                            </asp:DropDownList>
+                                                            <asp:RequiredFieldValidator ID="rfvRebateInput" runat="server" Display="None" Enabled="false"
+                                                                ValidationGroup="Main Page" InitialValue="0" ErrorMessage="Select Rebate Structure Allocation"
+                                                                ControlToValidate="ddlRebateStrucAlloc"
+                                                                SetFocusOnError="False"></asp:RequiredFieldValidator>
+                                                        </td>
+
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="2"></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="2"></td>
+                                                    </tr>
+
+                                                </table>
+                                                <asp:GridView ID="grvRebateDetGrid" runat="server" AutoGenerateColumns="False"
+                                                    OnRowDeleting="grvRebateDetGrid_OnRowDeleting" OnRowCommand="grvRebateDetGrid_OnRowCommand"
                                                     ShowFooter="true" Width="100%">
                                                     <Columns>
                                                         <asp:TemplateField HeaderText="RebateDetId" Visible="False">
@@ -1144,167 +1182,167 @@
                                                         </asp:TemplateField>
 
                                                         <%--From Install No--%>
-                                                            <asp:TemplateField HeaderText="From Installment No" ItemStyle-Width="6%" FooterStyle-Width="6%">
-                                                                <ItemStyle HorizontalAlign="Right" />
-                                                                <FooterStyle HorizontalAlign="Right" />
-                                                                <ItemTemplate>
-                                                                    <asp:Label ID="lblFromInstallNoRebate" ToolTip="From Installment No" runat="server" Text='<%# Bind("FromInstallNo") %>'></asp:Label>
-                                                                </ItemTemplate>
-                                                                <FooterTemplate>
-                                                                    <asp:TextBox ID="txtFromInstallNoRebate" ToolTip="From Install No" Style="text-align: right" runat="server" Width="95%"
-                                                                        onkeypress="fnAllowNumbersOnly(false,false,this)" MaxLength="5">
-                                                                    </asp:TextBox>
-                                                                    <asp:RequiredFieldValidator ID="rfvFromInstallNoRebate" ToolTip="From Installment No" runat="server" ControlToValidate="txtFromInstallNoRebate"
-                                                                        CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Enter the From Installment No" SetFocusOnError="False"
-                                                                        ValidationGroup="RebateGrid"></asp:RequiredFieldValidator>
-                                                                </FooterTemplate>
-                                                            </asp:TemplateField>
-                                                            
-                                                         <asp:TemplateField HeaderText="To Installment No" ItemStyle-Width="6%" FooterStyle-Width="6%">
-                                                                <ItemStyle HorizontalAlign="Right" />
-                                                                <FooterStyle HorizontalAlign="Right" />
-                                                                <ItemTemplate>
-                                                                    <asp:Label ID="lblToInstallNoRebate" ToolTip="To Install No" runat="server" Text='<%# Bind("ToInstallNo") %>'></asp:Label>
-                                                                </ItemTemplate>
-                                                                <FooterTemplate>
-                                                                    <asp:TextBox ID="txtToInstallNoRebate" ToolTip="To Install No" Style="text-align: right" runat="server" MaxLength="5"
-                                                                        Width="95%" onkeypress="fnAllowNumbersOnly(false,false,this)">
-                                                                    </asp:TextBox>
-                                                                    <asp:RequiredFieldValidator ID="rfvToInstallNoRebate" ToolTip="To Install No" runat="server" ControlToValidate="txtToInstallNoRebate"
-                                                                        CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Enter the To Installment No" SetFocusOnError="False"
-                                                                        ValidationGroup="RebateGrid"></asp:RequiredFieldValidator>
-                                                                </FooterTemplate>
-                                                            </asp:TemplateField>
-                                                            <%--Rent Rate--%>
-                                                            <asp:TemplateField HeaderText="Rebate %" ItemStyle-Width="7%" FooterStyle-Width="7%">
-                                                                <ItemStyle HorizontalAlign="Right" />
-                                                                <FooterStyle HorizontalAlign="Right" />
-                                                                <ItemTemplate>
-                                                                    <asp:Label ID="lblRebatePerc" runat="server" Text='<%# Bind("RebatePerc") %>'></asp:Label>
-                                                                </ItemTemplate>
-                                                                <FooterTemplate>
+                                                        <asp:TemplateField HeaderText="From Installment No" ItemStyle-Width="6%" FooterStyle-Width="6%">
+                                                            <ItemStyle HorizontalAlign="Right" />
+                                                            <FooterStyle HorizontalAlign="Right" />
+                                                            <ItemTemplate>
+                                                                <asp:Label ID="lblFromInstallNoRebate" ToolTip="From Installment No" runat="server" Text='<%# Bind("FromInstallNo") %>'></asp:Label>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
+                                                                <asp:TextBox ID="txtFromInstallNoRebate" ToolTip="From Install No" Style="text-align: right" runat="server" Width="95%"
+                                                                    onkeypress="fnAllowNumbersOnly(false,false,this)" MaxLength="5">
+                                                                </asp:TextBox>
+                                                                <asp:RequiredFieldValidator ID="rfvFromInstallNoRebate" ToolTip="From Installment No" runat="server" ControlToValidate="txtFromInstallNoRebate"
+                                                                    CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Enter the From Installment No" SetFocusOnError="False"
+                                                                    ValidationGroup="RebateGrid"></asp:RequiredFieldValidator>
+                                                            </FooterTemplate>
+                                                        </asp:TemplateField>
 
-                                                                    <asp:TextBox ID="txtRebatePerc" runat="server" MaxLength="9" Style="text-align: right" Width="95%" 
-                                                                        onkeypress="fnAllowNumbersOnly(false,false,this)">
-                                                                    </asp:TextBox>
+                                                        <asp:TemplateField HeaderText="To Installment No" ItemStyle-Width="6%" FooterStyle-Width="6%">
+                                                            <ItemStyle HorizontalAlign="Right" />
+                                                            <FooterStyle HorizontalAlign="Right" />
+                                                            <ItemTemplate>
+                                                                <asp:Label ID="lblToInstallNoRebate" ToolTip="To Install No" runat="server" Text='<%# Bind("ToInstallNo") %>'></asp:Label>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
+                                                                <asp:TextBox ID="txtToInstallNoRebate" ToolTip="To Install No" Style="text-align: right" runat="server" MaxLength="5"
+                                                                    Width="95%" onkeypress="fnAllowNumbersOnly(false,false,this)">
+                                                                </asp:TextBox>
+                                                                <asp:RequiredFieldValidator ID="rfvToInstallNoRebate" ToolTip="To Install No" runat="server" ControlToValidate="txtToInstallNoRebate"
+                                                                    CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Enter the To Installment No" SetFocusOnError="False"
+                                                                    ValidationGroup="RebateGrid"></asp:RequiredFieldValidator>
+                                                            </FooterTemplate>
+                                                        </asp:TemplateField>
+                                                        <%--Rent Rate--%>
+                                                        <asp:TemplateField HeaderText="Rebate %" ItemStyle-Width="7%" FooterStyle-Width="7%">
+                                                            <ItemStyle HorizontalAlign="Right" />
+                                                            <FooterStyle HorizontalAlign="Right" />
+                                                            <ItemTemplate>
+                                                                <asp:Label ID="lblRebatePerc" runat="server" Text='<%# Bind("RebatePerc") %>'></asp:Label>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
 
-                                                                </FooterTemplate>
-                                                            </asp:TemplateField>
+                                                                <asp:TextBox ID="txtRebatePerc" runat="server" MaxLength="9" Style="text-align: right" Width="95%"
+                                                                    onkeypress="fnAllowNumbersOnly(false,false,this)">
+                                                                </asp:TextBox>
 
-                                                            <asp:TemplateField HeaderText="Fixed Rebate" ItemStyle-Width="7%" FooterStyle-Width="7%">
-                                                                <ItemStyle HorizontalAlign="Right" />
-                                                                <FooterStyle HorizontalAlign="Right" />
-                                                                <ItemTemplate>
-                                                                    <asp:Label ID="lblFixedRebate" runat="server" ToolTip="Fixed Rebate" Text='<%# Bind("FixedRebate") %>'></asp:Label>
-                                                                </ItemTemplate>
-                                                                <FooterTemplate>
-                                                                    <asp:TextBox ID="txtFixedRebate" runat="server" ToolTip="Fixed Rebate" onkeypress="fnAllowNumbersOnly(false,false,this)" 
-                                                                        MaxLength="12" Style="text-align: right" Width="95%" onchange="fnValidateFixedRebate();">
-                                                                    </asp:TextBox>
-                                                                </FooterTemplate>
-                                                            </asp:TemplateField>
+                                                            </FooterTemplate>
+                                                        </asp:TemplateField>
 
-                                                         <asp:TemplateField HeaderText="Action" ItemStyle-Width="5%" FooterStyle-Width="5%">
-                                                                <ItemStyle HorizontalAlign="Center" />
-                                                                <FooterStyle HorizontalAlign="Center" />
-                                                                <ItemTemplate>
-                                                                    <asp:LinkButton ID="lnRemoveRepayment" CausesValidation="false" runat="server" CommandName="Delete"
-                                                                        Text="Remove"></asp:LinkButton>
-                                                                </ItemTemplate>
-                                                                <FooterTemplate>
-                                                                    <asp:Button ID="btnAddRepayment" runat="server" Text="Add" CommandName="Add" CssClass="styleGridShortButton" ValidationGroup="RebateGrid"></asp:Button>
-                                                                    <%--OnClick="btnAddRepayment_OnClick" ValidationGroup="TabRepayment1" OnClientClick="return fnCheckPageValidators('TabRepayment1',false)"--%>
-                                                                </FooterTemplate>
-                                                            </asp:TemplateField>
-                                                       
+                                                        <asp:TemplateField HeaderText="Fixed Rebate" ItemStyle-Width="7%" FooterStyle-Width="7%">
+                                                            <ItemStyle HorizontalAlign="Right" />
+                                                            <FooterStyle HorizontalAlign="Right" />
+                                                            <ItemTemplate>
+                                                                <asp:Label ID="lblFixedRebate" runat="server" ToolTip="Fixed Rebate" Text='<%# Bind("FixedRebate") %>'></asp:Label>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
+                                                                <asp:TextBox ID="txtFixedRebate" runat="server" ToolTip="Fixed Rebate" onkeypress="fnAllowNumbersOnly(false,false,this)"
+                                                                    MaxLength="12" Style="text-align: right" Width="95%" onchange="fnValidateFixedRebate();">
+                                                                </asp:TextBox>
+                                                            </FooterTemplate>
+                                                        </asp:TemplateField>
+
+                                                        <asp:TemplateField HeaderText="Action" ItemStyle-Width="5%" FooterStyle-Width="5%">
+                                                            <ItemStyle HorizontalAlign="Center" />
+                                                            <FooterStyle HorizontalAlign="Center" />
+                                                            <ItemTemplate>
+                                                                <asp:LinkButton ID="lnRemoveRepayment" CausesValidation="false" runat="server" CommandName="Delete"
+                                                                    Text="Remove"></asp:LinkButton>
+                                                            </ItemTemplate>
+                                                            <FooterTemplate>
+                                                                <asp:Button ID="btnAddRepayment" runat="server" Text="Add" CommandName="Add" CssClass="styleGridShortButton" ValidationGroup="RebateGrid"></asp:Button>
+                                                                <%--OnClick="btnAddRepayment_OnClick" ValidationGroup="TabRepayment1" OnClientClick="return fnCheckPageValidators('TabRepayment1',false)"--%>
+                                                            </FooterTemplate>
+                                                        </asp:TemplateField>
+
                                                     </Columns>
                                                 </asp:GridView>
-                                      </asp:Panel>      
-                                      </td>
-
-                                         <tr>
-                                              
-                                              <td colspan="2">
-
-                                  <asp:Panel runat="server" ID="pnlAddiRebateDet" CssClass="stylePanel" GroupingText="Additional Rebate Details"
-                                                Width="90%">
-
-                                          <table  width="95%">	<tr>
-                                                                        <td class="styleFieldAlign">
-                                                                            <asp:Label ID="lblAddiRebateApp" runat="server" Text="Additional Rebate Discount Allowed" CssClass="styleReqFieldLabel"></asp:Label>
-                                                                        </td>
-                                                                        <td>
-
-                                                                         <asp:RadioButtonList RepeatDirection="Horizontal" onclick="fnAddiRebateChange(this);"
-                                                                               AutoPostBack="true" OnSelectedIndexChanged="rblAddiRebateDiscountApp_SelectedIndexChanged"
-                                                                             CssClass="styleDisplayLabel" runat="server" 
-                                                                                ID="rblAddiRebateDiscountApp" Width="48%">
-                                                                                    <asp:ListItem Value="1" Text="Yes"></asp:ListItem>
-                                                                                    <asp:ListItem Value="0" Text="No"></asp:ListItem>
-                                                                         </asp:RadioButtonList>
-
-                                                                            <asp:RequiredFieldValidator ID="rfvAddiRebateDiscountApp" runat="server" Display="None"
-                                                                                ValidationGroup="Main Page" ErrorMessage="Select Additional Rebate Discount Allowed" ControlToValidate="rblAddiRebateDiscountApp"
-                                                                                SetFocusOnError="False"></asp:RequiredFieldValidator>
-                                                                        </td>
-                                              
-                                                                            <td class="styleFieldLabel">
-                                                                            <asp:Label ID="lblAddiRebateNoofInstall" runat="server" Text="Additional Rebate allowed in No. of installments:"></asp:Label>
-                                                                        </td>
-                                                                        <td>
-                                                                             <asp:TextBox ID="txtAddiRebateNoofInstall" runat="server" Style="text-align: right; width: 50px" MaxLength="3"
-                                                                                 onkeypress="return isNumberKey(event)"></asp:TextBox>
-                                                                            
-                                                                            <asp:RequiredFieldValidator ID="rfvAddiRebateNoofInstall" runat="server" Display="None"  Enabled="false"
-                                                                                ValidationGroup="Main Page" ErrorMessage="Enter Additional Rebate allowed in No. of installments:" ControlToValidate="txtAddiRebateNoofInstall"
-                                                                                SetFocusOnError="False"></asp:RequiredFieldValidator>
-                                                                        </td>
-                                                                      </tr>
-
-                                                                    <tr>
-                                                                       <td class="styleFieldAlign">
-                                                                            <asp:Label ID="lblAddiRebateStructured" runat="server" Text="Additional Rebate Allowed Method" CssClass="styleReqFieldLabel"></asp:Label>
-                                                                        </td>
-                                                                        <td>
-                                                                    <asp:RadioButtonList RepeatDirection="Horizontal" AutoPostBack="true" runat="server"
-                                                                           CssClass="styleDisplayLabel" ID="RBLAddiRebateStructuredEI">
-                                                                                <asp:ListItem Value="1" Selected="True" Text="Equated"></asp:ListItem>
-                                                                                
-                                                                            </asp:RadioButtonList>
-                                                                              <asp:RequiredFieldValidator ID="rfvAddiRebateStructuredEI" runat="server" Display="None"
-                                                                                ValidationGroup="Main Page" ErrorMessage="Select Additional Rebate Allowed Method" ControlToValidate="RBLAddiRebateStructuredEI"
-                                                                                SetFocusOnError="False"></asp:RequiredFieldValidator>
-
-                                                                                </td>
-                                                                        <td colspan="2"></td>
-                                                                      </tr>
-                                                                
-                                                       
-                                              <tr>
-
-                                                  <td class="styleFieldLabel">
-                                                                            <asp:Label ID="lblAddiRebateDiscountPerc" runat="server" Text="Total Additional Rebate Allowed" CssClass="styleReqFieldLabel"></asp:Label>
-                                                                        </td>
-                                                                        
-                                                                        <td>
-
-                                                                             <asp:TextBox ID="txtAddiRebateDiscountPerc" runat="server" Style="text-align: right; width: 100px" MaxLength="9"
-                                                                                 onkeypress="return isNumberKey(event)"></asp:TextBox>
-                                                                            <asp:Label ID="Label1" runat="server"  Font-Size="Larger" Text=" % (on Invoice Value)"></asp:Label>
-                                                                            <asp:RequiredFieldValidator ID="rfvAddiRebateDiscountPerc" runat="server" Display="None"
-                                                                                ValidationGroup="Main Page" ErrorMessage="Enter Additional Total Rebate Allowed %" ControlToValidate="txtAddiRebateDiscountPerc"
-                                                                                SetFocusOnError="False"></asp:RequiredFieldValidator>
-                                                                        </td>
-                                                  <td colspan="2"></td>
-
-                                              </tr>
-
-                                                         </table>
-
                                             </asp:Panel>
                                         </td>
-                                   </tr>
-                 
+                                            </tr>
+                                        <tr>
+
+                                            <td colspan="2">
+
+                                                <asp:Panel runat="server" ID="pnlAddiRebateDet" CssClass="stylePanel" GroupingText="Additional Rebate Details"
+                                                    Width="90%">
+
+                                                    <table width="95%">
+                                                        <tr>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:Label ID="lblAddiRebateApp" runat="server" Text="Additional Rebate Discount Allowed" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+                                                            <td>
+
+                                                                <asp:RadioButtonList RepeatDirection="Horizontal" onclick="fnAddiRebateChange(this);"
+                                                                    AutoPostBack="true" OnSelectedIndexChanged="rblAddiRebateDiscountApp_SelectedIndexChanged"
+                                                                    CssClass="styleDisplayLabel" runat="server"
+                                                                    ID="rblAddiRebateDiscountApp" Width="48%">
+                                                                    <asp:ListItem Value="1" Text="Yes"></asp:ListItem>
+                                                                    <asp:ListItem Value="0" Text="No"></asp:ListItem>
+                                                                </asp:RadioButtonList>
+
+                                                                <asp:RequiredFieldValidator ID="rfvAddiRebateDiscountApp" runat="server" Display="None"
+                                                                    ValidationGroup="Main Page" ErrorMessage="Select Additional Rebate Discount Allowed" ControlToValidate="rblAddiRebateDiscountApp"
+                                                                    SetFocusOnError="False"></asp:RequiredFieldValidator>
+                                                            </td>
+
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblAddiRebateNoofInstall" runat="server" Text="Additional Rebate allowed in No. of installments:"></asp:Label>
+                                                            </td>
+                                                            <td>
+                                                                <asp:TextBox ID="txtAddiRebateNoofInstall" runat="server" Style="text-align: right; width: 50px" MaxLength="3"
+                                                                    onkeypress="return isNumberKey(event)"></asp:TextBox>
+
+                                                                <asp:RequiredFieldValidator ID="rfvAddiRebateNoofInstall" runat="server" Display="None" Enabled="false"
+                                                                    ValidationGroup="Main Page" ErrorMessage="Enter Additional Rebate allowed in No. of installments:" ControlToValidate="txtAddiRebateNoofInstall"
+                                                                    SetFocusOnError="False"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <td class="styleFieldAlign">
+                                                                <asp:Label ID="lblAddiRebateStructured" runat="server" Text="Additional Rebate Allowed Method" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+                                                            <td>
+                                                                <asp:RadioButtonList RepeatDirection="Horizontal" AutoPostBack="true" runat="server"
+                                                                    CssClass="styleDisplayLabel" ID="RBLAddiRebateStructuredEI">
+                                                                    <asp:ListItem Value="1" Selected="True" Text="Equated"></asp:ListItem>
+
+                                                                </asp:RadioButtonList>
+                                                                <asp:RequiredFieldValidator ID="rfvAddiRebateStructuredEI" runat="server" Display="None"
+                                                                    ValidationGroup="Main Page" ErrorMessage="Select Additional Rebate Allowed Method" ControlToValidate="RBLAddiRebateStructuredEI"
+                                                                    SetFocusOnError="False"></asp:RequiredFieldValidator>
+
+                                                            </td>
+                                                            <td colspan="2"></td>
+                                                        </tr>
+
+
+                                                        <tr>
+
+                                                            <td class="styleFieldLabel">
+                                                                <asp:Label ID="lblAddiRebateDiscountPerc" runat="server" Text="Total Additional Rebate Allowed" CssClass="styleReqFieldLabel"></asp:Label>
+                                                            </td>
+
+                                                            <td>
+
+                                                                <asp:TextBox ID="txtAddiRebateDiscountPerc" runat="server" Style="text-align: right; width: 100px" MaxLength="9"
+                                                                    onkeypress="return isNumberKey(event)"></asp:TextBox>
+                                                                <asp:Label ID="Label1" runat="server" Font-Size="Larger" Text=" % (on Invoice Value)"></asp:Label>
+                                                                <asp:RequiredFieldValidator ID="rfvAddiRebateDiscountPerc" runat="server" Display="None"
+                                                                    ValidationGroup="Main Page" ErrorMessage="Enter Additional Total Rebate Allowed %" ControlToValidate="txtAddiRebateDiscountPerc"
+                                                                    SetFocusOnError="False"></asp:RequiredFieldValidator>
+                                                            </td>
+                                                            <td colspan="2"></td>
+
+                                                        </tr>
+
+                                                    </table>
+
+                                                </asp:Panel>
+                                            </td>
+                                        </tr>
                                     </table>
                                 </ContentTemplate>
                                 <Triggers>
@@ -1312,40 +1350,40 @@
                                 </Triggers>
                             </asp:UpdatePanel>
 
-                                                <asp:UpdatePanel ID="tempUpdate" runat="server">
-                                                                    <ContentTemplate>
-                                                                        <asp:Panel runat="server" ID="pnlFile" CssClass="stylePanel" GroupingText="File Upload"
-                                                Width="90%">
-                                                                        
-                                                                        <asp:Label ID="lblActualPath" runat="server" Visible="false"></asp:Label>
-                                                                        <asp:HiddenField ID="hdnSelectedPath" runat="server" />
-                                                                        <asp:Button ID="btnBrowse" runat="server" OnClick="btnBrowse_OnClick" Style="display: none" />
-                                                                        <table align="left" cellpadding="0" cellspacing="0">
-                                                                            <tr>
-                                                                                <td>
-                                                                                    <asp:Label runat="server" Text="Signed Proposal Document" ID="lblfilename" CssClass="styleFieldLabel"> </asp:Label>
-                                                                                </td>
-                                                                                <td style="padding: 0px">
-                                                                                        <asp:CheckBox ID="chkSelect" runat="server" Enabled="false" Text="" Width="20px" />
-                                                                                    </td>
-                                                                                <td style="padding: 0px">
-                                                                                    <asp:FileUpload ID="flUpload" runat="server"  ToolTip="Upload File" Width="90px" />
-                                                                                    <asp:Button ID="btnDlg" runat="server" CausesValidation="false" CssClass="styleGridShortButton" Style="display: none" Text="Browse" />
-                                                                                </td>
-                                                                               <td class="styleFieldLabel" valign="top">
-                                                                                    <asp:LinkButton ID="ReqIdhyplnkView" runat="server" Enabled="true" OnClick="LnkReqIdView_Click">Download</asp:LinkButton>
-                                                                                </td>
-                                                                                 <td class="styleFieldLabel" valign="top">
-                                                                                    <asp:Label ID="lblCurrentPath" runat="server" Style="position: absolute; color: Green; vertical-align: top" />
-                                                                                </td>
-                                                                            </tr>
-                                                                        </table>
-                                                                            </asp:Panel>
-                                                                    </ContentTemplate>
-                                                                    <Triggers>
-                                                                        <asp:PostBackTrigger ControlID="btnBrowse" />
-                                                                    </Triggers>
-                                                    </asp:UpdatePanel>
+                            <asp:UpdatePanel ID="tempUpdate" runat="server">
+                                <ContentTemplate>
+                                    <asp:Panel runat="server" ID="pnlFile" CssClass="stylePanel" GroupingText="File Upload"
+                                        Width="90%">
+
+                                        <asp:Label ID="lblActualPath" runat="server" Visible="false"></asp:Label>
+                                        <asp:HiddenField ID="hdnSelectedPath" runat="server" />
+                                        <asp:Button ID="btnBrowse" runat="server" OnClick="btnBrowse_OnClick" Style="display: none" />
+                                        <table align="left" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td>
+                                                    <asp:Label runat="server" Text="Signed Proposal Document" ID="lblfilename" CssClass="styleFieldLabel"> </asp:Label>
+                                                </td>
+                                                <td style="padding: 0px">
+                                                    <asp:CheckBox ID="chkSelect" runat="server" Enabled="false" Text="" Width="20px" />
+                                                </td>
+                                                <td style="padding: 0px">
+                                                    <asp:FileUpload ID="flUpload" runat="server" ToolTip="Upload File" Width="90px" />
+                                                    <asp:Button ID="btnDlg" runat="server" CausesValidation="false" CssClass="styleGridShortButton" Style="display: none" Text="Browse" />
+                                                </td>
+                                                <td class="styleFieldLabel" valign="top">
+                                                    <asp:LinkButton ID="ReqIdhyplnkView" runat="server" Enabled="true" OnClick="LnkReqIdView_Click">Download</asp:LinkButton>
+                                                </td>
+                                                <td class="styleFieldLabel" valign="top">
+                                                    <asp:Label ID="lblCurrentPath" runat="server" Style="position: absolute; color: Green; vertical-align: top" />
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </asp:Panel>
+                                </ContentTemplate>
+                                <Triggers>
+                                    <asp:PostBackTrigger ControlID="btnBrowse" />
+                                </Triggers>
+                            </asp:UpdatePanel>
 
                         </ContentTemplate>
                     </cc1:TabPanel>
@@ -1543,7 +1581,7 @@
                 <asp:Button ID="btnAssetDAN" runat="server" OnClick="btnAssetDAN_Click" Style="display: none;" />
             </td>
         </tr>
-         
+
         <tr>
             <td align="center">
                 <asp:UpdatePanel ID="UpdatePanel1" runat="server">
@@ -1619,11 +1657,9 @@
         //  }
         // }
 
-        function fnRebateChange(obj)
-        {
+        function fnRebateChange(obj) {
             var radio = obj.getElementsByTagName("input");
-            for (var i = 0; i < radio.length; i++)
-            {
+            for (var i = 0; i < radio.length; i++) {
                 if (radio[i].checked) {
                     if (radio[i].value == "0") {
                         document.getElementById('<%=txtRebateDiscountPerc.ClientID %>').disabled = true;
@@ -1631,8 +1667,7 @@
                         document.getElementById('<%=txtRebateDiscountPerc.ClientID %>').value = '';
                         document.getElementById('<%=txtRebateNoofInstall.ClientID %>').value = '';
                     }
-                    else
-                    {
+                    else {
                         document.getElementById('<%=txtRebateDiscountPerc.ClientID %>').disabled = false;
                         document.getElementById('<%=txtRebateNoofInstall.ClientID %>').disabled = false;
                     }
@@ -1658,7 +1693,7 @@
         function isNumberKey(evt) {
             var charCode = (evt.which) ? evt.which : evt.keyCode;
             if (charCode != 46 && charCode > 31
-              && (charCode < 48 || charCode > 57))
+                && (charCode < 48 || charCode > 57))
                 return false;
 
             return true;

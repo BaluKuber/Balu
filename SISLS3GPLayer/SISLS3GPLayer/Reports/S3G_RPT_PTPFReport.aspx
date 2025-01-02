@@ -115,7 +115,7 @@
 
                         <asp:Panel ID="PnlPTPF" runat="server" Visible="false" GroupingText="PTPF Details" 
                             CssClass="stylePanel">
-                            <div id="divAssetInsuranceStatus" style="overflow-x: scroll; overflow-y: auto; width: 1150px; height: 100%" runat="server">
+                            <div id="divAssetInsuranceStatus" style="overflow-x: scroll; overflow-y: auto; width: 1050px; height: 100%" runat="server">
                                 <asp:GridView ID="grvPTPFReport" runat="server" EmptyDataText="No Record Found" OnRowDataBound="grvPTPFReport_RowDataBound"
                                  OnRowCreated="grvPTPFReport_RowCreated" RowStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader" AutoGenerateColumns="True">
                                     <Columns>

@@ -37,10 +37,6 @@ namespace S3GServiceLayer
 
         [OperationContract]
         [FaultContract(typeof(ClsPubFaultException))]
-        byte[] FunPubFillDropdown_Report(string strProcName, Dictionary<string, string> dctProcParams);
-
-        [OperationContract]
-        [FaultContract(typeof(ClsPubFaultException))]
         byte[] FunPubFillDataset(string strProcName, Dictionary<string, string> dctProcParams);
 
         [OperationContract]

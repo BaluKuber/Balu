@@ -192,7 +192,7 @@
                 <tr>
                     <td>
                         <asp:Panel ID="pnlAssetRegisterReportDetails" runat="server" CssClass="stylePanel" GroupingText="Asset Register Report Details" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <table width="100%">
                                     <tr>
                                         <td style="width: 100%;">

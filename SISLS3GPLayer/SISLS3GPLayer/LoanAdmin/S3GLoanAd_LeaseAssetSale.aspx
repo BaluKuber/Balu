@@ -1181,7 +1181,6 @@
 
                         <asp:Panel ID="pnlLeaseGrid" runat="server" CssClass="stylePanel" GroupingText="Invoice Information"
                             Width="99%">
-
                             <table width="100%">
                                 <tr>
                                     <td class="styleFieldLabel" colspan="2" width="10%">
@@ -1699,7 +1698,7 @@
                         <asp:Button runat="server" ID="btnCancel" Text="Cancel" ValidationGroup="PRDDC" CausesValidation="false"
                             CssClass="styleSubmitButton" OnClick="btnCancel_Click" TabIndex="13" ToolTip="Cancel" />
                         &nbsp;<asp:Button ID="btnPrintSale" runat="server" Text="Print" Enabled="false" CssClass="styleSubmitButton"
-                            CausesValidation="False" OnClick="btnPrintSale_Click" />
+                            CausesValidation="False" OnClick="btnPrintSale_Click" OnClientClick="this.disabled=true;" UseSubmitBehavior="false" />
 
                         &nbsp;<asp:Button ID="btnPrintAnnexures" runat="server" Text="Print Annexures" Enabled="false" CssClass="styleSubmitButton"
                             CausesValidation="False" OnClick="btnPrintAnnexures_Click" />

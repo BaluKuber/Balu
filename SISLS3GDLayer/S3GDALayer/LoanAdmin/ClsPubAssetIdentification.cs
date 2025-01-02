@@ -1,4 +1,5 @@
-﻿using System;using S3GDALayer.S3GAdminServices;
+﻿using System;
+using S3GDALayer.S3GAdminServices;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -83,7 +84,7 @@ namespace S3GDALayer.LoanAdmin
             /// <param name="Asset_Verification_No">Pass vendor ID</param>
             /// <returns></returns>
 
-            public DataTable FunGetAssetDetailsForVendor(int intInvoiceID,int intPASAID)
+            public DataTable FunGetAssetDetailsForVendor(int intInvoiceID, int intPASAID)
             {
                 try
                 {
@@ -199,14 +200,14 @@ namespace S3GDALayer.LoanAdmin
                             {
                                 if (intRowsAffected == 0)
                                     intRowsAffected = 50;
-                                 ClsPubCommErrorLogDal.CustomErrorRoutine(ex);
+                                ClsPubCommErrorLogDal.CustomErrorRoutine(ex);
                                 trans.Rollback();
                             }
                             finally
                             {
                                 conn.Close();
                             }
-                            
+
                         }
 
                     }
@@ -214,7 +215,7 @@ namespace S3GDALayer.LoanAdmin
                 catch (Exception ex)
                 {
                     intRowsAffected = 50;
-                     ClsPubCommErrorLogDal.CustomErrorRoutine(ex);
+                    ClsPubCommErrorLogDal.CustomErrorRoutine(ex);
                     throw ex;
                 }
                 return intRowsAffected;
@@ -259,7 +260,7 @@ namespace S3GDALayer.LoanAdmin
                         db.AddInParameter(command, "@Company_ID", DbType.Int32, objScheduleRow.Company_Id);
                         db.AddInParameter(command, "@LOB_ID", DbType.String, objScheduleRow.Lob_Id);
                         db.AddInParameter(command, "@Location_ID", DbType.String, objScheduleRow.Location_Id);
-                       //if (objScheduleRow.From_Month != null)
+                        //if (objScheduleRow.From_Month != null)
                         //    db.AddInParameter(command, "@From_Month", DbType.String, objScheduleRow.From_Month);
                         //if (objScheduleRow.To_Month != null)
                         //    db.AddInParameter(command, "@To_Month", DbType.String, objScheduleRow.To_Month);
@@ -285,6 +286,7 @@ namespace S3GDALayer.LoanAdmin
                         db.AddInParameter(command, "@Report_Path", DbType.String, objScheduleRow.ReportPath);
                         //opc002 start
                         db.AddInParameter(command, "@Invoice_Type", DbType.Int32, objScheduleRow.Invoice_Type);
+                        db.AddInParameter(command, "@Tranche_Header_Id", DbType.Int32, objScheduleRow.Tranche_Header_Id);
                         //opc002 end
                         //db.AddOutParameter(command, "@Dub_Value", DbType.String, 100);
                         //db.AddOutParameter(command, "@DSNO", DbType.String, 100);
@@ -365,7 +367,7 @@ namespace S3GDALayer.LoanAdmin
                     db.AddInParameter(command, "@Option", DbType.Int32, intoption);
                     db.AddInParameter(command, "@Tally_Integ_Hdr_ID", DbType.Int32, intTally_Integ_Hdr_ID);
                     db.AddInParameter(command, "@XML_Tally_Data", DbType.String, strXML_Tally_Data);
-                    
+
                     using (DbConnection conn = db.CreateConnection())
                     {
                         conn.Open();

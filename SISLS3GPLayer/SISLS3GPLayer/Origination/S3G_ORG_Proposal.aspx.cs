@@ -730,9 +730,9 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
             this.Page.Title = FunPubGetPageTitles(enumPageTitle.PageTitle);
             ObjUserInfo = new UserInfo();
             strDateFormat = ObjS3GSession.ProDateFormatRW;
-            calExeOfferValidTill.Format = calExeTermSheetDate.Format =
+            calExeOfferValidTill.Format = calExeTermSheetDate.Format = 
                 CEtxtOfferDate.Format = strDateFormat;
-
+            
             obj_PageValue = this;
             if (Request.QueryString["qsViewId"] != null)
             {
@@ -807,7 +807,7 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
                 FunProClearCachedFiles();
             }
             FunPriSetMaxLength();
-
+            
         }
         catch (Exception ex)
         {
@@ -886,7 +886,7 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
                     if (ddlRentalBasedOn.SelectedValue == "1")
                     {
                         pnlRebateDet.Enabled = pnlRebateStruc.Enabled = false;
-                        rfvRebateDiscountApp.Enabled = rfvRebateNoofInstall.Enabled = rfvRebateStructuredEI.Enabled =
+                        rfvRebateDiscountApp.Enabled = rfvRebateNoofInstall.Enabled = rfvRebateStructuredEI.Enabled = 
                             rfvRebateDiscountPerc.Enabled = rfvAddiRebateDiscountPerc.Enabled = false;
                     }
                     break;
@@ -933,9 +933,9 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
                 txtRemarks.ReadOnly =
                 txtOneTimeFee.ReadOnly =
                 txtTotalFacilityAmount.ReadOnly =
-                txtSecDepAdvRent.ReadOnly = txtTermSheetDate.ReadOnly =
+                txtSecDepAdvRent.ReadOnly = txtTermSheetDate.ReadOnly = 
                 txtOfferValidTill.ReadOnly = true;
-
+                
             txtOfferDate.ReadOnly = txtGuaranteedEOT.ReadOnly = true;
 
             ddlAmtBasedOn.Enabled = false;
@@ -1168,9 +1168,9 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
 
                     ViewState["Status_ID"] = dtProposal.Rows[0]["Status_ID"].ToString();
                     ViewState["Download_Path"] = dtProposal.Rows[0]["Upload_Path"].ToString();
-                    ViewState["Document_Path"] = dtProposal.Rows[0]["Upload_Path"].ToString();
+                    ViewState["Document_Path"]= dtProposal.Rows[0]["Upload_Path"].ToString();
                     lblCurrentPath.Text = Path.GetFileName(ViewState["Download_Path"].ToString());
-                    if (lblCurrentPath.Text != "")
+                    if(lblCurrentPath.Text!="")
                     {
                         ReqIdhyplnkView.Enabled = true;
                     }
@@ -1186,8 +1186,8 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
                             FunPriLoadLeadDtls(Convert.ToInt32(dtProposal.Rows[0]["Lead_ID"].ToString()));
                     }
 
-                    //ddlStampDuty.SelectedValue = dtProposal.Rows[0]["stamp_duty_app"].ToString();
-                    //ddlInterimDetails.SelectedValue = dtProposal.Rows[0]["interim_applicable"].ToString();
+                    ddlStampDuty.SelectedValue = dtProposal.Rows[0]["stamp_duty_app"].ToString();
+                    ddlInterimDetails.SelectedValue = dtProposal.Rows[0]["interim_applicable"].ToString();
 
                 }
                 #endregion
@@ -1865,7 +1865,7 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
                 rfvTermSheetDate.Enabled = true;
             }
 
-            FunPriEmptyPrimaryGrid();
+                FunPriEmptyPrimaryGrid();
             if (ddlProposalType.SelectedValue == "3")//Extension
             {
                 pnlPrimaryGrid.Enabled = false;
@@ -4260,8 +4260,8 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
 
                 ObjPricingRow.Sec_Dep_App = Convert.ToInt32(ddlSecDepApp.SelectedValue);
                 ObjPricingRow.Rental_Based_On = Convert.ToInt32(ddlRentalBasedOn.SelectedValue);
-                if (!string.IsNullOrEmpty(txtTermSheetDate.Text))
-                    ObjPricingRow.Term_Sheet_Date = Utility.StringToDate(txtTermSheetDate.Text);
+                //if (!string.IsNullOrEmpty(txtTermSheetDate.Text))
+                //    ObjPricingRow.Term_Sheet_Date = Utility.StringToDate(txtTermSheetDate.Text);
                 //ObjPricingRow.Secondary_Rental_Based_On = Convert.ToInt32(ddlSecondaryRentalBasedOn.SelectedValue);
                 ObjPricingRow.Upload_Path = ViewState["Document_Path"].ToString();
 
@@ -4273,7 +4273,7 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
 
                 SerializationMode SerMode = SerializationMode.Binary;
                 byte[] ObjPricingDataTable = ClsPubSerialize.Serialize(ObjS3G_ORG_Pricing, SerMode);
-
+                
                 intResult = ObjPricingMgtServices.FunPubCreatePricingInt(out strOffer_No, SerMode, ObjPricingDataTable);
                 FunProClearCachedFiles();
                 if (intResult == 0)
@@ -5344,7 +5344,7 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
         if (ddlRentalBasedOn.SelectedValue == "1")
         {
             pnlRebateDet.Enabled = pnlRebateStruc.Enabled = false;
-            rfvRebateDiscountApp.Enabled = rfvRebateNoofInstall.Enabled = rfvRebateStructuredEI.Enabled =
+            rfvRebateDiscountApp.Enabled = rfvRebateNoofInstall.Enabled = rfvRebateStructuredEI.Enabled = 
                 rfvRebateDiscountPerc.Enabled = rfvAddiRebateDiscountPerc.Enabled = false;
         }
         else
@@ -5490,9 +5490,9 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
         {
             //if (ddlDocumentType.SelectedValue != "0")
             //{
-            // DataTable dtDocs = (DataTable)ViewState["Docs" + ddlDocumentType.SelectedValue];
+               // DataTable dtDocs = (DataTable)ViewState["Docs" + ddlDocumentType.SelectedValue];
 
-            HttpFileCollection hfc = Request.Files;
+                HttpFileCollection hfc = Request.Files;
 
             if (string.IsNullOrEmpty(lblActualPath.Text))
             {
@@ -5508,7 +5508,7 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
                     chkSelect.Enabled = true;
                     chkSelect.Checked = true;
                     chkSelect.ToolTip = flUpload.ToolTip = hdnSelectedPath.Value;
-                    lblCurrentPath.Text = Path.GetFileName(hpf.FileName);
+                    lblCurrentPath.Text =Path.GetFileName(hpf.FileName);
 
                     //Cache["Docs_" + ddlDocumentType.SelectedValue + "_File_" + ddlDocument.SelectedValue] = hpf;
                     Cache["Docs_Signed_Proposal"] = hpf;
@@ -5549,7 +5549,7 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
                 }
                 strFilePath += @"\" + System.IO.Path.GetFileName(hpf.FileName).Split('.')[0].ToString() + "_" + DateTime.Now.ToLocalTime().ToString().Replace(" ", "").Replace("/", "").Replace(":", "") + "." + System.IO.Path.GetFileName(hpf.FileName).Split('.')[1].ToString();
                 hpf.SaveAs(strFilePath);
-                ViewState["Document_Path"] = strFilePath;
+                ViewState["Document_Path"] =strFilePath;
                 ViewState["Download_Path"] = strFilePath;
             }
             btnSave.Enabled = true;
@@ -5585,7 +5585,7 @@ public partial class Origination_S3G_ORG_Proposal : ApplyThemeForProject
             string SignedFile = "";
             string FileName = Path.GetFileName(ViewState["Download_Path"].ToString());
             SignedFile = Server.MapPath(".") + "\\PDF Files\\Proposal\\Signed\\";
-
+            
             if (!System.IO.Directory.Exists(SignedFile))
             {
                 System.IO.Directory.CreateDirectory(SignedFile);

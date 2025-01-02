@@ -189,49 +189,101 @@ public partial class Reports_S3GReportSchedule : ApplyThemeForProject
             lblToMonth.CssClass = "styleReqFieldLabel";
             ddlFunderName.Enabled = ddlVendorName.Enabled = ddlAssetStatus.Enabled =
             ddlVendorInvoiceStatus.Enabled = ddlStatus.Enabled = ddlAssetCategory.Enabled =
-            ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = false;
+            ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = ddlTranche.Enabled = false;
         }
         else if (ddlprogramName.SelectedValue == "1")
         {
             lblDate.CssClass = lblToMonth.CssClass = "styleDisplayLabel";
             rfvDemandToMonth.Enabled = ddlVendorName.Enabled = ddlFunderName.Enabled = ddlAssetStatus.Enabled
                 = ddlVendorInvoiceStatus.Enabled = ddlAssetCategory.Enabled = true;
-            ddlStatus.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = false;
+            ddlStatus.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = ddlTranche.Enabled = false;
             rfvFromDate.Enabled = rfvDemandToMonth.Enabled = false;
         }
         else if (ddlprogramName.SelectedValue == "2")
         {
             lblToMonth.CssClass = "styleDisplayLabel";
             rfvDemandToMonth.Enabled = ddlVendorName.Enabled = ddlAssetStatus.Enabled = ddlVendorInvoiceStatus.Enabled
-                = ddlAssetCategory.Enabled = ddlStatus.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = false;
+                = ddlAssetCategory.Enabled = ddlStatus.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlTranche.Enabled = false;
             ddlRentalGroup.Enabled = true;
         }
         else if (ddlprogramName.SelectedValue == "3")
         {
             lblToMonth.CssClass = "styleReqFieldLabel";
             ddlFunderName.Enabled = ddlAssetStatus.Enabled = ddlVendorInvoiceStatus.Enabled =
-                ddlAssetCategory.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = false;
+                ddlAssetCategory.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = ddlTranche.Enabled = false;
             rfvDemandToMonth.Enabled = ddlVendorName.Enabled = ddlStatus.Enabled = true;
         }
         else if (ddlprogramName.SelectedValue == "4")
         {
             lblToMonth.CssClass = "styleReqFieldLabel";
             ddlFunderName.Enabled = ddlVendorName.Enabled = ddlAssetStatus.Enabled = ddlVendorInvoiceStatus.Enabled
-                = ddlStatus.Enabled = ddlAssetCategory.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = false;
+                = ddlStatus.Enabled = ddlAssetCategory.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = ddlTranche.Enabled = false;
         }
         else if ((ddlprogramName.SelectedValue == "5") || (ddlprogramName.SelectedValue == "6"))
         {
             lblToMonth.CssClass = "styleReqFieldLabel";
-            ddlinvoiceType.Enabled = ddlLocation.Enabled = true;
-            ddlFunderName.Enabled = ddlVendorName.Enabled = ddlAssetStatus.Enabled = ddlVendorInvoiceStatus.Enabled = 
-                ddlStatus.Enabled = ddlAssetCategory.Enabled = ddlRentalGroup.Enabled = false;
+            ddlVendorInvoiceStatus.Enabled = ddlAssetStatus.Enabled = ddlRentalGroup.Enabled =
+            ddlFunderName.Enabled = ddlVendorName.Enabled = ddlAssetCategory.Enabled = ddlStatus.Enabled =
+            ddlTranche.Enabled = false;
+
+            ddlLesseeName.Enabled = ddlLocation.Enabled = ddlinvoiceType.Enabled = ddlProposalType.Enabled = true;
         }
         else if (ddlprogramName.SelectedValue == "8")
         {
             lblToMonth.CssClass = "styleDisplayLabel";
             ddlVendorName.Enabled = true;
             rfvDemandToMonth.Enabled = ddlFunderName.Enabled = ddlAssetStatus.Enabled = ddlVendorInvoiceStatus.Enabled
-                = ddlAssetCategory.Enabled = ddlStatus.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = false;
+                = ddlAssetCategory.Enabled = ddlStatus.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = ddlRentalGroup.Enabled = ddlTranche.Enabled = false;
+        }
+        else if (ddlprogramName.SelectedValue == "9")
+        {
+            lblToMonth.CssClass = "styleDisplayLabel";
+            ddlinvoiceType.Enabled =
+            ddlVendorInvoiceStatus.Enabled =
+            ddlAssetStatus.Enabled =
+            ddlRentalGroup.Enabled =
+            ddlFunderName.Enabled =
+            ddlVendorName.Enabled =
+            ddlAssetCategory.Enabled =
+            ddlStatus.Enabled =
+            ddlProposalType.Enabled =
+            ddlVendorName.Enabled = false;
+            ddlTranche.Enabled = true;
+        }
+    }
+
+    [System.Web.Services.WebMethod]
+    public static string[] GetTrancheName(String prefixText, int count)
+    {
+        try
+        {
+            Dictionary<string, string> Procparam;
+            Procparam = new Dictionary<string, string>();
+            List<String> suggetions = new List<String>();
+            DataTable dtCommon = new DataTable();
+            DataSet Ds = new DataSet();
+            Procparam.Clear();
+            Procparam.Add("@Company_ID", obj_Page.intCompanyId.ToString());
+            Procparam.Add("@PrefixText", prefixText);
+            suggetions = Utility.GetSuggestions(Utility.GetDefaultData("S3G_LAD_GetTranche_AGT", Procparam), true);
+            return suggetions.ToArray();
+        }
+        catch (Exception ex)
+        {
+            ClsPubCommErrorLogDB.CustomErrorRoutine(ex);
+            return null;
+        }
+    }
+
+    protected void ddlTranche_Item_Selected(object Sender, EventArgs e)
+    {
+        try
+        {
+            System.Web.HttpContext.Current.Session["ddlTranche"] = (ddlTranche.SelectedValue == "-2") ? "-1" : ddlTranche.SelectedValue;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
         }
     }
 
@@ -337,6 +389,7 @@ public partial class Reports_S3GReportSchedule : ApplyThemeForProject
             //opc002 start
             ObjReportDataRow.Invoice_Type = Convert.ToInt32(ddlinvoiceType.SelectedValue);
             ObjReportDataRow.Location_Id = ddlLocation.SelectedValue;
+            ObjReportDataRow.Tranche_Header_Id = Convert.ToInt32(ddlTranche.SelectedValue);
             //opc002 end
 
             //Invoice_Type Is using for Proposal Type
@@ -451,8 +504,8 @@ public partial class Reports_S3GReportSchedule : ApplyThemeForProject
         {
         }
     }
-    
-protected new void Page_PreInit(object sender, EventArgs e)
+
+    protected new void Page_PreInit(object sender, EventArgs e)
     {
         try
         {
@@ -544,6 +597,11 @@ protected new void Page_PreInit(object sender, EventArgs e)
                     ddlLocation.SelectedText = dsSheduleJob.Tables[0].Rows[0]["Location_Name"].ToString();
                 }
                 //opc002 end
+                if (dsSheduleJob.Tables[0].Rows[0]["Tranche_Name"].ToString() != "0")
+                {
+                    ddlTranche.SelectedValue = dsSheduleJob.Tables[0].Rows[0]["Tranche_Header_id"].ToString();
+                    ddlTranche.SelectedText = dsSheduleJob.Tables[0].Rows[0]["Tranche_Name"].ToString();
+                }
                 ddlAssetStatus.SelectedValue = dsSheduleJob.Tables[0].Rows[0]["Asset_Status"].ToString();
                 ddlAssetStatus.ClearDropDownList();
                 ddlVendorInvoiceStatus.SelectedValue = dsSheduleJob.Tables[0].Rows[0]["Vendor_Invoice_Status"].ToString();
@@ -566,9 +624,9 @@ protected new void Page_PreInit(object sender, EventArgs e)
                 if (dsSheduleJob.Tables[0].Rows[0]["Report_Id"].ToString() != "5")
                 {
                     ddlLesseeName.Enabled = ddlFunderName.Enabled = ddlVendorName.Enabled =
-                        ddlAssetCategory.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled = 
+                        ddlAssetCategory.Enabled = ddlinvoiceType.Enabled = ddlLocation.Enabled =
                         ddlVendorInvoiceStatus.Enabled = ddlAssetStatus.Enabled =
-                      ddlStatus.Enabled = ddlProposalType.Enabled = ddlRentalGroup.Enabled = false;
+                      ddlStatus.Enabled = ddlProposalType.Enabled = ddlRentalGroup.Enabled = ddlTranche.Enabled = false;
                 }
                 else
                 {
@@ -690,6 +748,7 @@ protected new void Page_PreInit(object sender, EventArgs e)
             ddlVendorName.Clear();
             ddlFunderName.Clear();
             ddlAssetCategory.Clear();
+            ddlTranche.Clear();
         }
         catch (Exception ex)
         {

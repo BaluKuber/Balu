@@ -164,6 +164,8 @@ namespace S3GDALayer.Origination
                             db.AddInParameter(command, "@Term_Sheet_Date", DbType.DateTime, ObjPricingRow.Term_Sheet_Date);
                         if (!ObjPricingRow.IsCreated_ByNull())
                             db.AddInParameter(command, "@Created_By", DbType.Int32, ObjPricingRow.Created_By);
+                        db.AddInParameter(command, "@Stamp_duty_app", DbType.Int32, ObjPricingRow.Stamp_Duty_App);
+                        db.AddInParameter(command, "@Interim_applicable", DbType.Int32, ObjPricingRow.Interim_Applicable);
                         db.AddOutParameter(command, "@Offer_No", DbType.String, 100);
                         db.AddOutParameter(command, "@ErrorCode", DbType.Int32, sizeof(Int64));
                         using (DbConnection conn = db.CreateConnection())

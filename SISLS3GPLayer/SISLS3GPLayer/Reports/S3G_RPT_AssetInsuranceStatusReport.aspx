@@ -113,12 +113,11 @@
                           <td>
                         <asp:Button ID="btnclear" runat="server" Text="Clear" UseSubmitBehavior="true" OnClientClick="return fnConfirmClear();" CssClass="styleSubmitButton" OnClick="btnclear_Click" />
                           </td>
-                        <%--<td>
+                        <td>
                         <asp:Button ID="btnPrint" runat="server" CssClass="styleSubmitButton" OnClick="btnPrint_Click" Text="Export" UseSubmitBehavior="true" Visible="false" />
-                        </td>--%>
-                         <td>
-                        <asp:ImageButton ID="btnPrint" runat="server" CssClass="styleImgButton" ImageUrl="~/Images/excel_download.png" height="30px"  OnClick="btnPrint_Click" Text="Export"  Visible="true" />
-                             </td>
+                        </td>
+                         
+                        
                         </tr>
                        </table>
                     </td>

@@ -103,7 +103,7 @@
                                    <%--<asp:Button ID="btnExport" runat="server" CausesValidation="false" CssClass="styleSubmitButton" OnClick="btnExport_Click" Text="Export" ToolTip="Export" ValidationGroup="Export" Visible="false" />--%>
                                  </td>
                                 <td>
-                                  <asp:imagebutton ID="btnExport" runat="server" ToolTip="Click Go to get" CausesValidation="true"  OnClick="btnExport_Click"  Text="Export"  ValidationGroup="Export"  Height="25px" ImageAlign="Top" ImageUrl="~/Images/excel_download.png" Visible="False" />
+                                  <asp:imagebutton ID="btnExport" runat="server" CausesValidation="true"  OnClick="btnExport_Click"  Text="Export"  ValidationGroup="Export"  Height="30px" ImageAlign="Top" ImageUrl="~/Images/excel_download.png" Visible="False" />
                                </td>
                         </tr>
                             

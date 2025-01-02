@@ -99,54 +99,51 @@
             }
         }
 
-        
+        //--Balu Start--//
+
+        var finalWidth = null;
+
         function autoResize() {
             var newheight;
             var newwidth;
 
             try {
-                //debugger;
                 if (window.frames.frameElement == null) {
                     window.parent.location.href = '../SessionExpired.aspx';
                     return;
                 }
-                if (window.parent.document.getElementById('hdnMenuState') != null && window.parent.document.getElementById(window.frames.frameElement.id)) {
-                    
-                    newheight = window.parent.document.getElementById(window.frames.frameElement.id).contentWindow.document.body.scrollHeight;
-                    newwidth = window.parent.document.getElementById(window.frames.frameElement.id).contentWindow.document.body.scrollWidth;
+                var iframeElement = window.parent.document.getElementById(window.frames.frameElement.id);
 
-                    window.parent.document.getElementById(window.frames.frameElement.id).height = newheight;
-                    window.parent.document.getElementById(window.frames.frameElement.id).width = newwidth;
-                    window.parent.document.getElementById(window.frames.frameElement.id).style.minHeight = 420;
+                if (iframeElement && window.parent.document.getElementById('hdnMenuState') != null) {
+                    newheight = iframeElement.contentWindow.document.body.scrollHeight;
+                    newwidth = iframeElement.contentWindow.document.body.scrollWidth;
 
-                    if (window.parent.document.getElementById('hdnMenuState').value == "0") {
-                        if (newwidth < screen.width - 257) {
-                            window.parent.document.getElementById(window.frames.frameElement.id).width = (screen.width - 257);
-                            window.document.body.style.width = (screen.width - 259);
-                        }
-                        else {
-                            window.parent.document.getElementById(window.frames.frameElement.id).width = newwidth;
-                            window.document.body.style.width = window.document.body.offsetWidth; //newwidth - 3;
-                        }
+                    if (finalWidth === null) {
+                        finalWidth = newwidth;
+
+                        iframeElement.width = finalWidth;
+
+                        window.document.body.style.width = finalWidth + 'px';
                     }
-                    else {
-                        if (newwidth < screen.width - 53) {
-                            window.parent.document.getElementById(window.frames.frameElement.id).width = (screen.width - 53);
-                            window.document.body.style.width = (screen.width - 54);
-                        }
-                        else {
-                            window.parent.document.getElementById(window.frames.frameElement.id).width = newwidth;
-                            window.document.body.style.width = window.document.body.offsetWidth;  //newwidth - 3;
-                        }
+
+                    iframeElement.height = newheight;
+
+                    if (iframeElement.width !== finalWidth) {
+                        iframeElement.width = finalWidth;  // Keep the width fixed
                     }
+
+                    if (window.document.body.offsetWidth !== finalWidth) {
+                        window.document.body.style.width = finalWidth + 'px';  // Keep the body width fixed
+                    }
+                    iframeElement.style.minHeight = 420;
                 }
-            }
-            catch (e) {
-                //alert(e);
+            } catch (e) {
+                // Handle any errors gracefully
+                console.error(e);
             }
         }
 
-        
+        //--Balu End--//
 
         function shouldCancelbackspace(e) {
             var key;

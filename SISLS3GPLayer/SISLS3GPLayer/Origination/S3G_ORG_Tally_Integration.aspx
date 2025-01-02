@@ -85,12 +85,23 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td class="styleFieldLabel">
-                                                    <asp:Label runat="server" ID="lblCustomerName" CssClass="styleDisplayLabel" Text="Lessee Name"></asp:Label>
+
+                                                 <td class="styleFieldLabel" width="20%">
+                                                    <asp:Label runat="server" Text="Status" ID="lblPOStatus"  CssClass="styleReqFieldLabel" ToolTip="Invoice Status">
+                                                    </asp:Label>
                                                 </td>
-                                                <td class="styleFieldAlign">
-                                                    <uc2:Suggest ID="ddlCustomerName"  Width="280px"  runat="server" ServiceMethod="GetCustomerNameDetails" />
+                                                <td class="styleFieldAlign" width="30%">
+                                                    <asp:DropDownList ID="ddlStatus" runat="server"  Width="55%" ToolTip="Status">
+                                                         <asp:ListItem Text="Select" Selected="true" Value="-1"></asp:ListItem>
+                                                         <asp:ListItem Text="Pending" Value="1"></asp:ListItem>
+                                                        <asp:ListItem Text="WIP & Processed" Value="0"></asp:ListItem>
+                                                   </asp:DropDownList>
+                                                     <asp:RequiredFieldValidator  ID="rfvddlStatus" runat="server" ControlToValidate="ddlStatus"
+                                                                    CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Select Status"
+                                                                    InitialValue="-1" SetFocusOnError="False" ValidationGroup="vsSave"></asp:RequiredFieldValidator>
                                                 </td>
+
+                                               
                                                 <td class="styleFieldLabel">
                                                     <asp:Label ID="lblVendorName" runat="server" Text="Vendor Name" CssClass="styleDisplayLabel"></asp:Label>
                                                 </td>
@@ -99,6 +110,25 @@
                                                 </td>
                                             </tr>
                                             <tr>
+
+                                                 <td class="styleFieldLabel">
+                                                    <asp:Label runat="server" ID="lblCustomerName" CssClass="styleDisplayLabel" Text="Lessee Name"></asp:Label>
+                                                </td>
+                                                <td class="styleFieldAlign">
+                                                    <uc2:Suggest ID="ddlCustomerName"  Width="280px"  runat="server" ServiceMethod="GetCustomerNameDetails" />
+                                                </td>
+
+                                                <td class="styleFieldLabel" >
+                                                    <asp:Label runat="server" ID="Label1" CssClass="styleDisplayLabel" Text="Rental Schedule No."></asp:Label>
+                                                </td>
+                                                <td class="styleFieldAlign">
+                                                    <uc2:Suggest ID="ddlPONo" runat="server" ServiceMethod="GetRSNoDetails" />
+                                                </td>
+                                   
+                                            </tr>
+                                            <tr>
+
+                                                
                                                 <td class="styleFieldLabel">
                                                     <asp:Label runat="server" ID="lblLoadSequenceNo" CssClass="styleDisplayLabel" Text="Tranche Name"></asp:Label>
                                                 </td>
@@ -106,25 +136,8 @@
                                                     <uc2:Suggest ID="ddlLoadSequenceNo" runat="server" ServiceMethod="GetTrancheDetails" />
                                                 </td>
 
-                                                <td class="styleFieldLabel" width="20%">
-                                                    <asp:Label runat="server" Text="Status" ID="lblPOStatus" CssClass="styleDisplayLabel" ToolTip="Invoice Status">
-                                                    </asp:Label>
-                                                </td>
-                                                <td class="styleFieldAlign" width="30%">
-                                                    <asp:DropDownList ID="ddlStatus" runat="server"  Width="55%" ToolTip="PO Status">
-                                                         <asp:ListItem Text="Pending" Selected="true" Value="1"></asp:ListItem>
-                                                        <asp:ListItem Text="WIP & Processed" Value="0"></asp:ListItem>
-                                                   </asp:DropDownList>
-                                                </td>
-                                   
-                                            </tr>
-                                            <tr>
-                                                <td class="styleFieldLabel" >
-                                                    <asp:Label runat="server" ID="Label1" CssClass="styleDisplayLabel" Text="Rental Schedule No."></asp:Label>
-                                                </td>
-                                                <td class="styleFieldAlign">
-                                                    <uc2:Suggest ID="ddlPONo" runat="server" ServiceMethod="GetRSNoDetails" />
-                                                </td>
+
+                                               
                                                 <td></td>
                                                 <td></td>
                                             </tr>
@@ -132,7 +145,7 @@
                                             <tr>
                                                 <td align="center" colspan="4">
                                                     <asp:Button runat="server" ID="btnSearch" CssClass="styleSubmitButton" Text="Search"
-                                                        OnClick="btnSearch_Click" ValidationGroup="Print" />
+                                                        OnClick="btnSearch_Click"  ValidationGroup="vsSave" />
 
                                                     <asp:Button runat="server" ID="btnRefresh" CssClass="styleSubmitButton" Text="Refresh"  visible="false"
                                                         OnClick="btnSearch_Click" ValidationGroup="Print" />
@@ -154,7 +167,7 @@
                                 <td>
                                     <asp:Panel GroupingText="RS Details" ID="pnlPO" runat="server" Visible="false" CssClass="stylePanel">
                                        <%--  <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1100px;height:250px">--%>
-                                        <asp:GridView ID="gvPO" runat="server" AutoGenerateColumns="False" DataKeyNames="RowNumber" Width="100%" OnRowDataBound="gvPO_RowDataBound">
+                                        <asp:GridView ID="gvPO" runat="server" AutoGenerateColumns="False" DataKeyNames="RowNumber" Width="95%" OnRowDataBound="gvPO_RowDataBound">
                                             <Columns>
 											<asp:TemplateField HeaderText="Sl.No." Visible="false" HeaderStyle-CssClass="styleGridHeader">
                                                     <ItemTemplate>
@@ -259,10 +272,10 @@
                         
                            <asp:Button runat="server" ID="btnSave" CssClass="styleSubmitButton" visible="false"
                                OnClientClick="return fnConfirmSaveTally();" Text="Post to Tally"
-                                                        OnClick="btnSave_Click" ValidationGroup="Print" />
+                                                        OnClick="btnSave_Click"  />
 
                         <asp:Button runat="server" ID="btnExport1" CssClass="styleSubmitButton" Text="Export"  visible="false"
-                            OnClick="btnExport1_Click" ValidationGroup="Print" Enabled="false" />
+                            OnClick="btnExport1_Click"  Enabled="false" />
                                              
                         
                     </td>
@@ -272,8 +285,9 @@
 
                 <tr>
                     <td>
-                        <asp:ValidationSummary ID="vsDelivery" runat="server" CssClass="styleMandatoryLabel"
-                            HeaderText="Correct the following validation(s):  " ValidationGroup="Print" />
+                       <asp:ValidationSummary runat="server" ID="vsSave" ValidationGroup="vsSave"
+                            HeaderText="Please correct the following validation(s):" Height="400px" CssClass="styleMandatoryLabel"
+                            Width="500px" ShowMessageBox="false" ShowSummary="true" />
                     </td>
                 </tr>
                  

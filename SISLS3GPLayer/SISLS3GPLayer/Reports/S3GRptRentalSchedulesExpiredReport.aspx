@@ -100,7 +100,7 @@
                                 <table width="98%">
                                     <tr>
                                         <td>
-                                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1155px;">
+                                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px;">
                                             <asp:GridView ID="grvRSExpired" runat="server" Width="4052px" FooterStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader"
                                                 RowStyle-HorizontalAlign="Left" OnRowCreated="grvRSExpired_RowCreated" OnRowDataBound="grvRSExpired_RowDataBound">
                                             </asp:GridView>

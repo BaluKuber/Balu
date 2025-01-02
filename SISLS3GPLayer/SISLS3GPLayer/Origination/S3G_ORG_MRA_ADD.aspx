@@ -220,11 +220,12 @@
                                                         <asp:Panel ID="pnlMRAInfo" Width="98%" runat="server" CssClass="stylePanel">
                                                             <table width="100%" cellpadding="0" cellspacing="0">
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="MRA Creation Date" ID="lblMRACretionDate" CssClass="styleReqFieldLabel"
                                                                             ToolTip="MRA Creation Date"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
+
                                                                         <asp:TextBox ID="txtMRACreationDate" ToolTip="MRA Creation Date" Width="35%" runat="server" MaxLength="12" ReadOnly="True"></asp:TextBox>
                                                                         <asp:Image ID="imgMRACreationDate" runat="server" ImageUrl="~/Images/calendaer.gif" Visible="false" />
                                                                         <cc1:CalendarExtender ID="ceMRACreationDate" runat="server" Enabled="false"
@@ -237,7 +238,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldAlign" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldAlign" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="MRA Effective Date" ID="lblMRAEffectiveDate" CssClass="styleReqFieldLabel"
                                                                             ToolTip="MRA Effective Date"></asp:Label>
                                                                     </td>
@@ -255,7 +256,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="Standard Format" ID="lblStandardFormat" CssClass="styleReqFieldLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -268,7 +269,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="Signed & Received" ID="lblSignreceived" CssClass="styleReqFieldLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -281,7 +282,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="Signatory Name" ID="lblSignatoryName" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -296,7 +297,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="Signatory Designation" ID="lblSignatoryDesignation" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -308,7 +309,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="Signatory Contact Number" ID="lblSignatoryNumber" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -323,7 +324,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="Signatory Email" ID="lblSignatoryEmail" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -335,7 +336,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="Auth Basis of Signatory" ID="lblAuthorizationBasis" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -344,7 +345,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label ID="lblAuthorizationDate" runat="server" Text="Authorization Date" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -358,7 +359,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label runat="server" Text="Board Resln-Lease Auth" ID="lblBoardAuthorization" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -367,7 +368,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label ID="lblResolutionDate" runat="server" Text="Board Resolution Date" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -381,7 +382,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label ID="lblAccountManager1" runat="server" Text="Account Manager 1" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -401,7 +402,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label ID="lblAccountManager2" runat="server" Text="Account Manager 2" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">
@@ -421,7 +422,7 @@
                                                                 </tr>
 
                                                                 <tr width="100%">
-                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 20%">
+                                                                    <td align="left" class="styleFieldLabel" valign="middle" style="width: 18%">
                                                                         <asp:Label ID="lblRegionalManager" runat="server" Text="Regional Manager" CssClass="styleDisplayLabel"></asp:Label>
                                                                     </td>
                                                                     <td align="left" class="styleFieldAlign" style="width: 28%">

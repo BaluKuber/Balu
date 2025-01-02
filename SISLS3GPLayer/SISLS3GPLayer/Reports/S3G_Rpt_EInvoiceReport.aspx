@@ -122,7 +122,7 @@
                 <tr>
                     <td>
                         <asp:Panel ID="pnlVAT" runat="server" CssClass="stylePanel" GroupingText="GST Report" Visible="false" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <asp:Label ID="lblError" runat="server" CssClass="styleDisplayLabel"></asp:Label>
                                 <asp:GridView ID="grvGST" runat="server" OnRowDataBound="grvGST_RowDataBound" Width="100%" FooterStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader" RowStyle-HorizontalAlign="Center">
                                 </asp:GridView>
@@ -133,9 +133,9 @@
                 </tr>
                 <tr class="styleButtonArea">
                     <td align="center">
-                        <asp:Button runat="server" ID="btnExport" CssClass="styleSubmitButton" Text="Export CSV" CausesValidation="false" ValidationGroup="Export" OnClick="btnExport_Click" Visible="false" ToolTip="Export" />
+                        <asp:Button runat="server" ID="btnExport" CssClass="styleSubmitButton" Text="Export CSV" CausesValidation="false" ValidationGroup="Export" OnClick="btnExport_Click" OnClientClick="this.disabled=true;"  Visible="false" ToolTip="Export" UseSubmitBehavior="False" />
                         &nbsp;&nbsp;
-                        <asp:Button runat="server" ID="btnExportExcel" CssClass="styleSubmitButton" Text="Export Excel" CausesValidation="false" ValidationGroup="Export" OnClick="btnExportExcel_Click" Visible="false" ToolTip="Export Excel" />
+                        <asp:Button runat="server" ID="btnExportExcel" CssClass="styleSubmitButton" Text="Export Excel" CausesValidation="false" ValidationGroup="Export" OnClick="btnExportExcel_Click" OnClientClick="this.disabled=true;" Visible="false" ToolTip="Export Excel" UseSubmitBehavior="False" />
                     </td>
                 </tr>
                 <tr>

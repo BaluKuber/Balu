@@ -121,7 +121,7 @@
                 <tr>
                     <td>
                         <asp:Panel ID="pnlPOReportDetails" runat="server" CssClass="stylePanel" GroupingText="PO Report Details" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <asp:GridView ID="grvPOReportDetails" runat="server" Width="100%" FooterStyle-HorizontalAlign="Right"
                                     RowStyle-HorizontalAlign="Center" CellPadding="0" CellSpacing="0">                                    
                                 </asp:GridView>

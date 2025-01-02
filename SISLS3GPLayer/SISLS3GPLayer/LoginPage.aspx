@@ -8,7 +8,7 @@
     <title>Smartlend 3G :: Login ::</title>
     <link rel="shortcut icon" href="Images/TemplateImages/1/CompanyLogo_Old.png" />
 </head>
-<body>
+  <body onkeydown="if(!event.target.matches('input')&&!event.target.matches('textarea'))return!1" oncontextmenu="return!1" >  
 
     <form id="form1" runat="server">
 
@@ -16,7 +16,7 @@
             function PassEnterKey() {
                 if (event.keyCode == 13)
                     document.getElementById('<%=imgbtnLogin.ClientID %>').click();
-            }
+        }
         </script>
 
         <div id="wrapper">
@@ -24,13 +24,15 @@
             <div class="container">
                 <div class="headerPart" style="background-image: url(Images/login/hdr_bg.png); background-repeat: no-repeat; background-position: right;">
                     <a href="#">
-                        <img src="Images/Opclogo_new.png" border="0" width="180px" /></a>
+                        <img src="Images/Opclogo_new.png" border="0" width="180px"  /></a>
                 </div>
                 <div class="main">
                     <div class="mainLeft">
                         <div class="contentPart">
                             <div class="contentTopImgPart">
                                 <img src="Images/login/content_leftside_topcurve.gif" border="0" class="fll" />
+
+                                
                             </div>
                             <div class="contentCenterImgPart" runat="server" id="dvText" style="height: auto">
                                 <%--<p class="fll">

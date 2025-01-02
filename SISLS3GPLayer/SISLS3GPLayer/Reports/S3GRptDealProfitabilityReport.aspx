@@ -148,7 +148,7 @@
                     <td width="100%">
                         <asp:Panel ID="pnlPDC" runat="server" Style="display:none" CssClass="stylePanel" GroupingText="Deal Profitability Report">
                             <asp:Label ID="lblError" runat="server" CssClass="styleDisplayLabel"></asp:Label>
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1160px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <table width="99%">
                                     <tr>
                                         <td>

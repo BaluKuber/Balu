@@ -132,6 +132,28 @@
                                         <asp:Label ID="lblManual_Numbering" runat="server" Text='<%# Bind("Is_Manual_Num") %>'></asp:Label>
                                     </ItemTemplate>
                                 </asp:TemplateField>
+                                 <asp:TemplateField HeaderText="Short Name">
+                                    <ItemTemplate>
+                                        <asp:Label ID="lblShort_Name" runat="server" Text='<%# Bind("Short_Name") %>'></asp:Label>
+                                    </ItemTemplate>
+                                    <HeaderTemplate>
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr align="center">
+                                                <td>
+                                                    <asp:LinkButton ID="lnkbtnSort4" runat="server" Text="Short Name" ToolTip="Sort By ShortName"
+                                                        CssClass="styleGridHeaderLinkBtn" OnClick="FunProSortingColumn"> </asp:LinkButton>
+                                                    <asp:ImageButton ID="imgbtnSort4" runat="server" ImageAlign="Middle" CssClass="styleImageSortingAsc" />
+                                                </td>
+                                            </tr>
+                                            <tr align="left">
+                                                <td>
+                                                    <asp:TextBox AutoCompleteType="None" ID="txtHeaderSearch5" runat="server" AutoPostBack="true"
+                                                        OnTextChanged="FunProHeaderSearch" CssClass="styleSearchBox"></asp:TextBox>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </HeaderTemplate>
+                                </asp:TemplateField>
 
                                 <asp:TemplateField Visible="false" ItemStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader">
                                     <ItemTemplate>
@@ -164,7 +186,7 @@
                             Text="Export To Excel" runat="server"></asp:Button>
                         <asp:Button ID="btnExportToExcelAddr" width="150px"
                              OnClientClick="return fnExcelExportVal(this)" 
-                            UseSubmitBehavior="true" CausesValidation="false" CssClass="styleSubmitLongButton"
+                            UseSubmitBehavior="false" CausesValidation="false" CssClass="styleSubmitLongButton"
                             Text="Export with Billing Address" runat="server"></asp:Button>
                         <asp:Button ID="btnShowAll" runat="server" Text="Show All" CssClass="styleSubmitButton"
                             OnClick="btnShowAll_Click" />

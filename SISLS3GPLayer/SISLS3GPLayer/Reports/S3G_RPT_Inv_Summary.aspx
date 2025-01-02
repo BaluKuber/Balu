@@ -144,7 +144,7 @@
                     <td colspan="4">
                         <asp:Panel ID="PnPurchaseInvoiceDetails" runat="server" GroupingText="Purchase Invoice Details"
                             CssClass="stylePanel" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <table width="100%">
                                     <tr>
                                         <td style="width: 100%;">

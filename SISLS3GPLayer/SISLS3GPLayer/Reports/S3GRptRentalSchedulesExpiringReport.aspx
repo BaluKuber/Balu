@@ -74,7 +74,7 @@
                     <td>
                         <fieldset class="stylePanel">
                             <legend>Rental Schedules Expiring Report</legend>
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1170px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
 
                                 <table width="99%">
                                     <tr>

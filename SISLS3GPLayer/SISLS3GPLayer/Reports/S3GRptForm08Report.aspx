@@ -102,7 +102,7 @@
                 <tr>
                     <td>
                         <asp:Panel ID="pnlForm08ReportDetails" runat="server" CssClass="stylePanel" GroupingText="CHG-1 Report Details" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <asp:GridView ID="grvForm08ReportDetails" runat="server" Width="100%" FooterStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader"
                                      RowStyle-HorizontalAlign="Center" OnRowDataBound="grvForm08ReportDetails_RowDataBound">                                  
                                 </asp:GridView>

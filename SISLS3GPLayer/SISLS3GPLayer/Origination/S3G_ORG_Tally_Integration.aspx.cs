@@ -442,7 +442,7 @@ public partial class Origination_S3G_ORG_Tally_Integration : ApplyThemeForProjec
             if (e.Row.RowType == DataControlRowType.DataRow)
             {
                 Label lblStatus = (Label)e.Row.FindControl("lblStatus");
-                if (lblStatus.Text == "Exception")
+                if (lblStatus.Text == "Exception" || lblStatus.Text == "Completed")
                 {
                     LinkButton LinkButton = (LinkButton)e.Row.FindControl("btnException");
                     LinkButton.Enabled = true;
@@ -533,12 +533,13 @@ public partial class Origination_S3G_ORG_Tally_Integration : ApplyThemeForProjec
         {
             btnSave.Visible = true;
             btnRefresh.Visible = false;
-           
+            gvPO.Columns[8].Visible = false;
         }
         else
         {
             btnSave.Visible = false;
             btnRefresh.Visible = true;
+            gvPO.Columns[8].Visible = true;
         }
     }
 

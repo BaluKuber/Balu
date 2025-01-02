@@ -324,7 +324,7 @@
                                     </ItemTemplate>
                                 </asp:TemplateField>
 
-                                <%--<asp:TemplateField ItemStyle-HorizontalAlign="Left">
+                                <asp:TemplateField ItemStyle-HorizontalAlign="Left">
                                     <HeaderStyle CssClass="styleGridHeader" />
                                     <HeaderTemplate>
                                         <asp:Label ID="lblRSNumber" runat="server" Text="RS Number"></asp:Label>
@@ -332,7 +332,7 @@
                                     <ItemTemplate>
                                         <asp:Label ID="lblRSNumber" runat="server" Text='<%# Bind("[RS Number]") %>'></asp:Label>
                                     </ItemTemplate>
-                                </asp:TemplateField>--%>
+                                </asp:TemplateField>
 
                                 <asp:TemplateField HeaderText="Select">
                                     <HeaderTemplate>

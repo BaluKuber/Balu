@@ -36,8 +36,8 @@ public partial class Origination_S3GOrgCustomerMaster_View : ApplyThemeForProjec
     #region Paging Config
 
     string strRedirectPage = "~/Origination/S3GOrgCustomerMaster_Add.aspx";
-    int intNoofSearch = 4;
-    string[] arrSortCol = new string[] { "Customer_Name", "Customer_Code", "Name", "Is_Manual_Num" };
+    int intNoofSearch = 5;
+    string[] arrSortCol = new string[] { "Customer_Name", "Customer_Code", "Name", "Is_Manual_Num","Short_Name" };
     string strProcName = SPNames.S3G_ORG_GetCustomerDetails_Paging;
     Dictionary<string, string> Procparam = null;
 

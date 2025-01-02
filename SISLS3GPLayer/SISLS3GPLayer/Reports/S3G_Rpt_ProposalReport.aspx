@@ -132,13 +132,15 @@
                     <td align="center">
                         <asp:Button runat="server" ID="btnOk" CssClass="styleSubmitButton" Text="Go" CausesValidation="true" ValidationGroup="Go" ToolTip="Go" OnClick="btnOk_Click" />
                         &nbsp;<asp:Button runat="server" ID="btnClear" CausesValidation="false" CssClass="styleSubmitButton" Text="Clear" ToolTip="Clear" OnClick="btnClear_Click" OnClientClick="return fnConfirmClear();" />
-                         <asp:Button runat="server" ID="btnExportExcel_1" CssClass="styleSubmitButton" Text="Export Excel" CausesValidation="false" ValidationGroup="Export" OnClick="btnExportExcel_Click" Visible="false" ToolTip="Export Excel" />
+                         
+                        <%--<asp:Button runat="server" ID="btnExportExcelRender" CausesValidation="false" OnClick="btnExportExcel_Click" Width="1px" style="visibility:hidden;" />--%>
+                        <%--<asp:Button runat="server" ID="btnExportExcel_1" CssClass="styleSubmitButton" Text="Export Excel" CausesValidation="false" ValidationGroup="Export" OnClick="btnExportExcel_Click" Visible="false" ToolTip="Export Excel" />--%>
                     </td>
                 </tr>
                 <tr>
                     <td>
                         <asp:Panel ID="pnlVAT" runat="server" CssClass="stylePanel" GroupingText="Proposal Report" Visible="false" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1160px;">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px;">
                                 <asp:Label ID="lblError" runat="server" CssClass="styleDisplayLabel"></asp:Label>
                                 <asp:GridView ID="grvGST" runat="server" OnRowDataBound="grvGST_RowDataBound" Width="100%" FooterStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader" RowStyle-HorizontalAlign="Center">
                                 </asp:GridView>
@@ -150,8 +152,8 @@
                 <tr class="styleButtonArea">
                     <td align="center">
                        
-                        <asp:Button runat="server" ID="btnExportExcel" CssClass="styleSubmitButton" Text="Export Excel" CausesValidation="false"
-                            ValidationGroup="Export" OnClick="btnExportExcel_Click"  OnClientClick="return fnExcelExportVal(this)" Visible="false" ToolTip="Export Excel" />
+                        <asp:Button runat="server" ID="btnExportExcel" CssClass="styleSubmitButton" Text="Export Excel" CausesValidation="true" Visible="false"
+                            ValidationGroup="Export" OnClick="btnExportExcel_Click"  OnClientClick="this.disabled=true;" UseSubmitBehavior="false" ToolTip="Export Excel" />
                         
                     </td>
                 </tr>
@@ -167,6 +169,10 @@
                 </tr>
             </table>
         </ContentTemplate>
+        <Triggers>
+           <asp:PostBackTrigger ControlID="btnExportExcel" />
+           
+        </Triggers>
         
     </asp:UpdatePanel>
 
@@ -183,14 +189,6 @@
             }
         }
 
-        function fnExcelExportVal(btn) {
-            //btn.style.visibility = 'hidden';
-            btn.disabled = true;
-            //var a = event.srcElement;
-            //a.style.display = 'block';
-            //a.style.removeAttribute('display');
-            return true;
-         }
 
     </script>
 </asp:Content>

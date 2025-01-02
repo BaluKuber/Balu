@@ -1313,6 +1313,10 @@ namespace S3GBusEntity.Origination {
             
             private global::System.Data.DataColumn columnTerm_Sheet_Date;
             
+            private global::System.Data.DataColumn columnStamp_Duty_App;
+            
+            private global::System.Data.DataColumn columnInterim_Applicable;
+            
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
             public S3G_ORG_PricingDataTable() {
@@ -2084,6 +2088,22 @@ namespace S3GBusEntity.Origination {
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public global::System.Data.DataColumn Stamp_Duty_AppColumn {
+                get {
+                    return this.columnStamp_Duty_App;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public global::System.Data.DataColumn Interim_ApplicableColumn {
+                get {
+                    return this.columnInterim_Applicable;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
             [global::System.ComponentModel.Browsable(false)]
             public int Count {
                 get {
@@ -2211,7 +2231,9 @@ namespace S3GBusEntity.Origination {
                         int Addi_Rebate_Allowed_Method, 
                         int Addi_Rebate_Allowed_Method_N, 
                         string Upload_Path, 
-                        System.DateTime Term_Sheet_Date) {
+                        System.DateTime Term_Sheet_Date, 
+                        int Stamp_Duty_App, 
+                        int Interim_Applicable) {
                 S3G_ORG_PricingRow rowS3G_ORG_PricingRow = ((S3G_ORG_PricingRow)(this.NewRow()));
                 object[] columnValuesArray = new object[] {
                         Pricing_ID,
@@ -2305,7 +2327,9 @@ namespace S3GBusEntity.Origination {
                         Addi_Rebate_Allowed_Method,
                         Addi_Rebate_Allowed_Method_N,
                         Upload_Path,
-                        Term_Sheet_Date};
+                        Term_Sheet_Date,
+                        Stamp_Duty_App,
+                        Interim_Applicable};
                 rowS3G_ORG_PricingRow.ItemArray = columnValuesArray;
                 this.Rows.Add(rowS3G_ORG_PricingRow);
                 return rowS3G_ORG_PricingRow;
@@ -2420,6 +2444,8 @@ namespace S3GBusEntity.Origination {
                 this.columnAddi_Rebate_Allowed_Method_N = base.Columns["Addi_Rebate_Allowed_Method_N"];
                 this.columnUpload_Path = base.Columns["Upload_Path"];
                 this.columnTerm_Sheet_Date = base.Columns["Term_Sheet_Date"];
+                this.columnStamp_Duty_App = base.Columns["Stamp_Duty_App"];
+                this.columnInterim_Applicable = base.Columns["Interim_Applicable"];
             }
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
@@ -2609,6 +2635,10 @@ namespace S3GBusEntity.Origination {
                 base.Columns.Add(this.columnUpload_Path);
                 this.columnTerm_Sheet_Date = new global::System.Data.DataColumn("Term_Sheet_Date", typeof(global::System.DateTime), null, global::System.Data.MappingType.Element);
                 base.Columns.Add(this.columnTerm_Sheet_Date);
+                this.columnStamp_Duty_App = new global::System.Data.DataColumn("Stamp_Duty_App", typeof(int), null, global::System.Data.MappingType.Element);
+                base.Columns.Add(this.columnStamp_Duty_App);
+                this.columnInterim_Applicable = new global::System.Data.DataColumn("Interim_Applicable", typeof(int), null, global::System.Data.MappingType.Element);
+                base.Columns.Add(this.columnInterim_Applicable);
                 this.columnPricing_ID.ReadOnly = true;
                 this.columnFollowUp_Enquiry_Number.MaxLength = 25;
             }
@@ -4875,6 +4905,38 @@ namespace S3GBusEntity.Origination {
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public int Stamp_Duty_App {
+                get {
+                    try {
+                        return ((int)(this[this.tableS3G_ORG_Pricing.Stamp_Duty_AppColumn]));
+                    }
+                    catch (global::System.InvalidCastException e) {
+                        throw new global::System.Data.StrongTypingException("The value for column \'Stamp_Duty_App\' in table \'S3G_ORG_Pricing\' is DBNull.", e);
+                    }
+                }
+                set {
+                    this[this.tableS3G_ORG_Pricing.Stamp_Duty_AppColumn] = value;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public int Interim_Applicable {
+                get {
+                    try {
+                        return ((int)(this[this.tableS3G_ORG_Pricing.Interim_ApplicableColumn]));
+                    }
+                    catch (global::System.InvalidCastException e) {
+                        throw new global::System.Data.StrongTypingException("The value for column \'Interim_Applicable\' in table \'S3G_ORG_Pricing\' is DBNull.", e);
+                    }
+                }
+                set {
+                    this[this.tableS3G_ORG_Pricing.Interim_ApplicableColumn] = value;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
             public bool IsPricing_IDNull() {
                 return this.IsNull(this.tableS3G_ORG_Pricing.Pricing_IDColumn);
             }
@@ -5975,6 +6037,30 @@ namespace S3GBusEntity.Origination {
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
             public void SetTerm_Sheet_DateNull() {
                 this[this.tableS3G_ORG_Pricing.Term_Sheet_DateColumn] = global::System.Convert.DBNull;
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public bool IsStamp_Duty_AppNull() {
+                return this.IsNull(this.tableS3G_ORG_Pricing.Stamp_Duty_AppColumn);
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public void SetStamp_Duty_AppNull() {
+                this[this.tableS3G_ORG_Pricing.Stamp_Duty_AppColumn] = global::System.Convert.DBNull;
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public bool IsInterim_ApplicableNull() {
+                return this.IsNull(this.tableS3G_ORG_Pricing.Interim_ApplicableColumn);
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public void SetInterim_ApplicableNull() {
+                this[this.tableS3G_ORG_Pricing.Interim_ApplicableColumn] = global::System.Convert.DBNull;
             }
         }
         

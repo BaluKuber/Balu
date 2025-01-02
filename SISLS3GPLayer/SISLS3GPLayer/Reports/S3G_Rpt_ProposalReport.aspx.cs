@@ -240,7 +240,7 @@ public partial class Reports_S3G_Rpt_ProposalReport : ApplyThemeForProject
 
             if (bIsNewRow)
             {
-                grvGST.Rows[0].Visible = btnExportExcel.Visible = btnExportExcel_1.Visible = false;
+                grvGST.Rows[0].Visible = btnExportExcel.Visible =  false;
             }
             else
                 btnExportExcel.Visible=  true;
@@ -284,7 +284,7 @@ public partial class Reports_S3G_Rpt_ProposalReport : ApplyThemeForProject
             txtenddate.Text = string.Empty;
             grvGST.DataSource = null;
             grvGST.DataBind();
-            grvGST.Visible = ucCustomPaging.Visible = pnlVAT.Visible = btnExportExcel.Visible= btnExportExcel_1.Visible = false;
+            grvGST.Visible = ucCustomPaging.Visible = pnlVAT.Visible = btnExportExcel.Visible= false;
         }
         catch (Exception ex)
         {

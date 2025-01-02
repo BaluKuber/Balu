@@ -83,7 +83,7 @@
                 <tr>
                     <td>
                         <asp:Panel ID="pnlRptDetails" runat="server" CssClass="stylePanel" GroupingText="Funder O/S Details" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <asp:GridView ID="grvFunderOsDtl" runat="server" Width="100%"
                                     RowStyle-HorizontalAlign="Center" CellPadding="0" CellSpacing="0" OnRowDataBound="grvFunderOsDtl_RowDataBound">
                                 </asp:GridView>

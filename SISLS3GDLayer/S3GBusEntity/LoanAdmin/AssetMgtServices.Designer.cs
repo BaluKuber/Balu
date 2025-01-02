@@ -4559,6 +4559,8 @@ namespace S3GBusEntity.LoanAdmin {
             
             private global::System.Data.DataColumn columnAsset_Category;
             
+            private global::System.Data.DataColumn columnTranche_Header_Id;
+            
             private global::System.Data.DataColumn columnInvoice_Type;
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
@@ -4756,6 +4758,14 @@ namespace S3GBusEntity.LoanAdmin {
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public global::System.Data.DataColumn Tranche_Header_IdColumn {
+                get {
+                    return this.columnTranche_Header_Id;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
             public global::System.Data.DataColumn Invoice_TypeColumn {
                 get {
                     return this.columnInvoice_Type;
@@ -4820,6 +4830,7 @@ namespace S3GBusEntity.LoanAdmin {
                         int Vendor_Invoice_Status, 
                         int Invoice_Status, 
                         int Asset_Category, 
+                        int Tranche_Header_Id, 
                         int Invoice_Type) {
                 Shedule_ReportRow rowShedule_ReportRow = ((Shedule_ReportRow)(this.NewRow()));
                 object[] columnValuesArray = new object[] {
@@ -4843,6 +4854,7 @@ namespace S3GBusEntity.LoanAdmin {
                         Vendor_Invoice_Status,
                         Invoice_Status,
                         Asset_Category,
+                        Tranche_Header_Id,
                         Invoice_Type};
                 rowShedule_ReportRow.ItemArray = columnValuesArray;
                 this.Rows.Add(rowShedule_ReportRow);
@@ -4886,6 +4898,7 @@ namespace S3GBusEntity.LoanAdmin {
                 this.columnVendor_Invoice_Status = base.Columns["Vendor_Invoice_Status"];
                 this.columnInvoice_Status = base.Columns["Invoice_Status"];
                 this.columnAsset_Category = base.Columns["Asset_Category"];
+                this.columnTranche_Header_Id = base.Columns["Tranche_Header_Id"];
                 this.columnInvoice_Type = base.Columns["Invoice_Type"];
             }
             
@@ -4932,6 +4945,8 @@ namespace S3GBusEntity.LoanAdmin {
                 base.Columns.Add(this.columnInvoice_Status);
                 this.columnAsset_Category = new global::System.Data.DataColumn("Asset_Category", typeof(int), null, global::System.Data.MappingType.Element);
                 base.Columns.Add(this.columnAsset_Category);
+                this.columnTranche_Header_Id = new global::System.Data.DataColumn("Tranche_Header_Id", typeof(int), null, global::System.Data.MappingType.Element);
+                base.Columns.Add(this.columnTranche_Header_Id);
                 this.columnInvoice_Type = new global::System.Data.DataColumn("Invoice_Type", typeof(int), null, global::System.Data.MappingType.Element);
                 base.Columns.Add(this.columnInvoice_Type);
             }
@@ -9582,6 +9597,22 @@ namespace S3GBusEntity.LoanAdmin {
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public int Tranche_Header_Id {
+                get {
+                    try {
+                        return ((int)(this[this.tableShedule_Report.Tranche_Header_IdColumn]));
+                    }
+                    catch (global::System.InvalidCastException e) {
+                        throw new global::System.Data.StrongTypingException("The value for column \'Tranche_Header_Id\' in table \'Shedule_Report\' is DBNull.", e);
+                    }
+                }
+                set {
+                    this[this.tableShedule_Report.Tranche_Header_IdColumn] = value;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
             public int Invoice_Type {
                 get {
                     try {
@@ -9834,6 +9865,18 @@ namespace S3GBusEntity.LoanAdmin {
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
             public void SetAsset_CategoryNull() {
                 this[this.tableShedule_Report.Asset_CategoryColumn] = global::System.Convert.DBNull;
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public bool IsTranche_Header_IdNull() {
+                return this.IsNull(this.tableShedule_Report.Tranche_Header_IdColumn);
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "16.0.0.0")]
+            public void SetTranche_Header_IdNull() {
+                this[this.tableShedule_Report.Tranche_Header_IdColumn] = global::System.Convert.DBNull;
             }
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

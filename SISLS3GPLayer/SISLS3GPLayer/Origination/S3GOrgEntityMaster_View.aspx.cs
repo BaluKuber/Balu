@@ -394,7 +394,7 @@ public partial class Origination_S3GOrgEntityMaster_View : ApplyThemeForProject
             Dictionary<string, string> Procparam = new Dictionary<string, string>();
 
             dtGetdata = Utility.GetDefaultData("[S3G_EntityMasterDetails]", Procparam);
-
+            dtGetdata.Columns.Remove("TXNDT");
             GridView Grv = new GridView();
             Grv.DataSource = dtGetdata;
             Grv.DataBind();

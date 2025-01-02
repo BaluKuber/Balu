@@ -1,5 +1,4 @@
-﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" 
-    AutoEventWireup="true" CodeFile="S3G_Org_HSN_Add.aspx.cs" Inherits="Origination_S3G_Org_HSN_Add" %>
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Common/S3GMasterPageCollapse.master" AutoEventWireup="true" CodeFile="S3G_Org_HSN_Add.aspx.cs" Inherits="Origination_S3G_Org_HSN_Add" %>
 
 
 <%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="mbcbb" %>
@@ -7,8 +6,9 @@
 <%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
 <%@ Register TagPrefix="uc2" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
 
-<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
-    <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" Runat="Server">
+
+     <asp:UpdatePanel ID="UpdatePanel1" runat="server">
         <ContentTemplate>
             <table width="100%" align="center" cellpadding="0" cellspacing="0">
                 <tr>
@@ -29,21 +29,22 @@
                             <tr>
                                 <td>
                                     <table>
-                                        <tr>
-                                            <td class="styleFieldLabel">
-                                                <asp:RadioButtonList ID="rdbcode" runat="server" AutoPostBack="true" RepeatDirection="Horizontal" OnSelectedIndexChanged="rdbcode_SelectedIndexChanged" CssClass="styleFieldLabel">
-                                                    <asp:ListItem Text="HSN Code" Value="1" Selected="True"></asp:ListItem>
-                                                    <asp:ListItem Text="SAC Code" Value="2"></asp:ListItem>
-                                                </asp:RadioButtonList>
-                                            </td>
-                                        </tr>
+                                         <tr>
+                                <td class="styleFieldLabel">
+                                    <asp:RadioButtonList ID="rdbcode" runat="server" AutoPostBack="true" RepeatDirection="Horizontal" OnSelectedIndexChanged="rdbcode_SelectedIndexChanged" CssClass="styleFieldLabel" >
+                                        <asp:ListItem Text="HSN Code" Value="1" Selected="True"></asp:ListItem>
+                                        <asp:ListItem Text="SAC Code" Value="2"></asp:ListItem>
+                                    </asp:RadioButtonList>
+
+                                </td>
+                            </tr>
                                         <tr>
                                             <td class="styleFieldLabel" style="width: 232px">
                                                 <asp:Label ID="lblHSNCode" runat="server" CssClass="styleReqFieldLabel" Text="HSN Code"> </asp:Label>
                                             </td>
                                             <td class="styleFieldAlign">
-                                                <asp:TextBox ID="txtHSNCode" runat="server" MaxLength="15" Style="width: 240px"
-                                                    ToolTip="HSN Description"></asp:TextBox>
+                                              <asp:TextBox ID="txtHSNCode" runat="server" MaxLength="15" Style="width: 240px"
+                                                     ToolTip="HSN Description"></asp:TextBox>
                                             </td>
                                             <td>
                                                 <asp:RequiredFieldValidator ID="rfvHSNCode" CssClass="styleMandatoryLabel" runat="server"
@@ -61,45 +62,48 @@
                                             </td>
                                             <td class="styleFieldAlign">
                                                 <asp:TextBox ID="txtHSNDesc" runat="server" MaxLength="100" Style="width: 240px"
-                                                    ToolTip="HSN Description"></asp:TextBox>
+                                                     ToolTip="HSN Description"></asp:TextBox>
                                             </td>
                                             <td>
                                                 <asp:RequiredFieldValidator ID="rfvHSNDesc" runat="server" ControlToValidate="txtHSNDesc"
-                                                    CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Enter HSN Description"
+                                                    CssClass="styleMandatoryLabel" Display="None" ErrorMessage="Enter HSN Description" 
                                                     ValidationGroup="Add" Text="Enter HSN Description">
                                                 </asp:RequiredFieldValidator>
                                             </td>
                                         </tr>
+
                                         <tr>
                                             <td class="styleFieldLabel" style="width: 232px">
                                                 <asp:Label ID="LblSAC" runat="server" CssClass="styleReqFieldLabel" Text="SAC Details"> </asp:Label>
                                             </td>
                                             <td class="styleFieldAlign">
-                                                <uc2:Suggest ID="TxtSAC" runat="server" ToolTip="SAC Details" ServiceMethod="GetHSNCode"
-                                                    IsMandatory="true" ValidationGroup="Add" ErrorMessage="Enter SAC Details" Width="240px" />
+                                                <uc2:Suggest ID="TxtSAC" runat="server" ToolTip="SAC Details" ServiceMethod="GetHSNCode" 
+                                                    IsMandatory="true" ValidationGroup = "Add" ErrorMessage="Enter SAC Details" width="240px"/>                                                
                                             </td>
+
                                         </tr>
+                                    
                                         <tr>
                                             <td class="styleFieldLabel" style="width: 232px">
-                                                <asp:Label ID="lblActive" runat="server" CssClass="styleDisplayLabel" Text="Active"
+                                                <asp:Label ID="lblActive" runat="server" CssClass="styleDisplayLabel" Text="Active" 
                                                     Width="13%"></asp:Label>
                                             </td>
                                             <td class="styleFieldAlign">
                                                 <asp:CheckBox ID="chkActive" runat="server" Checked="true" ToolTip="Active" Width="40%" />
                                             </td>
                                         </tr>
-                                    </table>
+                                    
                                 </td>
                             </tr>
                         </table>
-
+                 
                         <tr>
                             <td>
                                 <table align="center">
                                     <tr>
                                         <td align="center">
                                             <asp:Button ID="btnSave" runat="server" CausesValidation="false" CssClass="styleSubmitButton"
-                                                Text="Save" TabIndex="4" OnClick="btnSave_Click" ToolTip="Save" OnClientClick="return fnCheckPageValidators('Add');"
+                                                Text="Save" TabIndex="4" OnClick="btnSave_Click"  ToolTip="Save" OnClientClick="return fnCheckPageValidators('Add');"
                                                 ValidationGroup="Add" />
                                             <%-- OnClientClick="return fnCheckPageValidators();"--%>
                                             <asp:Button ID="btnClear" runat="server" class="styleSubmitButton" CausesValidation="false"
@@ -108,7 +112,7 @@
                                                 TargetControlID="btnClear">
                                             </mbcbb:ConfirmButtonExtender>
                                             <asp:Button ID="btnCancel" runat="server" OnClick="btnCancel_Click" CausesValidation="false" CssClass="styleSubmitButton"
-                                                Text="Cancel" TabIndex="6" ToolTip="Cancel" />
+                                                 Text="Cancel" TabIndex="6" ToolTip="Cancel" />
                                         </td>
                                     </tr>
                                 </table>

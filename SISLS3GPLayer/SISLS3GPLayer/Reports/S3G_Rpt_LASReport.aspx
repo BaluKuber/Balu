@@ -104,7 +104,7 @@
                 <tr>
                     <td>
                         <asp:Panel ID="pnlVAT" runat="server" CssClass="stylePanel" GroupingText="LAS Report" Visible="false" >
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <asp:Label ID="lblError" runat="server" CssClass="styleDisplayLabel"></asp:Label>
                                 <asp:GridView ID="grvGST" runat="server" OnRowDataBound="grvGST_RowDataBound" Width="100%" FooterStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader" RowStyle-HorizontalAlign="Center">
                                 </asp:GridView>

@@ -115,7 +115,7 @@
                     <td width="100%">
                         <asp:Panel ID="pnlVAT" runat="server" CssClass="stylePanel" GroupingText="Gross Margin" Visible="false">
                             <asp:Label ID="lblError" runat="server" CssClass="styleDisplayLabel"></asp:Label>
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width:1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width:1050px">
                             <asp:GridView ID="grvGST" runat="server" OnRowDataBound="grvGST_RowDataBound" Width="100%" FooterStyle-HorizontalAlign="Center" HeaderStyle-CssClass="styleGridHeader" RowStyle-HorizontalAlign="Center">
                             </asp:GridView>
                             <uc1:PageNavigator ID="ucCustomPaging" runat="server"></uc1:PageNavigator>

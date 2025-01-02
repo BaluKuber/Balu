@@ -96,7 +96,7 @@
                                                                 </td>
                                                                 <td class="styleFieldAlign">
                                                                     <asp:TextBox ID="txtDescription" runat="server"></asp:TextBox>
-                                                                    <asp:RequiredFieldValidator ID="rfvDescription" runat="server" SetFocusOnError="True"
+                                                                     <asp:RequiredFieldValidator ID="rfvDescription" runat="server" SetFocusOnError="True"
                                                                         ControlToValidate="txtDescription" Display="None" ErrorMessage="Enter Template Description"
                                                                         ValidationGroup="btnSave"></asp:RequiredFieldValidator>
                                                                 </td>
@@ -108,11 +108,11 @@
                                                                         <asp:ListItem Value="en">English</asp:ListItem>
                                                                         <asp:ListItem Value="ar">&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577;</asp:ListItem>
                                                                         <asp:ListItem Value="ta">&#2980;&#2990;&#3007;&#2996;&#3021;</asp:ListItem>
-                                                                        <asp:ListItem Value="te">&#3108;&#3142;&#3122;&#3137;&#3095;&#3137;</asp:ListItem>
+                                                                         <asp:ListItem Value="te">&#3108;&#3142;&#3122;&#3137;&#3095;&#3137;</asp:ListItem>
                                                                     </asp:DropDownList>
-                                                                    <asp:LinkButton ID="lnkViewTemplate" OnClick="lnkViewTemplate_Click" runat="server"
-                                                                        Text="View">
-                                                                    </asp:LinkButton>
+                                                                      <asp:LinkButton ID="lnkViewTemplate" OnClick="lnkViewTemplate_Click" runat="server"
+                                                                            Text="View">
+                                                                        </asp:LinkButton>
                                                                 </td>
                                                             </tr>
                                                             <tr>
@@ -145,17 +145,17 @@
                                     <td>
                                         <FTB:FreeTextBox ID="FTBTemplate" EnableHtmlMode="False" runat="server" Width="99%"
                                             SupportFolder="~/aspnet_client/FreeTextBox/" JavaScriptLocation="ExternalFile"
-                                            ImageGalleryPath="~/aspnet_client/FreeTextBox/images" ToolbarImagesLocation="ExternalFile"
+                                            ImageGalleryPath="~/aspnet_client/FreeTextBox/images" ToolbarImagesLocation="ExternalFile" 
                                             ButtonImagesLocation="ExternalFile" ToolbarLayout="ParagraphMenu,FontFacesMenu,FontSizesMenu,FontForeColorsMenu,Cut,Copy,Paste,Undo,Redo,Print;Bold,Italic,Underline,fontforecolorpicker,fontbackcolorpicker,Strikethrough;Superscript,Subscript,RemoveFormat|JustifyLeft,JustifyRight,JustifyCenter,JustifyFull;BulletedList,NumberedList,Indent,Outdent;CreateLink,Unlink,insertdate,inserttime,WordClean,preview,InsertRule,InsertTable,InsertImage" AllowHtmlMode="True" AssemblyResourceHandlerPath="" AutoConfigure="" AutoGenerateToolbarsFromString="True" AutoHideToolbar="True" AutoParseStyles="True" BackColor="158, 190, 245" BaseUrl="" BreakMode="Paragraph" ButtonDownImage="False" ButtonFileExtention="gif" ButtonFolder="Images" ButtonHeight="20" ButtonOverImage="False" ButtonPath="" ButtonSet="Office2003" ButtonWidth="21" ClientSideTextChanged="" ConvertHtmlSymbolsToHtmlCodes="False" DesignModeBodyTagCssClass="" DesignModeCss="" DisableIEBackButton="False" DownLevelCols="50" DownLevelMessage="" DownLevelMode="TextArea" DownLevelRows="10" EditorBorderColorDark="Gray" EditorBorderColorLight="Gray" EnableSsl="False" EnableToolbars="True" Focus="False" FormatHtmlTagsToXhtml="True" GutterBackColor="129, 169, 226" GutterBorderColorDark="Gray" GutterBorderColorLight="White" Height="350px" HelperFilesParameters="" HelperFilesPath="" HtmlModeCss="" HtmlModeDefaultsToMonoSpaceFont="True" ImageGalleryUrl="ftb.imagegallery.aspx?rif={0}&amp;cif={0}" InstallationErrorMessage="InlineMessage" Language="en-US" PasteMode="Default" ReadOnly="False" RemoveScriptNameFromBookmarks="True" RemoveServerNameFromUrls="True" RenderMode="NotSet" ScriptMode="External" ShowTagPath="False" SslUrl="/." StartMode="DesignMode" StripAllScripting="False" TabIndex="-1" TabMode="InsertSpaces" Text="" TextDirection="LeftToRight" ToolbarBackColor="Transparent" ToolbarBackgroundImage="True" ToolbarStyleConfiguration="Office2003" UpdateToolbar="True" UseToolbarBackGroundImage="True" />
                                         <asp:RequiredFieldValidator ID="RFVFTBTemplate" runat="server" SetFocusOnError="True"
                                             ControlToValidate="FTBTemplate" Display="None" ErrorMessage="Enter Letter Format"
                                             ValidationGroup="btnSave"></asp:RequiredFieldValidator>
                                     </td>
                                 </tr>
-                                <tr style="display: none">
+                                <tr style="display:none">
                                     <td>
-                                        <asp:FileUpload ID="FUpload" runat="server" ToolTip="Upload Image" />
-                                        <asp:Button ID="btnUpload" runat="server" Text="Upload" OnClick="btnUpload_Click" CssClass="styleGridShortButton" />
+                                        <asp:FileUpload ID="FUpload" runat="server"  ToolTip="Upload Image"/>
+                                        <asp:Button ID="btnUpload" runat="server" Text="Upload" onClick="btnUpload_Click" CssClass="styleGridShortButton"/>
                                     </td>
                                 </tr>
                             </table>

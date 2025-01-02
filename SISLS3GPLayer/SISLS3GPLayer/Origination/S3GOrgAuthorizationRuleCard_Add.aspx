@@ -1,10 +1,9 @@
-<%@ Page Title="S3G - Authorization Rule Card" Language="C#" MasterPageFile="~/Common/MasterPage.master"
-    AutoEventWireup="true" CodeFile="S3GOrgAuthorizationRuleCard_Add.aspx.cs"
+<%@ Page Title="S3G - Authorization Rule Card" Language="C#" AutoEventWireup="true"
+    MasterPageFile="~/Common/MasterPage.master" CodeFile="S3GOrgAuthorizationRuleCard_Add.aspx.cs"
     Inherits="Origination_S3GOrgAuthorizationRuleCard_Add" ValidateRequest="false" %>
 
 <%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
 <%@ Register TagPrefix="uc2" TagName="Suggest" Src="~/UserControls/S3GAutoSuggest.ascx" %>
-
 <asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
 
     <script language="javascript" type="text/javascript">
@@ -29,7 +28,7 @@
             }
         }
         function ValidateMandatory1() {
-
+         
             TargetBaseControl = document.getElementById('ctl00_ContentPlaceHolder1_grvAuthorizationrulecardDetail');
             var Inputs = TargetBaseControl.getElementsByTagName("input");
             var TotalScore = 0;
@@ -142,7 +141,7 @@
                                     </asp:Label>
                                 </td>
                                 <td class="styleFieldAlign">
-                                    <asp:DropDownList ID="ddlproduct" runat="server" Width="196px" onmouseover="ddl_itemchanged(this);" Visible="false">
+                                    <asp:DropDownList ID="ddlproduct" runat="server" Width="196px" onmouseover="ddl_itemchanged(this);"  Visible="false">
                                     </asp:DropDownList>
                                 </td>
                             </tr>
@@ -156,7 +155,8 @@
                                     <asp:DropDownList ID="ddlTransacType" Visible="false" runat="server" Width="196px">
                                     </asp:DropDownList>
                                 </td>
-                                <td colspan="2"></td>
+                                <td colspan="2">
+                                </td>
                             </tr>
                             <tr>
                                 <td class="styleFieldLabel" width="25%">
@@ -221,7 +221,7 @@
                                                     <br />
                                                     <asp:GridView ID="grvAuthorizationrulecardDetail" ShowFooter="true" AutoGenerateColumns="false"
                                                         runat="server" OnRowCommand="grvAuthorizationrulecardDetail_RowCommand" OnRowDataBound="grvAuthorizationrulecardDetail_RowDataBound"
-                                                        OnRowDeleting="grvAuthorizationrulecardDetail_RowDeleting" Width="98%">
+                                                        OnRowDeleting="grvAuthorizationrulecardDetail_RowDeleting" Width="100%">
                                                         <Columns>
                                                             <asp:TemplateField HeaderText="S.No." ItemStyle-HorizontalAlign="Right">
                                                                 <ItemTemplate>
@@ -402,7 +402,7 @@
                                 <tr>
                                     <td>
                                         <div id="divTransaction" class="container" runat="server" style="height: 200px; overflow: scroll">
-                                            <asp:GridView ID="grvApprover" runat="server" AutoGenerateColumns="false" Height="50px" Width="98%"
+                                            <asp:GridView ID="grvApprover" runat="server" AutoGenerateColumns="false" Height="50px"
                                                 OnRowDataBound="grvApprover_DataBound" OnRowDeleting="grvApprover_RowDeleting"
                                                 ShowFooter="true">
                                                 <Columns>

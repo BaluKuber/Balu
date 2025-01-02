@@ -108,12 +108,12 @@
                                                 </asp:UpdatePanel>
                                             </td>
                                             <td class="styleFieldLabel" width="20%">
-                                                <asp:Label ID="lblPAN" runat="server" Text="PAN"></asp:Label>
+                                                <asp:Label ID="lblPAN" runat="server" Text="PAN" CssClass="styleReqFieldLabel"></asp:Label>
                                             </td>
                                             <td class="styleFieldAlign" width="30%">
                                                 <asp:TextBox ID="txtPAN" runat="server" MaxLength="20" ToolTip="PAN Number"></asp:TextBox>
                                                 <asp:RequiredFieldValidator ID="rfvComPAN" runat="server" ControlToValidate="txtPAN" ErrorMessage="Enter the PAN number"
-                                                    CssClass="styleMandatoryLabel" Display="None" SetFocusOnError="True" Enabled="false"
+                                                    CssClass="styleMandatoryLabel" Display="None" SetFocusOnError="True"
                                                     ValidationGroup="Vendor"></asp:RequiredFieldValidator>
                                                 <asp:RegularExpressionValidator ID="revPAN" runat="server" ErrorMessage="Enter a valid PAN number"
                                                     ControlToValidate="txtPAN" CssClass="styleMandatoryLabel" Display="None" SetFocusOnError="True" ValidationGroup="Vendor"
@@ -410,13 +410,15 @@
                                         </tr>
                                         <tr>
                                             <td class="styleFieldLabel" width="20%">
-                                                <asp:Label ID="lblMobile" runat="server" Text="Mobile No."></asp:Label>
+                                                <asp:Label ID="lblMobile" runat="server" Text="Mobile No." CssClass="styleReqFieldLabel"></asp:Label>
                                             </td>
                                             <td class="styleFieldAlign" width="30%">
                                                 <asp:TextBox ID="txtMobile" runat="server" MaxLength="12"></asp:TextBox>
                                                 <cc1:FilteredTextBoxExtender ID="fevtexMobile" FilterType="Numbers" TargetControlID="txtMobile"
                                                     runat="server" Enabled="True">
                                                 </cc1:FilteredTextBoxExtender>
+                                                <asp:RequiredFieldValidator ID="RequiredFieldValidator3" runat="server" ErrorMessage="Enter Mobile No." 
+                                                    ValidationGroup="EntityDetails" Display="None" SetFocusOnError="True" ControlToValidate="txtMobile"></asp:RequiredFieldValidator>
                                             </td>
                                             <td class="styleFieldLabel" width="20%">
                                                 <asp:Label ID="lblTelephone" runat="server" Text="Telephone No."></asp:Label>
@@ -431,7 +433,7 @@
                                         </tr>
                                         <tr>
                                             <td class="styleFieldLabel">
-                                                <asp:Label ID="lblEmail" runat="server" Text="Email Id"
+                                                <asp:Label ID="lblEmail" runat="server" Text="Email Id" CssClass="styleReqFieldLabel"
                                                     meta:resourcekey="lblEmailResource1"></asp:Label>
                                             </td>
                                             <td class="styleFieldAlign">
@@ -443,8 +445,8 @@
                                                 --%>
                                                 <asp:TextBox ID="txtVEndorEmailId" runat="server" MaxLength="180"></asp:TextBox>
 
-                                                <asp:RequiredFieldValidator ID="rfvEmail" runat="server" Display="None" SetFocusOnError="True" Enabled="false"
-                                                    ErrorMessage="Enter Email id" ControlToValidate="txtVEndorEmailId" ValidationGroup="EntityDetails"></asp:RequiredFieldValidator>
+                                                <asp:RequiredFieldValidator ID="rfvEmail" runat="server" Display="None" SetFocusOnError="True"
+                                                    ErrorMessage="Enter Email Id" ControlToValidate="txtVEndorEmailId" ValidationGroup="EntityDetails"></asp:RequiredFieldValidator>
                                                 <asp:RegularExpressionValidator ID="revEmailId" runat="server" ControlToValidate="txtVEndorEmailId"
                                                     ValidationGroup="EntityDetails" Display="None" SetFocusOnError="True" ErrorMessage="Enter valid Email id"
                                                     ValidationExpression="\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*([;|,]\s*\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*)*"></asp:RegularExpressionValidator>
@@ -464,7 +466,7 @@
                                         <tr>
 
                                             <td class="styleFieldAlign">
-                                                <asp:Label ID="lblSGSTIN" runat="server" Text="GSTIN"></asp:Label>
+                                                <asp:Label ID="lblSGSTIN" runat="server" Text="GSTIN" CssClass="styleReqFieldLabel"></asp:Label>
                                             </td>
                                             <td class="styleFieldAlign">
                                                 <asp:TextBox ID="txtSGSTin" runat="server" Width="180px" MaxLength="15"></asp:TextBox>
@@ -665,7 +667,7 @@
                                                     <asp:Label ID="lblAccountType" runat="server" Text="Account Type"></asp:Label>
                                                 </td>
                                                 <td class="styleFieldAlign">
-                                                    <asp:DropDownList ID="ddlAccountType" Width="72%" runat="server">
+                                                    <asp:DropDownList ID="ddlAccountType" runat="server">
                                                     </asp:DropDownList>
                                                 </td>
                                             </tr>
@@ -674,13 +676,13 @@
                                                     <asp:Label ID="lblAccountNumber" runat="server" Text="Account Number"></asp:Label>
                                                 </td>
                                                 <td class="styleFieldAlign">
-                                                    <asp:TextBox ID="txtAccountNumber" runat="server" Width="70%" MaxLength="16"></asp:TextBox>
+                                                    <asp:TextBox ID="txtAccountNumber" runat="server" MaxLength="16"></asp:TextBox>
                                                 </td>
                                                 <td class="styleFieldLabel">
                                                     <asp:Label ID="lblMICRCode" runat="server" Text="MICR Code"></asp:Label>
                                                 </td>
                                                 <td class="styleFieldAlign">
-                                                    <asp:TextBox ID="txtMICRCode" runat="server" Width="40%" MaxLength="9" onblur="jsMICRvaildate(this);"></asp:TextBox>
+                                                    <asp:TextBox ID="txtMICRCode" runat="server" MaxLength="9" onblur="jsMICRvaildate(this);"></asp:TextBox>
                                                     <cc1:FilteredTextBoxExtender ID="ftexMICRCode" FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters"
                                                         TargetControlID="txtMICRCode" runat="server" Enabled="True">
                                                     </cc1:FilteredTextBoxExtender>
@@ -702,7 +704,7 @@
                                                     <asp:Label runat="server" ID="lblIFSC_Code" Text="IFSC Code"></asp:Label>
                                                 </td>
                                                 <td class="styleFieldAlign">
-                                                    <asp:TextBox ID="txtIFSC_Code" runat="server" Width="40%" MaxLength="11"></asp:TextBox>
+                                                    <asp:TextBox ID="txtIFSC_Code" runat="server" MaxLength="11"></asp:TextBox>
                                                     <cc1:FilteredTextBoxExtender ID="FTEtxtIFSC_Code" runat="server" ValidChars=" ." FilterType="Custom, Numbers, UppercaseLetters, LowercaseLetters"
                                                         Enabled="True" TargetControlID="txtIFSC_Code">
                                                     </cc1:FilteredTextBoxExtender>
@@ -714,7 +716,7 @@
                                                     <asp:Label ID="lblBranchName" runat="server" Text="Branch Name"></asp:Label>
                                                 </td>
                                                 <td class="styleFieldAlign">
-                                                    <asp:TextBox ID="txtBranchName" Width="70%" runat="server" Columns="20" MaxLength="40" Wrap="true"
+                                                    <asp:TextBox ID="txtBranchName" Width="70%" runat="server" Columns="20" Wrap="true"
                                                         onkeyup="maxlengthfortxt(40)" onchange="maxlengthfortxt(40)" TextMode="MultiLine"></asp:TextBox>
                                                     <cc1:FilteredTextBoxExtender ID="fteBranchName" FilterType="Custom" FilterMode="InvalidChars"
                                                         TargetControlID="txtBranchName" runat="server" InvalidChars="!,@,#,$,%,^,&,*,(,),_,-,+,~,`,?,.,:,;,/,\,},{,[,],|,',=,'<','>'"
@@ -731,7 +733,7 @@
                                                     <asp:Label ID="lblBankAddress" runat="server" Text="Branch Address"></asp:Label>
                                                 </td>
                                                 <td class="styleFieldAlign">
-                                                    <asp:TextBox ID="txtBankAddress" runat="server" MaxLength="300" Width="70%" onkeyup="maxlengthfortxt(300)"
+                                                    <asp:TextBox ID="txtBankAddress" Width="70%" runat="server" MaxLength="300" onkeyup="maxlengthfortxt(300)"
                                                         onchange="maxlengthfortxt(300)" TextMode="MultiLine" Wrap="true" Columns="20"></asp:TextBox>
                                                 </td>
                                             </tr>
@@ -758,6 +760,8 @@
                                                         ValidationGroup="Add" Display="None" SetFocusOnError="True" ControlToValidate="txtAccountNumber"></asp:RequiredFieldValidator>
                                                     <asp:RequiredFieldValidator ID="rfvtxtMICRCode" runat="server" ErrorMessage="Enter the MICR Code"
                                                         ValidationGroup="Add" Display="None" SetFocusOnError="True" ControlToValidate="txtMICRCode"></asp:RequiredFieldValidator>
+                                                    <asp:RequiredFieldValidator ID="rfvtxtIFSCCode" runat="server" ErrorMessage="Enter the IFSC Code"
+                                                        ValidationGroup="Add" Display="None" SetFocusOnError="True" ControlToValidate="txtIFSC_Code"></asp:RequiredFieldValidator>
                                                     <asp:RequiredFieldValidator ID="rfvtxtBankName" runat="server" ErrorMessage="Enter the Bank Name"
                                                         ValidationGroup="Add" Display="None" SetFocusOnError="True" ControlToValidate="txtBankName"></asp:RequiredFieldValidator>
                                                     <asp:RequiredFieldValidator ID="rfvtxtBranchName" runat="server" ErrorMessage="Enter the Branch Name"

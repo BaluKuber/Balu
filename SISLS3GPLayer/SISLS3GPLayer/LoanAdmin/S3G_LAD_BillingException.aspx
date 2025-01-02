@@ -90,6 +90,15 @@
                                                     <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
                                                     <ItemStyle HorizontalAlign="Left" />
                                                 </asp:TemplateField>
+
+                                                <asp:TemplateField HeaderText="Invoice Type" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblInvoiceType" runat="server" Text='<%# Eval("Invoice_Type") %>'
+                                                            ToolTip="PO Date" />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                    <ItemStyle HorizontalAlign="Left" />
+                                                </asp:TemplateField>
                                              
                                                 <asp:TemplateField HeaderText="Customer Name" HeaderStyle-CssClass="styleGridHeader">
                                                     <ItemTemplate>
@@ -110,11 +119,21 @@
                                                  <asp:TemplateField HeaderText="Due Date" HeaderStyle-CssClass="styleGridHeader">
                                                     <ItemTemplate>
                                                         <asp:Label ID="lblduedate" runat="server" Text='<%# Eval("installment_date") %>'
-                                                            ToolTip="Location" />
+                                                            ToolTip="Due Date" />
                                                     </ItemTemplate>
                                                     <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
                                                      <ItemStyle HorizontalAlign="Left" />
                                                 </asp:TemplateField>
+
+                                                 <asp:TemplateField HeaderText="Rs Activation Date" HeaderStyle-CssClass="styleGridHeader">
+                                                    <ItemTemplate>
+                                                        <asp:Label ID="lblactivationdate" runat="server" Text='<%# Eval("Account_activated_date") %>'
+                                                            ToolTip="Rs Activation Date" />
+                                                    </ItemTemplate>
+                                                    <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
+                                                     <ItemStyle HorizontalAlign="Left" />
+                                                </asp:TemplateField>
+
                                                 <asp:TemplateField HeaderText="Rental" HeaderStyle-CssClass="styleGridHeader">
                                                     <ItemTemplate>
                                                         <asp:Label ID="lblrental" runat="server" Text='<%# Eval("Rental") %>'
@@ -123,7 +142,7 @@
                                                     <HeaderStyle CssClass="styleGridHeader" HorizontalAlign="Center" />
                                                     <ItemStyle HorizontalAlign="Right" />
                                                 </asp:TemplateField>
-                                                 <asp:TemplateField HeaderText="VAT" HeaderStyle-CssClass="styleGridHeader">
+                                                 <asp:TemplateField HeaderText="Tax" HeaderStyle-CssClass="styleGridHeader">
                                                     <ItemTemplate>
                                                         <asp:Label ID="lblVAT" runat="server" Text='<%# Eval("VAT") %>'
                                                             ToolTip="VAT" />

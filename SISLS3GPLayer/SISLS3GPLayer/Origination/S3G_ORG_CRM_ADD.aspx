@@ -8,7 +8,7 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
     <link href="../App_Themes/S3GTheme_Blue/AutoSuggestBox.css" rel="Stylesheet" type="text/css" />
-    <script type="text/javascript" src="../Scripts/jquery-1.3.2.min.js"></script>
+    <script src="../Scripts/jquery-1.3.2.min.js"></script>
 
 
     <script type="text/javascript" language="javascript">

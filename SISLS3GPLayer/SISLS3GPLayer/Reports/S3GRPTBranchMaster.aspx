@@ -50,7 +50,7 @@
                 <tr>
                     <td>
                         <asp:Panel ID="pnlBranchtDetails" runat="server" CssClass="stylePanel" GroupingText="Branch Master Details" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 100%">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <asp:GridView ID="grvBranchtDetails" runat="server" Width="100%" AutoGenerateColumns="true" FooterStyle-HorizontalAlign="Right"
                                     RowStyle-HorizontalAlign="Center" CellPadding="0" CellSpacing="0" ShowFooter="false">
                                  <%--<Columns>

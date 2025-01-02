@@ -1,5 +1,5 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/Common/S3GMasterPageCollapse.master"
-    CodeFile="S3GTemplate_View.aspx.cs" Inherits="System_Admin_S3GTemplate_View" ValidateRequest="false"%>
+    CodeFile="S3GTemplate_View.aspx.cs" Inherits="System_Admin_S3GTemplate_View" ValidateRequest="false" %>
 
 <%@ Register TagPrefix="uc1" TagName="PageNavigator" Src="~/UserControls/PageNavigator.ascx" %>
 <%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
@@ -42,7 +42,7 @@
                                         <asp:Label ID="lblModify" runat="server" Text="Modify" CssClass="styleGridHeader"></asp:Label>
                                     </HeaderTemplate>
                                 </asp:TemplateField>
-                                  <asp:TemplateField HeaderText="Line of Business">
+                                <asp:TemplateField HeaderText="Line of Business">
                                     <ItemTemplate>
                                         <asp:Label ID="lblLineofBusiness" runat="server" Text='<%# Bind("LOB") %>'></asp:Label>
                                     </ItemTemplate>

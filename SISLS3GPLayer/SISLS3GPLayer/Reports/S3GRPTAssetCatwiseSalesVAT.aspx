@@ -90,7 +90,7 @@
                 <tr>
                     <td>
                         <asp:Panel ID="pnlVATReportDetails" runat="server" CssClass="stylePanel" GroupingText="Asset Type wise VAT Rate Details" Width="100%">
-                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1150px">
+                            <div id="myDivForPanelScroll" runat="server" style="overflow: scroll; width: 1050px">
                                 <asp:GridView ID="grvVATReportDetails" runat="server" Width="100%" AutoGenerateColumns="true" FooterStyle-HorizontalAlign="Right"
                                     RowStyle-HorizontalAlign="Center" CellPadding="0" CellSpacing="0" ShowFooter="false" OnRowDataBound="grvVATReportDetails_RowDataBound">
                                  <Columns>

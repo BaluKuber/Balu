@@ -585,7 +585,8 @@ public partial class Origination_S3G_ORG_UploadPoPiVi : ApplyThemeForProject
             {
                 lblErr.Text = "Please Correct The Validations";
                 //Check error log to get exact error message 
-                lblErrorMessage.Text = "Uploaded File is in Invalid Format";
+                //lblErrorMessage.Text = "Uploaded File is in Invalid Format";
+                lblErrorMessage.Text = objException.Message.ToString();
             }
         }
         return Flag;
@@ -771,7 +772,8 @@ public partial class Origination_S3G_ORG_UploadPoPiVi : ApplyThemeForProject
             {
                 File.Delete(FilePath);
             }
-            ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Invalid file For Selected Template...');", true);
+            //ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('Invalid file For Selected Template...');", true);
+            ScriptManager.RegisterStartupScript(this, this.GetType(), "Insert", "alert('No.of.Excel columns does not match with Selected Template...');", true);
         }
         return Flag;
     }

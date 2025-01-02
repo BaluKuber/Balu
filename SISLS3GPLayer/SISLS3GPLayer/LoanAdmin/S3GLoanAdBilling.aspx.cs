@@ -36,6 +36,7 @@ using System.Diagnostics;
 using Microsoft.Win32;
 using System.Drawing.Printing;
 using System.Collections;
+using System.Linq;
 #endregion
 
 public partial class LoanAdmin_S3GClnBilling : ApplyThemeForProject
@@ -1363,270 +1364,303 @@ public partial class LoanAdmin_S3GClnBilling : ApplyThemeForProject
         }
     }
 
+    //private void GetPDFFiles(string Type)
+    //{
+    //    try
+    //    {
+    //        string name;
+    //        int nCnt = 0;
+    //        int nDigi_Flag = 0;
+    //        dtaccounts = (DataTable)ViewState["dtaccounts"];
+    //        if (dtaccounts != null)
+    //        {
+    //            string panum;
+    //            DataTable dtprint = new DataTable();
+    //            dtprint.Columns.Add("tranche_name");
+    //            if (dtaccounts.Rows.Count > 0)
+    //            {
+    //                foreach (GridViewRow gvrow in grvRental.Rows)
+    //                {
+    //                    CheckBox chkSelectAccount = (CheckBox)gvrow.Cells[0].FindControl("chkSelectRS");
+    //                    Label lblRS_Number = (Label)gvrow.Cells[0].FindControl("lblRS_Number");
+    //                    Label lblInvoiceno = (Label)gvrow.Cells[0].FindControl("lblInvoiceno");
+    //                    Label lblInvoiceNoamf = (Label)gvrow.Cells[0].FindControl("lblInvoiceNoamf");
+    //                    Label lblStatewiseBilling = (Label)gvrow.Cells[0].FindControl("lblStatewiseBilling");
+    //                    Label lblDigi_Flag = (Label)gvrow.Cells[0].FindControl("lblDigi_Flag");
+    //                    if (chkSelectAccount.Checked)
+    //                    {
+
+    //                        nCnt += 1;
+    //                        DataRow dr = dtprint.NewRow();
+    //                        if (intBillingId >= 174 && lblStatewiseBilling.Text == "1" && Type == "Rental")
+    //                            panum = lblInvoiceno.Text.Replace("/", "-").ToString();
+    //                        else if (intBillingId >= 174 && lblStatewiseBilling.Text == "1" && Type == "AMF")
+    //                            panum = lblInvoiceNoamf.Text.Replace("/", "-").ToString();
+    //                        else
+    //                            panum = lblRS_Number.Text.ToString();
+    //                        if (lblDigi_Flag.Text == "1")
+    //                            nDigi_Flag = 1;
+    //                        if (dtprint.Rows.Count > 0)
+    //                        {
+    //                            DataRow[] drrow = dtprint.Select("tranche_name = '" + panum + "'");
+    //                            if (drrow.Length.ToString() == "0")
+    //                            {
+    //                                dr["tranche_name"] = panum;
+    //                                dtprint.Rows.Add(dr);
+    //                                dtprint.AcceptChanges();
+    //                            }
+    //                        }
+    //                        else
+    //                        {
+    //                            dr["tranche_name"] = panum;
+    //                            dtprint.Rows.Add(dr);
+    //                            dtprint.AcceptChanges();
+    //                        }
+    //                    }
+    //                }
+    //                if (nCnt == 0)
+    //                {
+    //                    Utility.FunShowAlertMsg(this, "Select atlease one account to print");
+    //                    return;
+    //                }
+    //                ViewState["dtprint"] = dtprint;
+    //            }
+    //            DataTable dtN = (DataTable)ViewState["dtprint"];
+    //            string strnewfile = ViewState["strnewFile"].ToString();
+    //            strnewfile += "\\" + Type;
+
+    //            List<String> list = new List<String>();
+
+    //            foreach (DataRow drow in dtN.Rows)
+    //            {
+    //                string[] str = Directory.GetFiles(strnewfile, drow[0].ToString() + "*");
+
+    //                if ((ddlLocation.SelectedValue != "0") && (ddlLocation.SelectedText != ""))
+    //                {
+    //                    if (intBillingId <= 174)
+    //                        str = Directory.GetFiles(strnewfile, "*" + drow[0].ToString() + ".pdf");
+    //                    else
+    //                        str = Directory.GetFiles(strnewfile, "*" + drow[0].ToString() + "*");
+    //                }
+    //                else
+    //                {
+    //                    if (intBillingId <= 174)
+    //                        str = Directory.GetFiles(strnewfile, "*" + drow[0].ToString() + "*");
+    //                    else
+    //                        str = Directory.GetFiles(strnewfile, drow[0].ToString() + "*");
+    //                }
+
+    //                for (int i = 0; i <= str.Length - 1; i++)
+    //                {
+    //                    list.Add(str[i].ToString());
+    //                }
+    //                string[] GetAllFiles = list.ToArray();
+    //                if (Convert.ToInt32(GetAllFiles.Length.ToString()) > 0)
+    //                {
+    //                    CombineMultiplePDF(GetAllFiles, strnewfile, nDigi_Flag, "RIGHT");
+    //                }
+    //            }
+    //        }
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        throw ex;
+    //    }
+    //}
+
+    //////Balu Start////
     private void GetPDFFiles(string Type)
     {
         try
         {
-            string name;
-            int nCnt = 0;
-            int nDigi_Flag = 0;
+            // Retrieve the accounts DataTable
             dtaccounts = (DataTable)ViewState["dtaccounts"];
-            if (dtaccounts != null)
+            if (dtaccounts == null) return;
+
+            string panum;
+            int nCnt = 0, nDigi_Flag = 0;
+            DataTable dtprint = new DataTable();
+            dtprint.Columns.Add("tranche_name");
+
+            // Process each row in the GridView
+            foreach (GridViewRow gvrow in grvRental.Rows)
             {
-                DataTable dtprint;
-                string panum;
-                dtprint = new DataTable();
-                dtprint.Columns.Add("tranche_name");
-                if (dtaccounts.Rows.Count > 0)
+                CheckBox chkSelectAccount = (CheckBox)gvrow.Cells[0].FindControl("chkSelectRS");
+                Label lblRS_Number = (Label)gvrow.Cells[0].FindControl("lblRS_Number");
+                Label lblInvoiceno = (Label)gvrow.Cells[0].FindControl("lblInvoiceno");
+                Label lblInvoiceNoamf = (Label)gvrow.Cells[0].FindControl("lblInvoiceNoamf");
+                Label lblStatewiseBilling = (Label)gvrow.Cells[0].FindControl("lblStatewiseBilling");
+                Label lblDigi_Flag = (Label)gvrow.Cells[0].FindControl("lblDigi_Flag");
+
+                // Process selected accounts
+                if (chkSelectAccount.Checked)
                 {
-                    foreach (GridViewRow gvrow in grvRental.Rows)
-                    {
-                        CheckBox chkSelectAccount = (CheckBox)gvrow.Cells[0].FindControl("chkSelectRS");
-                        Label lblRS_Number = (Label)gvrow.Cells[0].FindControl("lblRS_Number");
-                        Label lblInvoiceno = (Label)gvrow.Cells[0].FindControl("lblInvoiceno");
-                        Label lblInvoiceNoamf = (Label)gvrow.Cells[0].FindControl("lblInvoiceNoamf");
-                        Label lblStatewiseBilling = (Label)gvrow.Cells[0].FindControl("lblStatewiseBilling");
-                        Label lblDigi_Flag = (Label)gvrow.Cells[0].FindControl("lblDigi_Flag");
-                        if (chkSelectAccount.Checked)
-                        {
-                            
-                            nCnt += 1;
-                            DataRow dr = dtprint.NewRow();
-                            if (intBillingId >= 174 && lblStatewiseBilling.Text == "1" && Type == "Rental")
-                                panum = lblInvoiceno.Text.Replace("/", "-").ToString();
-                            else if (intBillingId >= 174 && lblStatewiseBilling.Text == "1" && Type == "AMF")
-                                panum = lblInvoiceNoamf.Text.Replace("/", "-").ToString();
-                            else
-                                panum = lblRS_Number.Text.ToString();
-                            if (lblDigi_Flag.Text == "1")
-                                nDigi_Flag = 1;
-                            if (dtprint.Rows.Count > 0)
-                            {
-                                DataRow[] drrow = dtprint.Select("tranche_name = '" + panum + "'");
-                                if (drrow.Length.ToString() == "0")
-                                {
-                                    dr["tranche_name"] = panum;
-                                    dtprint.Rows.Add(dr);
-                                    dtprint.AcceptChanges();
-                                }
-                            }
-                            else
-                            {
-                                dr["tranche_name"] = panum;
-                                dtprint.Rows.Add(dr);
-                                dtprint.AcceptChanges();
-                            }
-                        }
-                    }
-                    if (nCnt == 0)
-                    {
-                        Utility.FunShowAlertMsg(this, "Select atlease one account to print");
-                        return;
-                    }
-                    ViewState["dtprint"] = dtprint;
-                }
-                DataTable dtN = (DataTable)ViewState["dtprint"];
-                string strnewfile = ViewState["strnewFile"].ToString();
-                strnewfile += "\\" + Type;
+                    nCnt++;
+                    DataRow dr = dtprint.NewRow();
 
-                List<String> list = new List<String>();
-
-                foreach (DataRow drow in dtN.Rows)
-                {
-                    //if (ddlLocation.SelectedValue != "0")
-                    //{
-
-                    //string[] str = new string[50];
-                    //string[] str = Directory.GetFiles(strnewfile, lblInvoiceno.Text.Replace("/", "-").ToString());
-
-                    //if (lblStatewiseBilling.Text == "1" && Type == "Rental")
-                    //    str = Directory.GetFiles(strnewfile, lblInvoiceno.Text.Replace("/", "-").ToString());
-                    //else if (lblStatewiseBilling.Text == "1" && Type == "AMF")
-                    //    str = Directory.GetFiles(strnewfile, lblInvoiceNoamf.Text.Replace("/", "-").ToString());
-                    //else
-                    //       string[] str = Directory.GetFiles(strnewfile, drow[0].ToString());
-
-                    //    for (int i = 0; i <= str.Length - 1; i++)
-                    //    {
-                    //        list.Add(str[i].ToString());
-                    //    }
-                    //}
-                    //else
-                    //{
-
-                    string[] str = Directory.GetFiles(strnewfile, drow[0].ToString() + "*");
-
-                    if ((ddlLocation.SelectedValue != "0") && (ddlLocation.SelectedText != ""))
-                    {
-                        if (intBillingId <= 174)
-                            str = Directory.GetFiles(strnewfile, "*" + drow[0].ToString() + ".pdf");
-                        else
-                            //str = Directory.GetFiles(strnewfile, "*" + drow[0].ToString() + ".pdf");
-                            str = Directory.GetFiles(strnewfile, "*" + drow[0].ToString() + "*");
-                    }
+                    // Determine panum based on conditions
+                    if (intBillingId >= 174 && lblStatewiseBilling.Text == "1")
+                        panum = Type == "Rental" ? lblInvoiceno.Text.Replace("/", "-") : lblInvoiceNoamf.Text.Replace("/", "-");
                     else
-                    {
+                        panum = lblRS_Number.Text;
 
-                        if (intBillingId <= 174)
-                            str = Directory.GetFiles(strnewfile, "*" + drow[0].ToString() + "*");
-                        else
-                            str = Directory.GetFiles(strnewfile, drow[0].ToString() + "*");
-                    }
+                    // Set digital flag if applicable
+                    if (lblDigi_Flag.Text == "1") nDigi_Flag = 1;
 
-                    for (int i = 0; i <= str.Length - 1; i++)
+                    // Add unique panum to dtprint
+                    if (dtprint.Select(string.Format("tranche_name = '{0}'", panum)).Length == 0)
                     {
-                        list.Add(str[i].ToString());
+                        dr["tranche_name"] = panum;
+                        dtprint.Rows.Add(dr);
+                        dtprint.AcceptChanges();
                     }
-                    
-                    //}
-                    string[] GetAllFiles = list.ToArray();
-                    if (Convert.ToInt32(GetAllFiles.Length.ToString()) > 0)
-                    {
-                        CombineMultiplePDF(GetAllFiles, strnewfile, nDigi_Flag, "RIGHT");
-                    }
-                    //else
-                    //{
-                    //    Utility.FunShowAlertMsg(this, "Please upload IRN details to generate the invoice.");
-                    //    return;
-                    //}
                 }
+            }
+
+            // Show alert if no accounts are selected
+            if (nCnt == 0)
+            {
+                Utility.FunShowAlertMsg(this, "Select at least one account to print");
+                return;
+            }
+
+            // Store dtprint in ViewState
+            ViewState["dtprint"] = dtprint;
+
+            // Get necessary file paths
+            DataTable dtN = (DataTable)ViewState["dtprint"];
+            string strnewfile = ViewState["strnewFile"].ToString() + "\\" + Type;
+            List<string> fileList = new List<string>();
+
+            foreach (DataRow drow in dtN.Rows)
+            {
+                string[] files = Directory.GetFiles(strnewfile, string.Format("{0}*", drow[0]));
+
+                if ((ddlLocation.SelectedValue != "0") && !string.IsNullOrEmpty(ddlLocation.SelectedText))
+                {
+                    string searchPattern = intBillingId <= 174 ? string.Format("*{0}.pdf", drow[0]) : string.Format("*{0}*", drow[0]);
+                    files = Directory.GetFiles(strnewfile, searchPattern);
+                }
+
+                fileList.AddRange(files);
+            }
+
+            // If files are found, combine them into a single PDF
+            if (fileList.Count > 0)
+            {
+                CombineMultiplePDF(fileList.ToArray(), strnewfile, nDigi_Flag, "RIGHT");
             }
         }
         catch (Exception ex)
         {
-            //ClsPubCommErrorLog.CustomErrorRoutine(ex, "HANDhELD", "WINSERVICE");
             throw ex;
         }
     }
 
-    public void CombineMultiplePDF(string[] fileNames, string outFilePath, int Digi_Flag, String DigiPosition)
+    public void CombineMultiplePDF(string[] fileNames, string outFilePath, int Digi_Flag, string DigiPosition)
     {
-
-        if (Digi_Flag == 1)
+        try
         {
-            string InFile = outFilePath + "/Combine.pdf";
+            string inFile = Path.Combine(outFilePath, "Combine.pdf");
+            string signedFile = Path.Combine(outFilePath, "Signed.pdf");
 
-            outFilePath = outFilePath + "/" + intUserID.ToString();
-
-            if (!System.IO.Directory.Exists(outFilePath + "/Signed"))
-            {
-                System.IO.Directory.CreateDirectory(outFilePath + "/Signed");
-            }
-
-            string filePath = outFilePath + "/Signed.zip";
-
-            //before creation of compressed folder,deleting it if exists
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-
-            S3GPdfSign.PDFDigiSign ObjPDFSign = new S3GPdfSign.PDFDigiSign();
-
-            foreach (string fileName in fileNames)
-            {
-
-                string SignedFile = outFilePath + "/Signed/" + Path.GetFileName(fileName);
-                
-                ObjPDFSign.DigiPDFSign(fileName, SignedFile, "RIGHT");
-            }
-
-            if (!File.Exists(filePath))
-            {
-                //creating a zip file from one folder to another folder
-                ZipFile.CreateFromDirectory(outFilePath + "/Signed", filePath);
-
-                //Delete The excel file which is created
-
-                string[] str = Directory.GetFiles(outFilePath + "/Signed");
-                foreach (string fileName in str)
-                {
-                    File.Delete(fileName);
-                }
-
-                if (Directory.Exists(outFilePath + "/Signed"))
-                {
-                    Directory.Delete(outFilePath + "/Signed");
-                }
-            }
-
-            FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(filePath, false, 0);
-            string strScipt1 = "";
-
-            strScipt1 = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + filePath.Replace("\\", "/") + 
-                "&qsHelp=Yes', 'newwindow','toolbar=no,location=no,menubar=no,width=900,height=600,resizable=yes,scrollbars=no,top=50,left=50');";
-            
-            ScriptManager.RegisterStartupScript(this, this.GetType(), "ZIP", strScipt1, true);
-
-        }
-        else
-        {
-            // step 1: creation of a document-object
-            Document document = new Document();
-
-            string InFile = outFilePath + "/Combine.pdf";
-            string SignedFile = outFilePath + "/Signed.pdf";
-
-            // step 2: we create a writer that listens to the document
-            PdfCopy writer = new PdfCopy(document, new FileStream(InFile, FileMode.Create));
-            if (writer == null)
-            {
-                return;
-            }
-
-            // step 3: we open the document
-            document.Open();
-
-            foreach (string fileName in fileNames)
-            {
-                // we create a reader for a certain document
-                PdfReader reader = new PdfReader(fileName);
-                reader.ConsolidateNamedDestinations();
-
-                // step 4: we add content
-                for (int i = 1; i <= reader.NumberOfPages; i++)
-                {
-                    PdfImportedPage page = writer.GetImportedPage(reader, i);
-                    writer.AddPage(page);
-                }
-
-                PRAcroForm form = reader.AcroForm;
-                if (form != null)
-                {
-                    writer.CopyAcroForm(reader);
-                }
-                reader.Close();
-            }
-
-            // step 5: we close the document and writer
-            writer.Close();
-            document.Close();
-
-            S3GPdfSign.PDFDigiSign ObjPDFSign = new S3GPdfSign.PDFDigiSign();
             if (Digi_Flag == 1)
-                ObjPDFSign.DigiPDFSign(InFile, SignedFile, "RIGHT");
-            else
-                SignedFile = InFile;
+            {
+                // Setup paths for signed files
+                string signedFolder = Path.Combine(outFilePath, intUserID.ToString(), "Signed");
+                string zipFilePath = Path.Combine(outFilePath, intUserID.ToString(), "Signed.zip");
 
-            FormsAuthenticationTicket Ticket = new FormsAuthenticationTicket(SignedFile, false, 0);
-            string strScipt1 = "";
-            if (SignedFile.Contains("/File.pdf"))
-            {
-                strScipt1 = "window.open('../Common/S3GShowPDF.aspx?qsFileName=" + SignedFile + "', 'newwindow','toolbar=no,location=no,menubar=no,width=900,height=600,resizable=yes,scrollbars=no,top=50,left=50');";
+                // Create Signed directory if it doesn't exist
+                Directory.CreateDirectory(signedFolder);
+
+                // Delete existing zip if present
+                if (File.Exists(zipFilePath)) File.Delete(zipFilePath);
+
+                // Sign the PDFs
+                S3GPdfSign.PDFDigiSign pdfSign = new S3GPdfSign.PDFDigiSign();
+                foreach (string fileName in fileNames)
+                {
+                    string signedFilePath = Path.Combine(signedFolder, Path.GetFileName(fileName));
+                    pdfSign.DigiPDFSign(fileName, signedFilePath, DigiPosition);
+                }
+
+                // Create zip file from signed folder
+                if (!File.Exists(zipFilePath))
+                {
+                    ZipFile.CreateFromDirectory(signedFolder, zipFilePath);
+                    // Clean up signed files and folder
+                    Directory.GetFiles(signedFolder).ToList().ForEach(File.Delete);
+                    Directory.Delete(signedFolder);
+                }
+
+                // Trigger download
+                OpenDownloadPage(zipFilePath);
             }
             else
             {
-                strScipt1 = "window.open('../Common/S3GDownloadPage.aspx?qsFileName=" + SignedFile.Replace("\\", "/") + "&qsHelp=Yes', 'newwindow','toolbar=no,location=no,menubar=no,width=900,height=600,resizable=yes,scrollbars=no,top=50,left=50');";
+                // Combine PDFs into a single document
+                Document document = new Document();
+                PdfCopy writer = new PdfCopy(document, new FileStream(inFile, FileMode.Create));
+
+                if (writer == null) return;
+
+                try
+                {
+                    document.Open();
+                    foreach (string fileName in fileNames)
+                    {
+                        PdfReader reader = new PdfReader(fileName);
+                        reader.ConsolidateNamedDestinations();
+
+                        // Import each page and add to the final document
+                        for (int i = 1; i <= reader.NumberOfPages; i++)
+                        {
+                            PdfImportedPage page = writer.GetImportedPage(reader, i);
+                            writer.AddPage(page);
+                        }
+
+                        // Copy form fields
+                        if (reader.AcroForm != null) writer.CopyAcroForm(reader);
+
+                        reader.Close();
+                    }
+                }
+                finally
+                {
+                    // Make sure to close the document and writer
+                    writer.Close();
+                    document.Close();
+                }
+
+                // Sign the final combined document
+                if (Digi_Flag == 1)
+                {
+                    S3GPdfSign.PDFDigiSign pdfSign = new S3GPdfSign.PDFDigiSign();
+                    pdfSign.DigiPDFSign(inFile, signedFile, DigiPosition);
+                }
+                else
+                {
+                    signedFile = inFile;
+                }
+
+                // Trigger appropriate download or view action
+                OpenDownloadPage(signedFile);
             }
-            ScriptManager.RegisterStartupScript(this, this.GetType(), "PDF", strScipt1, true);
+        }
+        catch (Exception ex)
+        {
+            // Handle errors (you may want to log the error or display a message)
+            throw new ApplicationException("Error while combining PDFs", ex);
         }
     }
 
+    private void OpenDownloadPage(string filePath)
+    {
+        string script = string.Format("window.open('../Common/S3GDownloadPage.aspx?qsFileName={0}&qsHelp=Yes', 'newwindow','toolbar=no,location=no,menubar=no,width=900,height=600,resizable=yes,scrollbars=no,top=50,left=50');", filePath.Replace("\\", "/"));
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "PDFDownload", script, true);
+    }
 
-
-
-
-
+    ///Balu End////
     private void GetPDFFilesall()
     {
         try
